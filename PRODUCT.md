@@ -1,0 +1,52 @@
+# Product
+
+## Platform
+
+web
+
+## Stack
+
+Next.js (App Router), TypeScript, Tailwind v4, Postgres for the later app. GSAP, Lenis and React Bits for motion and components (user-chosen). Payments via Razorpay (user-chosen, not yet integrated).
+
+## Users
+
+Indian YouTube creators who go live (gaming, chat, IRL), live streamers first. Their fans: viewers who want to tip from a link with UPI or a card, without making an account.
+
+## Product Purpose
+
+A tipping website for YouTube creators in the spirit of Hyperchat, StreamTips and SuperTips. Creators get a public page at a short link and fans pay a tip from it. Each tip shows up on the creator's live stream as an OBS alert, with the fan's message read out by text-to-speech. This surface is the pre-launch landing page that explains the product to creators.
+
+Scope for now (owner, 2026-10-13): the landing page only. The fan tip page, the creator dashboard and the backend are not being built yet.
+
+## Positioning
+
+UPI-first tipping for Indian YouTube live streamers: fans pay from the streamer's page with UPI or a card, with no account, and each tip lands on stream as an OBS alert with the message read out loud.
+
+## Capabilities and Constraints
+
+Confirmed by the owner: UPI and card tips from a creator's page with no fan account, and payments through Razorpay with INR payouts. Added on 2026-10-13: OBS live alerts, text-to-speech readout of the fan's message, and a platform fee of 5% of every tip.
+
+Not confirmed, so the page must not name them as features: paid highlighted messages (the owner has not mentioned them), creator dashboard details, payout timing, and whether payment-gateway (Razorpay) charges sit inside the 5% or on top of it. The page states the fee only as "We take 5% of every tip."
+
+Fan Name and Message: the OBS alert shows the fan's name, the amount and the message, and text-to-speech reads the message aloud, so the sample tip card keeps its optional Name and Message fields. The owner asked what these fields mean and then asked for alerts and text-to-speech, so the fields stay. They appear only inside labeled samples. Still open: whether they are optional, a message length limit, and moderation of what text-to-speech reads aloud on a live stream.
+
+Undecided: product name (placeholder "Tipsite"), domain, payout schedule, sign-up mechanism (waitlist or Google login).
+
+## Brand Commitments
+
+User-pinned: dark and flat surfaces with one sharp accent colour. The page must not look AI-generated or templated; the user wants a premium feel with smooth animation built on GSAP, Lenis and React Bits.
+
+## Evidence on Hand
+
+The one fact on hand is the owner-set fee: 5% of every tip. No customers, testimonials, creator photos, logo or payout data exist yet. Future work must not fabricate them, and any sample content must be labeled as a sample.
+
+## Product Principles
+
+1. Name only capabilities the owner has confirmed. Anything not confirmed stays off the page.
+2. Say what happens to the money in plain words, and never print a number the business has not set.
+3. The fan's path from link to paid is short, and the page proves it by showing it working.
+4. Premium means restraint and craft, not effects.
+
+## Accessibility & Inclusion
+
+Honor prefers-reduced-motion everywhere motion is used. Meet WCAG AA contrast. Keep the page light enough for mid-range Android phones on mobile data (inferred from the Indian audience, not confirmed).

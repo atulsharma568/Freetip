@@ -1,0 +1,293 @@
+---
+name: Tipsite
+description: A dark, flat tipping page for Indian YouTube streamers. One acid-lime accent is spent as full fields at the moment a tip lands.
+colors:
+  ground: "oklch(0.155 0.008 115)"
+  surface: "oklch(0.205 0.009 115)"
+  raised: "oklch(0.26 0.01 115)"
+  line: "oklch(0.36 0.01 115)"
+  control: "oklch(0.52 0.011 115)"
+  muted: "oklch(0.74 0.01 110)"
+  text: "oklch(0.95 0.006 110)"
+  accent: "#bfe84a"
+  ink: "oklch(0.2 0.025 120)"
+typography:
+  display:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "clamp(3.25rem, 9vw, 6rem)"
+    fontWeight: 800
+    lineHeight: 0.98
+    letterSpacing: "-0.015em"
+    fontVariation: "'wdth' 82"
+  headline:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "clamp(2.5rem, 6vw, 4.5rem)"
+    fontWeight: 800
+    lineHeight: 0.98
+    letterSpacing: "-0.015em"
+    fontVariation: "'wdth' 82"
+  title:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "clamp(2.25rem, 4vw, 3rem)"
+    fontWeight: 800
+    lineHeight: 0.98
+    letterSpacing: "-0.015em"
+    fontVariation: "'wdth' 82"
+  body:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 400
+    lineHeight: "1.75rem"
+  button:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 600
+    lineHeight: "1.5rem"
+  label:
+    fontFamily: "Bricolage Grotesque, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 500
+    lineHeight: "1.25rem"
+  amount:
+    fontFamily: "Geist Mono, ui-monospace, monospace"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: "1.5rem"
+    fontFeature: "'tnum'"
+  numeral:
+    fontFamily: "Geist Mono, ui-monospace, monospace"
+    fontSize: "clamp(4.5rem, 18vw, 7rem)"
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: "-0.025em"
+    fontFeature: "'tnum'"
+rounded:
+  field: "12px"
+  surface: "20px"
+  pill: "9999px"
+spacing:
+  gutter: "24px"
+  tile-gap: "16px"
+  heading-gap: "64px"
+  heading-gap-wide: "96px"
+  section: "128px"
+  section-wide: "192px"
+components:
+  button-primary:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+    typography: "{typography.button}"
+    rounded: "{rounded.pill}"
+    height: "56px"
+    padding: "0 32px"
+  button-primary-compact:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    height: "40px"
+    padding: "0 20px"
+  button-ink:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.accent}"
+    typography: "{typography.button}"
+    rounded: "{rounded.pill}"
+    height: "64px"
+    padding: "0 32px"
+  button-outline-ink:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    height: "44px"
+    padding: "0 20px"
+  button-outline-ink-hover:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.accent}"
+  chip:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    typography: "{typography.amount}"
+    rounded: "{rounded.pill}"
+    height: "48px"
+  chip-selected:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+  field:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.field}"
+    height: "48px"
+    padding: "0 16px"
+  field-handle:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.amount}"
+    rounded: "{rounded.pill}"
+    height: "64px"
+    padding: "0 24px"
+  card-tip:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.surface}"
+    padding: "24px"
+  tile-accent:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.surface}"
+    padding: "32px"
+  tile-surface:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.surface}"
+    padding: "32px"
+  tile-raised:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.surface}"
+    padding: "32px"
+  nav-scrolled:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.muted}"
+    height: "64px"
+---
+
+# Design System: Tipsite
+
+## Overview
+
+**Creative North Star: "The Moment It Lands"**
+
+The whole system is a dark room with one light that switches on when money arrives. Almost everything is warm near-black, off-white type and hairlines. The single acid-lime accent is held back and then spent in full fields: the tip card flooding lime on success, the stream alert, the UPI tile, the closing section. Lime reads as an event, not a decoration.
+
+It is flat and exact. There are no shadows, gradients, glows or blurs. Depth comes from three tonal steps, and the lime fields are the loudest layer. Type does the personality work: a condensed, heavy Bricolage Grotesque for headlines, the same family at normal width for sentences, and Geist Mono reserved for money and the handle. Motion exists to demonstrate the product. A sample card plays itself and lights the headline beats, a sample stream alert lights its message word by word, and every motion is gated off under reduced motion.
+
+The owner pinned the direction as dark, flat and one sharp accent, and the page must not look AI-generated or templated. The system refuses the streamer-tool default of neon glow, mesh gradients and grids of feature cards.
+
+**Key Characteristics:**
+- Warm-tinted near-black ground with off-white text. One lime accent plus its dark ink, and no second hue.
+- Lime is spent as full fields or solid pills, never as glow, gradient, outline or tint.
+- One sans family at two widths (82% for display, 100% for text) plus a mono for money.
+- Flat at rest: no shadows. Three tonal steps and 1px hairlines carry structure.
+- Pills for actions, 20px surfaces, 12px inputs.
+- Motion is demonstration: expo-out reveals, a self-playing card, reduced motion honored.
+
+## Colors
+
+A warm, olive-tinted neutral ladder (hue 110 to 120) with one acid-lime accent and the near-black ink that sits on it.
+
+### Primary
+- **Acid Lime** (#bfe84a, oklch(0.873 0.185 122.9)): The only accent. It fills whole areas: the tip card's success state, the stream alert, the UPI tile, the closing section. It also fills every primary pill, the selected chip, the avatar and the lit headline beat. It is the selection highlight, text caret and default focus ring on dark surfaces.
+
+### Neutral
+- **Warm Night** (oklch(0.155 0.008 115), about #0c0d09): Page ground and the well behind form fields.
+- **Card Dusk** (oklch(0.205 0.009 115), about #171813): Surfaces: the sample tip card and the Cards tile.
+- **Raised Smoke** (oklch(0.26 0.01 115), about #24251f): The one raised tile ("What it costs"), a quiet step above surface.
+- **Hairline** (oklch(0.36 0.01 115), about #3d3e38): Decorative lines only: nav and footer rules, FAQ and step dividers, tile borders. It measures 1.8:1 on ground by design and is never a control edge.
+- **Control Edge** (oklch(0.52 0.011 115), about #686a63): Borders of interactive controls, meaning fields and unselected chips. It measures 3.56:1 on ground and 3.26:1 on surface.
+- **Ash** (oklch(0.74 0.01 110), about #ababa4): Secondary text: sublines, labels, placeholders, nav links. It measures 8.5:1 on ground, 7.8:1 on surface and 6.7:1 on raised.
+- **Chalk** (oklch(0.95 0.006 110), about #eeefea): Primary text and headlines. It measures 16.9:1 on ground.
+- **Field Ink** (oklch(0.2 0.025 120), about #14180b): Text, borders and fills on lime. It measures 12.8:1 on Acid Lime. Secondary ink on lime (prefix, placeholder) is Field Ink at 85%, which measures 4.6:1.
+
+### Named Rules
+**The Full Field Rule.** Lime is a surface, not a highlight. It fills a whole tile, card state, section or solid pill. It never glows, fades, outlines or tints.
+
+**The Ink-On-Lime Rule.** Everything that sits on lime is Field Ink: text, borders, icons, buttons and keyboard focus rings. The `on-accent` wrapper flips the ring from lime to ink. Chalk and Ash never appear on lime.
+
+**The Edge Rule.** Hairline separates and Control Edge identifies. A line a user must see to find or press a control uses Control Edge. Hairline is decoration only.
+
+## Typography
+
+**Display Font:** Bricolage Grotesque at 82% width, weight 800 (fallback system-ui)
+**Body Font:** Bricolage Grotesque at 100% width, automatic optical size, weights 400 to 600
+**Label/Mono Font:** Geist Mono with tabular figures, for amounts and the handle only
+
+**Character:** One characterful grotesque stretched two ways: a condensed black voice for headlines and plain-spoken regular-width sentences. The mono appears only where numbers matter, so money looks like money.
+
+### Hierarchy
+- **Display** (800, clamp(3.25rem, 9vw, 6rem), 0.98): Hero beats, the closing headline and step verbs. Tracking -0.015em, word spacing +0.03em, balanced wrapping.
+- **Headline** (800, clamp(2.5rem, 6vw, 4.5rem), 0.98): Section titles.
+- **Title** (800, clamp(2.25rem, 4vw, 3rem), 0.98): Tile titles such as "Cards" and "What it costs".
+- **Body** (400, 1.125rem to 1.25rem, 1.75rem): Sublines and answers, pretty wrapping, measure 34ch to 56ch. FAQ questions use the same face at 600 and 1.25rem to 1.5rem.
+- **Button** (600, 1rem, 1.5rem): Every button label.
+- **Label** (500, 0.875rem, 1.25rem): Field and group labels, nav links, footer.
+- **Amount** (400, 1rem, Geist Mono): Amount chips and the handle field.
+- **Numeral** (600, clamp(4.5rem, 18vw, 7rem), 1, -0.025em, Geist Mono): The success amount on the tip card and the amount on the stream alert, larger than every headline on its screen. The UPI tile lettering (up to 11rem) is a one-off graphic and not a type role.
+
+### Named Rules
+**The Money-In-Mono Rule.** Amount chips, the success numeral, the alert amount and the handle field are Geist Mono. Running text and button labels are not.
+
+**The Two-Widths Rule.** One sans family only: 82% width at weight 800 for display, 100% width for everything else. Never add a second sans or a serif.
+
+## Layout
+
+One container, `max-w-7xl` (1280px) with 24px side gutters, on a 12-column grid from md up. The hero is a full-viewport two-column grid (7/5 at lg) with the headline bottom-anchored on the left and a 26rem card starting higher on the right. Sections stack with 128px of space below (192px from md) and 64px between a section title and its content (96px from md). On stream is a 5/7 split with the copy on the left and the alert tile on the right. Fees is a 12-column bento: the UPI tile takes 7 columns across two rows and the other two tiles share 5. The FAQ is a 5/7 split with a sticky title. The nav is fixed at 64px and anchors use a 96px scroll margin.
+
+Below md the nav drops its links, leaving wordmark and claim pill. The hero stacks copy above the card, the closing form stacks field over button, and the closing section's scroll expansion is disabled. The closing section is a full-bleed lime field that, from md up and with motion allowed, expands from an inset rounded shape to full width as it scrolls into view.
+
+## Elevation & Depth
+
+Flat. There is no box-shadow, text-shadow, gradient, glow or backdrop blur anywhere. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is solid Warm Night with a 60% Hairline bottom rule, so content never ghosts through it and it holds its edge over a lime field.
+
+### Named Rules
+**The Flat At Rest Rule.** Nothing casts a shadow. If a layer must stand apart, use the next tonal step or a Hairline. If it must be the event, make it a lime field.
+
+## Shapes
+
+Three radii and no others: pill (9999px) for every action control (buttons, chips, the handle field), 20px for surfaces (the tip card, the stream alert and the fee tiles), and 12px for text inputs. Borders are 1px. The only 2px borders are Field Ink outlines on lime: the closing handle field and "Tip again". Clip-path is a motion device (the circle flood on success, top-down tile wipes, the closing expansion), not a static silhouette.
+
+The closing handle field is a pill instead of 12px because it sits beside a pill button. This is a deliberate, documented exception.
+
+## Components
+
+### Buttons
+- **Shape:** Pill (9999px). Heights: 40px in the nav, 56px for the hero CTA and the card submit, 64px for the closing submit, 44px for "Tip again".
+- **Primary:** Acid Lime fill, Field Ink text, 600 weight, 32px side padding (20px and 14px type in the nav). The hero CTA carries a bold Phosphor arrow.
+- **Ink:** On lime fields, Field Ink fill with Acid Lime text (the closing submit).
+- **Outline Ink:** Transparent with a 2px Field Ink border. Hover fills Field Ink with Acid Lime text ("Tip again").
+- **Hover / Focus:** Press scales to 0.97 (0.98 on the full-width card submit) over 200ms. A magnetic pull applies on hover-capable pointers only. Focus is a 2px ring offset 3px, lime on dark and ink on lime.
+- **Text link:** Chalk with a 1px Hairline underline at 0.25em offset. The underline turns lime on hover.
+
+### Chips
+- **Style:** Pill, 1px Control Edge border, Chalk text. Amount chips are 48px and Geist Mono, payment-method chips are 44px and use the label face.
+- **State:** Selected chips fill Acid Lime with Field Ink text, a lime border and weight 600. Hover on an unselected chip brightens its border to Ash. Both groups are real radio inputs beneath the chips with a visible focus ring.
+
+### Cards / Containers
+- **Corner Style:** 20px.
+- **Background:** Card Dusk with a 1px Hairline border at 60% for the tip card, Card Dusk with a full Hairline for the Cards tile, Raised Smoke for the cost tile, Acid Lime for the UPI tile and the stream alert.
+- **Shadow Strategy:** None (see Elevation & Depth).
+- **Internal Padding:** 24px in the tip card, 32px in tiles and the stream alert (40px from md).
+
+### Inputs / Fields
+- **Style:** 48px high, 12px radius, Warm Night fill, 1px Control Edge border, Chalk text, Ash placeholder, 16px side padding.
+- **Focus:** The border turns Acid Lime and the global 2px ring appears. The closing handle is a 64px pill outlined in 2px Field Ink with the focus ring drawn on its wrapper.
+- **Error / Disabled:** An invalid handle sets `aria-invalid` and shows one plain sentence in a polite status region below the field. There is no red.
+
+### Navigation
+- **Style:** Fixed, 64px. Transparent at the top, solid Warm Night with a Hairline rule once scrolled, and it stays that way at the bottom of the page. Wordmark in Display, links in Ash at 14px turning Chalk on hover, one lime pill at the right.
+- **Mobile:** Links are removed below md.
+
+### Tip Card (signature component)
+The self-playing sample. It carries the line "Sample page. No payment is taken." and plays a scripted tip once: it picks 250, types a name and a short message, and lights the three headline beats in turn. It starts when the card is half in view (at once beside the headline on desktop, after a short scroll on stacked layouts). It then floods Acid Lime from the bottom of the card with an amount counting up from 0, a Field Ink badge and a short ink spark burst fanned above the badge. Any pointer or focus kills the demo and hands over control. While the success state shows, the form is inert and keyboard focus moves to "Tip again", which resets the card and returns focus to the chosen amount.
+
+### Stream Alert
+The sample of what viewers see on a streamer's stream when a tip lands. It is a full Acid Lime tile in the On stream section, labeled "Sample alert. Nothing is sent to a stream." Everything on it is Field Ink: the fan's name with "tipped", the amount as a Numeral, and the message beside a bold speaker icon. It plays the same sample tip as the hero card, kept in one shared object so the two cannot drift. Once, as the tile scrolls into view, it wipes in from its top edge. Then the message lights one word at a time as text-to-speech would read it: a Field Ink pill with Acid Lime text that snaps from word to word with no fade, then clears. Under reduced motion the tile is static and no word lights. The tile is a labeled group and the message stays plain text, so the lit pill is decoration only.
+
+### Accordion
+FAQ rows have 24px vertical padding and Hairline dividers. Questions are 600 weight in the body face, with a bold Plus that rotates 45 degrees over 500ms. Answers expand by grid-rows with expo-out easing, and question hover turns lime.
+
+## Do's and Don'ts
+
+### Do:
+- **Do** spend Acid Lime as a full field or a solid pill, and put Field Ink on it.
+- **Do** draw control edges with the Control Edge token and decoration with Hairline.
+- **Do** keep text on Warm Night at Ash or brighter (8.5:1 or better).
+- **Do** wrap lime fields in `on-accent` so keyboard focus rings flip to ink.
+- **Do** set headlines at 82% width and weight 800 with balanced wrapping, and body at 100% width.
+- **Do** gate every motion on `prefers-reduced-motion: no-preference` and leave a static equivalent.
+- **Do** label sample content as a sample wherever it appears.
+
+### Don't:
+- **Don't** add shadows, gradients, glows, blurs or a second accent hue.
+- **Don't** use Hairline for the edge of anything a user must find or press.
+- **Don't** set Chalk or Ash text on Acid Lime.
+- **Don't** set mono outside amounts and the handle.
+- **Don't** add a second sans family or a serif.
