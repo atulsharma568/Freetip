@@ -228,6 +228,97 @@ html.lenis body {
   height: 100%;
 }
 
+/* Legal and policy pages: readable long-form text. */
+.legal {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--color-muted);
+}
+
+.legal h2 {
+  margin-top: 3.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.legal section:first-child h2 {
+  margin-top: 0;
+}
+
+.legal h3 {
+  margin-top: 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.legal p,
+.legal ul,
+.legal ol,
+.legal dl,
+.legal table {
+  margin-top: 1rem;
+}
+
+.legal > :first-child {
+  margin-top: 0;
+}
+
+.legal ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.legal ol {
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
+.legal li + li {
+  margin-top: 0.5rem;
+}
+
+.legal li::marker {
+  color: var(--color-control);
+}
+
+.legal strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.legal a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line);
+  transition: text-decoration-color 200ms;
+}
+
+.legal a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+.legal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.legal th,
+.legal td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--color-line) 60%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal th {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 /* ---- Glow components (owner-approved exception to the flat rule,
    2026-10-14). Glow is always lime, and only on these pieces: the glass
    orb and chrome buttons, the plasma switch, the handle field, the uplink

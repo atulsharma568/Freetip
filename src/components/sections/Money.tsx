@@ -3,16 +3,17 @@
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
+import { FEES } from "@/lib/legal";
 
-// Worked example for a ₹100 tip. Razorpay's standard rate (2% + 18% GST on
-// that fee, Oct 2026) is paid by the creator out of the payout, on top of
-// our 5%. Fans always pay exactly the tip.
+// Worked example for a ₹100 tip (lib/legal.ts): Razorpay's charge is paid
+// by the creator out of the payout, on top of our 5%. Fans always pay
+// exactly the tip.
 const EXAMPLE = [
-  { label: "Fan tips", value: "₹100.00" },
-  { label: "Our fee (5%)", value: "−₹5.00" },
-  { label: "Razorpay (2% + GST)", value: "−₹2.36" },
+  { label: "Fan tips", value: FEES.example.tip },
+  { label: `Our fee (${FEES.platformPercent}%)`, value: FEES.example.platform },
+  { label: `Razorpay (${FEES.gatewayPercent}% + GST)`, value: FEES.example.gateway },
 ];
-const KEEP = "₹92.64";
+const KEEP = FEES.example.keep;
 
 export function Money() {
   const root = useRef<HTMLElement>(null);

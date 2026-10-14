@@ -27,7 +27,7 @@ export default function Home() {
         <Faq />
         <Closer />
       </main>
-      <Footer />
+      <Footer onHome />
     </>
   );
 }
