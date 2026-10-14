@@ -166,6 +166,68 @@ html.lenis body {
   }
 }
 
+/* Letter roll (RollText): each letter shows a copy of itself below; on hover
+   or keyboard focus of the link or button, the letters roll up one after
+   another and land on the same label. */
+.roll {
+  display: inline-flex;
+  align-items: flex-start;
+  height: 1.3em;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.roll > span {
+  display: inline-block;
+  white-space: pre;
+  transition: transform 550ms var(--ease-out-expo);
+  transition-delay: calc(var(--i, 0) * 16ms);
+}
+
+.roll > span::after {
+  content: attr(data-char);
+  display: block;
+}
+
+:is(a, button):focus-visible .roll > span {
+  transform: translateY(-50%);
+}
+
+@media (hover: hover) {
+  :is(a, button):hover .roll > span {
+    transform: translateY(-50%);
+  }
+}
+
+/* Stepped ticks (TickLoader): each tick switches on at its own step and
+   stays on. */
+@keyframes tick-on {
+  to {
+    opacity: 1;
+  }
+}
+
+.ticks {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 1em;
+}
+
+.ticks > span {
+  width: 3px;
+  height: 60%;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.25;
+  animation: tick-on 1ms step-end forwards;
+  animation-delay: calc(var(--i, 0) * var(--tick-step, 75ms));
+}
+
+.ticks > span:nth-child(4n + 1) {
+  height: 100%;
+}
+
 @keyframes enter {
   from {
     opacity: 0;

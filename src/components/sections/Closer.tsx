@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { Magnetic } from "@/components/motion/Magnetic";
+import { RollText } from "@/components/motion/RollText";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { SITE_HOST } from "@/lib/site";
 
@@ -102,7 +103,7 @@ export function Closer() {
                   type="submit"
                   className="beam h-16 w-full rounded-full bg-ink px-8 text-base font-semibold text-accent transition-transform duration-200 [--beam-inset:5px] active:scale-[0.97] sm:w-auto"
                 >
-                  Claim your handle
+                  <RollText>Claim your handle</RollText>
                 </button>
               </Magnetic>
             </div>

@@ -5,12 +5,17 @@ import { ArrowCounterClockwise, Check } from "@phosphor-icons/react";
 import ClickSpark, {
   type ClickSparkHandle,
 } from "@/components/react-bits/ClickSpark";
+import { RollText } from "@/components/motion/RollText";
+import { Switch } from "@/components/ui/Switch";
+import { TickLoader } from "@/components/ui/TickLoader";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { INK_HEX, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
 
 const AMOUNTS = [50, 100, 250, 500];
 const DEMO_NAME = SAMPLE_TIP.name;
 const DEMO_MESSAGE = SAMPLE_TIP.message;
+// How long the button shows "Sending" before the success state.
+const SEND_MS = 1100;
 
 type Method = "upi" | "card";
 type Beat = 0 | 1 | 2 | 3;
@@ -36,7 +41,10 @@ export function TipCard({
 
   const [amount, setAmount] = useState(100);
   const [method, setMethod] = useState<Method>("upi");
+  const [anonymous, setAnonymous] = useState(false);
+  const [sending, setSending] = useState(false);
   const [paid, setPaid] = useState(false);
+  const sendTimer = useRef<number | undefined>(undefined);
 
   const amountRef = useRef(amount);
   useEffect(() => {
@@ -58,7 +66,10 @@ export function TipCard({
   }, [ready]);
 
   const reset = () => {
+    window.clearTimeout(sendTimer.current);
+    setSending(false);
     setPaid(false);
+    setAnonymous(false);
     setAmount(100);
     setMethod("upi");
     if (nameRef.current) nameRef.current.value = "";
@@ -73,10 +84,31 @@ export function TipCard({
     reset();
   };
 
+  // A short "Sending" beat with stepped ticks, then the success state.
+  // Reduced motion skips straight to success.
+  const send = () => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setPaid(true);
+      return;
+    }
+    setSending(true);
+    sendTimer.current = window.setTimeout(() => {
+      setSending(false);
+      setPaid(true);
+    }, SEND_MS);
+  };
+
+  useEffect(() => () => window.clearTimeout(sendTimer.current), []);
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     userAction.current = "submit";
-    setPaid(true);
+    send();
+  };
+
+  const onAnonymous = (on: boolean) => {
+    setAnonymous(on);
+    if (on && nameRef.current) nameRef.current.value = "";
   };
 
   const tipAgain = () => {
@@ -138,8 +170,8 @@ export function TipCard({
             },
             "+=0.2",
           )
-          .call(() => setPaid(true), undefined, "+=0.7")
-          .call(() => onBeat(3), undefined, "+=0.5")
+          .call(send, undefined, "+=0.7")
+          .call(() => onBeat(3), undefined, `+=${SEND_MS / 1000 + 0.5}`)
           .to({}, { duration: 3.6 })
           .call(() => {
             demo.current = null;
@@ -258,7 +290,7 @@ export function TipCard({
         onFocusCapture={stopDemo}
         className="relative overflow-hidden rounded-surface border border-line/60 bg-surface p-6"
       >
-        <p className="mb-5 text-sm text-muted">Sample page. No payment is taken.</p>
+        <p className="mb-4 text-sm text-muted">Sample page. No payment is taken.</p>
         <header className="flex items-center gap-3">
           <span
             aria-hidden="true"
@@ -276,8 +308,8 @@ export function TipCard({
 
         <form
           onSubmit={onSubmit}
-          inert={paid}
-          className="mt-6 space-y-5"
+          inert={paid || sending}
+          className="mt-5 space-y-4"
           autoComplete="off"
         >
           <fieldset>
@@ -301,7 +333,7 @@ export function TipCard({
             </div>
           </fieldset>
 
-          <div className="grid gap-5 sm:grid-cols-[1fr_1.6fr]">
+          <div className="grid gap-4 sm:grid-cols-[1fr_1.6fr]">
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-muted">
                 Name (optional)
@@ -311,8 +343,9 @@ export function TipCard({
                 name="name"
                 type="text"
                 maxLength={30}
-                placeholder="Optional / anonymous"
-                className={fieldClass}
+                disabled={anonymous}
+                placeholder={anonymous ? "Anonymous" : "Your name"}
+                className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-50`}
               />
             </label>
             <label className="block">
@@ -328,6 +361,13 @@ export function TipCard({
                 className={fieldClass}
               />
             </label>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="tip-anonymous" className="cursor-pointer text-sm font-medium">
+              Tip anonymously
+            </label>
+            <Switch id="tip-anonymous" checked={anonymous} onChange={onAnonymous} />
           </div>
 
           <fieldset>
@@ -352,15 +392,22 @@ export function TipCard({
           </fieldset>
 
           <p className="text-sm leading-5 text-muted">
-            No account or email needed. Leave your name blank to stay anonymous.
-            Messages are screened and only read out after creator approval.
+            No account or email needed. Messages are screened and only read out
+            after creator approval.
           </p>
 
           <button
             type="submit"
-            className="h-14 w-full rounded-full bg-accent text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.98]"
+            className="on-accent inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.98]"
           >
-            Tip ₹{amount} with {method === "upi" ? "UPI" : "card"}
+            {sending ? (
+              <>
+                <span>Sending ₹{amount}</span>
+                <TickLoader duration={(SEND_MS - 200) / 1000} />
+              </>
+            ) : (
+              <RollText>{`Tip ₹${amount} with ${method === "upi" ? "UPI" : "card"}`}</RollText>
+            )}
           </button>
         </form>
 

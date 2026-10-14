@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SITE_NAME } from "@/lib/site";
+import { RollText } from "@/components/motion/RollText";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
@@ -58,7 +59,7 @@ export function Nav() {
           href="#claim"
           className="inline-flex h-10 items-center rounded-full bg-accent px-5 text-sm font-semibold text-ink transition-transform duration-200 active:scale-[0.97]"
         >
-          Claim your handle
+          <RollText>Claim your handle</RollText>
         </a>
       </div>
     </header>

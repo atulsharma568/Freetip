@@ -249,6 +249,15 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 - **Text link:** Chalk with a 1px Hairline underline at 0.25em offset. The underline turns lime on hover.
 - **Beam:** A solid lime segment with hard ends runs around the pill once every 1.6s while it is hovered (hover-capable pointers) or keyboard-focused, and fades out when left. It is the `.beam` class in `globals.css`: a hard-stop conic gradient masked to a 2px ring, so it draws one flat segment, never a blend or glow. Under reduced motion the full ring lights up and holds still. Used on the hero's secondary "See how it works" (a 56px pill with a 1px Hairline border, beam on the edge) and on the closing ink submit (beam inset 5px so it stays inside the ink pill against the lime field). Never on the primary lime buttons. The idea came from a reference "gradient beam" button, rebuilt flat in our palette; no third-party code is used.
 
+- **Letter roll:** Pill button labels roll up letter by letter (16ms stagger, 550ms expo) on hover or keyboard focus and land on the same label (`RollText` + `.roll`). The hero CTA arrow nudges up-right at the same time. Screen readers get the plain label. Used on the nav, hero and closing CTAs and the card submit.
+- **Sending state:** The card submit shows "Sending ₹amount" with a stepped-ticks loader for about 1.1s before the success flood. Reduced motion skips straight to success.
+
+### Switch
+A flat on/off switch (`Switch`, `role="switch"`): 48 by 28px pill. Off is a Smoke Control outline on Warm Night with a muted thumb; on fills Acid Lime with a Field Ink thumb that slides across over 300ms expo. The thumb stretches while pressed. Labelled with a visible `<label>`. In the sample card it is "Tip anonymously": on clears and disables the name field, which then reads "Anonymous".
+
+### Stepped-ticks loader
+`TickLoader`: a row of 3px ticks in currentColor (every fourth taller, like gauge marks) that switch on one step at a time from 25% to full and hold. Ink on lime in the card submit; it can be lime on dark elsewhere. Decorative only, always next to words saying what is happening. Adapted flat from a reference "uplink" loader: no neon, scanlines or grain.
+
 ### Chips
 - **Style:** Pill, 1px Control Edge border, Chalk text. Amount chips are 48px and Geist Mono, payment-method chips are 44px and use the label face.
 - **State:** Selected chips fill Acid Lime with Field Ink text, a lime border and weight 600. Hover on an unselected chip brightens its border to Ash. Both groups are real radio inputs beneath the chips with a visible focus ring.

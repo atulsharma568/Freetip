@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import { Magnetic } from "@/components/motion/Magnetic";
+import { RollText } from "@/components/motion/RollText";
 import { HeroHands } from "./HeroHands";
 import { TipCard } from "./TipCard";
 
@@ -44,17 +45,21 @@ export function Hero() {
             <Magnetic>
               <a
                 href="#claim"
-                className="inline-flex h-14 items-center gap-2 rounded-full bg-accent px-8 text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.97]"
+                className="group inline-flex h-14 items-center gap-2 rounded-full bg-accent px-8 text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.97]"
               >
-                Claim your handle
-                <ArrowUpRight weight="bold" aria-hidden="true" />
+                <RollText>Claim your handle</RollText>
+                <ArrowUpRight
+                  weight="bold"
+                  aria-hidden="true"
+                  className="transition-transform duration-500 ease-out-expo group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-focus-visible:-translate-y-0.5 group-focus-visible:translate-x-0.5"
+                />
               </a>
             </Magnetic>
             <a
               href="#how"
               className="beam inline-flex h-14 items-center rounded-full border border-line px-8 text-base font-semibold text-text"
             >
-              See how it works
+              <RollText>See how it works</RollText>
             </a>
           </div>
         </div>
