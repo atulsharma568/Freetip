@@ -7,6 +7,7 @@ import ClickSpark, {
 } from "@/components/react-bits/ClickSpark";
 import { RollText } from "@/components/motion/RollText";
 import { Switch } from "@/components/ui/Switch";
+import { Odometer, reelTarget } from "@/components/ui/Odometer";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { INK_HEX, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
@@ -32,7 +33,6 @@ export function TipCard({
   const entered = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLInputElement>(null);
-  const totalRef = useRef<HTMLSpanElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
   const tipAgainRef = useRef<HTMLButtonElement>(null);
   const sparkRef = useRef<ClickSparkHandle>(null);
@@ -201,9 +201,9 @@ export function TipCard({
     () => {
       if (!paid) return;
       const field = successRef.current;
-      const total = totalRef.current;
-      if (!field || !total) return;
-      const target = amountRef.current;
+      if (!field) return;
+      const reels = gsap.utils.toArray<HTMLElement>("[data-reel]", field);
+      const land = (reel: HTMLElement) => reelTarget(Number(reel.dataset.digit));
 
       const mm = gsap.matchMedia();
       mm.add(
@@ -213,12 +213,10 @@ export function TipCard({
         },
         (context) => {
           if (context.conditions?.reduce) {
-            total.textContent = `₹${target}`;
+            reels.forEach((reel) => gsap.set(reel, { yPercent: land(reel) }));
             return;
           }
-          total.textContent = "₹0";
-          const counter = { value: 0 };
-          gsap
+          const tl = gsap
             .timeline()
             .fromTo(
               field,
@@ -231,18 +229,7 @@ export function TipCard({
               { y: 0, opacity: 1, duration: 0.7, ease: "expo.out", stagger: 0.07 },
               0.25,
             )
-            .to(
-              counter,
-              {
-                value: target,
-                duration: 0.9,
-                ease: "power2.out",
-                onUpdate: () => {
-                  total.textContent = `₹${Math.round(counter.value)}`;
-                },
-              },
-              0.3,
-            )
+
             .call(
               () => {
                 const badge = field.querySelector("[data-badge]");
@@ -258,6 +245,16 @@ export function TipCard({
               undefined,
               0.5,
             );
+          // Odometer: every reel spins a full turn and lands on its digit, the
+          // rightmost last, like a meter settling.
+          reels.forEach((reel, i) => {
+            tl.fromTo(
+              reel,
+              { yPercent: 0 },
+              { yPercent: land(reel), duration: 0.75 + i * 0.12, ease: "power3.out" },
+              0.25,
+            );
+          });
         },
       );
     },
@@ -424,13 +421,10 @@ export function TipCard({
             >
               <Check weight="bold" size={24} aria-hidden="true" />
             </span>
-            <span
-              ref={totalRef}
-              aria-hidden="true"
-              className="numeric text-[clamp(4.5rem,18vw,7rem)] font-semibold leading-none tracking-tight"
-            >
-              ₹{amount}
-            </span>
+            <Odometer
+              value={amount}
+              className="text-[clamp(4.5rem,18vw,7rem)] font-semibold tracking-tight"
+            />
             <p data-pop className="text-lg font-semibold">
               <span className="sr-only">₹{amount}. </span>
               Tip sent to Aarav.

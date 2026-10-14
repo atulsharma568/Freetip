@@ -45,14 +45,22 @@ export function Hero() {
             <Magnetic>
               <a
                 href="#claim"
-                className="group inline-flex h-14 items-center gap-2 rounded-full bg-accent px-8 text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.97]"
+                className="group inline-flex h-14 items-center gap-4 rounded-full bg-accent pl-8 pr-2 text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.97]"
               >
                 <RollText>Claim your handle</RollText>
-                <ArrowUpRight
-                  weight="bold"
+                <span
                   aria-hidden="true"
-                  className="transition-transform duration-500 ease-out-expo group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-focus-visible:-translate-y-0.5 group-focus-visible:translate-x-0.5"
-                />
+                  className="relative grid size-10 place-items-center overflow-hidden rounded-full bg-ink text-accent"
+                >
+                  <ArrowUpRight
+                    weight="bold"
+                    className="transition-transform duration-500 ease-out-expo group-hover:-translate-y-7 group-hover:translate-x-7 group-focus-visible:-translate-y-7 group-focus-visible:translate-x-7"
+                  />
+                  <ArrowUpRight
+                    weight="bold"
+                    className="absolute -translate-x-7 translate-y-7 transition-transform duration-500 ease-out-expo group-hover:translate-x-0 group-hover:translate-y-0 group-focus-visible:translate-x-0 group-focus-visible:translate-y-0"
+                  />
+                </span>
               </a>
             </Magnetic>
             <a

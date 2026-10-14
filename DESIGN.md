@@ -227,7 +227,7 @@ The "Why Tipsite" section follows the stream alert. It uses a tall fan-friction 
 
 ## Elevation & Depth
 
-Flat. There is no box-shadow, text-shadow, gradient, glow or backdrop blur anywhere. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is solid Warm Night with a 60% Hairline bottom rule, so content never ghosts through it and it holds its edge over a lime field.
+Flat. There is no box-shadow, text-shadow, gradient, glow or backdrop blur anywhere. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is a solid Card Dusk capsule with a 60% Hairline border, so content never ghosts through it and it holds its edge over a lime field.
 
 ### Named Rules
 **The Flat At Rest Rule.** Nothing casts a shadow. If a layer must stand apart, use the next tonal step or a Hairline. If it must be the event, make it a lime field.
@@ -242,7 +242,7 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 
 ### Buttons
 - **Shape:** Pill (9999px). Heights: 40px in the nav, 56px for the hero CTA and the card submit, 64px for the closing submit, 44px for "Tip again".
-- **Primary:** Acid Lime fill, Field Ink text, 600 weight, 32px side padding (20px and 14px type in the nav). The hero CTA carries a bold Phosphor arrow.
+- **Primary:** Acid Lime fill, Field Ink text, 600 weight, 32px side padding (20px and 14px type in the nav). The hero CTA ends in a 40px Field Ink circle holding a lime Phosphor arrow (arrow endcap, 8px right padding); on hover or focus the arrow flies out up-right and a fresh one slides in from the lower left (500ms expo).
 - **Ink:** On lime fields, Field Ink fill with Acid Lime text (the closing submit).
 - **Outline Ink:** Transparent with a 2px Field Ink border. Hover fills Field Ink with Acid Lime text ("Tip again").
 - **Hover / Focus:** Press scales to 0.97 (0.98 on the full-width card submit) over 200ms. A magnetic pull applies on hover-capable pointers only. Focus is a 2px ring offset 3px, lime on dark and ink on lime.
@@ -274,11 +274,12 @@ A flat on/off switch (`Switch`, `role="switch"`): 48 by 28px pill. Off is a Smok
 - **Error / Disabled:** An invalid handle sets `aria-invalid` and shows one plain sentence in a polite status region below the field. There is no red.
 
 ### Navigation
-- **Style:** Fixed, 64px. Transparent at the top, solid Warm Night with a Hairline rule once scrolled, and it stays that way at the bottom of the page. Wordmark in Display, links in Ash at 14px turning Chalk on hover, one lime pill at the right.
+- **Style:** Fixed. At the top it is a transparent 64px full-width bar. Once the page scrolls 16px it eases (500ms expo) into a floating capsule: 56px tall, 12px from the top, at most 56rem wide (12px side margins on small screens), Card Dusk fill, a 60% Hairline border and a full pill radius, so it holds its edge over the lime closing field. Wordmark in Display, links in Ash at 14px, one lime pill at the right.
+- **Link highlight:** A solid Acid Lime pill slides (500ms expo) behind whichever link is hovered or keyboard-focused, and that link turns Field Ink. It fades out when the pointer leaves the links. Adapted from a reference "command bar" dock, rebuilt flat.
 - **Mobile:** Links are removed below md.
 
 ### Tip Card (signature component)
-The self-playing sample. It carries the line "Sample page. No payment is taken." and plays a scripted tip once: it picks 250, types a name and a short message, and lights the three headline beats in turn. It starts when the card is half in view (at once beside the headline on desktop, after a short scroll on stacked layouts). It then floods Acid Lime from the bottom of the card with an amount counting up from 0, a Field Ink badge and a short ink spark burst fanned above the badge. Any pointer or focus kills the demo and hands over control. While the success state shows, the form is inert and keyboard focus moves to "Tip again", which resets the card and returns focus to the chosen amount.
+The self-playing sample. It carries the line "Sample page. No payment is taken." and plays a scripted tip once: it picks 250, types a name and a short message, and lights the three headline beats in turn. It waits for the hero hands to finish, then starts when the card is half in view (at once beside the headline on desktop, after a short scroll on stacked layouts). After a short "Sending" beat with stepped ticks on the submit button, it floods Acid Lime from the bottom of the card with the amount on odometer reels (`Odometer`: each digit spins one full turn and lands, the rightmost last; reduced motion shows the digits at rest), a Field Ink badge and a short ink spark burst fanned above the badge. Any pointer or focus kills the demo and hands over control. While the success state shows, the form is inert and keyboard focus moves to "Tip again", which resets the card and returns focus to the chosen amount.
 
 ### Stream Alert
 The sample of what viewers see on a streamer's stream when a tip lands. It is a full Acid Lime tile in the On stream section, labeled "Sample alert. Nothing is sent to a stream." Everything on it is Field Ink: the fan's name with "tipped", the amount as a Numeral, and the message beside a bold speaker icon. It plays the same sample tip as the hero card, kept in one shared object so the two cannot drift. Once, as the tile scrolls into view, it wipes in from its top edge. Then the message lights one word at a time as text-to-speech would read it: a Field Ink pill with Acid Lime text that snaps from word to word with no fade, then clears. Under reduced motion the tile is static and no word lights. The tile is a labeled group and the message stays plain text, so the lit pill is decoration only.
