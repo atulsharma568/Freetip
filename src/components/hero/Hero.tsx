@@ -5,15 +5,27 @@ import { ArrowUpRight } from "@phosphor-icons/react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { HeroHands } from "./HeroHands";
-import { TipCard } from "./TipCard";
+import { AlertFan, type FanAlert } from "./AlertFan";
+import { TipCard, type SentTip } from "./TipCard";
 
 const BEATS = ["Your link.", "Their UPI.", "Your bank."];
 
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
+// Labelled sample alerts already fanned out behind the card.
+const FIRST_ALERTS: FanAlert[] = [
+  { id: 2, name: "Anonymous", amount: 100, message: "Love the stream" },
+  { id: 1, name: "Kabir", amount: 50, message: "GG!" },
+];
+
 export function Hero() {
   const [beat, setBeat] = useState(0);
   const [handsDone, setHandsDone] = useState(false);
+  const [alerts, setAlerts] = useState(FIRST_ALERTS);
+  // Each tip the card "sends" deals a new alert to the front of the fan.
+  // Four are kept so the oldest can fade out at the back.
+  const addAlert = (tip: SentTip) =>
+    setAlerts((list) => [{ ...tip, id: list[0].id + 1 }, ...list].slice(0, 4));
 
   return (
     <section className="relative overflow-x-clip">
@@ -77,8 +89,11 @@ export function Hero() {
               <HeroHands onDone={() => setHandsDone(true)} />
             </div>
           </div>
-          <div className="enter mt-3 w-full" style={step(2)}>
-            <TipCard onBeat={setBeat} ready={handsDone} />
+          <div className="enter relative mt-3 w-full" style={step(2)}>
+            <AlertFan alerts={alerts} />
+            <div className="relative z-10">
+              <TipCard onBeat={setBeat} onTip={addAlert} ready={handsDone} />
+            </div>
           </div>
         </div>
       </div>

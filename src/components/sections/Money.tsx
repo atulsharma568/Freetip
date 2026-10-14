@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { Odometer, spinReels } from "@/components/ui/Odometer";
 
 export function Money() {
   const root = useRef<HTMLElement>(null);
@@ -23,6 +24,17 @@ export function Money() {
             scrollTrigger: { trigger: root.current, start: "top 70%", once: true },
           },
         );
+        // The fee rolls in on odometer reels once its tile is well in view.
+        const fee = q("[data-fee]")[0];
+        const spins = spinReels(gsap, gsap.utils.toArray<HTMLElement>("[data-reel]", fee));
+        const tl = gsap.timeline({
+          paused: true,
+          scrollTrigger: { trigger: fee, start: "top 80%", once: true },
+        });
+        // Hidden until it spins, so it never sits on "0%".
+        gsap.set(fee, { opacity: 0 });
+        tl.to(fee, { opacity: 1, duration: 0.2, ease: "none" }, 0.35);
+        spins.forEach((spin) => tl.add(spin, 0.35));
       });
     },
     { scope: root },
@@ -62,6 +74,14 @@ export function Money() {
           data-tile
           className="flex flex-col justify-end rounded-surface border border-line bg-raised p-8 md:col-span-5 md:p-10"
         >
+          <span data-fee className="mb-6 block">
+            <Odometer
+              value={5}
+              prefix=""
+              suffix="%"
+              className="text-[clamp(4.5rem,10vw,7rem)] font-semibold tracking-tight"
+            />
+          </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">What it costs</h3>
           <p className="mt-4 max-w-[34ch] text-pretty text-2xl font-medium text-text">
             We take 5% of every tip.

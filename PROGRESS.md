@@ -8,7 +8,7 @@ Pre-launch landing page for a UPI-first tipping site for Indian YouTube live str
 
 Page sections, in order:
 - Hero: headline, subline, a call to action, a hands-handoff animation and a self-playing sample tip card that starts after the hands finish.
-- How it works: the steps from link to paid.
+- How it works: four steps (claim, share, go live, get paid) that slide sideways under a lime progress line on desktop.
 - On your stream: a labeled sample OBS alert whose message lights up word by word, like text-to-speech reading it.
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
 - Payments and fees: UPI, cards and "We take 5% of every tip."

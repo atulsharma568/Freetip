@@ -7,7 +7,7 @@ import ClickSpark, {
 } from "@/components/react-bits/ClickSpark";
 import { RollText } from "@/components/motion/RollText";
 import { Switch } from "@/components/ui/Switch";
-import { Odometer, reelTarget } from "@/components/ui/Odometer";
+import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { INK_HEX, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
@@ -19,13 +19,17 @@ const DEMO_MESSAGE = SAMPLE_TIP.message;
 const SEND_MS = 1100;
 
 type Method = "upi" | "card";
+export type SentTip = { name: string; amount: number; message: string };
 type Beat = 0 | 1 | 2 | 3;
 
 export function TipCard({
   onBeat,
+  onTip,
   ready = true,
 }: {
   onBeat: (beat: Beat) => void;
+  // Called once the success state has settled, with what was "sent".
+  onTip?: (tip: SentTip) => void;
   // The demo waits for this, so it never plays while the hero hands move.
   ready?: boolean;
 }) {
@@ -203,7 +207,12 @@ export function TipCard({
       const field = successRef.current;
       if (!field) return;
       const reels = gsap.utils.toArray<HTMLElement>("[data-reel]", field);
-      const land = (reel: HTMLElement) => reelTarget(Number(reel.dataset.digit));
+      const name = nameRef.current?.value.trim();
+      const sent: SentTip = {
+        name: name || "Anonymous",
+        amount: amountRef.current,
+        message: messageRef.current?.value.trim() ?? "",
+      };
 
       const mm = gsap.matchMedia();
       mm.add(
@@ -213,7 +222,7 @@ export function TipCard({
         },
         (context) => {
           if (context.conditions?.reduce) {
-            reels.forEach((reel) => gsap.set(reel, { yPercent: land(reel) }));
+            onTip?.(sent);
             return;
           }
           const tl = gsap
@@ -247,14 +256,9 @@ export function TipCard({
             );
           // Odometer: every reel spins a full turn and lands on its digit, the
           // rightmost last, like a meter settling.
-          reels.forEach((reel, i) => {
-            tl.fromTo(
-              reel,
-              { yPercent: 0 },
-              { yPercent: land(reel), duration: 0.75 + i * 0.12, ease: "power3.out" },
-              0.25,
-            );
-          });
+          spinReels(gsap, reels).forEach((spin) => tl.add(spin, 0.25));
+          // The new alert joins the fan only after the amount has landed.
+          tl.call(() => onTip?.(sent), undefined, 1.5);
         },
       );
     },

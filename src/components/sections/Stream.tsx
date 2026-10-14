@@ -15,6 +15,7 @@ export function Stream() {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const q = gsap.utils.selector(root);
+        const screen = q("[data-screen]");
         const tile = q("[data-tile]");
         const words = q("[data-word]") as HTMLElement[];
         const light = (index: number) =>
@@ -22,15 +23,35 @@ export function Stream() {
             word.dataset.on = String(i === index);
           });
 
+        // The stream screen starts tilted away in perspective and turns to
+        // face the viewer as the page scrolls.
+        gsap.fromTo(
+          screen,
+          { rotationX: 24, rotationY: -18, scale: 0.88, transformOrigin: "50% 60%" },
+          {
+            rotationX: 0,
+            rotationY: 0,
+            scale: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: screen[0],
+              start: "top bottom",
+              end: "center 55%",
+              scrub: 0.6,
+            },
+          },
+        );
+
+        // Once the screen faces the viewer, the alert pops in and reads out.
         const tl = gsap.timeline({
-          scrollTrigger: { trigger: tile[0], start: "top 75%", once: true },
+          scrollTrigger: { trigger: screen[0], start: "center 55%", once: true },
         });
         tl.fromTo(
           tile,
           { clipPath: "inset(0% 0% 100% 0% round 1.25rem)" },
           {
             clipPath: "inset(0% 0% 0% 0% round 1.25rem)",
-            duration: 1.1,
+            duration: 0.9,
             ease: "expo.out",
             clearProps: "clipPath",
           },
@@ -67,40 +88,52 @@ export function Stream() {
           </p>
         </div>
       </div>
-      <div
-        data-tile
-        role="group"
-        aria-label="Sample stream alert"
-        className="on-accent flex min-h-[22rem] flex-col justify-between rounded-surface bg-accent p-8 text-ink md:col-span-7 md:min-h-[26rem] md:p-10"
-      >
-        <p className="text-sm font-semibold">
-          Sample alert. Nothing is sent to a stream.
-        </p>
-        <div>
-          <p className="text-xl font-medium">{SAMPLE_TIP.name} tipped</p>
-          <p className="numeric mt-2 text-[clamp(4.5rem,18vw,7rem)] font-semibold leading-none tracking-tight">
-            ₹{SAMPLE_TIP.amount}
-          </p>
-          <p className="mt-6 flex items-start gap-3 text-xl font-medium [word-spacing:0.25em] md:gap-4 md:text-3xl">
-            <SpeakerHigh
-              weight="bold"
-              aria-hidden="true"
-              className="mt-0.5 size-6 shrink-0 md:mt-1 md:size-8"
-            />
-            <span>
-              {WORDS.map((word, i) => (
-                <span key={`${word}-${i}`}>
-                  {i > 0 && " "}
-                  <span
-                    data-word
-                    className="-mx-2 inline-block rounded-full px-2 py-0.5 data-[on=true]:bg-ink data-[on=true]:text-accent"
-                  >
-                    {word}
-                  </span>
-                </span>
-              ))}
+      <div className="[perspective:1600px] md:col-span-7">
+        <div
+          data-screen
+          className="flex min-h-[24rem] flex-col justify-between gap-8 rounded-surface border border-line bg-surface p-4 md:min-h-[30rem] md:p-6"
+        >
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="inline-flex items-center gap-2 rounded-full bg-raised px-3 py-1 font-semibold">
+              <span aria-hidden="true" className="size-2 rounded-full bg-accent" />
+              LIVE
             </span>
-          </p>
+            <span className="text-muted">Sample stream</span>
+          </div>
+          <div
+            data-tile
+            role="group"
+            aria-label="Sample stream alert"
+            className="on-accent w-full max-w-[26rem] rounded-surface bg-accent p-6 text-ink md:p-8"
+          >
+            <p className="text-sm font-semibold">
+              Sample alert. Nothing is sent to a stream.
+            </p>
+            <p className="mt-6 text-lg font-medium">{SAMPLE_TIP.name} tipped</p>
+            <p className="numeric mt-2 text-[clamp(3.5rem,10vw,5rem)] font-semibold leading-none tracking-tight">
+              ₹{SAMPLE_TIP.amount}
+            </p>
+            <p className="mt-5 flex items-start gap-3 text-lg font-medium [word-spacing:0.25em] md:text-2xl">
+              <SpeakerHigh
+                weight="bold"
+                aria-hidden="true"
+                className="mt-0.5 size-6 shrink-0 md:mt-1 md:size-7"
+              />
+              <span>
+                {WORDS.map((word, i) => (
+                  <span key={`${word}-${i}`}>
+                    {i > 0 && " "}
+                    <span
+                      data-word
+                      className="-mx-2 inline-block rounded-full px-2 py-0.5 data-[on=true]:bg-ink data-[on=true]:text-accent"
+                    >
+                      {word}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
     </section>
