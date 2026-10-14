@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { SignIn } from "@phosphor-icons/react";
 import { ChromeButton } from "@/components/ui/ChromeButton";
-import { authField, EMAIL_PATTERN } from "./AuthShell";
+import { EMAIL_PATTERN } from "@/lib/waitlist";
+import { authField } from "./AuthShell";
 
 type Status = "idle" | "email" | "closed";
 

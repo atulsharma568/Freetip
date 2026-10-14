@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, LinkSimple } from "@phosphor-icons/react";
 import { SITE_HOST } from "@/lib/site";
+import { HANDLE_PATTERN } from "@/lib/waitlist";
 
 // Sample handles the empty field types out. Placeholders, not real creators.
 const SAMPLES = ["yourname", "gamingwithriya", "kabirplays", "desi_speedrun", "meera_live"];
-export const HANDLE_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 const TONES = {
   lime: {
@@ -31,8 +31,8 @@ const TONES = {
 
 // The "tipsite.in/yourname" handle input. While empty and unfocused it types
 // out sample handles; once someone types, a link chip below builds their
-// link letter by letter. `scanning` sweeps a light across the field once
-// (the parent shows its result after it). Reduced motion shows a static
+// link letter by letter. Each time `scanning` turns on (the form is being
+// sent), a light sweeps across the field once. Reduced motion shows a static
 // placeholder and no sweep.
 export function HandleField({
   id,
@@ -57,6 +57,14 @@ export function HandleField({
   const [ghost, setGhost] = useState(SAMPLES[0]);
   const [typing, setTyping] = useState(false);
   const idle = !focused && !value;
+
+  // Start one full sweep whenever `scanning` turns on; it ends on its own.
+  const [wasScanning, setWasScanning] = useState(scanning);
+  const [sweeping, setSweeping] = useState(false);
+  if (scanning !== wasScanning) {
+    setWasScanning(scanning);
+    if (scanning) setSweeping(true);
+  }
 
   useEffect(() => {
     const el = field.current;
@@ -144,9 +152,10 @@ export function HandleField({
             </span>
           )}
         </span>
-        {scanning && (
+        {sweeping && (
           <span
             aria-hidden="true"
+            onAnimationEnd={() => setSweeping(false)}
             className={`scan pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent to-transparent ${t.scan}`}
           />
         )}

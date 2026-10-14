@@ -1,113 +1,126 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PencilSimple } from "@phosphor-icons/react";
 import { ChromeButton } from "@/components/ui/ChromeButton";
-import { HANDLE_PATTERN, HandleField } from "@/components/ui/HandleField";
-import { authField, EMAIL_PATTERN } from "./AuthShell";
+import { HandleField } from "@/components/ui/HandleField";
+import { TickLoader } from "@/components/ui/TickLoader";
+import {
+  ConsentNote,
+  useWaitlist,
+  WaitlistHiddenFields,
+} from "@/components/waitlist/useWaitlist";
+import { authField } from "./AuthShell";
 
-type Status = "idle" | "handle" | "email" | "closed";
-
-const MESSAGES: Record<Status, string> = {
-  idle: "",
-  handle: "Check your handle: 3 to 20 letters, numbers or underscores.",
-  email: "Enter a valid email address.",
-  closed: "Sign-up isn't open yet, so nothing was saved.",
-};
+const IDS = { handle: "signup-handle", email: "signup-email", channel: "signup-channel" };
 
 export function SignUpForm() {
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
-  const [scanning, setScanning] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    const next: Status = !HANDLE_PATTERN.test(handle)
-      ? "handle"
-      : !EMAIL_PATTERN.test(email)
-        ? "email"
-        : "closed";
-    if (next !== "closed" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStatus(next);
-      return;
-    }
-    setStatus("idle");
-    setScanning(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      setScanning(false);
-      setStatus(next);
-    }, 700);
-  };
+  const [channel, setChannel] = useState("");
+  const waitlist = useWaitlist(IDS);
 
   return (
     <>
-      <h1 className="display text-[clamp(2.75rem,10vw,4rem)]">Create your page</h1>
+      <h1 className="display text-[clamp(2.75rem,10vw,4rem)]">Sign-up opens soon</h1>
       <p className="mt-4 text-pretty text-lg text-muted">
-        Sign-up isn&apos;t open yet. You can try the form, but nothing you enter
-        is saved.
+        Join the waitlist and we&apos;ll email you when it opens. Add the
+        handle you want too; handles aren&apos;t reserved until then.
       </p>
-      <form onSubmit={onSubmit} noValidate className="mt-10 space-y-6">
+      <form
+        action={waitlist.action}
+        onSubmit={waitlist.onSubmit}
+        noValidate
+        className="mt-10 space-y-6"
+      >
+        <WaitlistHiddenFields source="signup" />
         <div>
-          <label htmlFor="signup-handle" className="mb-2 block text-sm font-medium text-muted">
-            Your handle
+          <label htmlFor={IDS.handle} className="mb-2 block text-sm font-medium text-muted">
+            The handle you want (optional)
           </label>
           <HandleField
-            id="signup-handle"
+            id={IDS.handle}
             tone="dark"
             value={handle}
             onChange={(next) => {
               setHandle(next);
-              setStatus("idle");
+              waitlist.onEdit();
             }}
-            invalid={status === "handle"}
+            invalid={waitlist.invalid("handle")}
             describedBy="signup-status"
-            scanning={scanning}
+            scanning={waitlist.pending}
           />
         </div>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-muted">Email</span>
+        <div>
+          <label htmlFor={IDS.email} className="mb-2 block text-sm font-medium text-muted">
+            Email
+          </label>
           <input
+            id={IDS.email}
             type="email"
             name="email"
             autoComplete="email"
+            inputMode="email"
+            maxLength={254}
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
-              setStatus("idle");
+              waitlist.onEdit();
             }}
-            aria-invalid={status === "email"}
+            aria-invalid={waitlist.invalid("email")}
             aria-describedby="signup-status"
             placeholder="you@example.com"
             className={authField}
           />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-muted">
+        </div>
+        <div>
+          <label htmlFor={IDS.channel} className="mb-2 block text-sm font-medium text-muted">
             YouTube channel (optional)
-          </span>
+          </label>
           <input
+            id={IDS.channel}
             type="url"
             name="channel"
             inputMode="url"
             autoComplete="url"
+            maxLength={200}
+            value={channel}
+            onChange={(event) => {
+              setChannel(event.target.value);
+              waitlist.onEdit();
+            }}
+            aria-invalid={waitlist.invalid("channel")}
+            aria-describedby="signup-status"
             placeholder="youtube.com/@yourchannel"
             className={authField}
           />
-        </label>
-        <ChromeButton type="submit" size="lg" icon={<PencilSimple weight="bold" size={18} />} className="w-full">
-          Sign up
+        </div>
+        <ChromeButton
+          type="submit"
+          size="lg"
+          icon={<PencilSimple weight="bold" size={18} />}
+          className="w-full"
+        >
+          {/* Both labels share one cell, so nothing shifts while saving. */}
+          <span className="grid">
+            <span className={`col-start-1 row-start-1 ${waitlist.pending ? "invisible" : ""}`}>
+              Join the waitlist
+            </span>
+            <span
+              className={`col-start-1 row-start-1 inline-flex items-center gap-3 ${waitlist.pending ? "" : "invisible"}`}
+            >
+              {waitlist.pending && <TickLoader />}
+              Joining
+            </span>
+          </span>
         </ChromeButton>
         <p id="signup-status" role="status" className="min-h-6 text-base font-medium">
-          {MESSAGES[status]}
+          {waitlist.message}
         </p>
+        <ConsentNote tone="dark" />
       </form>
-      <p className="text-sm text-muted">
+      <p className="mt-8 text-sm text-muted">
         Already have an account?{" "}
         <Link href="/signin" className="text-text underline decoration-line hover:decoration-accent">
           Sign in

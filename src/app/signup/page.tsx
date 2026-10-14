@@ -5,7 +5,7 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Sign up: ${SITE_NAME}`,
-  description: `Create your ${SITE_NAME} tip page. Sign-up isn't open yet.`,
+  description: `Join the ${SITE_NAME} waitlist and hear when sign-up opens.`,
 };
 
 export default function SignUpPage() {

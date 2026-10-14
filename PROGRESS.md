@@ -12,11 +12,12 @@ Page sections, in order:
 - On your stream: a labeled sample OBS alert whose message lights up word by word, like text-to-speech reading it.
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
 - Payments and fees: UPI, cards and "We take 5% of every tip."
-- FAQ and a closing section: a money orbit around the glitching wordmark, then the claim form with a typing handle field (sign-up is a stub).
-- `/signup` and `/signin` pages (stubs: nothing is saved or sent), reached from Sign in and Sign up in the nav.
+- FAQ and a closing section: a money orbit around the glitching wordmark, then the waitlist form (optional handle with the typing handle field, plus email).
+- `/signup` is the full waitlist form (optional handle, email, optional YouTube channel); `/signin` is still a stub that sends nothing. Both are reached from the nav.
+- A real waitlist: a Server Action saves entries to Postgres (Neon planned) with server-side checks, a bot trap, a per-network rate limit and a daily clean-up job. It needs `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET` in Vercel and `db/schema.sql` run once (see "Waitlist setup" below); without them the form says the waitlist isn't working.
 - Policy and company pages: `/terms`, `/privacy`, `/refunds`, `/delivery`, `/contact` (with Grievance Officer), `/pricing` and `/about`, linked from a new footer on every page. They are drafts: operator details are `[placeholders]` in `src/lib/legal.ts`, and the text needs legal review before launch.
 
-Not built yet: the fan tip page, creator dashboard, backend (Postgres), Razorpay payments and real sign-up. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
+Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
 ## Implemented in the latest landing-page change
 
@@ -37,7 +38,7 @@ The landing page presents these as samples or planned product behavior. It does 
 - Live QR generation per creator.
 - OBS connection or real text-to-speech playback.
 - Message-limit enforcement, profanity/banned-word filtering and creator approval controls.
-- Waitlist storage, legal pages and contact flow.
+- Real accounts (sign-in method undecided) and launch emails to the waitlist.
 
 ## Decisions
 
@@ -58,6 +59,16 @@ The landing page presents these as samples or planned product behavior. It does 
 
 - Legal drafts set these defaults for the owner and a lawyer to confirm: everyone (fans too) must be 18+; refund requests within 7 days, acknowledged in 24 hours with a ticket, decided in 5 working days, started within 2 working days, banks take 5 to 7 working days; grievances acknowledged in 24 hours and resolved in 15 days (content removal 24 to 72 hours); privacy requests done in 30 days; support replies within 1 working day; tip names and messages kept 90 days, waitlist entries at most 12 months after the waitlist closes, payment records up to 8 years; liability capped at 12 months of fees (creators) or the tip (fans); 15 days' notice of term changes, 30 days for a fee rise.
 - Operator details still needed in `src/lib/legal.ts`: legal name, business type, registered address, court city, support email, phone, hours, Grievance Officer name, designation and email, GSTIN (if any), data region.
+
+## Waitlist setup (owner, before the form works live)
+
+1. Create a free Neon project (region: Singapore or Mumbai if offered, closest to India) and copy the **pooled** connection string.
+2. In the Neon console, open the SQL Editor, paste `db/schema.sql` and run it. Running it again is safe.
+3. In Vercel, Project settings > Environment Variables, add `DATABASE_URL` (the pooled string), `WAITLIST_SALT` and `CRON_SECRET` (each from `openssl rand -hex 32`), then redeploy. `vercel.json` schedules the daily clean-up once the project is on Vercel.
+4. Fill `dataRegion` in `src/lib/legal.ts` with the Neon region, since the privacy policy names it.
+5. To see sign-ups: Neon SQL Editor, `select * from waitlist order by created_at desc;`.
+
+How it behaves: emails are trimmed and lower-cased, one entry per address. A repeat sign-up gets the same "You're on the list" answer and leaves the first entry untouched, so the form never reveals who has joined. Handles are noted, not reserved. Each entry stores the privacy notice version (`WAITLIST_CONSENT_VERSION` in `src/lib/legal.ts`). At most 20 saved sign-ups per network per hour; only an HMAC of the IP is stored, kept for the hour the limit needs and deleted on every sign-up and by the daily job (the privacy policy says within 48 hours at the latest).
 
 ## Next
 
@@ -91,4 +102,5 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 - 2026-10-14: built three more owner-picked ideas from ThreeUI, rebuilt flat: the nav eases into a floating capsule on scroll with a solid lime pill sliding behind the hovered or focused link; the sample card's success amount lands on odometer reels; the hero CTA ends in an ink circle whose arrow flies out and back in on hover. Lint, typecheck, build and `git diff --check` passed.
 - 2026-10-14: rebuilt five ThreeUI pieces the owner asked for, lighter and in our own code, with lime glow allowed only on them (owner-approved exception to the flat rule): a glass orb "Claim your handle" in the nav, a plasma canvas "Tip anonymously" switch, a frosted nav capsule whose links spring like a dock, a full uplink panel that counts the sample tip out before the success flood, and a ring of lime notes and coins circling a glitching "Tipsite" wordmark above the closing claim form. The odometer amount was not removed; it still lands on the success screen. Canvases pause off screen and reduced motion shows still frames. Checked at 1440, 390 and 320 (no horizontal overflow) and under reduced motion. Lint, typecheck, build and `git diff --check` passed.
 - 2026-10-14: owner decided that Razorpay's charges sit on top of the 5% and are paid by the creator from the payout. The fee tile now shows a worked ₹100 example (₹5 our fee, ₹2.36 Razorpay at its standard 2% + 18% GST, ₹92.64 to the creator) and the FAQ says the same. Also finished visitor-only legal/contact teardowns of SuperTips and StreamTipz with REA (outputs and a summary kept outside the repo) for the upcoming legal pages. Lint, typecheck, build and `git diff --check` passed.
+- 2026-10-14: made the waitlist real (owner request; owner chose Vercel + Neon Postgres). The closing form and `/signup` now send to a Server Action that re-checks every field, drops bot-trap submissions, rate-limits per network with a hashed IP, and saves to Postgres (`db/schema.sql`, `postgres` client); a Vercel Cron route deletes old rate-limit rows daily. The submit shows the stepped-ticks loader and "Joining", the handle field sweeps once, a consent line links the privacy policy, and invalid fields get focus back. Works without JavaScript too. The privacy policy now says hashed IPs are deleted within 48 hours (it said 24, which a daily job can't guarantee) and that the form used is stored. Also fixed a 104px horizontal overflow at 320px in On stream while the sample waits for approval. Tested against a local in-memory Postgres: valid, invalid email/handle/channel, repeat email, bot trap, rate limit, clean-up job, database down, no-JS; checked at 1440, 390 and 320. Lint, typecheck, both builds and `git diff --check` passed.
 - 2026-10-14: added draft policy and company pages written in our own words from the SuperTips/StreamTipz/Hyperchat teardowns and Indian requirements (Razorpay website checklist, DPDP Act 2023 and Rules 2025, IT Rules 2021 grievance timelines, Consumer Protection E-Commerce Rules 2020): terms, privacy, refunds and cancellations, delivery, contact and grievances, pricing and about, plus a footer linking all of them on every page. Operator details are placeholders in one file (`src/lib/legal.ts`), every page shows a draft notice, and the fee example now comes from one shared constant. Checked at 1440 and 320 (no horizontal overflow). Lint, typecheck, build and `git diff --check` passed.

@@ -194,7 +194,7 @@ export function Stream() {
       id="stream"
       className="mx-auto grid max-w-7xl scroll-mt-24 gap-x-8 gap-y-12 px-6 pb-32 md:grid-cols-12 md:pb-48"
     >
-      <div className="md:col-span-5">
+      <div className="min-w-0 md:col-span-5">
         <h2 className="display text-[clamp(2.5rem,6vw,4.5rem)]">
           On your stream
         </h2>
@@ -250,7 +250,7 @@ export function Stream() {
           </p>
           <div className="mt-4 flex min-h-16 items-center">
             {phase === "waiting" ? (
-              <div className="flex w-full items-center justify-between gap-3 rounded-field bg-raised p-3">
+              <div className="flex w-full min-w-0 items-center justify-between gap-3 rounded-field bg-raised p-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted">Waiting for your approval</p>
                   <p className="truncate text-sm font-medium">

@@ -1,29 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState } from "react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { MoneyOrbit } from "./MoneyOrbit";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { HANDLE_PATTERN, HandleField } from "@/components/ui/HandleField";
+import { HandleField } from "@/components/ui/HandleField";
+import { TickLoader } from "@/components/ui/TickLoader";
+import {
+  ConsentNote,
+  useWaitlist,
+  WaitlistHiddenFields,
+} from "@/components/waitlist/useWaitlist";
 
-type Status = "idle" | "invalid" | "closed";
-
-const MESSAGES: Record<Status, string> = {
-  idle: "",
-  invalid: "Use 3 to 20 letters, numbers or underscores.",
-  closed: "Sign-up isn't open yet, so nothing has been reserved.",
-};
+const IDS = { handle: "handle", email: "waitlist-email" };
 
 export function Closer() {
   const root = useRef<HTMLElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const [handle, setHandle] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
-  const [scanning, setScanning] = useState(false);
-  const scanTimer = useRef<number | undefined>(undefined);
-
-  useEffect(() => () => window.clearTimeout(scanTimer.current), []);
+  const [email, setEmail] = useState("");
+  const waitlist = useWaitlist(IDS);
 
   useGSAP(
     () => {
@@ -51,23 +48,6 @@ export function Closer() {
     { scope: root },
   );
 
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    const next = HANDLE_PATTERN.test(handle) ? "closed" : "invalid";
-    // A valid handle gets a short scan across the field before the answer.
-    if (next === "invalid" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStatus(next);
-      return;
-    }
-    setStatus("idle");
-    setScanning(true);
-    window.clearTimeout(scanTimer.current);
-    scanTimer.current = window.setTimeout(() => {
-      setScanning(false);
-      setStatus(next);
-    }, 700);
-  };
-
   return (
     <section
       ref={root}
@@ -81,45 +61,85 @@ export function Closer() {
             Your handle is your link.
           </h2>
           <p className="mt-6 max-w-[40ch] text-pretty text-lg">
-            Pick the name your fans will type. Sign&#8209;up isn&apos;t open
-            yet, so handles can&apos;t be reserved.
+            Pick the name your fans will type and join the waitlist.
+            We&apos;ll email you when sign&#8209;up opens; handles
+            aren&apos;t reserved until then.
           </p>
-          <form onSubmit={onSubmit} noValidate className="mt-10">
-            <label
-              htmlFor="handle"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Your handle
-            </label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <form
+            action={waitlist.action}
+            onSubmit={waitlist.onSubmit}
+            noValidate
+            className="mt-10 space-y-6"
+          >
+            <WaitlistHiddenFields source="home" />
+            <div>
+              <label htmlFor={IDS.handle} className="mb-2 block text-sm font-semibold">
+                The handle you want <span className="font-normal">(optional)</span>
+              </label>
               <HandleField
-                id="handle"
+                id={IDS.handle}
                 tone="lime"
                 value={handle}
                 onChange={(next) => {
                   setHandle(next);
-                  setStatus("idle");
+                  waitlist.onEdit();
                 }}
-                invalid={status === "invalid"}
-                describedBy="handle-status"
-                scanning={scanning}
+                invalid={waitlist.invalid("handle")}
+                describedBy="waitlist-status"
+                scanning={waitlist.pending}
               />
-              <Magnetic className="w-full sm:w-auto">
-                <button
-                  type="submit"
-                  className="beam h-16 w-full rounded-full bg-ink px-8 text-base font-semibold text-accent transition-transform duration-200 [--beam-inset:5px] active:scale-[0.97] sm:w-auto"
-                >
-                  <RollText>Claim your handle</RollText>
-                </button>
-              </Magnetic>
+            </div>
+            <div>
+              <label htmlFor={IDS.email} className="mb-2 block text-sm font-semibold">
+                Email
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <input
+                  id={IDS.email}
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  maxLength={254}
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    waitlist.onEdit();
+                  }}
+                  aria-invalid={waitlist.invalid("email")}
+                  aria-describedby="waitlist-status"
+                  placeholder="you@example.com"
+                  className="h-16 w-full rounded-full border-2 border-ink bg-transparent px-6 text-base text-ink transition-shadow duration-200 ease-out-expo placeholder:text-ink/70 focus-visible:shadow-[0_14px_32px_-14px_rgb(27_28_20/0.7)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink sm:max-w-md sm:flex-1"
+                />
+                <Magnetic className="w-full sm:w-auto">
+                  <button
+                    type="submit"
+                    className="beam h-16 w-full rounded-full bg-ink px-8 text-base font-semibold text-accent transition-transform duration-200 [--beam-inset:5px] active:scale-[0.97] sm:w-auto"
+                  >
+                    {/* Both labels share one cell, so the width never jumps. */}
+                    <span className="grid">
+                      <span className={`col-start-1 row-start-1 ${waitlist.pending ? "invisible" : ""}`}>
+                        <RollText>Join the waitlist</RollText>
+                      </span>
+                      <span
+                        className={`col-start-1 row-start-1 inline-flex items-center justify-center gap-3 ${waitlist.pending ? "" : "invisible"}`}
+                      >
+                        {waitlist.pending && <TickLoader />}
+                        Joining
+                      </span>
+                    </span>
+                  </button>
+                </Magnetic>
+              </div>
             </div>
             <p
-              id="handle-status"
+              id="waitlist-status"
               role="status"
-              className="mt-4 min-h-6 text-base font-medium"
+              className="min-h-6 text-base font-medium"
             >
-              {MESSAGES[status]}
+              {waitlist.message}
             </p>
+            <ConsentNote tone="lime" />
           </form>
         </div>
       </div>

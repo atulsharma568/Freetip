@@ -14,5 +14,3 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
 export const authField =
   "h-14 w-full rounded-full border-2 border-control bg-ground px-6 text-base text-text placeholder:text-muted transition-[border-color,box-shadow] duration-200 ease-out-expo hover:border-muted focus-visible:border-accent focus-visible:shadow-[0_0_0_4px_rgb(191_232_74/0.14),0_0_28px_-4px_rgb(191_232_74/0.35)] focus-visible:outline-none";
-
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

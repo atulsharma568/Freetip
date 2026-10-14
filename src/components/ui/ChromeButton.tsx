@@ -20,7 +20,7 @@ export function ChromeButton({
   size = "sm",
   className = "",
 }: {
-  children: string;
+  children: ReactNode;
   icon: ReactNode;
   href?: string;
   type?: "button" | "submit";

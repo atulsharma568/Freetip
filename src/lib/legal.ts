@@ -38,6 +38,10 @@ export const PLACEHOLDER: Record<OperatorKey, string> = {
 export const LEGAL_DRAFT = true;
 export const LEGAL_UPDATED = "14 October 2026";
 
+// Saved with each waitlist entry. Change it whenever the privacy policy's
+// waitlist sections change, so we know which notice each person agreed to.
+export const WAITLIST_CONSENT_VERSION = "privacy-2026-10-14";
+
 // Fee example shared by the home page, the pricing page and the terms.
 // Razorpay's standard rate (Oct 2026): 2% of each domestic payment plus 18%
 // GST on that charge; international cards up to 3%.

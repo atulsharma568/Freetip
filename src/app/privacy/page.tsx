@@ -37,7 +37,10 @@ const SECTIONS: LegalSection[] = [
             if you give them, the handle you would like and your YouTube channel
             link;
           </li>
-          <li>when you joined and which version of this notice you agreed to.</li>
+          <li>
+            when you joined, which form you used (home page or sign-up page)
+            and which version of this notice you agreed to.
+          </li>
         </ul>
         <h3>If you send a tip (after launch)</h3>
         <ul>
@@ -76,9 +79,11 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             basic technical data such as your IP address, browser and device,
-            used to keep the service secure and stop spam and fraud. For the
-            waitlist we keep only a scrambled (hashed) form of your IP address,
-            for at most 24 hours.
+            used to keep the service secure and stop spam and fraud. To limit
+            how often one network can join the waitlist, we keep only a
+            scrambled (hashed) form of your IP address, never the address
+            itself. It is needed for one hour and deleted automatically within
+            48 hours at the latest.
           </li>
         </ul>
       </>
@@ -205,7 +210,8 @@ const SECTIONS: LegalSection[] = [
           and no longer than needed.
         </li>
         <li>
-          <strong>Hashed IP addresses from the waitlist:</strong> 24 hours.
+          <strong>Hashed IP addresses from the waitlist:</strong> used for one
+          hour and deleted automatically within 48 hours at the latest.
         </li>
       </ul>
     ),

@@ -45,7 +45,7 @@ Not confirmed, so the page must not name them as features: paid highlighted mess
 
 Fan Name and Message: the OBS alert shows the fan's optional name, the amount and the message, and text-to-speech reads the message aloud only after creator approval, so the sample tip card keeps its optional Name and Message fields. The owner asked what these fields mean and then asked for alerts and text-to-speech, so the fields stay. The name can be left blank for an anonymous tip. The exact message limit, moderation settings and approval interface remain to be built on the future tip page.
 
-Undecided: product name (placeholder "Tipsite"), domain, payout schedule, sign-up mechanism (waitlist or Google login).
+Undecided: product name (placeholder "Tipsite"), domain, payout schedule, sign-in method for creator accounts (email code, password or Google); a waitlist collects sign-ups until then.
 
 ## Brand Commitments
 
