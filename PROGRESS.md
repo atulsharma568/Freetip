@@ -7,7 +7,7 @@ Living status of the project. Read this first; it is updated with every commit. 
 Pre-launch landing page for a UPI-first tipping site for Indian YouTube live streamers, built with Next.js 16, Tailwind v4, GSAP, Lenis and one React Bits component.
 
 Page sections, in order:
-- Hero: headline, subline, a call to action and a self-playing sample tip card.
+- Hero: headline, subline, a call to action, a hands-handoff animation and a self-playing sample tip card that starts after the hands finish.
 - How it works: the steps from link to paid.
 - On your stream: a labeled sample OBS alert whose message lights up word by word, like text-to-speech reading it.
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
@@ -51,7 +51,7 @@ The landing page presents these as samples or planned product behavior. It does 
 ## Open questions
 
 - Does the 5% include Razorpay's payment charges, or are they on top?
-- Hands animation in the hero (the owner's idea): prototype is built; visual review on phone and desktop is still needed.
+- Hands animation in the hero: the polished version is committed "for now" (owner, 2026-10-14). The owner said it is not what they imagined, so a further revision may follow.
 - Payout timing, paid highlighted messages, product name and domain, sign-up mechanism.
 - Exact message length, moderation settings and the approval interface for text-to-speech (needed with the tip page).
 
@@ -81,3 +81,5 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 - 2026-10-14: added the hero handoff prototype: flat SVG hands enter with a lime ₹ note, exchange it, and retreat; reduced motion holds a static handoff frame. `git diff --check` passed.
 - 2026-10-14: added the competitor-led "Why Tipsite" section and aligned the sample card, stream copy, FAQ and navigation around no fan email/account, anonymous tips, QR-first sharing and safer approved text-to-speech. `git diff --check`, lint, typecheck and production build passed; no automated test suite is configured. A production server smoke check also returned the home page successfully.
 - 2026-10-14: reconciled `README.md`, `docs/next-steps.md`, `PRODUCT.md`, `PROGRESS.md` and `DESIGN.md` with the shipped implementation, including the competitor strengths retained, the defaults rejected and the distinction between landing-page demonstrations and future product functionality. Markdown diff check, lint, typecheck and production build passed again.
+- 2026-10-14: replaced the hero hands. Three hand-drawn GSAP SVG variants were built and judged; the winner was polished and committed. The fan's hand pinches a lime ₹ note, the streamer's hand closes on it, the fan's pinch opens, and the streamer leaves with the note (about 2.7 s, once, on scroll into view; reduced motion shows the exchange frame). The sample tip card now waits for the hands to finish so only one thing moves at a time. The owner approved it "for now"; it is not yet what they imagined. Also finished the FAQ (fan account/email, card, cost, payouts, OBS alerts, text-to-speech approval, QR code, Super Chat, live status), with no unconfirmed fee or payout numbers. Lint, typecheck, build and `git diff --check` passed.
+- 2026-10-14: researched Razorpay costs for the fee decision (standard 2% + GST; owner decision still open). Started a visitor-only competitor teardown with REA (`rea-agents@6.4.0`); Hyperchat is done (outputs kept outside the repo), SuperTips and StreamTipz are paused at the owner's request.

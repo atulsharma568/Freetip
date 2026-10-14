@@ -15,8 +15,16 @@ const DEMO_MESSAGE = SAMPLE_TIP.message;
 type Method = "upi" | "card";
 type Beat = 0 | 1 | 2 | 3;
 
-export function TipCard({ onBeat }: { onBeat: (beat: Beat) => void }) {
+export function TipCard({
+  onBeat,
+  ready = true,
+}: {
+  onBeat: (beat: Beat) => void;
+  // The demo waits for this, so it never plays while the hero hands move.
+  ready?: boolean;
+}) {
   const root = useRef<HTMLDivElement>(null);
+  const entered = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLInputElement>(null);
   const totalRef = useRef<HTMLSpanElement>(null);
@@ -34,6 +42,20 @@ export function TipCard({ onBeat }: { onBeat: (beat: Beat) => void }) {
   useEffect(() => {
     amountRef.current = amount;
   }, [amount]);
+
+  const readyRef = useRef(ready);
+  const startDemo = () => {
+    const tl = demo.current;
+    if (!tl || !entered.current || !readyRef.current) return;
+    gsap.delayedCall(0.8, () => {
+      if (demo.current === tl && !tl.isActive() && tl.progress() === 0) tl.play();
+    });
+  };
+
+  useEffect(() => {
+    readyRef.current = ready;
+    if (ready) startDemo();
+  }, [ready]);
 
   const reset = () => {
     setPaid(false);
@@ -129,9 +151,8 @@ export function TipCard({ onBeat }: { onBeat: (beat: Beat) => void }) {
           start: "top 50%",
           once: true,
           onEnter: () => {
-            gsap.delayedCall(0.8, () => {
-              if (demo.current === tl) tl.play();
-            });
+            entered.current = true;
+            startDemo();
           },
         });
 

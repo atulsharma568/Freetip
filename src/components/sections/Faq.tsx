@@ -9,12 +9,28 @@ const ITEMS = [
     a: "No. A fan opens your link, picks an amount and pays with UPI or card. Name is optional, so they can leave it blank and tip anonymously.",
   },
   {
+    q: "Can fans pay by card?",
+    a: "Yes. UPI and card sit in the same tip flow, so a fan who doesn't use UPI can still tip.",
+  },
+  {
+    q: "What does it cost?",
+    a: "We take 5% of every tip. The full fee breakdown will be published before launch.",
+  },
+  {
     q: "How do I get paid?",
     a: "Payouts go to your bank account in INR. Payout timing will be published at launch.",
   },
   {
+    q: "How do tips show up on my stream?",
+    a: "You get an alert link to add to OBS as a browser source. Each tip then shows the fan's name, the amount and their message on stream.",
+  },
+  {
     q: "When does text-to-speech play?",
     a: "After a message stays within the message limit and passes profanity and banned-word screening, you approve it. Only then is it read out on stream.",
+  },
+  {
+    q: "What is the QR code for?",
+    a: "Your page gets a QR code you can show on stream. Viewers scan it with their phone and land straight on your tip page.",
   },
   {
     q: "How is this different from Super Chat?",
