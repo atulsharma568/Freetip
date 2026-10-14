@@ -52,7 +52,7 @@ export function Hero() {
             </Magnetic>
             <a
               href="#how"
-              className="text-base text-text underline decoration-line transition-colors duration-200 hover:decoration-accent"
+              className="beam inline-flex h-14 items-center rounded-full border border-line px-8 text-base font-semibold text-text"
             >
               See how it works
             </a>

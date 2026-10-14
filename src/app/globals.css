@@ -102,6 +102,70 @@ html.lenis body {
   color: var(--color-accent);
 }
 
+/* Beam button: a flat lime segment runs around the edge of a pill on hover
+   and keyboard focus. The conic gradient uses hard stops only, so it draws a
+   solid segment rather than a blend; the masks cut it down to a ring. Under
+   reduced motion the whole ring lights up and holds still. */
+@property --beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes beam {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+.beam {
+  position: relative;
+  isolation: isolate;
+}
+
+.beam::before {
+  content: "";
+  position: absolute;
+  inset: var(--beam-inset, -1px);
+  z-index: -1;
+  border-radius: inherit;
+  padding: var(--beam-width, 2px);
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0 70%,
+    var(--beam-color, var(--color-accent)) 70% 92%,
+    transparent 92%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-out-expo);
+}
+
+.beam:focus-visible::before {
+  opacity: 1;
+  animation: beam 1.6s linear infinite;
+}
+
+@media (hover: hover) {
+  .beam:hover::before {
+    opacity: 1;
+    animation: beam 1.6s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam::before {
+    background: var(--beam-color, var(--color-accent));
+  }
+}
+
 @keyframes enter {
   from {
     opacity: 0;

@@ -164,7 +164,7 @@ The owner pinned the direction as dark, flat and one sharp accent, and the page 
 
 **Key Characteristics:**
 - Warm-tinted near-black ground with off-white text. One lime accent plus its dark ink, and no second hue.
-- Lime is spent as full fields or solid pills, never as glow, gradient, outline or tint.
+- Lime is spent as full fields or solid pills, never as glow, gradient, outline or tint. The one exception is the beam button's moving segment and its reduced-motion ring, shown only on hover or keyboard focus.
 - One sans family at two widths (82% for display, 100% for text) plus a mono for money.
 - Flat at rest: no shadows. Three tonal steps and 1px hairlines carry structure.
 - Pills for actions, 20px surfaces, 12px inputs.
@@ -247,6 +247,7 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 - **Outline Ink:** Transparent with a 2px Field Ink border. Hover fills Field Ink with Acid Lime text ("Tip again").
 - **Hover / Focus:** Press scales to 0.97 (0.98 on the full-width card submit) over 200ms. A magnetic pull applies on hover-capable pointers only. Focus is a 2px ring offset 3px, lime on dark and ink on lime.
 - **Text link:** Chalk with a 1px Hairline underline at 0.25em offset. The underline turns lime on hover.
+- **Beam:** A solid lime segment with hard ends runs around the pill once every 1.6s while it is hovered (hover-capable pointers) or keyboard-focused, and fades out when left. It is the `.beam` class in `globals.css`: a hard-stop conic gradient masked to a 2px ring, so it draws one flat segment, never a blend or glow. Under reduced motion the full ring lights up and holds still. Used on the hero's secondary "See how it works" (a 56px pill with a 1px Hairline border, beam on the edge) and on the closing ink submit (beam inset 5px so it stays inside the ink pill against the lime field). Never on the primary lime buttons. The idea came from a reference "gradient beam" button, rebuilt flat in our palette; no third-party code is used.
 
 ### Chips
 - **Style:** Pill, 1px Control Edge border, Chalk text. Amount chips are 48px and Geist Mono, payment-method chips are 44px and use the label face.

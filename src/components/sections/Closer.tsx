@@ -100,7 +100,7 @@ export function Closer() {
               <Magnetic className="w-full sm:w-auto">
                 <button
                   type="submit"
-                  className="h-16 w-full rounded-full bg-ink px-8 text-base font-semibold text-accent transition-transform duration-200 active:scale-[0.97] sm:w-auto"
+                  className="beam h-16 w-full rounded-full bg-ink px-8 text-base font-semibold text-accent transition-transform duration-200 [--beam-inset:5px] active:scale-[0.97] sm:w-auto"
                 >
                   Claim your handle
                 </button>
