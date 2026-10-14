@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
+import { MoneyOrbit } from "./MoneyOrbit";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { SITE_HOST } from "@/lib/site";
 
@@ -33,7 +34,7 @@ export function Closer() {
               clipPath: "inset(0% 0% 0% 0% round 0rem 0rem 0rem 0rem)",
               ease: "none",
               scrollTrigger: {
-                trigger: root.current,
+                trigger: field.current,
                 start: "top 90%",
                 end: "top 25%",
                 scrub: true,
@@ -57,6 +58,7 @@ export function Closer() {
       id="claim"
       className="scroll-mt-24 overflow-hidden bg-ground"
     >
+      <MoneyOrbit />
       <div ref={field} className="on-accent bg-accent text-ink">
         <div className="mx-auto max-w-7xl px-6 py-28 md:py-40">
           <h2 className="display max-w-[14ch] text-[clamp(3rem,9vw,6rem)]">

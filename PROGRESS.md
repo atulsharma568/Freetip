@@ -12,7 +12,7 @@ Page sections, in order:
 - On your stream: a labeled sample OBS alert whose message lights up word by word, like text-to-speech reading it.
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
 - Payments and fees: UPI, cards and "We take 5% of every tip."
-- FAQ and a closing claim form (sign-up is a stub).
+- FAQ and a closing section: a money orbit around the glitching wordmark, then the claim form (sign-up is a stub).
 
 Not built yet: the fan tip page, creator dashboard, backend (Postgres), Razorpay payments and real sign-up. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
@@ -85,3 +85,4 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 - 2026-10-14: researched Razorpay costs for the fee decision (standard 2% + GST; owner decision still open). Started a visitor-only competitor teardown with REA (`rea-agents@6.4.0`); Hyperchat is done (outputs kept outside the repo), SuperTips and StreamTipz are paused at the owner's request.
 - 2026-10-14: built the three shortlisted pieces (owner request): a flat "Tip anonymously" switch in the sample card (clears and disables the name field), a stepped-ticks loader on the card's new "Sending" step before the success flood, and a letter-roll hover on the nav, hero, closing and card buttons. Tightened card spacing so the hero still ends 30px above the fold at 1440x900. Lint, typecheck, build and `git diff --check` passed.
 - 2026-10-14: built three more owner-picked ideas from ThreeUI, rebuilt flat: the nav eases into a floating capsule on scroll with a solid lime pill sliding behind the hovered or focused link; the sample card's success amount lands on odometer reels; the hero CTA ends in an ink circle whose arrow flies out and back in on hover. Lint, typecheck, build and `git diff --check` passed.
+- 2026-10-14: rebuilt five ThreeUI pieces the owner asked for, lighter and in our own code, with lime glow allowed only on them (owner-approved exception to the flat rule): a glass orb "Claim your handle" in the nav, a plasma canvas "Tip anonymously" switch, a frosted nav capsule whose links spring like a dock, a full uplink panel that counts the sample tip out before the success flood, and a ring of lime notes and coins circling a glitching "Tipsite" wordmark above the closing claim form. The odometer amount was not removed; it still lands on the success screen. Canvases pause off screen and reduced motion shows still frames. Checked at 1440, 390 and 320 (no horizontal overflow) and under reduced motion. Lint, typecheck, build and `git diff --check` passed.

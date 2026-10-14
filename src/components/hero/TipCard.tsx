@@ -8,15 +8,15 @@ import ClickSpark, {
 import { RollText } from "@/components/motion/RollText";
 import { Switch } from "@/components/ui/Switch";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
-import { TickLoader } from "@/components/ui/TickLoader";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { UplinkPanel } from "./UplinkPanel";
 import { INK_HEX, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
 
 const AMOUNTS = [50, 100, 250, 500];
 const DEMO_NAME = SAMPLE_TIP.name;
 const DEMO_MESSAGE = SAMPLE_TIP.message;
-// How long the button shows "Sending" before the success state.
-const SEND_MS = 1100;
+// How long the uplink panel shows before the success state.
+const SEND_MS = 1800;
 
 type Method = "upi" | "card";
 export type SentTip = { name: string; amount: number; message: string };
@@ -88,7 +88,7 @@ export function TipCard({
     reset();
   };
 
-  // A short "Sending" beat with stepped ticks, then the success state.
+  // The uplink panel counts the tip out, then the success state.
   // Reduced motion skips straight to success.
   const send = () => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -401,16 +401,18 @@ export function TipCard({
             type="submit"
             className="on-accent inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-transform duration-200 active:scale-[0.98]"
           >
-            {sending ? (
-              <>
-                <span>Sending ₹{amount}</span>
-                <TickLoader duration={(SEND_MS - 200) / 1000} />
-              </>
-            ) : (
-              <RollText>{`Tip ₹${amount} with ${method === "upi" ? "UPI" : "card"}`}</RollText>
-            )}
+            <RollText>{`Tip ₹${amount} with ${method === "upi" ? "UPI" : "card"}`}</RollText>
           </button>
         </form>
+
+        {sending && (
+          <>
+            <p role="status" className="sr-only">
+              Sending ₹{amount}
+            </p>
+            <UplinkPanel amount={amount} duration={SEND_MS / 1000} />
+          </>
+        )}
 
         {paid && (
           <div

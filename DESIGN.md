@@ -164,9 +164,9 @@ The owner pinned the direction as dark, flat and one sharp accent, and the page 
 
 **Key Characteristics:**
 - Warm-tinted near-black ground with off-white text. One lime accent plus its dark ink, and no second hue.
-- Lime is spent as full fields or solid pills, never as glow, gradient, outline or tint. The one exception is the beam button's moving segment and its reduced-motion ring, shown only on hover or keyboard focus.
+- Lime is spent as full fields or solid pills, never as glow, gradient, outline or tint. Exceptions: the beam button's moving segment (hover or focus only), and the owner-approved glow components (the glass orb nav button, the plasma switch, the uplink sending panel and the money orbit), whose glow is always lime.
 - One sans family at two widths (82% for display, 100% for text) plus a mono for money.
-- Flat at rest: no shadows. Three tonal steps and 1px hairlines carry structure.
+- Flat at rest: no shadows, except the four named glow components. Three tonal steps and 1px hairlines carry structure.
 - Pills for actions, 20px surfaces, 12px inputs.
 - Motion is demonstration: expo-out reveals, a self-playing card, reduced motion honored.
 
@@ -227,10 +227,10 @@ The "Why Tipsite" section follows the stream alert. It uses a tall fan-friction 
 
 ## Elevation & Depth
 
-Flat. There is no box-shadow, text-shadow, gradient, glow or backdrop blur anywhere. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is a solid Card Dusk capsule with a 60% Hairline border, so content never ghosts through it and it holds its edge over a lime field.
+Flat, with one owner-approved exception (2026-10-14): the glass orb nav button, the plasma switch, the uplink sending panel and the money orbit may glow, blur and use lime gradients. Their glow is always lime, and they live in the "Glow components" block of `globals.css`. Everywhere else there is no box-shadow, text-shadow, gradient, glow or backdrop blur. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is a frosted Card Dusk capsule (60% fill, backdrop blur, a faint top highlight), so content softly shows through it.
 
 ### Named Rules
-**The Flat At Rest Rule.** Nothing casts a shadow. If a layer must stand apart, use the next tonal step or a Hairline. If it must be the event, make it a lime field.
+**The Flat At Rest Rule.** Outside the named glow components, nothing casts a shadow. If a layer must stand apart, use the next tonal step or a Hairline. If it must be the event, make it a lime field.
 
 ## Shapes
 
@@ -241,7 +241,7 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 ## Components
 
 ### Buttons
-- **Shape:** Pill (9999px). Heights: 40px in the nav, 56px for the hero CTA and the card submit, 64px for the closing submit, 44px for "Tip again".
+- **Shape:** Pill (9999px). Heights: 44px in the nav (glass orb), 56px for the hero CTA and the card submit, 64px for the closing submit, 44px for "Tip again".
 - **Primary:** Acid Lime fill, Field Ink text, 600 weight, 32px side padding (20px and 14px type in the nav). The hero CTA ends in a 40px Field Ink circle holding a lime Phosphor arrow (arrow endcap, 8px right padding); on hover or focus the arrow flies out up-right and a fresh one slides in from the lower left (500ms expo).
 - **Ink:** On lime fields, Field Ink fill with Acid Lime text (the closing submit).
 - **Outline Ink:** Transparent with a 2px Field Ink border. Hover fills Field Ink with Acid Lime text ("Tip again").
@@ -250,13 +250,14 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 - **Beam:** A solid lime segment with hard ends runs around the pill once every 1.6s while it is hovered (hover-capable pointers) or keyboard-focused, and fades out when left. It is the `.beam` class in `globals.css`: a hard-stop conic gradient masked to a 2px ring, so it draws one flat segment, never a blend or glow. Under reduced motion the full ring lights up and holds still. Used on the hero's secondary "See how it works" (a 56px pill with a 1px Hairline border, beam on the edge) and on the closing ink submit (beam inset 5px so it stays inside the ink pill against the lime field). Never on the primary lime buttons. The idea came from a reference "gradient beam" button, rebuilt flat in our palette; no third-party code is used.
 
 - **Letter roll:** Pill button labels roll up letter by letter (16ms stagger, 550ms expo) on hover or keyboard focus and land on the same label (`RollText` + `.roll`). The hero CTA arrow nudges up-right at the same time. Screen readers get the plain label. Used on the nav, hero and closing CTAs and the card submit.
-- **Sending state:** The card submit shows "Sending ₹amount" with a stepped-ticks loader for about 1.1s before the success flood. Reduced motion skips straight to success.
+- **Glass orb:** The nav "Claim your handle" (`GlassOrbButton`) is a 44px frosted glass pill with a 32px glowing lime orb holding an ink ₹. A light streak swirls around the orb (3.2s a turn), and eight lime sparks burst out of it on hover. It becomes Sign up / Log in once accounts exist.
+- **Sending state:** The card is covered for about 1.8s by the uplink panel (`UplinkPanel`): Warm Night at 97% with lime corner marks and side rails, a glowing Geist Mono percentage counting to 100 in steps, "SENDING ₹amount", a row of 36 lime ticks switching on with a glow, and "SECURING UPLINK" flipping to "TIP SENT", under scanlines and moving grain. A visually hidden status says "Sending ₹amount". Reduced motion skips straight to success.
 
 ### Switch
-A flat on/off switch (`Switch`, `role="switch"`): 48 by 28px pill. Off is a Smoke Control outline on Warm Night with a muted thumb; on fills Acid Lime with a Field Ink thumb that slides across over 300ms expo. The thumb stretches while pressed. Labelled with a visible `<label>`. In the sample card it is "Tip anonymously": on clears and disables the name field, which then reads "Anonymous".
+A plasma switch (`Switch`, `role="switch"`): 56 by 32px pill whose track is a tiny canvas plasma in ink, lime and pale lime, scaled up so it stays soft. Off, the plasma is dim and still. On, it glows and flows (only while on screen and with motion allowed), the edge turns lime with a lime glow, and a glossy 24px thumb slides across (300ms expo). The thumb's highlight follows the pointer. Labelled with a visible `<label>`. In the sample card it is "Tip anonymously": on clears and disables the name field, which then reads "Anonymous".
 
 ### Stepped-ticks loader
-`TickLoader`: a row of 3px ticks in currentColor (every fourth taller, like gauge marks) that switch on one step at a time from 25% to full and hold. Ink on lime in the card submit; it can be lime on dark elsewhere. Decorative only, always next to words saying what is happening. Adapted flat from a reference "uplink" loader: no neon, scanlines or grain.
+`TickLoader`: a row of 3px ticks in currentColor (every fourth taller, like gauge marks) that switch on one step at a time from 25% to full and hold. Ink on lime in the card submit; it can be lime on dark elsewhere. Decorative only, always next to words saying what is happening. Not used on the page right now; kept for the waitlist submit.
 
 ### Chips
 - **Style:** Pill, 1px Control Edge border, Chalk text. Amount chips are 48px and Geist Mono, payment-method chips are 44px and use the label face.
@@ -274,8 +275,8 @@ A flat on/off switch (`Switch`, `role="switch"`): 48 by 28px pill. Off is a Smok
 - **Error / Disabled:** An invalid handle sets `aria-invalid` and shows one plain sentence in a polite status region below the field. There is no red.
 
 ### Navigation
-- **Style:** Fixed. At the top it is a transparent 64px full-width bar. Once the page scrolls 16px it eases (500ms expo) into a floating capsule: 56px tall, 12px from the top, at most 56rem wide (12px side margins on small screens), Card Dusk fill, a 60% Hairline border and a full pill radius, so it holds its edge over the lime closing field. Wordmark in Display, links in Ash at 14px, one lime pill at the right.
-- **Link highlight:** A solid Acid Lime pill slides (500ms expo) behind whichever link is hovered or keyboard-focused, and that link turns Field Ink. It fades out when the pointer leaves the links. Adapted from a reference "command bar" dock, rebuilt flat.
+- **Style:** Fixed. At the top it is a transparent 64px full-width bar. Once the page scrolls 16px it eases (500ms expo) into a floating frosted-glass capsule: 56px tall, 12px from the top, at most 56rem wide (12px side margins on small screens), 60% Card Dusk with backdrop blur, a faint Chalk border, an inset top highlight and a full pill radius. Wordmark in Display, links in Ash at 14px, the glass orb button at the right.
+- **Link highlight:** A solid Acid Lime pill slides (500ms expo) behind whichever link is hovered or keyboard-focused, and that link turns Field Ink. It fades out when the pointer leaves the links. Links also behave like a dock: on hover-capable pointers with motion allowed, each link within 90px of the pointer springs up to 2.5px and swells up to 8% by how close it is.
 - **Mobile:** Links are removed below md.
 
 ### Tip Card (signature component)
@@ -286,6 +287,9 @@ The sample of what viewers see on a streamer's stream when a tip lands. It sits 
 
 ### Alert Fan
 On screens 1280px and wider, labelled sample alerts fan out from behind the hero tip card's left edge, tucked 3.5rem under it: up to three cards, each turned a little further (−4°, −11°, −18°) and stepped up and left. The front one is Acid Lime with Field Ink text, the others Raised Smoke with a Hairline border. When the card's success state settles (after the odometer lands), the tip it "sent" deals out from behind the card to the front (900ms expo), the others step back and the oldest fades out. Two sample alerts are fanned from the start. Decorative and `aria-hidden`; every card says "Sample alert". Hidden below 1280px, where there is no room beside the headline.
+
+### Money Orbit
+At the top of the closing section, above the lime field, the wordmark "Tipsite" sits large in Chalk Display (up to 15rem) while 14 lime ₹ notes and coins circle it on a tilted ring (16s a lap). The far half of the ring is drawn on a canvas behind the word and the near half on one in front, so the money passes behind and in front of the letters; nearer pieces are bigger, brighter and glow more, and coins flip as they go. Every few seconds the word glitches: a lime and an Ash copy slip sideways in thin slices. Canvases pause off screen; reduced motion shows one still frame and no glitch. Decorative and `aria-hidden`.
 
 ### Steps Rail
 "How it works" has four steps: Claim, Share, Go live, Get paid. From md up with motion allowed, the section pins for one screen and the steps slide left as the page scrolls (scrubbed), while a 3px Acid Lime line fills a Hairline track under the heading; each verb rises as it enters. On phones, and under reduced motion, it is the stacked list with a Hairline rule above each step.
@@ -314,7 +318,7 @@ FAQ rows have 24px vertical padding and Hairline dividers. Questions are 600 wei
 - **Do** label sample content as a sample wherever it appears.
 
 ### Don't:
-- **Don't** add shadows, gradients, glows, blurs or a second accent hue.
+- **Don't** add shadows, gradients, glows, blurs or a second accent hue outside the glass orb nav button, the plasma switch, the uplink sending panel and the money orbit.
 - **Don't** use Hairline for the edge of anything a user must find or press.
 - **Don't** set Chalk or Ash text on Acid Lime.
 - **Don't** set mono outside amounts and the handle.
