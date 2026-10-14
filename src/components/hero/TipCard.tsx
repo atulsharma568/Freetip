@@ -282,18 +282,22 @@ export function TipCard({ onBeat }: { onBeat: (beat: Beat) => void }) {
 
           <div className="grid gap-5 sm:grid-cols-[1fr_1.6fr]">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-muted">Name</span>
+              <span className="mb-2 block text-sm font-medium text-muted">
+                Name (optional)
+              </span>
               <input
                 ref={nameRef}
                 name="name"
                 type="text"
                 maxLength={30}
-                placeholder="Riya"
+                placeholder="Optional / anonymous"
                 className={fieldClass}
               />
             </label>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-muted">Message</span>
+              <span className="mb-2 block text-sm font-medium text-muted">
+                Message (limit applies)
+              </span>
               <input
                 ref={messageRef}
                 name="message"
@@ -325,6 +329,11 @@ export function TipCard({ onBeat }: { onBeat: (beat: Beat) => void }) {
               ))}
             </div>
           </fieldset>
+
+          <p className="text-sm leading-5 text-muted">
+            No account or email needed. Leave your name blank to stay anonymous.
+            Messages are screened and only read out after creator approval.
+          </p>
 
           <button
             type="submit"

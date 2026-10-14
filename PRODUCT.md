@@ -24,11 +24,11 @@ UPI-first tipping for Indian YouTube live streamers: fans pay from the streamer'
 
 ## Capabilities and Constraints
 
-Confirmed by the owner: UPI and card tips from a creator's page with no fan account, and payments through Razorpay with INR payouts. Added on 2026-10-13: OBS live alerts, text-to-speech readout of the fan's message, and a platform fee of 5% of every tip.
+Confirmed by the owner: UPI and card tips from a creator's page with no fan account, and payments through Razorpay with INR payouts. Added on 2026-10-13: OBS live alerts, text-to-speech readout of the fan's message, and a platform fee of 5% of every tip. On 2026-10-14, the owner directed the landing page to foreground no fan email, optional anonymous tips, QR-first sharing and safer approved text-to-speech as product edges from the competitor review.
 
 Not confirmed, so the page must not name them as features: paid highlighted messages (the owner has not mentioned them), creator dashboard details, payout timing, and whether payment-gateway (Razorpay) charges sit inside the 5% or on top of it. The page states the fee only as "We take 5% of every tip."
 
-Fan Name and Message: the OBS alert shows the fan's name, the amount and the message, and text-to-speech reads the message aloud, so the sample tip card keeps its optional Name and Message fields. The owner asked what these fields mean and then asked for alerts and text-to-speech, so the fields stay. They appear only inside labeled samples. Still open: whether they are optional, a message length limit, and moderation of what text-to-speech reads aloud on a live stream.
+Fan Name and Message: the OBS alert shows the fan's optional name, the amount and the message, and text-to-speech reads the message aloud only after creator approval, so the sample tip card keeps its optional Name and Message fields. The owner asked what these fields mean and then asked for alerts and text-to-speech, so the fields stay. The name can be left blank for an anonymous tip. The exact message limit, moderation settings and approval interface remain to be built on the future tip page.
 
 Undecided: product name (placeholder "Tipsite"), domain, payout schedule, sign-up mechanism (waitlist or Google login).
 

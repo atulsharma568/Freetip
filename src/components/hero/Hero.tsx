@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import { Magnetic } from "@/components/motion/Magnetic";
+import { HeroHands } from "./HeroHands";
 import { TipCard } from "./TipCard";
 
 const BEATS = ["Your link.", "Their UPI.", "Your bank."];
@@ -55,11 +56,11 @@ export function Hero() {
           </a>
         </div>
       </div>
-      <div
-        className="enter w-full max-w-[26rem] lg:col-span-5 lg:self-start lg:justify-self-end"
-        style={step(2)}
-      >
-        <TipCard onBeat={setBeat} />
+      <div className="w-full max-w-[26rem] lg:col-span-5 lg:self-start lg:justify-self-end">
+        <HeroHands />
+        <div className="enter mt-6 w-full" style={step(2)}>
+          <TipCard onBeat={setBeat} />
+        </div>
       </div>
     </section>
   );

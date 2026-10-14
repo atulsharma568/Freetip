@@ -3,6 +3,7 @@ import { SITE_NAME } from "@/lib/site";
 const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#stream", label: "On stream" },
+  { href: "#why", label: "Why Tipsite" },
   { href: "#fees", label: "Fees" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -13,7 +14,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <p className="display text-xl">{SITE_NAME}</p>
         <nav aria-label="Footer">
-          <ul className="flex gap-6 text-sm text-muted">
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
             {LINKS.map((link) => (
               <li key={link.href}>
                 <a

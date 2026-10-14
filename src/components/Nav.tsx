@@ -8,6 +8,7 @@ import { SITE_NAME } from "@/lib/site";
 const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#stream", label: "On stream" },
+  { href: "#why", label: "Why Tipsite" },
   { href: "#fees", label: "Fees" },
   { href: "#faq", label: "FAQ" },
 ];

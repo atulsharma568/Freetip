@@ -17,6 +17,7 @@ npm run build && npm run start
 - `DESIGN.md`: the visual system (colors, type, shapes, components, rules).
 - `src/lib/site.ts`: placeholder name, host and sample handle.
 - `src/components/hero/TipCard.tsx`: the self-playing sample tip card.
+- `src/components/sections/Differentiators.tsx`: the competitor-led "Why Tipsite" section covering no fan email/account, anonymous tips, QR-first sharing and safer approved text-to-speech.
 
 ## Placeholders to replace
 

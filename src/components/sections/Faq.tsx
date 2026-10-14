@@ -5,12 +5,16 @@ import { Plus } from "@phosphor-icons/react";
 
 const ITEMS = [
   {
-    q: "Do fans need an account?",
-    a: "No. A fan opens your link, picks an amount and pays with UPI or card.",
+    q: "Do fans need an account or email?",
+    a: "No. A fan opens your link, picks an amount and pays with UPI or card. Name is optional, so they can leave it blank and tip anonymously.",
   },
   {
     q: "How do I get paid?",
     a: "Payouts go to your bank account in INR. Payout timing will be published at launch.",
+  },
+  {
+    q: "When does text-to-speech play?",
+    a: "After a message stays within the message limit and passes profanity and banned-word screening, you approve it. Only then is it read out on stream.",
   },
   {
     q: "How is this different from Super Chat?",

@@ -3,6 +3,7 @@ import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/hero/Hero";
 import { Steps } from "@/components/sections/Steps";
 import { Stream } from "@/components/sections/Stream";
+import { Differentiators } from "@/components/sections/Differentiators";
 import { Money } from "@/components/sections/Money";
 import { Faq } from "@/components/sections/Faq";
 import { Closer } from "@/components/sections/Closer";
@@ -21,6 +22,7 @@ export default function Home() {
         <Hero />
         <Steps />
         <Stream />
+        <Differentiators />
         <Money />
         <Faq />
         <Closer />

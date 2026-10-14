@@ -59,11 +59,11 @@ export function Stream() {
         <div className="mt-8 max-w-[34ch] space-y-5 text-pretty text-lg text-muted md:mt-12">
           <p>
             <span className="text-text">OBS alerts.</span> Every tip shows up on
-            your stream with the fan&apos;s name, the amount and their message.
+            your stream with the fan&apos;s optional name, the amount and their message.
           </p>
           <p>
-            <span className="text-text">Text-to-speech.</span> The message is
-            read out loud as the alert plays.
+            <span className="text-text">Safer text-to-speech.</span> Messages are
+            screened and only read out after you approve them.
           </p>
         </div>
       </div>
