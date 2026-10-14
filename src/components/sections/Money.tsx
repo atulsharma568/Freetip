@@ -4,6 +4,16 @@ import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 
+// Worked example for a ₹100 tip. Razorpay's standard rate (2% + 18% GST on
+// that fee, Oct 2026) is paid by the creator out of the payout, on top of
+// our 5%. Fans always pay exactly the tip.
+const EXAMPLE = [
+  { label: "Fan tips", value: "₹100.00" },
+  { label: "Our fee (5%)", value: "−₹5.00" },
+  { label: "Razorpay (2% + GST)", value: "−₹2.36" },
+];
+const KEEP = "₹92.64";
+
 export function Money() {
   const root = useRef<HTMLElement>(null);
 
@@ -35,6 +45,13 @@ export function Money() {
         gsap.set(fee, { opacity: 0 });
         tl.to(fee, { opacity: 1, duration: 0.2, ease: "none" }, 0.35);
         spins.forEach((spin) => tl.add(spin, 0.35));
+        // Then the worked example adds up, one line at a time.
+        tl.fromTo(
+          q("[data-line]"),
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.12 },
+          0.9,
+        );
       });
     },
     { scope: root },
@@ -83,8 +100,28 @@ export function Money() {
             />
           </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">What it costs</h3>
-          <p className="mt-4 max-w-[34ch] text-pretty text-2xl font-medium text-text">
-            We take 5% of every tip.
+          <p className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
+            We take 5% of every tip. Razorpay&apos;s payment charge comes out
+            of the payout too; fans pay exactly the tip.
+          </p>
+          <dl className="mt-8 border-t border-line pt-4 text-base">
+            {EXAMPLE.map((row) => (
+              <div key={row.label} data-line className="flex justify-between gap-4 py-1.5">
+                <dt className="text-muted">{row.label}</dt>
+                <dd className="numeric whitespace-nowrap">{row.value}</dd>
+              </div>
+            ))}
+            <div
+              data-line
+              className="mt-2 flex justify-between gap-4 border-t border-dashed border-line pt-3 text-lg font-semibold"
+            >
+              <dt>You get</dt>
+              <dd className="numeric whitespace-nowrap text-accent">{KEEP}</dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-sm text-muted">
+            Example on a ₹100 UPI or Indian card tip at Razorpay&apos;s standard
+            rate. International cards cost more.
           </p>
         </div>
       </div>
