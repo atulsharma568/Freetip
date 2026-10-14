@@ -36,6 +36,10 @@ export const PLACEHOLDER: Record<OperatorKey, string> = {
 // Shown on every legal page until the details above are filled in and a
 // lawyer has reviewed the text.
 export const LEGAL_DRAFT = true;
+
+// Draft policy pages ask search engines not to index them.
+export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
+
 export const LEGAL_UPDATED = "14 October 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's

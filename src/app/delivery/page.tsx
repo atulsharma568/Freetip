@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
+import { LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Delivery policy: ${SITE_NAME}`,
   description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`,
+  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [

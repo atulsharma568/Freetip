@@ -11,7 +11,7 @@ npm run dev      # http://localhost:3000
 npm run build && npm run start
 ```
 
-The waitlist needs a Postgres database. Copy `.env.example` to `.env.local`, fill in `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET`, and run `db/schema.sql` once against the database. Without them the site still runs and the form says the waitlist isn't working.
+The waitlist needs a Postgres database. Copy `.env.example` to `.env.local`, fill in `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET`, and run `db/schema.sql` once against the database. Without them the site still runs and the form says the waitlist isn't working. `NEXT_PUBLIC_SITE_URL` (the real domain, once chosen) lets search engines in; until it is set, `robots.txt` blocks them.
 
 ## Where things are
 

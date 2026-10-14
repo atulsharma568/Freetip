@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
+import { LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `About: ${SITE_NAME}`,
   description: `${SITE_NAME} is a tipping page for Indian YouTube live streamers, paid by UPI or card.`,
+  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [

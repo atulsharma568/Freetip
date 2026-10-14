@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { SITE_NAME } from "@/lib/site";
+import { SITE_URL } from "@/lib/url";
 
 const mono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -15,10 +16,17 @@ const display = Bricolage_Grotesque({
   axes: ["opsz", "wdth"],
 });
 
+const title = `${SITE_NAME}: tips for YouTube streamers, paid by UPI or card`;
+const description =
+  "Your link. Their UPI. Your bank. Tips for Indian YouTube streamers: fans pay with UPI or card, no account needed, with OBS alerts and text-to-speech.";
+
+// The share image comes from app/opengraph-image.tsx.
 export const metadata: Metadata = {
-  title: `${SITE_NAME}: tips for YouTube streamers, paid by UPI or card`,
-  description:
-    "Your link. Their UPI. Your bank. Tips for Indian YouTube streamers: fans pay with UPI or card, no account needed, with OBS alerts and text-to-speech.",
+  metadataBase: new URL(SITE_URL),
+  title,
+  description,
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_IN", title, description },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export const viewport: Viewport = {

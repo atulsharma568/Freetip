@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MailFill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
+import { LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Refunds and cancellations: ${SITE_NAME}`,
   description: `When a ${SITE_NAME} tip can be refunded, how to ask, and how long it takes.`,
+  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [

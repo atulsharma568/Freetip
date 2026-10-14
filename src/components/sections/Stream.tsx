@@ -44,6 +44,7 @@ function Words() {
 export function Stream() {
   const root = useRef<HTMLElement>(null);
   const againRef = useRef<HTMLButtonElement>(null);
+  const approveRef = useRef<HTMLButtonElement>(null);
   const [settings, setSettings] = useState<Settings>({ alerts: true, tts: true, approve: true });
   const [phase, setPhase] = useState<Phase>("idle");
   const [run, setRun] = useState(0);
@@ -70,6 +71,8 @@ export function Stream() {
     const press = window.setTimeout(() => setPressing(true), 1400);
     const approve = window.setTimeout(() => {
       setPressing(false);
+      // Someone tabbed onto Approve: move them on to "again" like a real press.
+      if (document.activeElement === approveRef.current) userApproved.current = true;
       setPhase("playing");
     }, 1560);
     return () => {
@@ -258,6 +261,7 @@ export function Stream() {
                   </p>
                 </div>
                 <button
+                  ref={approveRef}
                   type="button"
                   onClick={approve}
                   data-pressing={pressing}

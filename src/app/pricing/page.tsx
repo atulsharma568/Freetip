@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
-import { FEES } from "@/lib/legal";
+import { FEES, LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
   description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`,
+  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [

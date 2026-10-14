@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fill, MailFill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
-import { OPERATOR } from "@/lib/legal";
+import { LEGAL_ROBOTS, OPERATOR } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Contact and grievances: ${SITE_NAME}`,
   description: `How to reach ${SITE_NAME} for help, payment problems, reports and complaints.`,
+  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [

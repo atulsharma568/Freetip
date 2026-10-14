@@ -20,7 +20,7 @@ export function PageShell({ children }: { children: ReactNode }) {
         </Link>
         <Link
           href="/"
-          className="text-sm text-muted transition-colors duration-200 hover:text-text"
+          className="-mr-3 inline-flex h-11 items-center px-3 text-sm text-muted transition-colors duration-200 hover:text-text"
         >
           Back to home
         </Link>

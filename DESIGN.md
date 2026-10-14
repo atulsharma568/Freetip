@@ -257,6 +257,12 @@ The closing handle field is a pill instead of 12px because it sits beside a pill
 ### Switch
 A plasma switch (`Switch`, `role="switch"`): 56 by 32px pill whose track is a tiny canvas plasma in ink, lime and pale lime, scaled up so it stays soft. Off, the plasma is dim and still. On, it glows and flows (only while on screen and with motion allowed), the edge turns lime with a lime glow, and a glossy 24px thumb slides across (300ms expo). The thumb's highlight follows the pointer. Labelled with a visible `<label>`. In the sample card it is "Tip anonymously": on clears and disables the name field, which then reads "Anonymous".
 
+### Not found page
+`not-found.tsx` inside `PageShell`: a small Geist Mono "404", a Display "This page doesn't exist.", and a line saying creator links like `tipsite.in/name` aren't live yet, then a 56px lime "Join the waitlist" pill and an underlined "Back to home". Most visitors here typed a creator's link, so it points them to the waitlist.
+
+### Share image
+`opengraph-image.tsx`, 1200x630, flat on Warm Night: the lime icon and wordmark, the three headline lines in Display (Bricolage Grotesque 800, semi-condensed) with "Their UPI." in Acid Lime, a lime Geist Mono `tipsite.in/yourname` pill and one Ash line. No glow. The iPhone home-screen icon (`apple-icon.tsx`) is the favicon's lime square with an ink dot, full bleed.
+
 ### Waitlist form
 The closing section and `/signup` share one behaviour (`useWaitlist`). Labels sit above fields; optional fields say "(optional)". In the lime closing section, the handle field sits on its own row and the 64px ink-bordered email pill shares a row with the ink "Join the waitlist" button from `sm` (stacked below). While saving, the button label swaps in place (same width) to the stepped-ticks loader and "Joining", the status line reads "Adding you to the waitlist…" and a second press is ignored. Answers appear in the status line under the button (role=status): "You're on the list. We'll email you when sign-up opens.", a field-specific fix (that field gets focus back), a rate-limit note or "isn't working right now". Editing any field clears the answer. A short consent line under the status links the privacy policy (Ink at 80% on lime, Ash on dark).
 
