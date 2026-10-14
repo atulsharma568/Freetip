@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { MoneyOrbit } from "./MoneyOrbit";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { SITE_HOST } from "@/lib/site";
+import { HANDLE_PATTERN, HandleField } from "@/components/ui/HandleField";
 
 type Status = "idle" | "invalid" | "closed";
 
@@ -20,6 +20,10 @@ export function Closer() {
   const field = useRef<HTMLDivElement>(null);
   const [handle, setHandle] = useState("");
   const [status, setStatus] = useState<Status>("idle");
+  const [scanning, setScanning] = useState(false);
+  const scanTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(scanTimer.current), []);
 
   useGSAP(
     () => {
@@ -49,7 +53,19 @@ export function Closer() {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    setStatus(/^[a-z0-9_]{3,20}$/.test(handle) ? "closed" : "invalid");
+    const next = HANDLE_PATTERN.test(handle) ? "closed" : "invalid";
+    // A valid handle gets a short scan across the field before the answer.
+    if (next === "invalid" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStatus(next);
+      return;
+    }
+    setStatus("idle");
+    setScanning(true);
+    window.clearTimeout(scanTimer.current);
+    scanTimer.current = window.setTimeout(() => {
+      setScanning(false);
+      setStatus(next);
+    }, 700);
   };
 
   return (
@@ -75,31 +91,19 @@ export function Closer() {
             >
               Your handle
             </label>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex h-16 w-full items-center rounded-full border-2 border-ink px-6 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-ink sm:max-w-md sm:flex-1">
-                <span className="numeric text-base text-ink/85">{SITE_HOST}/</span>
-                <input
-                  id="handle"
-                  name="handle"
-                  type="text"
-                  inputMode="text"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  maxLength={20}
-                  value={handle}
-                  onChange={(event) => {
-                    setHandle(
-                      event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""),
-                    );
-                    setStatus("idle");
-                  }}
-                  aria-describedby="handle-status"
-                  aria-invalid={status === "invalid"}
-                  placeholder="yourname"
-                  className="numeric h-full min-w-0 flex-1 bg-transparent text-base placeholder:text-ink/85 focus:outline-none"
-                />
-              </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <HandleField
+                id="handle"
+                tone="lime"
+                value={handle}
+                onChange={(next) => {
+                  setHandle(next);
+                  setStatus("idle");
+                }}
+                invalid={status === "invalid"}
+                describedBy="handle-status"
+                scanning={scanning}
+              />
               <Magnetic className="w-full sm:w-auto">
                 <button
                   type="submit"

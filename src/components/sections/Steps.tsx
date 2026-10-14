@@ -15,7 +15,7 @@ const STEPS = [
   },
   {
     verb: "Go live",
-    text: "Tips show up on your stream as OBS alerts. Messages are read out only after you approve them.",
+    text: "Tips show up on your stream as OBS alerts. You choose whether alerts show, whether messages are read out and whether you approve each one first.",
   },
   {
     verb: "Get paid",

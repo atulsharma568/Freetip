@@ -26,7 +26,7 @@ const ITEMS = [
   },
   {
     q: "When does text-to-speech play?",
-    a: "After a message stays within the message limit and passes profanity and banned-word screening, you approve it. Only then is it read out on stream.",
+    a: "Only messages within the message limit that pass profanity and banned-word screening can be read out. With approve-first on, which is the default, each one also waits for your okay. You can turn approve-first, text-to-speech or on-stream alerts off.",
   },
   {
     q: "What is the QR code for?",

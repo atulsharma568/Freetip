@@ -12,7 +12,8 @@ Page sections, in order:
 - On your stream: a labeled sample OBS alert whose message lights up word by word, like text-to-speech reading it.
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
 - Payments and fees: UPI, cards and "We take 5% of every tip."
-- FAQ and a closing section: a money orbit around the glitching wordmark, then the claim form (sign-up is a stub).
+- FAQ and a closing section: a money orbit around the glitching wordmark, then the claim form with a typing handle field (sign-up is a stub).
+- `/signup` and `/signin` pages (stubs: nothing is saved or sent), reached from Sign in and Sign up in the nav.
 
 Not built yet: the fan tip page, creator dashboard, backend (Postgres), Razorpay payments and real sign-up. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
@@ -52,7 +53,7 @@ The landing page presents these as samples or planned product behavior. It does 
 
 - Does the 5% include Razorpay's payment charges, or are they on top?
 - Hands animation in the hero: the polished version is committed "for now" (owner, 2026-10-14). The owner said it is not what they imagined, so a further revision may follow.
-- Payout timing, paid highlighted messages, product name and domain, sign-up mechanism.
+- Payout timing, paid highlighted messages, product name and domain, sign-up and sign-in mechanism (email code, password or Google).
 - Exact message length, moderation settings and the approval interface for text-to-speech (needed with the tip page).
 
 ## Next

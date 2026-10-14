@@ -230,7 +230,8 @@ html.lenis body {
 
 /* ---- Glow components (owner-approved exception to the flat rule,
    2026-10-14). Glow is always lime, and only on these pieces: the glass
-   orb button, the plasma switch, the uplink panel and the money orbit. ---- */
+   orb and chrome buttons, the plasma switch, the handle field, the uplink
+   panel and the money orbit. ---- */
 
 /* Glass orb button: a frosted pill with a lime orb that swirls, and a
    particle burst when hovered. */
@@ -531,6 +532,147 @@ html.lenis body {
   .glitch::after {
     display: none;
   }
+}
+
+/* Chrome button (sign up / sign in): a brushed-silver pill in a polished
+   bezel with a crystal knob at its end. A specular streak follows the
+   pointer (--mx), and on hover the knob lights lime and spills light back
+   across the metal. */
+.chrome-btn {
+  --mx: 30%;
+  position: relative;
+  isolation: isolate;
+  border: 2px solid transparent;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.02 1.4' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/></svg>") padding-box,
+    linear-gradient(180deg, #f6f7f1 0%, #d3d5cb 48%, #bfc1b6 52%, #e9eae3 100%) padding-box,
+    linear-gradient(160deg, #ffffff 0%, #7b7e73 32%, #fbfbf6 52%, #4f5249 78%, #d9dad2 100%) border-box;
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.12),
+    0 12px 26px -12px rgb(0 0 0 / 0.9),
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -2px 3px rgb(0 0 0 / 0.22);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.75);
+  transition:
+    scale 140ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.chrome-btn::before,
+.chrome-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* The streak: a soft white band that sits wherever the pointer is. */
+.chrome-btn::before {
+  background: radial-gradient(
+    60px 120% at var(--mx) 50%,
+    rgb(255 255 255 / 0.85),
+    transparent 70%
+  );
+  mix-blend-mode: soft-light;
+}
+
+/* The spill: lime light from the knob, shown on hover and focus. */
+.chrome-btn::after {
+  background: radial-gradient(
+    120px 160% at calc(100% - 22px) 50%,
+    rgb(191 232 74 / 0.55),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.chrome-knob {
+  background: radial-gradient(
+    circle at 36% 30%,
+    #ffffff 0 8%,
+    #e6e8e0 22%,
+    #8e9188 58%,
+    #3b3e35 100%
+  );
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.65),
+    0 0 0 3px rgb(0 0 0 / 0.28),
+    inset 0 -3px 5px rgb(0 0 0 / 0.35);
+  transition:
+    background 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.chrome-btn:focus-visible::after {
+  opacity: 1;
+}
+
+.chrome-btn:focus-visible .chrome-knob {
+  background: radial-gradient(circle at 36% 30%, #f8ffe0 0 9%, #d6f37f 28%, var(--color-accent) 52%, #4f6812 100%);
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.65),
+    0 0 0 3px rgb(0 0 0 / 0.28),
+    0 0 16px rgb(191 232 74 / 0.9);
+}
+
+@media (hover: hover) {
+  .chrome-btn:hover::after {
+    opacity: 1;
+  }
+
+  .chrome-btn:hover .chrome-knob {
+    background: radial-gradient(circle at 36% 30%, #f8ffe0 0 9%, #d6f37f 28%, var(--color-accent) 52%, #4f6812 100%);
+    box-shadow:
+      0 0 0 2px rgb(255 255 255 / 0.65),
+      0 0 0 3px rgb(0 0 0 / 0.28),
+      0 0 16px rgb(191 232 74 / 0.9);
+  }
+}
+
+.chrome-btn:active {
+  scale: 0.97;
+}
+
+/* Handle field: the live link chip pops each new letter in, and a scan
+   sweeps the field once on submit. */
+@keyframes char-in {
+  from {
+    opacity: 0;
+    transform: translateY(45%);
+  }
+}
+
+.char-in {
+  display: inline-block;
+  white-space: pre;
+  animation: char-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes scan {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 100% 0;
+  }
+}
+
+.scan {
+  animation: scan 700ms cubic-bezier(0.77, 0, 0.175, 1) forwards;
 }
 
 @keyframes enter {

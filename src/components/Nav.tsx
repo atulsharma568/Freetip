@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { PencilSimple, User } from "@phosphor-icons/react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SITE_NAME } from "@/lib/site";
+import { ChromeButton } from "@/components/ui/ChromeButton";
 import { GlassOrbButton } from "@/components/ui/GlassOrbButton";
 
 const LINKS = [
@@ -15,7 +17,8 @@ const LINKS = [
 ];
 
 // At the top the nav is a full-width bar. Once the page scrolls it eases into
-// a floating frosted-glass capsule. Links near the pointer lift and swell a
+// a floating frosted-glass capsule, with Sign in (glass orb) and Sign up
+// (chrome) at the right. Links near the pointer lift and swell a
 // little, like a dock, and a solid lime pill slides behind whichever link is
 // hovered or focused.
 
@@ -76,7 +79,7 @@ export function Nav() {
         <Link href="/" className="display text-2xl">
           {SITE_NAME}
         </Link>
-        <nav aria-label="Primary" className="hidden md:block">
+        <nav aria-label="Primary" className="hidden lg:block">
           <ul
             className="relative flex items-center gap-1 text-sm text-muted"
             onPointerMove={(event) => dock.current?.(event.clientX)}
@@ -113,7 +116,16 @@ export function Nav() {
             ))}
           </ul>
         </nav>
-        <GlassOrbButton href="#claim">Claim your handle</GlassOrbButton>
+        <div className="flex items-center gap-2">
+          <span className="hidden min-[380px]:block">
+            <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
+              Sign in
+            </GlassOrbButton>
+          </span>
+          <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
+            Sign up
+          </ChromeButton>
+        </div>
       </div>
     </header>
   );
