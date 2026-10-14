@@ -18,9 +18,24 @@ A tipping website for YouTube creators in the spirit of Hyperchat, StreamTips an
 
 Scope for now (owner, 2026-10-13): the landing page only. The fan tip page, the creator dashboard and the backend are not being built yet.
 
+The landing page is an explanation and prototype surface, not the product backend. Its tip card, stream alert, handoff animation and QR are demonstrations; they do not take payments, connect to OBS, generate a live QR or store submissions.
+
 ## Positioning
 
 UPI-first tipping for Indian YouTube live streamers: fans pay from the streamer's page with UPI or a card, with no account, and each tip lands on stream as an OBS alert with the message read out loud.
+
+## Competitor-derived product decisions
+
+The competitor review identified useful patterns worth keeping—short creator links, UPI, card support, OBS alerts, text-to-speech and clear fan inputs—and defaults we should avoid. Tipsite therefore intends to combine those useful parts with:
+
+- No fan account and no fan email.
+- An optional fan name so a tip can be anonymous by choice.
+- UPI and card in one tip flow rather than UPI only.
+- A QR code per creator for viewers watching the stream.
+- A bounded, screened message that waits for creator approval before text-to-speech.
+- A plainly stated 5% platform fee without invented gateway or payout details.
+
+We are deliberately leaving out competitor-style soundboards, XP levels, leaderboards, fan CRM, paid highlighted messages, inflated counters, testimonials and dense feature catalogues from the first landing page.
 
 ## Capabilities and Constraints
 

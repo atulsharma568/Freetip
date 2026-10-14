@@ -158,9 +158,9 @@ components:
 
 The whole system is a dark room with one light that switches on when money arrives. Almost everything is warm near-black, off-white type and hairlines. The single acid-lime accent is held back and then spent in full fields: the tip card flooding lime on success, the stream alert, the UPI tile, the closing section. Lime reads as an event, not a decoration.
 
-It is flat and exact. There are no shadows, gradients, glows or blurs. Depth comes from three tonal steps, and the lime fields are the loudest layer. Type does the personality work: a condensed, heavy Bricolage Grotesque for headlines, the same family at normal width for sentences, and Geist Mono reserved for money and the handle. Motion exists to demonstrate the product. A sample card plays itself and lights the headline beats, a sample stream alert lights its message word by word, and every motion is gated off under reduced motion.
+It is flat and exact. There are no shadows, gradients, glows or blurs. Depth comes from three tonal steps, and the lime fields are the loudest layer. Type does the personality work: a condensed, heavy Bricolage Grotesque for headlines, the same family at normal width for sentences, and Geist Mono reserved for money and the handle. Motion exists to demonstrate the product. The hero hands exchange a lime ₹ note once, a sample card plays itself and lights the headline beats, a sample stream alert lights its message word by word, and every motion is gated off under reduced motion.
 
-The owner pinned the direction as dark, flat and one sharp accent, and the page must not look AI-generated or templated. The system refuses the streamer-tool default of neon glow, mesh gradients and grids of feature cards.
+The owner pinned the direction as dark, flat and one sharp accent, and the page must not look AI-generated or templated. The system refuses the streamer-tool default of neon glow, mesh gradients and dense grids of feature cards. The "Why Tipsite" section is one deliberate bento-style explanation of the product edge, not a catalogue of every possible feature.
 
 **Key Characteristics:**
 - Warm-tinted near-black ground with off-white text. One lime accent plus its dark ink, and no second hue.
@@ -223,6 +223,8 @@ One container, `max-w-7xl` (1280px) with 24px side gutters, on a 12-column grid 
 
 Below md the nav drops its links, leaving wordmark and claim pill. The hero stacks copy above the card, the closing form stacks field over button, and the closing section's scroll expansion is disabled. The closing section is a full-bleed lime field that, from md up and with motion allowed, expands from an inset rounded shape to full width as it scrolls into view.
 
+The "Why Tipsite" section follows the stream alert. It uses a tall fan-friction tile beside two shorter payment and QR tiles, then a full-width safety tile. On small screens these tiles stack in reading order. The QR is an illustration labelled "Non-scannable sample QR" until real creator pages exist.
+
 ## Elevation & Depth
 
 Flat. There is no box-shadow, text-shadow, gradient, glow or backdrop blur anywhere. Depth is tonal (Warm Night, Card Dusk, Raised Smoke) with the lime fields as the loudest layer. A state change is a color flip or a clip-path wipe, such as the success flood, and never a lift. The scrolled nav is solid Warm Night with a 60% Hairline bottom rule, so content never ghosts through it and it holds its edge over a lime field.
@@ -270,6 +272,12 @@ The self-playing sample. It carries the line "Sample page. No payment is taken."
 
 ### Stream Alert
 The sample of what viewers see on a streamer's stream when a tip lands. It is a full Acid Lime tile in the On stream section, labeled "Sample alert. Nothing is sent to a stream." Everything on it is Field Ink: the fan's name with "tipped", the amount as a Numeral, and the message beside a bold speaker icon. It plays the same sample tip as the hero card, kept in one shared object so the two cannot drift. Once, as the tile scrolls into view, it wipes in from its top edge. Then the message lights one word at a time as text-to-speech would read it: a Field Ink pill with Acid Lime text that snaps from word to word with no fade, then clears. Under reduced motion the tile is static and no word lights. The tile is a labeled group and the message stays plain text, so the lit pill is decoration only.
+
+### Hero Handoff
+The hero handoff is a flat, decorative SVG scene above the sample tip card. A lighter left hand enters with a lime ₹ note, a muted right hand enters to receive it, and both hands retreat. It is a one-shot 2.8-second CSS animation with a short delay so the headline and CTA are available first. It has no shadow, gradient or realistic currency detail. The component is `aria-hidden` because the visible product explanation and CTA do not depend on the decoration. Under reduced motion, both hands and the note hold at the central exchange frame.
+
+### Why Tipsite
+The competitor-led differentiator section is a calm bento composition of surfaces, not a feature wall. It uses one accent tile for UPI + card, a dark fan-friction tile for no account/no email/anonymous tipping, a raised QR tile with a non-scannable sample illustration, and a surface tile for the three-step safety treatment. Labels distinguish planned product behavior from a working feature, and the QR must remain labelled as a sample until it is generated from a real creator handle.
 
 ### Accordion
 FAQ rows have 24px vertical padding and Hairline dividers. Questions are 600 weight in the body face, with a bold Plus that rotates 45 degrees over 500ms. Answers expand by grid-rows with expo-out easing, and question hover turns lime.

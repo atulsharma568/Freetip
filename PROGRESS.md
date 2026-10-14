@@ -16,6 +16,27 @@ Page sections, in order:
 
 Not built yet: the fan tip page, creator dashboard, backend (Postgres), Razorpay payments and real sign-up. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
+## Implemented in the latest landing-page change
+
+Commit `186664c` added and pushed:
+
+- A flat SVG handoff animation in the hero: one hand brings a lime ₹ note, the other receives it, and both retreat. Reduced motion holds a static handoff frame.
+- A "Why Tipsite" section covering the competitor-derived choices: no fan account or email, anonymous tips, UPI + card, QR-first sharing and safer approved text-to-speech.
+- A clearly labelled non-scannable sample QR illustration; live creator QR generation is not implemented.
+- Sample-card labels for optional names, anonymous tipping, message limits and approval-before-play.
+- Updated stream copy, FAQ, primary navigation, footer navigation, README, product notes and project guidance.
+
+The landing page presents these as samples or planned product behavior. It does not claim that the backend already exists.
+
+## Not implemented yet
+
+- Razorpay checkout, payment verification or INR payouts.
+- Creator tip pages, handles, dashboards or authentication.
+- Live QR generation per creator.
+- OBS connection or real text-to-speech playback.
+- Message-limit enforcement, profanity/banned-word filtering and creator approval controls.
+- Waitlist storage, legal pages and contact flow.
+
 ## Decisions
 
 - Tips by UPI or card, no fan account. Payments through Razorpay with INR payouts (planned, not integrated).
@@ -42,6 +63,15 @@ See "Next steps" in `docs/next-steps.md`; that is the single list.
 
 Finished, verified changes (lint, type check and build pass) are committed and pushed to `main` together with an update to this file.
 
+## Verification for app commit `186664c`
+
+- `npm run lint` passed.
+- `npx tsc --noEmit` passed.
+- `npm run build` passed.
+- Production server smoke check returned the home page successfully.
+- `git diff --check` passed.
+- No automated test suite is configured yet.
+
 ## Log
 
 - 2026-10-13: landing page built (hero with sample tip card, steps, fees, FAQ, closing claim form).
@@ -50,3 +80,4 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 - 2026-10-13: reviewed Hyperchat, StreamTipz and SuperTips; recorded the findings, the owner's direction (clean, to the point, hands animation idea), the proposed scope and the next steps in `docs/next-steps.md`.
 - 2026-10-14: added the hero handoff prototype: flat SVG hands enter with a lime ₹ note, exchange it, and retreat; reduced motion holds a static handoff frame. `git diff --check` passed.
 - 2026-10-14: added the competitor-led "Why Tipsite" section and aligned the sample card, stream copy, FAQ and navigation around no fan email/account, anonymous tips, QR-first sharing and safer approved text-to-speech. `git diff --check`, lint, typecheck and production build passed; no automated test suite is configured. A production server smoke check also returned the home page successfully.
+- 2026-10-14: reconciled `README.md`, `docs/next-steps.md`, `PRODUCT.md`, `PROGRESS.md` and `DESIGN.md` with the shipped implementation, including the competitor strengths retained, the defaults rejected and the distinction between landing-page demonstrations and future product functionality. Markdown diff check, lint, typecheck and production build passed again.
