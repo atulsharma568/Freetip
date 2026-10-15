@@ -40,12 +40,11 @@ The landing page communicates the planned product but does not process money or 
 
 ## Checks
 
-The latest verified app change was checked with:
-
 ```bash
 npm run lint
 npx tsc --noEmit
 npm run build
+npm run test:e2e   # Playwright: builds, serves on port 3300 without a database, runs test/
 ```
 
-There is no automated test suite configured yet. A production-server smoke check also returned the home page successfully.
+The first time, download the test browsers with `npx playwright install chromium webkit`. The suite covers every page (status, one h1, no sideways scrolling at 320, 390 and 1440px, including mid-animation), the waitlist's validation and "isn't working" messages, robots, sitemap and share metadata, the skip link, the On stream switches and reduced motion. It runs on desktop Chrome, a mobile Chrome profile and iPhone WebKit.
