@@ -48,3 +48,5 @@ npm run test:e2e   # Playwright: builds, serves on port 3300 without a database,
 ```
 
 The first time, download the test browsers with `npx playwright install chromium webkit`. The suite covers every page (status, one h1, no sideways scrolling at 320, 390 and 1440px, including mid-animation), the waitlist's validation and "isn't working" messages, robots, sitemap and share metadata, the skip link, the On stream switches and reduced motion. It runs on desktop Chrome, a mobile Chrome profile and iPhone WebKit.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, the type check, the build and the Chromium tests on every pull request and push to `main`.
