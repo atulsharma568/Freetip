@@ -70,6 +70,15 @@ test.describe("no horizontal overflow", () => {
 test("On stream's approval row fits a 320px phone", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  // The first sample approves itself after about 1.5s. Touching a setting
+  // hands approval to the visitor, so the row stays until Approve is pressed.
+  // A click before hydration is replayed by React later, so only click again
+  // while the switch is still on; a blind retry could switch it back.
+  const tts = page.getByRole("switch", { name: "Read messages aloud" });
+  await expect(async () => {
+    if ((await tts.getAttribute("aria-checked")) === "true") await tts.click();
+    await expect(tts).toHaveAttribute("aria-checked", "false", { timeout: 1000 });
+  }).toPass();
   await page.locator("#stream [data-screen]").evaluate((screen) =>
     screen.scrollIntoView({ block: "center" }),
   );
