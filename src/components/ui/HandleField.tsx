@@ -172,7 +172,7 @@ export function HandleField({
                 </span>
               ))
             ) : (
-              <span className="opacity-60">yourname</span>
+              <span className="opacity-75">yourname</span>
             )}
           </span>
         </span>
