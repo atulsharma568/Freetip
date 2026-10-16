@@ -51,3 +51,5 @@ next-env.d.ts
 
 # design reference copies (kept locally)
 /design-refs/
+
+waitlist-*.csv
