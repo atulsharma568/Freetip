@@ -14,6 +14,8 @@ test.describe("search and sharing metadata", () => {
       expect(body).toMatch(/^Sitemap:\s*\S+\/sitemap\.xml/im);
     } else {
       expect(body).toMatch(/^Disallow:\s*\/\s*$/im);
+      // Link-preview fetchers (WhatsApp's included) still get in.
+      expect(body).toMatch(/^User-agent:\s*facebookexternalhit\s*$/im);
     }
   });
 
