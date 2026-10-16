@@ -36,7 +36,7 @@ export function Hero() {
               <span
                 key={text}
                 data-active={beat === i + 1}
-                className="beat enter block w-fit"
+                className="beat rise block w-fit"
                 style={step(i)}
               >
                 {text}
@@ -44,7 +44,7 @@ export function Hero() {
             ))}
           </h1>
           <p
-            className="enter mt-8 max-w-[34ch] text-pretty text-lg text-muted md:text-xl"
+            className="rise mt-8 max-w-[34ch] text-pretty text-lg text-muted md:text-xl"
             style={step(3)}
           >
             Tips for YouTube streamers, with OBS alerts and text-to-speech. Fans

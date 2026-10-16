@@ -79,7 +79,17 @@ export function Nav() {
         <Link href="/" className="display text-2xl">
           {SITE_NAME}
         </Link>
-        <nav aria-label="Primary" className="hidden lg:block">
+        <nav aria-label="Primary" className="relative hidden lg:block">
+          {/* Beside the list, not in it: a list may only hold list items. */}
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[translate,width,opacity] duration-500 ease-out-expo"
+            style={{
+              translate: `${pill.x}px 0`,
+              width: pill.width,
+              opacity: active === null ? 0 : 1,
+            }}
+          />
           <ul
             className="relative flex items-center gap-1 text-sm text-muted"
             onPointerMove={(event) => dock.current?.(event.clientX)}
@@ -88,15 +98,6 @@ export function Nav() {
               dock.current?.(null);
             }}
           >
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[translate,width,opacity] duration-500 ease-out-expo"
-              style={{
-                translate: `${pill.x}px 0`,
-                width: pill.width,
-                opacity: active === null ? 0 : 1,
-              }}
-            />
             {LINKS.map((link, i) => (
               <li key={link.href}>
                 <a

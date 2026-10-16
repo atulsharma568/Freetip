@@ -777,10 +777,26 @@ html.lenis body {
   }
 }
 
+/* The hero's words are readable from the first paint and only slide into
+   place; fading them in from nothing held back the page's largest paint. */
+@keyframes rise {
+  from {
+    transform: translateY(1.75rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .enter {
     animation: enter 1100ms var(--ease-out-expo) both;
     animation-delay: calc(var(--i, 0) * 120ms + 100ms);
+  }
+
+  .rise {
+    animation: rise 900ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
   }
 }
 
