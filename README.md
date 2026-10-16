@@ -13,6 +13,16 @@ npm run build && npm run start
 
 The waitlist needs a Postgres database. Copy `.env.example` to `.env.local`, fill in `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET`, and run `db/schema.sql` once against the database. Without them the site still runs and the form says the waitlist isn't working. `NEXT_PUBLIC_SITE_URL` (the real domain, once chosen) lets search engines in; until it is set, `robots.txt` blocks them.
 
+## Export the waitlist
+
+With `DATABASE_URL` set, run:
+
+```bash
+DATABASE_URL=... npm run export:waitlist
+```
+
+This writes a dated CSV in the current directory. The CSV contains personal data and must be deleted after use.
+
 ## Where things are
 
 - `PRODUCT.md`: what the product is, what is confirmed, and what must not be claimed.
