@@ -87,12 +87,18 @@ html.lenis body {
 
 /* Content is hidden until the user scrolls — the background is the title
    screen. On first scroll, page-scrolled is added to body and the content
-   fades in while the background sinks (both 600 ms). */
+   fades in while the background sinks (both 600 ms).
+   Animations inside the hidden content are paused so they play from the
+   start once the content becomes visible, not silently during the splash. */
 .page-content {
   transition: opacity 600ms ease-out;
 }
 body:not(.page-scrolled) .page-content {
   opacity: 0;
+}
+body:not(.page-scrolled) .rise,
+body:not(.page-scrolled) .enter {
+  animation-play-state: paused;
 }
 
 .lenis.lenis-smooth {

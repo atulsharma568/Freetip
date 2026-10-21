@@ -66,7 +66,13 @@ export function GlobalBackground() {
   const [sunk, setSunk] = useState(false);
 
   // Sink on first scroll / wheel / touch-move, and signal the page content.
+  // Under reduced motion the SplashScreen adds page-scrolled in a layout
+  // effect (before this effect runs), so check for it immediately on mount.
   useEffect(() => {
+    if (document.body.classList.contains("page-scrolled")) {
+      setSunk(true);
+      return;
+    }
     const sink = () => {
       setSunk(true);
       document.body.classList.add("page-scrolled");

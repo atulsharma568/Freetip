@@ -21,7 +21,19 @@ Page sections, in order:
 
 Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
-## Implemented in the latest landing-page change
+## Implemented in the latest changes
+
+Three animation correctness fixes (after the splash/title-screen feature):
+
+- `SplashScreen.tsx`: removed dead `splash-done` class addition (CSS was already updated to use `page-scrolled`; the old class had no effect).
+- `globals.css`: `.rise` and `.enter` animations are paused while `body` lacks `page-scrolled`, so they play from the start when the user first scrolls rather than silently completing during the invisible splash phase.
+- `GlobalBackground.tsx`: checks for `page-scrolled` on mount so it sinks immediately under reduced-motion (where the SplashScreen adds the class in a layout effect before this component's regular effect runs).
+
+Commit `f72dd37`–`f6175c4` added:
+
+- A full-viewport `SplashScreen` that plays the hands animation once on page load, then fades out.
+- A `GlobalBackground` with orbiting ₹ notes/coins and the glitch wordmark. After the splash it shows at full opacity as a title-screen moment; it sinks to `blur(28px) / opacity 0.22` on the user's first scroll/wheel/touchmove, while the page content simultaneously fades in (both 600 ms).
+- `globals.css`: `.page-content` is opacity 0 until `body.page-scrolled` is set; animations inside it are paused during that phase.
 
 Commit `186664c` added and pushed:
 
