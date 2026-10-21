@@ -52,7 +52,7 @@ export function AlertFan({ alerts }: { alerts: FanAlert[] }) {
     <div
       ref={root}
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-28 right-[calc(100%-3.5rem)] z-0 hidden w-60 xl:block"
+      className="pointer-events-none absolute bottom-28 right-[calc(100%-3.5rem)] z-0 hidden w-60 lg:block"
     >
       {alerts.map((alert, i) => (
         <div

@@ -98,7 +98,7 @@ export function Steps() {
       </div>
       <ol
         data-track
-        className="mx-auto mt-16 max-w-7xl px-6 md:mt-24 motion-safe:mt-10 motion-safe:flex motion-safe:w-max motion-safe:max-w-none motion-safe:gap-6 motion-safe:pl-6 motion-safe:pr-6 md:motion-safe:mt-16 md:motion-safe:gap-20 md:motion-safe:pl-[max(1.5rem,calc(50vw-38.5rem))] md:motion-safe:pr-[max(1.5rem,calc(50vw-38.5rem))]"
+        className="mx-auto mt-16 max-w-7xl px-6 md:mt-24 motion-safe:mt-10 motion-safe:flex motion-safe:w-max motion-safe:max-w-none motion-safe:gap-6 motion-safe:pl-6 motion-safe:pr-6 md:motion-safe:mt-16 md:motion-safe:gap-20 md:motion-safe:pl-[max(1.5rem,min(calc(50vw_-_38.5rem),12rem))] md:motion-safe:pr-[max(1.5rem,min(calc(50vw_-_38.5rem),12rem))]"
       >
         {STEPS.map((step) => (
           <li

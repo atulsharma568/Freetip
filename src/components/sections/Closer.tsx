@@ -55,7 +55,7 @@ export function Closer() {
     >
       <div ref={field} className="on-accent bg-accent text-ink">
         <div className="mx-auto max-w-7xl px-6 py-28 md:py-40">
-          <h2 className="display max-w-[14ch] text-[clamp(3rem,9vw,6rem)]">
+          <h2 className="display max-w-[14ch] text-[clamp(3rem,5vw,9rem)]">
             Your handle is your link.
           </h2>
           <p className="mt-6 max-w-[40ch] text-pretty text-lg">

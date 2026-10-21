@@ -45,7 +45,7 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
 
   return (
     <footer className="border-t border-line/60">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Link href="/" className="display text-2xl">
             {SITE_NAME}

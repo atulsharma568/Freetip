@@ -28,9 +28,9 @@ export function Hero() {
 
   return (
     <section className="relative overflow-x-clip">
-      <div className="mx-auto grid min-h-[100dvh] max-w-7xl grid-cols-1 items-end gap-x-10 gap-y-14 px-6 pb-16 pt-24 lg:grid-cols-12">
-        <div className="lg:col-span-7">
-          <h1 className="display text-[clamp(3.25rem,9vw,6rem)]">
+      <div className="mx-auto grid min-h-[100dvh] max-w-7xl grid-cols-1 items-end gap-x-10 gap-y-14 px-6 pb-16 pt-24 md:grid-cols-12">
+        <div className="md:col-span-7">
+          <h1 className="display text-[clamp(3.25rem,5vw,8rem)]">
             {BEATS.map((text, i) => (
               <span
                 key={text}
@@ -82,7 +82,7 @@ export function Hero() {
             </a>
           </div>
         </div>
-        <div className="w-full max-w-[26rem] lg:col-span-5 lg:self-start lg:justify-self-end">
+        <div className="w-full max-w-[26rem] md:col-span-5 md:self-start md:justify-self-end">
           <div className="enter relative w-full" style={step(2)}>
             <AlertFan alerts={alerts} />
             <div className="relative z-10">

@@ -77,7 +77,7 @@ export function Nav() {
 
   return (
     <header ref={ref} className="group fixed inset-x-0 top-0 z-40">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between border border-transparent px-6 transition-[max-width,margin,height,padding,background-color,border-color,border-radius] duration-500 ease-out-expo group-[.is-scrolled]:mt-3 group-[.is-scrolled]:h-14 group-[.is-scrolled]:max-w-[min(56rem,calc(100%-1.5rem))] group-[.is-scrolled]:rounded-[28px] group-[.is-scrolled]:border-text/10 group-[.is-scrolled]:bg-surface/60 group-[.is-scrolled]:pr-[6px] group-[.is-scrolled]:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_18px_40px_-20px_rgb(0_0_0/0.8)] group-[.is-scrolled]:backdrop-blur-xl group-[.is-scrolled]:backdrop-saturate-150">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between border border-transparent px-6 transition-[max-width,margin,height,padding,background-color,border-color,border-radius] duration-500 ease-out-expo group-[.is-scrolled]:mt-3 group-[.is-scrolled]:h-14 group-[.is-scrolled]:max-w-[min(80rem,calc(100%-3rem))] group-[.is-scrolled]:rounded-[28px] group-[.is-scrolled]:border-text/10 group-[.is-scrolled]:bg-surface/60 group-[.is-scrolled]:pr-[6px] group-[.is-scrolled]:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_18px_40px_-20px_rgb(0_0_0/0.8)] group-[.is-scrolled]:backdrop-blur-xl group-[.is-scrolled]:backdrop-saturate-150">
         <Link href="/" className="display text-2xl">
           {SITE_NAME}
         </Link>
@@ -122,25 +122,21 @@ export function Nav() {
         <div className="flex items-center gap-2">
           {session ? (
             <>
-              <span className="hidden min-[380px]:block">
-                <GlassOrbButton
+              <GlassOrbButton
                   onClick={() => signOut({ callbackUrl: "/" })}
                   icon={<SignOut weight="bold" size={15} />}
                 >
                   Sign out
                 </GlassOrbButton>
-              </span>
               <ChromeButton href="/dashboard" icon={<SquaresFour weight="bold" size={15} />}>
                 Dashboard
               </ChromeButton>
             </>
           ) : (
             <>
-              <span className="hidden min-[380px]:block">
-                <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
+              <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
                   Sign in
                 </GlassOrbButton>
-              </span>
               <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
                 Sign up
               </ChromeButton>
