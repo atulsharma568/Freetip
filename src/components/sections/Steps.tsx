@@ -23,10 +23,8 @@ const STEPS = [
   },
 ];
 
-// The rail layout (one row that slides sideways while the section is pinned)
-// only applies from md up with motion allowed; the same query is used in
-// the classes below (md:motion-safe:) and in the script.
-const RAIL = "(min-width: 768px) and (prefers-reduced-motion: no-preference)";
+// Rail applies to all screen sizes (not just md+) whenever motion is allowed.
+const RAIL = "(prefers-reduced-motion: no-preference)";
 
 export function Steps() {
   const root = useRef<HTMLElement>(null);
@@ -79,42 +77,6 @@ export function Steps() {
         });
         return () => st.kill();
       });
-
-      // Stacked (phones): each step draws its rule and rises as it scrolls in,
-      // including the first step (which the rail skips on desktop).
-      // "top bottom" fires the instant the element enters the viewport so the
-      // trigger is never missed even if the user scrolls quickly past the splash.
-      mm.add("(max-width: 767px) and (prefers-reduced-motion: no-preference)", () => {
-        q("[data-step]").forEach((row) => {
-          const rule = row.querySelector("[data-rule]");
-          const verb = row.querySelector("[data-verb]");
-          const text = row.querySelector("[data-text]");
-          gsap
-            .timeline({
-              scrollTrigger: {
-                trigger: row,
-                start: "top bottom",
-                once: true,
-                invalidateOnRefresh: true,
-              },
-            })
-            .fromTo(
-              rule,
-              { scaleX: 0 },
-              { scaleX: 1, duration: 1.2, ease: "expo.out", transformOrigin: "left" },
-            )
-            .fromTo(verb, { yPercent: 110 }, { yPercent: 0, duration: 1, ease: "expo.out" }, 0.08)
-            .fromTo(
-              text,
-              { opacity: 0, y: 20 },
-              { opacity: 1, y: 0, duration: 0.9, ease: "expo.out" },
-              0.28,
-            );
-        });
-        // Refresh after a frame so positions are correct once the page-content
-        // transition (opacity 0→1) has been measured by ScrollTrigger.
-        ScrollTrigger.refresh();
-      });
     },
     { scope: root },
   );
@@ -123,43 +85,43 @@ export function Steps() {
     <section
       ref={root}
       id="how"
-      className="scroll-mt-24 overflow-x-clip pb-32 pt-32 md:pb-48 md:pt-48 md:motion-safe:flex md:motion-safe:h-[100dvh] md:motion-safe:flex-col md:motion-safe:justify-center md:motion-safe:py-0"
+      className="scroll-mt-24 overflow-x-clip pb-32 pt-32 md:pb-48 md:pt-48 motion-safe:flex motion-safe:h-[100dvh] motion-safe:flex-col motion-safe:justify-center motion-safe:py-0"
     >
       <div className="mx-auto w-full max-w-7xl px-6">
         <h2 className="display text-[clamp(2.5rem,6vw,4.5rem)]">How it works</h2>
         <div
           aria-hidden="true"
-          className="relative mt-12 hidden h-px bg-line md:motion-safe:block"
+          className="relative mt-12 hidden h-px bg-line motion-safe:block"
         >
           <div data-progress className="absolute -top-px left-0 h-[3px] w-full bg-accent" />
         </div>
       </div>
       <ol
         data-track
-        className="mx-auto mt-16 max-w-7xl px-6 md:mt-24 md:motion-safe:mt-16 md:motion-safe:flex md:motion-safe:w-max md:motion-safe:max-w-none md:motion-safe:gap-20 md:motion-safe:pl-[max(1.5rem,calc(50vw-38.5rem))] md:motion-safe:pr-[max(1.5rem,calc(50vw-38.5rem))]"
+        className="mx-auto mt-16 max-w-7xl px-6 md:mt-24 motion-safe:mt-10 motion-safe:flex motion-safe:w-max motion-safe:max-w-none motion-safe:gap-6 motion-safe:pl-6 motion-safe:pr-6 md:motion-safe:mt-16 md:motion-safe:gap-20 md:motion-safe:pl-[max(1.5rem,calc(50vw-38.5rem))] md:motion-safe:pr-[max(1.5rem,calc(50vw-38.5rem))]"
       >
         {STEPS.map((step) => (
           <li
             key={step.verb}
             data-step
-            className="grid grid-cols-1 gap-x-8 gap-y-4 pb-12 md:grid-cols-12 md:pb-16 md:motion-safe:block md:motion-safe:w-[min(30rem,42vw)] md:motion-safe:shrink-0 md:motion-safe:pb-0"
+            className="grid grid-cols-1 gap-x-8 gap-y-4 pb-12 md:grid-cols-12 md:pb-16 motion-safe:block motion-safe:w-[80vw] motion-safe:shrink-0 motion-safe:pb-0 md:motion-safe:w-[min(30rem,42vw)]"
           >
             <div
               data-rule
-              className="col-span-full mb-8 h-px bg-line md:mb-10 md:motion-safe:hidden"
+              className="col-span-full mb-8 h-px bg-line md:mb-10 motion-safe:hidden"
               aria-hidden="true"
             />
             <div className="-mb-[0.14em] overflow-hidden pb-[0.14em] md:col-span-7">
               <span
                 data-verb
-                className="display inline-block text-[clamp(3rem,8vw,6rem)]"
+                className="display inline-block text-[clamp(2.5rem,8vw,6rem)]"
               >
                 {step.verb}
               </span>
             </div>
             <p
               data-text
-              className="max-w-[36ch] text-pretty text-lg text-muted md:col-span-5 md:self-end md:motion-safe:mt-6"
+              className="max-w-[36ch] text-pretty text-lg text-muted md:col-span-5 md:self-end motion-safe:mt-4 md:motion-safe:mt-6"
             >
               {step.text}
             </p>
