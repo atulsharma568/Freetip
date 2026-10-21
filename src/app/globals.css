@@ -89,9 +89,14 @@ html.lenis body {
    screen. On first scroll, page-scrolled is added to body and the content
    fades in while the background sinks (both 600 ms).
    Animations inside the hidden content are paused so they play from the
-   start once the content becomes visible, not silently during the splash. */
+   start once the content becomes visible, not silently during the splash.
+   overflow: hidden prevents native browser scroll during the title screen;
+   Lenis is also paused in SmoothScroll.tsx for the same reason. */
 .page-content {
   transition: opacity 600ms ease-out;
+}
+body:not(.page-scrolled) {
+  overflow: hidden;
 }
 body:not(.page-scrolled) .page-content {
   opacity: 0;

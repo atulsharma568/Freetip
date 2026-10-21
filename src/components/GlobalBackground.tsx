@@ -65,32 +65,42 @@ export function GlobalBackground() {
   const front = useRef<HTMLCanvasElement>(null);
   const [sunk, setSunk] = useState(false);
 
-  // Sink on first scroll / wheel / touch-move, OR after a timeout so the hero
-  // content is always revealed even if the user never scrolls.
-  // ~5 s from mount ≈ splash (~3.7 s) + ~1.3 s of title-screen viewing time.
-  // Under reduced motion the SplashScreen adds page-scrolled in a layout
-  // effect (before this effect runs), so check for it immediately on mount.
+  // Sink on first scroll intent (wheel, touch, keyboard), OR after a timeout.
+  // The first gesture must ONLY dismiss the title screen — not scroll the page.
+  // preventDefault() on wheel/touchmove stops the browser's native scroll;
+  // SmoothScroll.tsx keeps Lenis frozen until page-scrolled lands on body.
+  // Under reduced motion the SplashScreen adds page-scrolled before this runs.
   useEffect(() => {
     if (document.body.classList.contains("page-scrolled")) {
-      // Already sunk (reduced-motion path). Schedule state update outside the
-      // effect body to satisfy the lint rule — behavior is identical.
       const id = setTimeout(() => setSunk(true), 0);
       return () => clearTimeout(id);
     }
+
+    let dismissed = false;
     const sink = () => {
+      if (dismissed) return;
+      dismissed = true;
       setSunk(true);
       document.body.classList.add("page-scrolled");
     };
-    // Auto-sink after 5 s so users never get stuck on the title screen.
+
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); sink(); };
+    const onTouch = (e: TouchEvent) => { e.preventDefault(); sink(); };
+    const SCROLL_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", " "]);
+    const onKey = (e: KeyboardEvent) => { if (SCROLL_KEYS.has(e.key)) { e.preventDefault(); sink(); } };
+
+    // Auto-sink after 5 s so the hero is never permanently hidden.
     const autoSink = setTimeout(sink, 5000);
-    window.addEventListener("scroll", sink, { once: true, passive: true });
-    window.addEventListener("wheel", sink, { once: true, passive: true });
-    window.addEventListener("touchmove", sink, { once: true, passive: true });
+
+    window.addEventListener("wheel", onWheel, { once: true, passive: false });
+    window.addEventListener("touchmove", onTouch, { once: true, passive: false });
+    window.addEventListener("keydown", onKey, { once: true });
+
     return () => {
       clearTimeout(autoSink);
-      window.removeEventListener("scroll", sink);
-      window.removeEventListener("wheel", sink);
-      window.removeEventListener("touchmove", sink);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("keydown", onKey);
     };
   }, []);
 
