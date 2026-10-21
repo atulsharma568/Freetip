@@ -131,7 +131,7 @@ const SECTIONS: LegalSection[] = [
             shown.
           </li>
           <li>
-            Payments are handled by our payment partner, Razorpay. We never see
+            Payments are handled by our payment partner. We never see
             your full card number, and we will never ask for your UPI PIN, card
             PIN or OTP. Anyone who does is not us.
           </li>
@@ -155,10 +155,9 @@ const SECTIONS: LegalSection[] = [
             There is no sign-up fee and no monthly fee.
           </li>
           <li>
-            <strong>Payment charges:</strong> Razorpay’s charge for processing
-            each tip is also deducted from the creator’s payout, on top of our
-            fee. At Razorpay’s standard rate that is {FEES.gatewayPercent}% of
-            the tip plus {FEES.gatewayGstPercent}% GST on that charge;
+            <strong>Payment charges:</strong> Our payment partner’s charge for
+            processing each tip is also deducted from the creator’s payout, on
+            top of our fee. That is {FEES.gatewayPercent}% of the tip;
             international cards cost more. On a {FEES.example.tip} tip the
             creator receives {FEES.example.keep}. See{" "}
             <Link href="/pricing">pricing</Link>.
@@ -168,7 +167,7 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             <strong>Payouts</strong> go to the creator’s verified bank account,
-            in Indian rupees, through Razorpay. We will publish the payout
+            in Indian rupees, through our payment partner. We will publish the payout
             schedule before launch and show each payout in the creator’s
             dashboard.
           </li>
@@ -331,8 +330,8 @@ const SECTIONS: LegalSection[] = [
     title: "Other services we rely on",
     body: (
       <p>
-        {SITE_NAME} works with services we don’t control, including Razorpay,
-        banks and UPI apps, YouTube and OBS. Their own terms apply when you use
+        {SITE_NAME} works with services we don’t control, including our payment
+        partner, banks and UPI apps, YouTube and OBS. Their own terms apply when you use
         them. We are not responsible for their outages, decisions or delays,
         such as a bank that declines a payment or a UPI app that is down.
       </p>

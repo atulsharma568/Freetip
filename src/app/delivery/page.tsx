@@ -55,7 +55,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          Payouts are sent through Razorpay to the creator’s verified bank
+          Payouts are sent through our payment partner to the creator’s verified bank
           account in India, in Indian rupees, after our fee and the payment
           charge.
         </li>

@@ -50,17 +50,14 @@ const SECTIONS: LegalSection[] = [
             tipped and when;
           </li>
           <li>
-            payment details from Razorpay: whether the payment succeeded, the
+            payment details from our payment partner: whether the payment succeeded, the
             payment ID and the type of method (for example UPI or card). We
             never receive your full card number, UPI PIN, card PIN or OTP;
           </li>
           <li>
-            no account and no email. Razorpay may ask for a phone number or
-            email to complete a payment; that is covered by{" "}
-            <a href="https://razorpay.com/privacy-policy/" rel="noreferrer">
-              Razorpay’s privacy policy
-            </a>
-            .
+            no account and no email. Our payment partner may ask for a phone
+            number or email to complete a payment; that is covered by their own
+            privacy policy.
           </li>
         </ul>
         <h3>If you are a creator (after launch)</h3>
@@ -68,7 +65,7 @@ const SECTIONS: LegalSection[] = [
           <li>your name, email, phone number, handle, channel link and profile image;</li>
           <li>
             bank account and identity details needed for KYC and payouts (some
-            of these are collected and checked by Razorpay);
+            of these are collected and checked by our payment partner);
           </li>
           <li>your settings, such as alerts, text-to-speech, approval and banned words;</li>
           <li>tips received, fees, payouts and tax records.</li>
@@ -236,8 +233,8 @@ const SECTIONS: LegalSection[] = [
       <p>
         Data is encrypted in transit (HTTPS) and at rest with our database
         provider. Access is limited to people who need it to run {SITE_NAME}.
-        Payments are handled by Razorpay, so card and UPI credentials never
-        reach our servers. If a breach affects your data, we will tell you and
+        Payments are handled by our payment partner, so card and UPI credentials
+        never reach our servers. If a breach affects your data, we will tell you and
         the Data Protection Board of India as the law requires.
       </p>
     ),

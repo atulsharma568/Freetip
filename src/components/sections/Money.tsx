@@ -5,13 +5,13 @@ import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { FEES } from "@/lib/legal";
 
-// Worked example for a ₹100 tip (lib/legal.ts): Razorpay's charge is paid
-// by the creator out of the payout, on top of our 5%. Fans always pay
+// Worked example for a ₹100 tip (lib/legal.ts): the payment processing charge
+// is paid by the creator out of the payout, on top of our 5%. Fans always pay
 // exactly the tip.
 const EXAMPLE = [
   { label: "Fan tips", value: FEES.example.tip },
   { label: `Our fee (${FEES.platformPercent}%)`, value: FEES.example.platform },
-  { label: `Razorpay (${FEES.gatewayPercent}% + GST)`, value: FEES.example.gateway },
+  { label: `Payment processing (${FEES.gatewayPercent}%)`, value: FEES.example.gateway },
 ];
 const KEEP = FEES.example.keep;
 
@@ -102,7 +102,7 @@ export function Money() {
           </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">What it costs</h3>
           <p className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
-            We take 5% of every tip. Razorpay&apos;s payment charge comes out
+            We take 5% of every tip. A payment processing charge comes out
             of the payout too; fans pay exactly the tip.
           </p>
           <dl className="mt-8 border-t border-line pt-4 text-base">
@@ -121,8 +121,7 @@ export function Money() {
             </div>
           </dl>
           <p className="mt-4 text-sm text-muted">
-            Example on a ₹100 UPI or Indian card tip at Razorpay&apos;s standard
-            rate. International cards cost more.
+            Example on a ₹100 UPI or Indian card tip. International cards cost more.
           </p>
         </div>
       </div>

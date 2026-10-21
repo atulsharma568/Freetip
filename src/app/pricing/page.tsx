@@ -22,9 +22,9 @@ const SECTIONS: LegalSection[] = [
           text-to-speech, approval or QR code.
         </p>
         <p>
-          Razorpay, our payment partner, charges for processing each payment.
-          That charge is deducted from the creator’s payout as well, on top of
-          our {FEES.platformPercent}%. Fans pay exactly the amount they choose;
+          Our payment partner charges for processing each payment. That charge
+          is deducted from the creator’s payout as well, on top of our{" "}
+          {FEES.platformPercent}%. Fans pay exactly the amount they choose;
           nothing is added at checkout.
         </p>
       </>
@@ -46,9 +46,7 @@ const SECTIONS: LegalSection[] = [
               <td className="numeric text-right">{FEES.example.platform}</td>
             </tr>
             <tr>
-              <th scope="row">
-                Razorpay ({FEES.gatewayPercent}% + {FEES.gatewayGstPercent}% GST on it)
-              </th>
+              <th scope="row">Payment processing ({FEES.gatewayPercent}%)</th>
               <td className="numeric text-right">{FEES.example.gateway}</td>
             </tr>
             <tr>
@@ -60,9 +58,9 @@ const SECTIONS: LegalSection[] = [
           </tbody>
         </table>
         <p>
-          This uses Razorpay’s standard rate for UPI and Indian cards, wallets
-          and net banking. International cards cost up to 3% plus GST. If
-          Razorpay changes its rates, we will update this page.
+          Applies to UPI and Indian cards, wallets and net banking. International
+          cards cost more. If the payment processing rate changes, we will update
+          this page.
         </p>
       </>
     ),

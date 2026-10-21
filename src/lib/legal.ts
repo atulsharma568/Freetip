@@ -47,18 +47,17 @@ export const LEGAL_UPDATED = "16 October 2026";
 export const WAITLIST_CONSENT_VERSION = "privacy-2026-10-16";
 
 // Fee example shared by the home page, the pricing page and the terms.
-// Razorpay's standard rate (Oct 2026): 2% of each domestic payment plus 18%
-// GST on that charge; international cards up to 3%.
+// Payment processing rate (Oct 2026): 2.5% of each domestic payment.
+// International cards cost more; re-check before launch.
 export const FEES = {
   platformPercent: 5,
-  gatewayPercent: 2,
-  gatewayGstPercent: 18,
-  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.36", keep: "₹92.64" },
+  gatewayPercent: 2.5,
+  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.50", keep: "₹92.50" },
 };
 
 // Services that process personal data for us. "planned" ones are not used yet.
 export const PROCESSORS = [
-  { name: "Razorpay", role: "payments, refunds and payouts", status: "planned" },
+  { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
   { name: "Vercel", role: "website hosting", status: "active" },
   { name: "Neon", role: "database (waitlist entries now; accounts and tips later)", status: "active" },
 ];

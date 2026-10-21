@@ -94,7 +94,7 @@ const SECTIONS: LegalSection[] = [
             <td>Within 24 hours</td>
           </tr>
           <tr>
-            <td>We check it with Razorpay and tell you our decision</td>
+            <td>We check it with our payment partner and tell you our decision</td>
             <td>Within 5 working days</td>
           </tr>
           <tr>
@@ -115,8 +115,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         If money left your account but the payment failed or is stuck as
-        pending, you usually don’t need to do anything: your bank or Razorpay
-        reverses it automatically, normally within 5 to 7 working days (often
+        pending, you usually don’t need to do anything: your bank or our payment
+        partner reverses it automatically, normally within 5 to 7 working days (often
         sooner for UPI). If it hasn’t come back after 7 working days, write to
         us with the details above and we will chase it.
       </p>
@@ -134,7 +134,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           When a bank opens a chargeback, we share the payment records with
-          Razorpay and the bank. The disputed amount may be held from the
+          our payment partner and the bank. The disputed amount may be held from the
           creator’s payouts until it is settled. We may block people who
           repeatedly raise chargebacks for genuine tips.
         </p>
