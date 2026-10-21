@@ -24,6 +24,21 @@ Not built yet: the fan tip page, creator dashboard, the rest of the backend, Raz
 
 ## Implemented in the latest changes
 
+Fee correction and UPI MDR FAQ (2026-10-21, commit cd2c5a9):
+
+- `src/lib/legal.ts`: gateway fee corrected to Razorpay standard 2% + 18% GST = 2.36% effective; worked example updated from ₹92.50 → ₹92.64 on a ₹100 tip.
+- `src/components/sections/Faq.tsx`: "What does it cost?" answer updated to match; new FAQ item "Is there an extra charge on large tips?" explains the govt-mandated 0.4% UPI MDR on tips above ₹2,000 (comes out of creator payout, not the fan's tip).
+
+Payment provider decision (2026-10-21): Razorpay confirmed as the payment provider. Cashfree was considered (lower headline rate) but Razorpay wins on zero annual fee, higher UPI success rate (~93% vs ~80–85%) and lower total cost at early volumes. Cashfree breaks even only above ~₹2 crore/year GMV.
+
+Google OAuth live (2026-10-21):
+
+- `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` added to Vercel production env vars.
+- `db/schema-users.sql` run in Neon — `users` table created.
+- Google Cloud Console: OAuth 2.0 client created, YouTube Data API v3 enabled, redirect URI `https://tipsite.vercel.app/api/auth/callback/google` added, owner added as test user.
+- Sign-in tested live: Google popup opens, owner signed in, `/dashboard` early-access screen shown correctly. Auth is fully working on `tipsite.vercel.app`.
+- When the real domain is ready: add the new redirect URI in Google Cloud Console and update `AUTH_URL` / `NEXT_PUBLIC_SITE_URL` in Vercel — no code changes needed.
+
 Google + YouTube OAuth sign-up and sign-in (2026-10-21):
 
 - `next-auth@beta` (v5) installed; `src/auth.ts` configures Google OAuth with `youtube.readonly` scope.
