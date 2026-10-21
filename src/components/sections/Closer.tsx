@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
-import { MoneyOrbit } from "./MoneyOrbit";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { HandleField } from "@/components/ui/HandleField";
 import { TickLoader } from "@/components/ui/TickLoader";
@@ -54,7 +53,6 @@ export function Closer() {
       id="claim"
       className="scroll-mt-24 overflow-hidden bg-ground"
     >
-      <MoneyOrbit />
       <div ref={field} className="on-accent bg-accent text-ink">
         <div className="mx-auto max-w-7xl px-6 py-28 md:py-40">
           <h2 className="display max-w-[14ch] text-[clamp(3rem,9vw,6rem)]">

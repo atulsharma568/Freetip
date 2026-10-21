@@ -220,7 +220,7 @@ const CLOSE = [0, 0.04, 0.065, 0.1];
 // ---- Note: centred at 1400 116.
 const NOTE_C = "1400 116";
 
-export function HeroHands({ onDone }: { onDone?: () => void }) {
+export function HeroHands({ onDone, immediate }: { onDone?: () => void; immediate?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -333,6 +333,11 @@ export function HeroHands({ onDone }: { onDone?: () => void }) {
           const debug = new URLSearchParams(window.location.search).get("hands");
           if (process.env.NODE_ENV !== "production" && debug) {
             tl.seek(Number(debug));
+            return () => tl.kill();
+          }
+
+          if (immediate) {
+            tl.delay(0.3).play();
             return () => tl.kill();
           }
 

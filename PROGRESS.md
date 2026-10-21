@@ -2,7 +2,7 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
-## Current state (2026-10-16)
+## Current state (2026-10-21)
 
 Pre-launch landing page for a UPI-first tipping site for Indian YouTube live streamers, built with Next.js 16, Tailwind v4, GSAP, Lenis and one React Bits component.
 
@@ -89,6 +89,12 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 ## Verification
 
 Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git diff --check`. Since 2026-10-15 there is also a Playwright suite, `npm run test:e2e` (see README); run it before committing changes to pages or forms.
+
+## Implemented in the latest change (2026-10-21)
+
+- **Fullscreen splash intro**: `SplashScreen` component plays the handshake animation fullscreen (fixed, z-100, bg-ground) on every page load. When the animation completes the overlay fades out over 700 ms, revealing the landing page. Reduced-motion users get an instant fade (motion-reduce:duration-0). HeroHands gained an `immediate` prop that skips ScrollTrigger and plays on mount.
+- **Global animated background**: `GlobalBackground` component renders a fixed full-viewport layer (z-[-1], pointer-events-none) behind the entire landing page — the orbiting ₹ notes and coins plus the glitching "Tipsite" wordmark, blurred 30 px and dimmed to 17% opacity via inline CSS. Pauses on hidden tab via visibilitychange. Content above it reads clearly; the effect reads as ambient light from below.
+- **Cleanup**: removed `HeroHands` from the hero section (it now lives only in the splash). Removed local `MoneyOrbit` from the Closer section (replaced by the global background). Removed the `handsDone` state from Hero; TipCard now starts ready immediately.
 
 ## Log
 

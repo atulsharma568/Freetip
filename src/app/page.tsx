@@ -7,10 +7,14 @@ import { Differentiators } from "@/components/sections/Differentiators";
 import { Money } from "@/components/sections/Money";
 import { Faq } from "@/components/sections/Faq";
 import { Closer } from "@/components/sections/Closer";
+import { SplashScreen } from "@/components/SplashScreen";
+import { GlobalBackground } from "@/components/GlobalBackground";
 
 export default function Home() {
   return (
     <>
+      <SplashScreen />
+      <GlobalBackground />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-5 focus:py-3 focus:font-semibold focus:text-ink"

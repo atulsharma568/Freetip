@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
+import { useState } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
-import { HeroHands } from "./HeroHands";
 import { AlertFan, type FanAlert } from "./AlertFan";
 import { TipCard, type SentTip } from "./TipCard";
 
@@ -20,7 +20,6 @@ const FIRST_ALERTS: FanAlert[] = [
 
 export function Hero() {
   const [beat, setBeat] = useState(0);
-  const [handsDone, setHandsDone] = useState(false);
   const [alerts, setAlerts] = useState(FIRST_ALERTS);
   // Each tip the card "sends" deals a new alert to the front of the fan.
   // Four are kept so the oldest can fade out at the back.
@@ -84,15 +83,10 @@ export function Hero() {
           </div>
         </div>
         <div className="w-full max-w-[26rem] lg:col-span-5 lg:self-start lg:justify-self-end">
-          <div className="lg:h-[11.5rem]">
-            <div className="-ml-6 h-[9.5rem] w-screen lg:absolute lg:inset-x-0 lg:-mt-10 lg:ml-0 lg:h-[14rem] lg:w-auto">
-              <HeroHands onDone={() => setHandsDone(true)} />
-            </div>
-          </div>
-          <div className="enter relative mt-3 w-full" style={step(2)}>
+          <div className="enter relative w-full" style={step(2)}>
             <AlertFan alerts={alerts} />
             <div className="relative z-10">
-              <TipCard onBeat={setBeat} onTip={addAlert} ready={handsDone} />
+              <TipCard onBeat={setBeat} onTip={addAlert} ready />
             </div>
           </div>
         </div>
