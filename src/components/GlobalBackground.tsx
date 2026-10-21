@@ -160,7 +160,7 @@ export function GlobalBackground() {
     <div
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden"
-      style={{ filter: "blur(30px)", opacity: 0.17 }}
+      style={{ filter: "blur(28px)", opacity: 0.22 }}
     >
       <canvas ref={back} className="absolute inset-0" />
       <div className="absolute inset-0 flex items-center justify-center">

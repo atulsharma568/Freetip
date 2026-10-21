@@ -21,17 +21,19 @@ export default function Home() {
       >
         Skip to content
       </a>
-      <Nav />
-      <main id="main">
-        <Hero />
-        <Steps />
-        <Stream />
-        <Differentiators />
-        <Money />
-        <Faq />
-        <Closer />
-      </main>
-      <Footer onHome />
+      <div className="page-content">
+        <Nav />
+        <main id="main">
+          <Hero />
+          <Steps />
+          <Stream />
+          <Differentiators />
+          <Money />
+          <Faq />
+          <Closer />
+        </main>
+        <Footer onHome />
+      </div>
     </>
   );
 }

@@ -15,6 +15,7 @@ export function SplashScreen() {
 
   const handleDone = () => {
     setFading(true);
+    document.body.classList.add("splash-done");
     setTimeout(() => setGone(true), 700);
   };
 

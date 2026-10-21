@@ -48,7 +48,6 @@
   }
 
   body {
-    background: var(--color-ground);
     color: var(--color-text);
     font-family: var(--font-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -84,6 +83,14 @@
 html.lenis,
 html.lenis body {
   height: auto;
+}
+
+/* Splash cross-fade: content fades in as the overlay fades out. */
+.page-content {
+  transition: opacity 700ms ease-out;
+}
+body:not(.splash-done) .page-content {
+  opacity: 0;
 }
 
 .lenis.lenis-smooth {
