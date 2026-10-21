@@ -26,9 +26,14 @@ export function SplashScreen() {
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-[100] bg-ground transition-opacity duration-700 motion-reduce:duration-0 ease-out${fading ? " pointer-events-none opacity-0" : ""}`}
+      className={`fixed inset-0 z-[100] bg-ground flex items-center transition-opacity duration-700 motion-reduce:duration-0 ease-out${fading ? " pointer-events-none opacity-0" : ""}`}
     >
-      <HeroHands onDone={handleDone} immediate />
+      {/* Constrain height on portrait phones so the SVG doesn't scale up to
+          fill the full viewport and make the hands appear enormous. On sm+ the
+          hands fill the whole overlay as before. */}
+      <div className="w-full h-[28vh] min-h-[150px] sm:h-full sm:min-h-0">
+        <HeroHands onDone={handleDone} immediate />
+      </div>
     </div>
   );
 }

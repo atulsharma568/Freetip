@@ -135,8 +135,11 @@ const SECTIONS: LegalSection[] = [
         <p>
           When a bank opens a chargeback, we share the payment records with
           our payment partner and the bank. The disputed amount may be held from the
-          creator’s payouts until it is settled. We may block people who
-          repeatedly raise chargebacks for genuine tips.
+          creator’s payouts until it is settled.{" "}
+          <strong>
+            Repeatedly raising chargebacks for tips you sent intentionally may
+            result in your account being suspended and future tips blocked.
+          </strong>
         </p>
       </>
     ),

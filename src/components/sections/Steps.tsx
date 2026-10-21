@@ -80,27 +80,30 @@ export function Steps() {
         return () => st.kill();
       });
 
-      // Stacked (phones): each step draws its rule and rises as it scrolls in.
+      // Stacked (phones): each step draws its rule and rises as it scrolls in,
+      // including the first step (which the rail skips on desktop).
       mm.add("(max-width: 767px) and (prefers-reduced-motion: no-preference)", () => {
-        q("[data-step]").forEach((row) => {
+        q("[data-step]").forEach((row, i) => {
           const rule = row.querySelector("[data-rule]");
           const verb = row.querySelector("[data-verb]");
           const text = row.querySelector("[data-text]");
+          // First step triggers sooner (already near the top on load).
+          const start = i === 0 ? "top 90%" : "top 78%";
           gsap
             .timeline({
-              scrollTrigger: { trigger: row, start: "top 82%", once: true },
+              scrollTrigger: { trigger: row, start, once: true },
             })
             .fromTo(
               rule,
               { scaleX: 0 },
-              { scaleX: 1, duration: 1.1, ease: "expo.out", transformOrigin: "left" },
+              { scaleX: 1, duration: 1.2, ease: "expo.out", transformOrigin: "left" },
             )
-            .fromTo(verb, { yPercent: 105 }, { yPercent: 0, duration: 0.9, ease: "expo.out" }, 0.1)
+            .fromTo(verb, { yPercent: 110 }, { yPercent: 0, duration: 1, ease: "expo.out" }, 0.08)
             .fromTo(
               text,
-              { opacity: 0, y: 16 },
-              { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
-              0.3,
+              { opacity: 0, y: 20 },
+              { opacity: 1, y: 0, duration: 0.9, ease: "expo.out" },
+              0.28,
             );
         });
       });

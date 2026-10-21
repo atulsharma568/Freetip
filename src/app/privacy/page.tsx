@@ -227,6 +227,18 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "no-ads",
+    title: "No advertising. No data selling.",
+    body: (
+      <p>
+        We do not run ads, use advertising cookies or tracking pixels, sell your
+        personal data to third parties, or share it for any purpose other than
+        operating {SITE_NAME}. We collect what we need to run the service and
+        nothing more.
+      </p>
+    ),
+  },
+  {
     id: "security",
     title: "How we protect it",
     body: (

@@ -331,9 +331,13 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         {SITE_NAME} works with services we don’t control, including our payment
-        partner, banks and UPI apps, YouTube and OBS. Their own terms apply when you use
-        them. We are not responsible for their outages, decisions or delays,
-        such as a bank that declines a payment or a UPI app that is down.
+        partner, banks and UPI apps, YouTube and OBS. Their own terms apply when
+        you use them. We are not responsible for their outages, decisions or
+        delays — for example, a bank that declines a payment, a UPI app that is
+        down, or a tip that fails because of an NPCI or network disruption. If a
+        payment fails for any of these reasons, the fan&apos;s money is returned
+        by the bank or payment system; the creator does not receive the tip and
+        we do not receive our fee.
       </p>
     ),
   },
