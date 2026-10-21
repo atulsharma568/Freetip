@@ -1,9 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export function SignInForm() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGoogle = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <h1 className="display text-[clamp(2.75rem,10vw,4rem)]">Welcome back</h1>
@@ -12,9 +27,15 @@ export function SignInForm() {
       </p>
 
       <div className="mt-10 space-y-4">
-        <GoogleButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
-          Sign in with Google
+        <GoogleButton onClick={handleGoogle} busy={busy}>
+          {busy ? "Redirecting…" : "Sign in with Google"}
         </GoogleButton>
+
+        {error && (
+          <p role="alert" className="text-sm font-medium text-red-400">
+            {error}
+          </p>
+        )}
       </div>
 
       <p className="mt-8 text-sm text-muted">
@@ -29,18 +50,21 @@ export function SignInForm() {
 
 function GoogleButton({
   onClick,
+  busy,
   children,
 }: {
   onClick: () => void;
+  busy: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex h-14 w-full items-center justify-center gap-3 rounded-full border-2 border-control bg-ground px-6 text-base font-medium text-text transition-[border-color,box-shadow,background-color] duration-200 ease-out-expo hover:border-muted hover:bg-surface focus-visible:border-accent focus-visible:shadow-[0_0_0_0_4px_rgb(191_232_74/0.14),0_0_28px_-4px_rgb(191_232_74/0.35)] focus-visible:outline-none"
+      disabled={busy}
+      className="flex h-14 w-full items-center justify-center gap-3 rounded-full border-2 border-control bg-ground px-6 text-base font-medium text-text transition-[border-color,box-shadow,background-color,opacity] duration-200 ease-out-expo hover:border-muted hover:bg-surface focus-visible:border-accent focus-visible:shadow-[0_0_0_4px_rgb(191_232_74/0.14),0_0_28px_-4px_rgb(191_232_74/0.35)] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <GoogleLogo />
+      {!busy && <GoogleLogo />}
       {children}
     </button>
   );
