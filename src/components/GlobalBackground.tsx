@@ -65,7 +65,9 @@ export function GlobalBackground() {
   const front = useRef<HTMLCanvasElement>(null);
   const [sunk, setSunk] = useState(false);
 
-  // Sink on first scroll / wheel / touch-move, and signal the page content.
+  // Sink on first scroll / wheel / touch-move, OR after a timeout so the hero
+  // content is always revealed even if the user never scrolls.
+  // ~5 s from mount ≈ splash (~3.7 s) + ~1.3 s of title-screen viewing time.
   // Under reduced motion the SplashScreen adds page-scrolled in a layout
   // effect (before this effect runs), so check for it immediately on mount.
   useEffect(() => {
@@ -79,10 +81,13 @@ export function GlobalBackground() {
       setSunk(true);
       document.body.classList.add("page-scrolled");
     };
+    // Auto-sink after 5 s so users never get stuck on the title screen.
+    const autoSink = setTimeout(sink, 5000);
     window.addEventListener("scroll", sink, { once: true, passive: true });
     window.addEventListener("wheel", sink, { once: true, passive: true });
     window.addEventListener("touchmove", sink, { once: true, passive: true });
     return () => {
+      clearTimeout(autoSink);
       window.removeEventListener("scroll", sink);
       window.removeEventListener("wheel", sink);
       window.removeEventListener("touchmove", sink);

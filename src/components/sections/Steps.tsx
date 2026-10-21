@@ -82,16 +82,21 @@ export function Steps() {
 
       // Stacked (phones): each step draws its rule and rises as it scrolls in,
       // including the first step (which the rail skips on desktop).
+      // "top bottom" fires the instant the element enters the viewport so the
+      // trigger is never missed even if the user scrolls quickly past the splash.
       mm.add("(max-width: 767px) and (prefers-reduced-motion: no-preference)", () => {
-        q("[data-step]").forEach((row, i) => {
+        q("[data-step]").forEach((row) => {
           const rule = row.querySelector("[data-rule]");
           const verb = row.querySelector("[data-verb]");
           const text = row.querySelector("[data-text]");
-          // First step triggers sooner (already near the top on load).
-          const start = i === 0 ? "top 90%" : "top 78%";
           gsap
             .timeline({
-              scrollTrigger: { trigger: row, start, once: true },
+              scrollTrigger: {
+                trigger: row,
+                start: "top bottom",
+                once: true,
+                invalidateOnRefresh: true,
+              },
             })
             .fromTo(
               rule,
@@ -106,6 +111,9 @@ export function Steps() {
               0.28,
             );
         });
+        // Refresh after a frame so positions are correct once the page-content
+        // transition (opacity 0→1) has been measured by ScrollTrigger.
+        ScrollTrigger.refresh();
       });
     },
     { scope: root },
