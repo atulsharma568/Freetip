@@ -16,6 +16,11 @@ export function SplashScreen() {
   const handleDone = () => {
     setFading(true);
     document.body.classList.add("splash-done");
+    // Under reduced motion the animation is instant; skip the title-screen
+    // pause so the content appears straight away without needing a scroll.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.body.classList.add("page-scrolled");
+    }
     setTimeout(() => setGone(true), 700);
   };
 

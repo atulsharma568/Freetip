@@ -85,11 +85,13 @@ html.lenis body {
   height: auto;
 }
 
-/* Splash cross-fade: content fades in as the overlay fades out. */
+/* Content is hidden until the user scrolls — the background is the title
+   screen. On first scroll, page-scrolled is added to body and the content
+   fades in while the background sinks (both 600 ms). */
 .page-content {
-  transition: opacity 700ms ease-out;
+  transition: opacity 600ms ease-out;
 }
-body:not(.splash-done) .page-content {
+body:not(.page-scrolled) .page-content {
   opacity: 0;
 }
 

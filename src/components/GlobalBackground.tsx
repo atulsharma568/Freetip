@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { INK_HEX as INK, SITE_NAME } from "@/lib/site";
 
 const LIME = "#bfe84a";
@@ -58,11 +58,28 @@ function drawCoin(ctx: CanvasRenderingContext2D, size: number, flip: number) {
 }
 
 // Fixed full-viewport background: orbiting ₹ notes and coins around the
-// glitching wordmark. Everything is blurred and dimmed via CSS on the wrapper
-// so content above it reads clearly.
+// glitching wordmark. Starts at full opacity (title-screen moment after the
+// splash); sinks to blurred and dimmed as soon as the user scrolls.
 export function GlobalBackground() {
   const back = useRef<HTMLCanvasElement>(null);
   const front = useRef<HTMLCanvasElement>(null);
+  const [sunk, setSunk] = useState(false);
+
+  // Sink on first scroll / wheel / touch-move, and signal the page content.
+  useEffect(() => {
+    const sink = () => {
+      setSunk(true);
+      document.body.classList.add("page-scrolled");
+    };
+    window.addEventListener("scroll", sink, { once: true, passive: true });
+    window.addEventListener("wheel", sink, { once: true, passive: true });
+    window.addEventListener("touchmove", sink, { once: true, passive: true });
+    return () => {
+      window.removeEventListener("scroll", sink);
+      window.removeEventListener("wheel", sink);
+      window.removeEventListener("touchmove", sink);
+    };
+  }, []);
 
   useEffect(() => {
     const layers = [back.current, front.current];
@@ -160,13 +177,17 @@ export function GlobalBackground() {
     <div
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden"
-      style={{ filter: "blur(28px)", opacity: 0.22 }}
+      style={{
+        filter: sunk ? "blur(28px)" : "none",
+        opacity: sunk ? 0.22 : 1,
+        transition: "filter 600ms ease-out, opacity 600ms ease-out",
+      }}
     >
       <canvas ref={back} className="absolute inset-0" />
       <div className="absolute inset-0 flex items-center justify-center">
         <p
           data-text={SITE_NAME}
-          className="glitch display select-none text-[clamp(8rem,26vw,22rem)] text-text"
+          className="glitch display select-none text-[clamp(5rem,_min(28vw,_45vh),_28rem)] text-text"
         >
           {SITE_NAME}
         </p>

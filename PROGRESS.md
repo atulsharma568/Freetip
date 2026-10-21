@@ -90,7 +90,12 @@ Finished, verified changes (lint, type check and build pass) are committed and p
 
 Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git diff --check`. Since 2026-10-15 there is also a Playwright suite, `npm run test:e2e` (see README); run it before committing changes to pages or forms.
 
-## Implemented in the latest change (2026-10-21)
+## Implemented in the latest change (2026-10-21, second commit)
+
+- **GlobalBackground title-screen + sink**: after the splash the background (glitch wordmark + money orbit) is now at full opacity with no blur — a brief title-screen moment. On the user's first scroll, wheel or touch-move it sinks to `blur(28px) / opacity 0.22` over 600 ms simultaneously with the page content fading in. Wordmark resized to `clamp(5rem, min(28vw, 45vh), 28rem)` so it scales to the viewport on any device and fits on landscape mobile (constrained by 45 vh).
+- **Content gated on scroll**: `.page-content` starts at `opacity: 0` and transitions to `opacity: 1` when `page-scrolled` is added to body on first scroll. Reduced-motion users skip the title-screen: both `splash-done` and `page-scrolled` are added immediately so content appears without needing a scroll. Lint, typecheck, build and `git diff --check` passed.
+
+## Implemented in the previous change (2026-10-21, first commit)
 
 - **Fullscreen splash intro**: `SplashScreen` component plays the handshake animation fullscreen (fixed, z-100, bg-ground) on every page load. When the animation completes the overlay fades out over 700 ms, revealing the landing page. Reduced-motion users get an instant fade (motion-reduce:duration-0). HeroHands gained an `immediate` prop that skips ScrollTrigger and plays on mount.
 - **Global animated background**: `GlobalBackground` component renders a fixed full-viewport layer (z-[-1], pointer-events-none) behind the entire landing page — the orbiting ₹ notes and coins plus the glitching "Tipsite" wordmark, blurred 30 px and dimmed to 17% opacity via inline CSS. Pauses on hidden tab via visibilitychange. Content above it reads clearly; the effect reads as ambient light from below.
