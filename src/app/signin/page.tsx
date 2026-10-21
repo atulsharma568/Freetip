@@ -5,7 +5,8 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Sign in: ${SITE_NAME}`,
-  description: `Sign in to ${SITE_NAME}. Accounts aren't open yet.`,
+  description: `Sign in to your ${SITE_NAME} creator account.`,
+  robots: { index: false },
 };
 
 export default function SignInPage() {

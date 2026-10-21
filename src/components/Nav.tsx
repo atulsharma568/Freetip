@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { PencilSimple, User } from "@phosphor-icons/react";
+import { PencilSimple, User, SignOut, SquaresFour } from "@phosphor-icons/react";
+import { useSession, signOut } from "next-auth/react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SITE_NAME } from "@/lib/site";
 import { ChromeButton } from "@/components/ui/ChromeButton";
@@ -30,6 +31,7 @@ export function Nav() {
   const [active, setActive] = useState<number | null>(null);
   const [pill, setPill] = useState({ x: 0, width: 0 });
   const dock = useRef<((x: number | null) => void) | null>(null);
+  const { data: session } = useSession();
 
   useGSAP(
     () => {
@@ -118,14 +120,32 @@ export function Nav() {
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <span className="hidden min-[380px]:block">
-            <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
-              Sign in
-            </GlassOrbButton>
-          </span>
-          <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
-            Sign up
-          </ChromeButton>
+          {session ? (
+            <>
+              <span className="hidden min-[380px]:block">
+                <GlassOrbButton
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  icon={<SignOut weight="bold" size={15} />}
+                >
+                  Sign out
+                </GlassOrbButton>
+              </span>
+              <ChromeButton href="/dashboard" icon={<SquaresFour weight="bold" size={15} />}>
+                Dashboard
+              </ChromeButton>
+            </>
+          ) : (
+            <>
+              <span className="hidden min-[380px]:block">
+                <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
+                  Sign in
+                </GlassOrbButton>
+              </span>
+              <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
+                Sign up
+              </ChromeButton>
+            </>
+          )}
         </div>
       </div>
     </header>

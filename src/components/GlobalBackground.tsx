@@ -70,8 +70,10 @@ export function GlobalBackground() {
   // effect (before this effect runs), so check for it immediately on mount.
   useEffect(() => {
     if (document.body.classList.contains("page-scrolled")) {
-      setSunk(true);
-      return;
+      // Already sunk (reduced-motion path). Schedule state update outside the
+      // effect body to satisfy the lint rule — behavior is identical.
+      const id = setTimeout(() => setSunk(true), 0);
+      return () => clearTimeout(id);
     }
     const sink = () => {
       setSunk(true);

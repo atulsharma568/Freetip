@@ -13,7 +13,8 @@ Page sections, in order:
 - Why Tipsite: no fan account or email, optional anonymous tips, UPI + card in one flow, a clearly labelled sample QR-first sharing treatment, and safer text-to-speech with screening and creator approval in the planned flow.
 - Payments and fees: UPI, cards and "We take 5% of every tip."
 - FAQ and a closing section: a money orbit around the glitching wordmark, then the waitlist form (optional handle with the typing handle field, plus email).
-- `/signup` is the full waitlist form (optional handle, email, optional YouTube channel); `/signin` is still a stub that sends nothing. Both are reached from the nav.
+- `/signup` and `/signin` use Google OAuth (next-auth v5). On sign-in the creator's YouTube channel is fetched and saved. `/dashboard` is a protected early-access holding page. Nav switches between Sign in/Sign up (logged out) and Dashboard/Sign out (logged in).
+- **Needs Vercel env vars before auth works:** `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` and `db/schema-users.sql` run in Neon.
 - Deployed (2026-10-16) at https://tipsite.vercel.app on Vercel, with the server pinned to Singapore (`sin1` in `vercel.json`) next to the Neon Postgres database (AWS Singapore).
 - A real waitlist: a Server Action saves entries to Neon Postgres with server-side checks, a bot trap, a per-network rate limit and a daily clean-up job. It needs `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET` in Vercel and `db/schema.sql` run once (see "Waitlist setup" below); without them the form says the waitlist isn't working.
 - A share image for link previews, an iPhone home-screen icon, a 404 page that explains creator links aren't live yet, `robots.txt` and `sitemap.xml`.
@@ -22,6 +23,26 @@ Page sections, in order:
 Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
 ## Implemented in the latest changes
+
+Google + YouTube OAuth sign-up and sign-in (2026-10-21):
+
+- `next-auth@beta` (v5) installed; `src/auth.ts` configures Google OAuth with `youtube.readonly` scope.
+- On first sign-in the access token is used to call the YouTube Data API v3 and persist the creator's channel ID, name and URL to the new `users` table (`db/schema-users.sql` — run once in Neon).
+- `src/app/api/auth/[...nextauth]/route.ts` exposes the NextAuth handlers.
+- `/signup` now shows a single "Continue with Google" button; `/signin` shows "Sign in with Google". Both redirect to `/dashboard` on success.
+- `/dashboard` is a server component that requires a session (redirects to `/signin` if absent) and shows an early-access holding screen with what's coming.
+- Nav shows Dashboard + Sign out when signed in, Sign in + Sign up when signed out.
+- `SessionProvider` added to the root layout.
+- `GlassOrbButton` extended to accept `onClick` as an alternative to `href`.
+- Pre-existing lint error in `GlobalBackground.tsx` fixed (setState inside effect body).
+
+**Env vars needed in Vercel before this works:**
+- `AUTH_SECRET` — generate with `openssl rand -base64 32`
+- `AUTH_GOOGLE_ID` — Google Cloud Console OAuth 2.0 client ID
+- `AUTH_GOOGLE_SECRET` — matching client secret
+- Authorised redirect URI to add in Google Cloud Console: `https://tipsite.vercel.app/api/auth/callback/google`
+
+**DB:** run `db/schema-users.sql` once in the Neon SQL Editor.
 
 Three animation correctness fixes (after the splash/title-screen feature):
 
