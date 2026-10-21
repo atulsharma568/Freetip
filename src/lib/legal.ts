@@ -47,12 +47,13 @@ export const LEGAL_UPDATED = "16 October 2026";
 export const WAITLIST_CONSENT_VERSION = "privacy-2026-10-16";
 
 // Fee example shared by the home page, the pricing page and the terms.
-// Payment processing rate (Oct 2026): 2.5% of each domestic payment.
+// Payment processing rate (Oct 2026): Razorpay standard 2% + 18% GST = 2.36% effective.
+// UPI tips above ₹2,000 carry an additional 0.4% MDR (govt-mandated, deducted from payout).
 // International cards cost more; re-check before launch.
 export const FEES = {
   platformPercent: 5,
-  gatewayPercent: 2.5,
-  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.50", keep: "₹92.50" },
+  gatewayPercent: 2.36,
+  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.36", keep: "₹92.64" },
 };
 
 // Services that process personal data for us. "planned" ones are not used yet.
