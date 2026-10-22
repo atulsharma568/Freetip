@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { HandleSetup } from "./HandleSetup";
 import { SettingsForm } from "./SettingsForm";
+import { CreatorQR } from "./CreatorQR";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -100,6 +101,17 @@ export default async function DashboardPage() {
             {SITE_HOST}/{user.handle}
           </Link>
           <StatusBadge status={user.creator_status} />
+        </div>
+
+        {/* QR code */}
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+            Your QR code
+          </h2>
+          <CreatorQR
+            url={`https://${SITE_HOST}/${user.handle}`}
+            handle={user.handle}
+          />
         </div>
 
         {/* Status tile */}
