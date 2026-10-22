@@ -11,6 +11,8 @@ const navigation = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/finance", label: "Finance" },
   { href: "/admin/finance/creators", label: "Creator earnings" },
+  { href: "/admin/finance/payments", label: "Payment ledger" },
+  { href: "/admin/finance/settlements", label: "Settlements" },
   { href: "/admin/reconciliation", label: "Reconciliation" },
   { href: "/admin/audit", label: "Audit history" },
 ];
