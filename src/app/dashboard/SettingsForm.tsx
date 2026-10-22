@@ -11,12 +11,14 @@ interface Props {
   minTipPaise: number;
   messageMaxChars: number;
   ttsEnabled: boolean;
+  approveBeforePlay: boolean;
 }
 
-export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled }: Props) {
+export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [tts, setTts] = useState(ttsEnabled);
+  const [approve, setApprove] = useState(approveBeforePlay);
   const [chars, setChars] = useState(messageMaxChars);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -74,13 +76,24 @@ export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled }: Props
       </div>
 
       {/* TTS */}
-      <div className="flex items-center gap-3">
-        <Switch id="tts-toggle" checked={tts} onChange={setTts} />
-        <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
-        <label htmlFor="tts-toggle" className="cursor-pointer select-none text-sm text-text">
-          Text-to-speech
-          <span className="ml-2 text-muted">(approve before play)</span>
-        </label>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Switch id="tts-toggle" checked={tts} onChange={setTts} />
+          <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
+          <label htmlFor="tts-toggle" className="cursor-pointer select-none text-sm text-text">
+            Text-to-speech
+          </label>
+        </div>
+        {tts && (
+          <div className="flex items-center gap-3 pl-10">
+            <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
+            <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
+            <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
+              Approve before play
+              <span className="ml-2 text-muted text-xs">(recommended)</span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Always-present live region so screen readers announce changes reliably */}
