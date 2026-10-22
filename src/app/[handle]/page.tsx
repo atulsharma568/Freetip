@@ -83,6 +83,7 @@ export default async function CreatorPage({ params }: Props) {
   return (
     <PageShell>
       <TipForm
+        handle={handle}
         displayName={displayName}
         pictureUrl={creator.picture_url}
         ytChannelName={creator.yt_channel_name}

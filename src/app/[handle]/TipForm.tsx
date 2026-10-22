@@ -4,8 +4,38 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
+import { TickLoader } from "@/components/ui/TickLoader";
+import { createTipOrder } from "@/app/actions/tip";
 
-// Build 4 clean preset amounts from the creator's minimum tip (in paise).
+// Razorpay checkout is loaded via a <script> tag at payment time.
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Razorpay: new (options: Record<string, any>) => { open(): void };
+  }
+}
+
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== "undefined" && typeof window.Razorpay !== "undefined") {
+      resolve();
+      return;
+    }
+    const existing = document.getElementById("rzp-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Script load error")));
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "rzp-script";
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Razorpay"));
+    document.body.appendChild(script);
+  });
+}
+
 function buildPresets(minPaise: number): number[] {
   const min = Math.ceil(minPaise / 100);
   const raw = [min, min * 2, min * 5, min * 10];
@@ -17,7 +47,10 @@ function buildPresets(minPaise: number): number[] {
   });
 }
 
+type Phase = "idle" | "creating" | "checkout" | "success" | "error";
+
 interface Props {
+  handle: string;
   displayName: string;
   pictureUrl: string | null;
   ytChannelName: string | null;
@@ -29,6 +62,7 @@ interface Props {
 }
 
 export function TipForm({
+  handle,
   displayName,
   pictureUrl,
   ytChannelName,
@@ -47,6 +81,10 @@ export function TipForm({
   const [tipName, setTipName] = useState("");
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [paidAmount, setPaidAmount] = useState(0);
 
   useGSAP(
     () => {
@@ -67,27 +105,98 @@ export function TipForm({
 
   const nearLimit = message.length >= messageMaxChars - 20;
 
+  const amountRupees =
+    selected === "custom" ? parseFloat(custom) || 0 : selected;
+  const amountPaise = Math.round(amountRupees * 100);
+  const canPay = !previewMode && amountPaise >= minTipPaise && phase === "idle";
+
+  async function handlePay() {
+    if (!canPay) return;
+    setPhase("creating");
+    setErrorMsg("");
+
+    const result = await createTipOrder(
+      handle,
+      amountPaise,
+      anonymous ? null : tipName.trim() || null,
+      message.trim() || null,
+      anonymous,
+    );
+
+    if (result.status === "error") {
+      setPhase("error");
+      setErrorMsg(result.message);
+      return;
+    }
+
+    try {
+      await loadRazorpayScript();
+    } catch {
+      setPhase("error");
+      setErrorMsg("Could not load payment — check your connection and try again");
+      return;
+    }
+
+    setPhase("checkout");
+
+    const rzp = new window.Razorpay({
+      key: result.razorpayKeyId,
+      amount: result.amountPaise,
+      currency: "INR",
+      name: "Tipsite",
+      description: `Tip for ${displayName}`,
+      order_id: result.razorpayOrderId,
+      theme: { color: "#bfe84a" },
+      handler: () => {
+        setPaidAmount(result.amountPaise);
+        setPhase("success");
+      },
+      modal: {
+        ondismiss: () => {
+          setPhase("idle");
+        },
+      },
+    });
+
+    rzp.open();
+  }
+
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (phase === "success") {
+    return (
+      <div className="mx-auto flex w-full max-w-sm flex-col items-center px-6 py-20 space-y-8 text-center">
+        <div className="space-y-2">
+          <p className="numeric text-[clamp(3.5rem,14vw,5rem)] font-semibold leading-none text-accent">
+            ₹{paidAmount / 100}
+          </p>
+          <p className="text-xl font-semibold text-text">Sent to {displayName}!</p>
+          <p className="text-sm text-muted">
+            {anonymous ? "Your tip is on its way." : "They'll see your message on stream."}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setPhase("idle");
+            setMessage("");
+            setTipName("");
+            setAnonymous(false);
+            setPaidAmount(0);
+          }}
+          className="inline-flex h-12 items-center rounded-full border border-control px-8 text-sm font-semibold text-text transition-colors duration-150 hover:border-muted"
+        >
+          Send another tip
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="mx-auto w-full max-w-sm px-6 py-12 space-y-8">
-      {/* Top banner — preview for the creator, or coming-soon for everyone else */}
-      {previewMode ? (
+      {/* Preview banner for the creator, or coming-soon for everyone else */}
+      {previewMode && (
         <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
           <p className="text-sm font-semibold text-text">Preview — your page isn&apos;t live yet.</p>
           <p className="text-sm text-muted">This is exactly what fans will see once you go live.</p>
-        </div>
-      ) : (
-        <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
-          <p className="text-sm font-semibold text-text">Tips open soon.</p>
-          <p className="text-sm text-muted">
-            UPI and card payments are on their way.{" "}
-            <Link
-              href="/"
-              className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
-            >
-              Join the waitlist
-            </Link>{" "}
-            to be first.
-          </p>
         </div>
       )}
 
@@ -115,13 +224,11 @@ export function TipForm({
               {ytChannelName}
             </a>
           )}
-          {bio && (
-            <p className="text-sm text-muted mt-1">{bio}</p>
-          )}
+          {bio && <p className="text-sm text-muted mt-1">{bio}</p>}
         </div>
       </div>
 
-      <form className="space-y-6">
+      <div className="space-y-6">
         {/* Amount presets */}
         <fieldset className="tip-section space-y-3">
           <legend className="text-sm font-medium uppercase tracking-widest text-muted">
@@ -182,7 +289,7 @@ export function TipForm({
           )}
         </fieldset>
 
-        {/* Anonymous — above name so the disabled state is explained before it happens */}
+        {/* Anonymous toggle */}
         <div className="tip-section flex items-center gap-3">
           <Switch id="anon-toggle" checked={anonymous} onChange={setAnonymous} />
           <label htmlFor="anon-toggle" className="cursor-pointer select-none text-sm text-text">
@@ -242,17 +349,49 @@ export function TipForm({
           No account or email needed. You pay exactly the tip.
         </p>
 
-        {/* Disabled submit */}
+        {/* Error */}
+        {phase === "error" && (
+          <p role="alert" className="tip-section text-sm text-red-400">
+            {errorMsg}
+          </p>
+        )}
+
+        {/* Pay button */}
         <div className="tip-section">
           <button
-            type="submit"
-            disabled
-            className="w-full h-14 rounded-full bg-accent text-base font-semibold text-ink opacity-50 cursor-not-allowed"
+            type="button"
+            onClick={handlePay}
+            disabled={previewMode || amountPaise < minTipPaise || phase === "creating" || phase === "checkout"}
+            className="beam w-full h-14 rounded-full bg-accent text-base font-semibold text-ink transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center justify-center gap-3"
           >
-            Tips open soon →
+            {phase === "creating" ? (
+              <>
+                <TickLoader count={10} duration={0.8} className="text-ink" />
+                Opening payment…
+              </>
+            ) : phase === "checkout" ? (
+              "Complete payment in the popup"
+            ) : previewMode ? (
+              "Tip (preview only)"
+            ) : (
+              `Tip ₹${amountRupees || "—"} →`
+            )}
           </button>
+          {!previewMode && amountPaise > 0 && amountPaise < minTipPaise && (
+            <p className="mt-2 text-center text-xs text-muted">
+              Minimum tip is ₹{minRupees}
+            </p>
+          )}
+          {previewMode && (
+            <p className="mt-2 text-center text-xs text-muted">
+              Payments are disabled in preview.{" "}
+              <Link href="/dashboard" className="underline decoration-line hover:decoration-accent">
+                Back to dashboard
+              </Link>
+            </p>
+          )}
         </div>
-      </form>
+      </div>
     </div>
   );
 }

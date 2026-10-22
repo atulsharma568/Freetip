@@ -1,13 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { getDb } from "@/lib/db";
 
-// Razorpay sends a X-Razorpay-Signature header: HMAC-SHA256 of the raw body
-// signed with RAZORPAY_WEBHOOK_SECRET. Any mismatch returns 400.
+// Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
+// Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
 //
-// Events handled:
-//   payment.captured  — reserved for tip order processing (not yet built)
-//   payment.failed    — reserved for tip order failure handling (not yet built)
-//
-// All other events return 200 immediately so Razorpay does not retry them.
+// Idempotency: payment_attempts.provider_payment_ref has a UNIQUE constraint.
+// A second webhook for the same payment_id updates 0 rows → we return 200 without
+// processing again.
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
   const expected = createHmac("sha256", secret).update(body).digest("hex");
@@ -17,10 +16,29 @@ function verifySignature(body: string, signature: string, secret: string): boole
   return timingSafeEqual(a, b);
 }
 
+interface RazorpayPaymentEntity {
+  id: string;           // pay_xxx
+  order_id: string;     // order_xxx
+  amount: number;       // paise
+  currency: string;
+  status: string;
+  method?: string;
+  error_code?: string;
+  error_description?: string;
+}
+
+interface RazorpayEvent {
+  event?: string;
+  payload?: {
+    payment?: {
+      entity?: RazorpayPaymentEntity;
+    };
+  };
+}
+
 export async function POST(request: Request): Promise<Response> {
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    // Misconfigured — fail closed so stray events aren't silently accepted.
     return new Response("Webhook secret not configured", { status: 500 });
   }
 
@@ -31,24 +49,75 @@ export async function POST(request: Request): Promise<Response> {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  let event: { event?: string; payload?: unknown };
+  let event: RazorpayEvent;
   try {
-    event = JSON.parse(rawBody) as { event?: string; payload?: unknown };
+    event = JSON.parse(rawBody) as RazorpayEvent;
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  switch (event.event) {
-    case "payment.captured":
-      // TODO: record captured payment in tip_orders / ledger.
-      break;
+  const db = getDb();
 
-    case "payment.failed":
-      // TODO: mark tip order as failed.
+  switch (event.event) {
+    case "payment.captured": {
+      const payment = event.payload?.payment?.entity;
+      if (!payment || !db) break;
+
+      // Update the payment_attempt row. The provider_payment_ref UNIQUE constraint
+      // makes this idempotent: a duplicate webhook for the same pay_xxx updates 0 rows.
+      const updated = await db<{ tip_order_id: number }[]>`
+        update payment_attempts
+        set
+          provider_payment_ref = ${payment.id},
+          provider_status      = 'captured',
+          payment_method       = ${payment.method ?? null},
+          captured_at          = now()
+        where provider_order_ref = ${payment.order_id}
+          and provider_payment_ref is null
+        returning tip_order_id
+      `;
+
+      if (updated.length > 0) {
+        await db`
+          update tip_orders
+          set status      = 'captured',
+              captured_at = now()
+          where id = ${updated[0].tip_order_id}
+        `;
+      }
       break;
+    }
+
+    case "payment.failed": {
+      const payment = event.payload?.payment?.entity;
+      if (!payment || !db) break;
+
+      const updated = await db<{ tip_order_id: number }[]>`
+        update payment_attempts
+        set
+          provider_payment_ref = ${payment.id},
+          provider_status      = 'failed',
+          failure_code         = ${payment.error_code ?? null},
+          failure_reason       = ${payment.error_description ?? null},
+          failed_at            = now()
+        where provider_order_ref = ${payment.order_id}
+          and provider_payment_ref is null
+        returning tip_order_id
+      `;
+
+      if (updated.length > 0) {
+        await db`
+          update tip_orders
+          set status = 'failed'
+          where id = ${updated[0].tip_order_id}
+            and status = 'payment_pending'
+        `;
+      }
+      break;
+    }
 
     default:
-      // Unknown events are acknowledged so Razorpay does not retry them.
+      // Acknowledge unknown events so Razorpay does not retry them.
       break;
   }
 
