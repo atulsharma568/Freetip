@@ -83,13 +83,15 @@ export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled }: Props
         </label>
       </div>
 
-      {/* Feedback */}
-      {state.status === "error" && (
-        <p role="alert" className="text-sm text-red-400">{state.message}</p>
-      )}
-      {state.status === "ok" && !pending && !isDirty && (
-        <p role="status" className="text-sm text-text">Settings saved.</p>
-      )}
+      {/* Always-present live region so screen readers announce changes reliably */}
+      <p aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm">
+        {state.status === "error" && (
+          <span className="text-red-400">{state.message}</span>
+        )}
+        {state.status === "ok" && !pending && !isDirty && (
+          <span className="text-text">Settings saved.</span>
+        )}
+      </p>
 
       <button
         type="submit"
