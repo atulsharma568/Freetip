@@ -62,9 +62,13 @@ export default async function CreatorPage({ params }: Props) {
   if (!creator) notFound();
 
   // Allow the creator to preview their own page even while pending/suspended.
-  const session = await auth();
-  const viewerGoogleId = (session?.user as { googleId?: string })?.googleId;
-  const isOwnPage = !!viewerGoogleId && viewerGoogleId === creator.google_id;
+  // auth() is only called for non-active creators — active pages skip it entirely.
+  let isOwnPage = false;
+  if (creator.creator_status !== "active") {
+    const session = await auth();
+    const viewerGoogleId = (session?.user as { googleId?: string })?.googleId;
+    isOwnPage = !!viewerGoogleId && viewerGoogleId === creator.google_id;
+  }
 
   if (creator.creator_status !== "active" && !isOwnPage) {
     return (

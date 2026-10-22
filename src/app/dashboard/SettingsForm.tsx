@@ -30,7 +30,11 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
   const [isDirty, setIsDirty] = useState(false);
 
   return (
-    <form action={action} className="space-y-6" onChange={() => setIsDirty(true)}>
+    <form
+      action={(formData) => { setIsDirty(false); action(formData); }}
+      className="space-y-6"
+      onChange={() => setIsDirty(true)}
+    >
       {/* Display name */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -136,13 +140,14 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
         {tts && (
           <div className="flex items-center gap-3 pl-10">
             <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
-            <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
             <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
               Approve before play
               <span className="ml-2 text-muted text-xs">(recommended)</span>
             </label>
           </div>
         )}
+        {/* Always submit approve_before_play so it isn't silently reset when TTS is off */}
+        <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
       </div>
 
       {/* Always-present live region so screen readers announce changes reliably */}
