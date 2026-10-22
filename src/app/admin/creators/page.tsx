@@ -33,6 +33,7 @@ export default async function AdminCreatorsPage() {
                min_tip_paise, message_max_chars, created_at
         from users
         order by created_at desc
+        limit 500
       `
     : [];
 
