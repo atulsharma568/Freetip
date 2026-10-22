@@ -46,13 +46,16 @@ export function TipForm({
 
   useGSAP(
     () => {
-      gsap.from(".tip-section", {
-        y: 20,
-        opacity: 0,
-        duration: 0.45,
-        stagger: 0.08,
-        ease: "power2.out",
-        clearProps: "all",
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.from(".tip-section", {
+          y: 20,
+          opacity: 0,
+          duration: 0.45,
+          stagger: 0.08,
+          ease: "power2.out",
+          clearProps: "all",
+        });
       });
     },
     { scope: containerRef },

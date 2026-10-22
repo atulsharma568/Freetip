@@ -41,6 +41,7 @@ export function TipCard({
   const tipAgainRef = useRef<HTMLButtonElement>(null);
   const sparkRef = useRef<ClickSparkHandle>(null);
   const demo = useRef<gsap.core.Timeline | null>(null);
+  const pendingDemo = useRef<gsap.core.Tween | null>(null);
   const userAction = useRef<"submit" | "again" | null>(null);
 
   const [amount, setAmount] = useState(100);
@@ -59,7 +60,8 @@ export function TipCard({
   const startDemo = () => {
     const tl = demo.current;
     if (!tl || !entered.current || !readyRef.current) return;
-    gsap.delayedCall(0.8, () => {
+    pendingDemo.current?.kill();
+    pendingDemo.current = gsap.delayedCall(0.8, () => {
       if (demo.current === tl && !tl.isActive() && tl.progress() === 0) tl.play();
     });
   };
@@ -102,7 +104,10 @@ export function TipCard({
     }, SEND_MS);
   };
 
-  useEffect(() => () => window.clearTimeout(sendTimer.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(sendTimer.current);
+    pendingDemo.current?.kill();
+  }, []);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
