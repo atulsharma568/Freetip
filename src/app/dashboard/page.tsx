@@ -2,76 +2,207 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/auth";
+import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
-import { SITE_NAME } from "@/lib/site";
+import { HandleSetup } from "./HandleSetup";
+import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Dashboard: ${SITE_NAME}`,
   robots: { index: false },
 };
 
+type CreatorStatus = "pending" | "active" | "suspended";
+
+interface UserRow {
+  handle: string | null;
+  creator_status: CreatorStatus;
+  name: string | null;
+  picture_url: string | null;
+}
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
 
-  const name = session.user.name?.split(" ")[0] ?? "Creator";
+  const googleId = (session.user as { googleId?: string }).googleId;
+  const db = getDb();
 
+  let user: UserRow | null = null;
+  if (db && googleId) {
+    const rows = await db<UserRow[]>`
+      select handle, creator_status, name, picture_url
+      from users
+      where google_id = ${googleId}
+    `;
+    user = rows[0] ?? null;
+  }
+
+  const firstName = session.user.name?.split(" ")[0] ?? "Creator";
+
+  // No DB or no row yet — fallback to early-access screen.
+  if (!db || !user) {
+    return (
+      <PageShell>
+        <EarlyAccess firstName={firstName} avatarUrl={session.user.image ?? null} />
+      </PageShell>
+    );
+  }
+
+  // Handle not yet chosen.
+  if (!user.handle) {
+    return (
+      <PageShell>
+        <HandleSetup />
+      </PageShell>
+    );
+  }
+
+  // Handle set — show tip page link and activation status.
   return (
     <PageShell>
-      <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md space-y-8 text-center">
-          {session.user.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={session.user.image}
-              alt=""
-              width={64}
-              height={64}
-              className="mx-auto rounded-full"
-            />
-          )}
+      <div className="mx-auto w-full max-w-lg space-y-8 px-6 py-16">
+        {user.picture_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.picture_url}
+            alt=""
+            width={56}
+            height={56}
+            className="rounded-full"
+          />
+        )}
 
-          <div className="space-y-3">
-            <h1 className="display text-[clamp(2rem,8vw,3rem)]">
-              You&apos;re in, {name}.
-            </h1>
-            <p className="text-pretty text-lg text-muted">
-              Early access is reserved. We&apos;re building the tip page and
-              creator tools now — we&apos;ll email you when your link is ready.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-control bg-surface px-6 py-5 text-left space-y-3">
-            <p className="text-sm font-medium text-muted uppercase tracking-widest">
-              What&apos;s coming
-            </p>
-            <ul className="space-y-2 text-base text-text">
-              {[
-                "Your tipsite.in/handle link",
-                "UPI and card tips from fans",
-                "OBS alerts with fan messages",
-                "Text-to-speech (approve before play)",
-                "No fan account or email needed",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <p className="text-sm text-muted">
-            Questions?{" "}
-            <Link
-              href="/contact"
-              className="text-text underline decoration-line hover:decoration-accent"
-            >
-              Contact us
-            </Link>
+        <div className="space-y-2">
+          <h1 className="display text-[clamp(2rem,8vw,3rem)]">
+            Hey, {firstName}.
+          </h1>
+          <p className="text-lg text-muted">
+            Here&apos;s where things stand.
           </p>
         </div>
+
+        {/* Tip page link */}
+        <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-3">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted">
+            Your tip page
+          </p>
+          <Link
+            href={`/${user.handle}`}
+            className="numeric text-lg font-semibold text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+          >
+            {SITE_HOST}/{user.handle}
+          </Link>
+          <StatusBadge status={user.creator_status} />
+        </div>
+
+        {/* Next step tile */}
+        {user.creator_status === "pending" && (
+          <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-4">
+            <p className="text-sm font-medium uppercase tracking-widest text-muted">
+              Next step
+            </p>
+            <p className="text-text">
+              Complete your Razorpay account to start accepting tips. We&apos;ll
+              guide you through KYC — it takes about 10 minutes.
+            </p>
+            <Link
+              href="/contact"
+              className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-transform duration-150 ease-out active:scale-[0.97]"
+            >
+              Get started →
+            </Link>
+          </div>
+        )}
+
+        {user.creator_status === "active" && (
+          <p className="text-sm text-muted">
+            Your tip page is live. Share{" "}
+            <span className="numeric text-text">
+              {SITE_HOST}/{user.handle}
+            </span>{" "}
+            with your community.
+          </p>
+        )}
+
+        {user.creator_status === "suspended" && (
+          <p className="text-sm text-muted">
+            Your account is suspended.{" "}
+            <Link href="/contact" className="text-text underline decoration-line hover:decoration-accent">
+              Contact support
+            </Link>{" "}
+            to find out why.
+          </p>
+        )}
       </div>
     </PageShell>
+  );
+}
+
+function StatusBadge({ status }: { status: CreatorStatus }) {
+  const styles: Record<CreatorStatus, { dot: string; label: string; text: string }> = {
+    pending: { dot: "bg-yellow-400", label: "Pending setup", text: "text-muted" },
+    active: { dot: "bg-accent", label: "Live", text: "text-text" },
+    suspended: { dot: "bg-red-400", label: "Suspended", text: "text-muted" },
+  };
+  const s = styles[status];
+  return (
+    <p className={`flex items-center gap-2 text-sm font-medium ${s.text}`}>
+      <span className={`h-2 w-2 rounded-full ${s.dot}`} aria-hidden="true" />
+      {s.label}
+    </p>
+  );
+}
+
+function EarlyAccess({
+  firstName,
+  avatarUrl,
+}: {
+  firstName: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <div className="flex flex-1 items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md space-y-8 text-center">
+        {avatarUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            width={64}
+            height={64}
+            className="mx-auto rounded-full"
+          />
+        )}
+        <div className="space-y-3">
+          <h1 className="display text-[clamp(2rem,8vw,3rem)]">
+            You&apos;re in, {firstName}.
+          </h1>
+          <p className="text-pretty text-lg text-muted">
+            Early access is reserved. We&apos;re building the tip page and
+            creator tools now — we&apos;ll email you when your link is ready.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-control bg-surface px-6 py-5 text-left space-y-3">
+          <p className="text-sm font-medium text-muted uppercase tracking-widest">
+            What&apos;s coming
+          </p>
+          <ul className="space-y-2 text-base text-text">
+            {[
+              "Your tipsite.in/handle link",
+              "UPI and card tips from fans",
+              "OBS alerts with fan messages",
+              "Text-to-speech (approve before play)",
+              "No fan account or email needed",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
   );
 }
