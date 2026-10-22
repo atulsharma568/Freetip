@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright's generated traces and last-run metadata.
+    "test-results/**",
+    "playwright-report/**",
     // Third-party agent skills installed by agent-skills/install.sh.
   ]),
 ]);

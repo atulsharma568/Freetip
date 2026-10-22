@@ -43,3 +43,12 @@ test.describe("public routes", () => {
     ).toHaveAttribute("href", "/");
   });
 });
+
+test.describe("owner routes", () => {
+  test("unauthenticated owner access redirects to sign-in", async ({ request }) => {
+    const response = await request.get("/admin", { maxRedirects: 0 });
+
+    expect(response.status()).toBe(307);
+    expect(response.headers().location).toBe("/signin");
+  });
+});

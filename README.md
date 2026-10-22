@@ -11,7 +11,7 @@ npm run dev      # http://localhost:3000
 npm run build && npm run start
 ```
 
-The waitlist needs a Postgres database. Copy `.env.example` to `.env.local`, fill in `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET`, and run `db/schema.sql` once against the database. Without them the site still runs and the form says the waitlist isn't working. `NEXT_PUBLIC_SITE_URL` (the real domain, once chosen) lets search engines in; until it is set, `robots.txt` blocks them.
+The waitlist needs a Postgres database. Copy `.env.example` to `.env.local`, fill in `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET`, and run `db/schema.sql` once against the database. To access the owner console locally, also set the server-only `OWNER_GOOGLE_IDS` value to one or more comma-separated Google account IDs. Without the waitlist variables the site still runs and the form says the waitlist isn't working. `NEXT_PUBLIC_SITE_URL` (the real domain, once chosen) lets search engines in; until it is set, `robots.txt` blocks them.
 
 ## Export the waitlist
 
@@ -29,6 +29,7 @@ This writes a dated CSV in the current directory. The CSV contains personal data
 - `DESIGN.md`: the visual system (colors, type, shapes, components, rules).
 - `src/lib/site.ts`: placeholder name, host and sample handle.
 - `src/app/actions/waitlist.ts`, `src/lib/waitlist.ts`, `src/lib/db.ts` and `db/schema.sql`: the waitlist (server checks, rate limit, storage); `src/app/api/cron/waitlist-purge` and `vercel.json`: its daily clean-up.
+- `db/migrations/0001_finance_foundation.sql`, `src/lib/owner-auth.ts` and `src/app/admin/`: the read-only owner-finance foundation. Razorpay payment execution is not connected yet, so the admin pages show honest empty states.
 - `src/lib/legal.ts`: operator details and fee numbers used by the policy pages.
 - `src/components/hero/TipCard.tsx`: the self-playing sample tip card.
 - `src/components/hero/HeroHands.tsx`: the one-shot hand-to-hand lime ₹ note animation, with a reduced-motion still frame.
@@ -46,7 +47,7 @@ Name `Tipsite`, host `tipsite.in`, sample handle `aarav`, the sample creator, an
 
 ## What is not built yet
 
-The landing page communicates the planned product but does not process money or store data. Real Razorpay payments, creator QR generation, OBS connection, text-to-speech playback, message screening, creator approval controls, accounts and the creator dashboard are future work. The waitlist is the only part that stores data.
+The landing page communicates the planned product but does not process money. Real Razorpay payments, creator QR generation, OBS connection, text-to-speech playback, message screening, creator approval controls, accounts and the creator dashboard are future work. The owner console defines the future financial reporting surface, but it currently has no captured payment data. The waitlist is the only part that stores live user data.
 
 ## Checks
 

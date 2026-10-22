@@ -16,9 +16,26 @@ Indian YouTube creators who go live (gaming, chat, IRL), live streamers first. T
 
 A tipping website for YouTube creators in the spirit of Hyperchat, StreamTips and SuperTips. Creators get a public page at a short link and fans pay a tip from it. Each tip shows up on the creator's live stream as an OBS alert, with the fan's message read out by text-to-speech. This surface is the pre-launch landing page that explains the product to creators.
 
-Scope for now (owner, 2026-10-13): the landing page only. The fan tip page, the creator dashboard and the backend are not being built yet.
+Scope before 22 October 2026 (owner, 2026-10-13): the landing page only. The fan tip page, the creator dashboard and the backend were not being built yet. The next implementation slice is now the read-only owner-finance foundation; payment execution remains deferred.
 
 The landing page is an explanation and prototype surface, not the product backend. Its tip card, stream alert, handoff animation and QR are demonstrations; they do not take payments, connect to OBS, generate a live QR or store submissions.
+
+## Owner-finance foundation (2026-10-22)
+
+The first product slice after the landing page is a server-protected, read-only
+owner finance foundation. It may define ledger tables, owner access, dashboard
+navigation and honest empty states, but it must not simulate successful tips or
+claim that Razorpay is integrated. The foundation covers future reporting for
+captured tips, refunds, provider fees/taxes, Tipsite fees, creator net amounts,
+settlements, pending balances, disputes, reconciliation and audit history.
+
+The first slice is implemented under `/admin` with an `OWNER_GOOGLE_IDS`
+server-only allowlist. Its finance, reconciliation and audit views are empty
+until real provider-backed records exist.
+
+Razorpay KYC is treated as complete according to the owner. Payment orders,
+webhooks, refunds, settlements and payouts remain future work until the final
+Razorpay account/product model and settlement behavior are confirmed.
 
 ## Positioning
 

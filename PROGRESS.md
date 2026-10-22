@@ -2,7 +2,7 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
-## Current state (2026-10-21)
+## Current state (2026-10-22)
 
 Pre-launch landing page for a UPI-first tipping site for Indian YouTube live streamers, built with Next.js 16, Tailwind v4, GSAP, Lenis and one React Bits component.
 
@@ -20,7 +20,18 @@ Page sections, in order:
 - A share image for link previews, an iPhone home-screen icon, a 404 page that explains creator links aren't live yet, `robots.txt` and `sitemap.xml`.
 - Policy and company pages: `/terms`, `/privacy`, `/refunds`, `/delivery`, `/contact` (with Grievance Officer), `/pricing` and `/about`, linked from a new footer on every page. They are drafts: operator details are `[placeholders]` in `src/lib/legal.ts`, and the text needs legal review before launch.
 
-Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
+Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The first approved implementation slice is a read-only owner-finance foundation: forward ledger schema, server-side owner authorization, protected `/admin` pages and honest empty states. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
+
+## Owner-finance foundation (started 2026-10-22)
+
+- Scope selected: read-only owner finance foundation; no Razorpay payment execution, webhooks, refunds or payouts yet.
+- Planned reporting concepts: captured tips, refunds, provider fees/taxes, Tipsite fee, creator net, settlements, pending balances, disputes, reconciliation and audit history.
+- Financial records will be designed as immutable ledger inputs with provider references and explicit internal/provider/reconciliation states.
+- The dashboard must show empty states rather than fabricated totals until real payment data exists.
+- Competitor findings from the public REA pass are maintained in `docs/competitor-findings.md`.
+- `db/migrations/0001_finance_foundation.sql` now defines the forward-only finance tables, ledger accounts, reconciliation records and append-only history triggers. It does not connect to Razorpay.
+- `src/lib/owner-auth.ts`, `src/app/admin/` and the owner route test now provide a server-side owner allowlist and read-only admin shell. Unauthenticated `/admin` requests redirect to `/signin`; the owner allowlist fails closed when unset.
+- Finance, reconciliation and audit pages currently show empty states only. No payment, refund, settlement or payout action is exposed.
 
 ## Implemented in the latest changes
 
@@ -180,4 +191,6 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
   - #4 (feature/export-waitlist): scripts/export-waitlist.mjs exports the waitlist as a dated CSV via a read-only Postgres transaction, refusing to overwrite, guarding formula injection, and printing only row count. 2 unit tests pass. The .gitignore now ignores waitlist-*.csv.
   - #5 (docs/hindi-copy): docs/hindi-copy.md — full Devanagari + Hinglish translation table for every visible string on /, /signup, /signin and the planned alert/TTS templates. Competitor rows are explicitly omitted; fee facts preserved exactly. Uncertain lines marked (?).
   - #6 (docs/launch-email): docs/launch-email.md — 5 subject lines, English and Hinglish email bodies (handle and no-handle variants), footer with unsubscribe and legal placeholders. Under 150 words; no undecided promises.
-  All four commits use the no-reply address. 136/136 Chromium tests, lint and tsc passed after the merge.
+ All four commits use the no-reply address. 136/136 Chromium tests, lint and tsc passed after the merge.
+
+- 2026-10-22: installed portable Node.js 24.20.0 and Playwright Chromium outside the project, ran REA 6.4.0 against public StreamTipz, SuperTips and HyperChat surfaces, and recorded the findings in `docs/competitor-findings.md`. No project files were changed by the reverse-engineering tooling.
