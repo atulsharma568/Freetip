@@ -99,13 +99,17 @@ export async function saveSettings(
   const googleId = (session.user as { googleId?: string }).googleId;
   if (!googleId) redirect("/signin");
 
-  await db`
-    update users set
-      min_tip_paise    = ${minTipRupees * 100},
-      message_max_chars = ${maxChars},
-      tts_enabled      = ${ttsEnabled}
-    where google_id = ${googleId}
-  `;
+  try {
+    await db`
+      update users set
+        min_tip_paise    = ${minTipRupees * 100},
+        message_max_chars = ${maxChars},
+        tts_enabled      = ${ttsEnabled}
+      where google_id = ${googleId}
+    `;
+  } catch {
+    return { status: "error", message: "Could not save settings — try again shortly" };
+  }
 
   return { status: "ok" };
 }
