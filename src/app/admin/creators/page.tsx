@@ -1,7 +1,9 @@
 import { getDb } from "@/lib/db";
-import { setCreatorStatus } from "@/app/actions/admin";
+import { setCreatorStatus, rejectCreatorOnboarding } from "@/app/actions/admin";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { requireOwner } from "@/lib/owner-auth";
+
+type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
 interface CreatorRow {
   id: number;
@@ -9,6 +11,8 @@ interface CreatorRow {
   email: string;
   handle: string | null;
   creator_status: "pending" | "active" | "suspended";
+  onboarding_state: OnboardingState;
+  upi_vpa: string | null;
   yt_channel_name: string | null;
   yt_channel_url: string | null;
   min_tip_paise: number;
@@ -22,13 +26,20 @@ const STATUS_STYLES = {
   suspended: "bg-red-400/10 text-red-400 border-red-400/20",
 };
 
+const ONBOARDING_STYLES: Record<string, string> = {
+  not_started: "bg-surface text-muted border-control",
+  submitted: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
+  active: "bg-accent/10 text-accent border-accent/20",
+  rejected: "bg-red-400/10 text-red-400 border-red-400/20",
+};
+
 export default async function AdminCreatorsPage() {
   await requireOwner();
   const db = getDb();
 
   const creators: CreatorRow[] = db
     ? await db<CreatorRow[]>`
-        select id, name, email, handle, creator_status,
+        select id, name, email, handle, creator_status, onboarding_state, upi_vpa,
                yt_channel_name, yt_channel_url,
                min_tip_paise, message_max_chars, created_at
         from users
@@ -62,7 +73,7 @@ export default async function AdminCreatorsPage() {
               <th className="px-4 py-3 text-left font-medium text-muted">Creator</th>
               <th className="px-4 py-3 text-left font-medium text-muted">Handle</th>
               <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Settings</th>
+              <th className="px-4 py-3 text-left font-medium text-muted">Payout</th>
               <th className="px-4 py-3 text-left font-medium text-muted">Actions</th>
             </tr>
           </thead>
@@ -71,6 +82,7 @@ export default async function AdminCreatorsPage() {
               const approve = setCreatorStatus.bind(null, c.id, "active");
               const suspend = setCreatorStatus.bind(null, c.id, "suspended");
               const reset = setCreatorStatus.bind(null, c.id, "pending");
+              const reject = rejectCreatorOnboarding.bind(null, c.id);
 
               return (
                 <tr key={c.id} className="bg-surface/30 hover:bg-surface/60 transition-colors">
@@ -102,11 +114,16 @@ export default async function AdminCreatorsPage() {
                     </span>
                   </td>
 
-                  {/* Settings */}
-                  <td className="numeric px-4 py-3 text-muted">
-                    <span>₹{Math.round(c.min_tip_paise / 100)} min</span>
-                    <span className="mx-1.5 text-control">·</span>
-                    <span>{c.message_max_chars} chars</span>
+                  {/* Payout */}
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${ONBOARDING_STYLES[c.onboarding_state]}`}>
+                      {c.onboarding_state.replace("_", " ")}
+                    </span>
+                    {c.upi_vpa && (
+                      <p className="numeric mt-1 text-xs text-muted truncate max-w-[160px]">
+                        {c.upi_vpa}
+                      </p>
+                    )}
                   </td>
 
                   {/* Actions */}
@@ -139,6 +156,16 @@ export default async function AdminCreatorsPage() {
                             className="rounded-lg border border-control px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-text/30 hover:text-text"
                           >
                             Reset to pending
+                          </button>
+                        </form>
+                      )}
+                      {c.creator_status === "pending" && c.onboarding_state === "submitted" && (
+                        <form action={reject}>
+                          <button
+                            type="submit"
+                            className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-400/20"
+                          >
+                            Reject
                           </button>
                         </form>
                       )}

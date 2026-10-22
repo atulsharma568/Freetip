@@ -66,6 +66,57 @@ export async function setHandle(
   redirect("/dashboard");
 }
 
+// ── Payout onboarding ────────────────────────────────────────────────────────
+
+// UPI VPA format: 3+ chars, @, 3+ alpha bank handle. e.g. 9876543210@paytm
+const UPI_VPA_PATTERN = /^[a-zA-Z0-9._-]{3,}@[a-zA-Z]{3,}$/;
+
+export type PayoutState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "ok" };
+
+export const PAYOUT_IDLE: PayoutState = { status: "idle" };
+
+export async function submitPayoutDetails(
+  _prev: PayoutState,
+  form: FormData,
+): Promise<PayoutState> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+
+  const legalName = String(form.get("legal_name") ?? "").trim().slice(0, 100);
+  const upiVpa = String(form.get("upi_vpa") ?? "").trim().toLowerCase();
+
+  if (!legalName) {
+    return { status: "error", message: "Legal name is required" };
+  }
+  if (!UPI_VPA_PATTERN.test(upiVpa)) {
+    return { status: "error", message: "Enter a valid UPI ID, e.g. name@upi" };
+  }
+
+  const db = getDb();
+  if (!db) return { status: "error", message: "Database unavailable — try again shortly" };
+
+  const googleId = (session.user as { googleId?: string }).googleId;
+  if (!googleId) redirect("/signin");
+
+  try {
+    await db`
+      update users set
+        legal_name        = ${legalName},
+        upi_vpa           = ${upiVpa},
+        onboarding_state  = 'submitted'
+      where google_id = ${googleId}
+        and onboarding_state in ('not_started', 'rejected')
+    `;
+  } catch {
+    return { status: "error", message: "Could not save details — try again shortly" };
+  }
+
+  return { status: "ok" };
+}
+
 // ── Settings ────────────────────────────────────────────────────────────────
 
 export type SettingsState =

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { HandleSetup } from "./HandleSetup";
+import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CreatorQR } from "./CreatorQR";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
@@ -15,13 +16,17 @@ export const metadata: Metadata = {
 };
 
 type CreatorStatus = "pending" | "active" | "suspended";
+type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
 interface UserRow {
   handle: string | null;
   creator_status: CreatorStatus;
+  onboarding_state: OnboardingState;
   name: string | null;
   picture_url: string | null;
   display_name: string | null;
+  legal_name: string | null;
+  upi_vpa: string | null;
   min_tip_paise: number;
   message_max_chars: number;
   tts_enabled: boolean;
@@ -39,7 +44,8 @@ export default async function DashboardPage() {
   let user: UserRow | null = null;
   if (db && googleId) {
     const rows = await db<UserRow[]>`
-      select handle, creator_status, name, picture_url, display_name,
+      select handle, creator_status, onboarding_state,
+             name, picture_url, display_name, legal_name, upi_vpa,
              min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio
       from users
       where google_id = ${googleId}
@@ -116,26 +122,13 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* Status tile */}
+        {/* Payout onboarding gate — shown while pending */}
         {user.creator_status === "pending" && (
-          <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
-              Status
-            </h2>
-            <p className="text-text">
-              Payments aren&apos;t open yet. We&apos;ll email you when you can
-              connect payouts and go live.
-            </p>
-            <p className="text-sm text-muted">
-              Fans who visit your link see &ldquo;Not live yet&rdquo; until then.{" "}
-              <Link
-                href="/contact"
-                className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
-              >
-                Questions? Contact us.
-              </Link>
-            </p>
-          </div>
+          <PayoutOnboarding
+            state={user.onboarding_state}
+            initialLegalName={user.legal_name ?? user.name ?? ""}
+            initialUpiVpa={user.upi_vpa ?? ""}
+          />
         )}
 
         {user.creator_status === "active" && (
