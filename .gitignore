@@ -47,7 +47,6 @@ next-env.d.ts
 /.playwright/
 /.playwright-cli/
 
-# third-party agent skills (reinstall with agent-skills/install.sh)
 
 # design reference copies (kept locally)
 /design-refs/
