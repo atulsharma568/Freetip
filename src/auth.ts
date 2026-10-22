@@ -42,43 +42,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ].join(" "),
           // Always show account picker so multi-channel creators can switch.
           prompt: "select_account",
-          access_type: "offline",
         },
       },
     }),
   ],
 
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider !== "google" || !user.email) return false;
+      if (!(profile as { email_verified?: boolean })?.email_verified) return false;
 
       const db = getDb();
-      if (!db) return true; // No DB in dev without DATABASE_URL — still let them in.
+      // Fail closed in production; allow dev without a database.
+      if (!db) return process.env.NODE_ENV !== "production";
 
       const yt = account.access_token
         ? await fetchYouTubeChannel(account.access_token)
         : null;
 
-      await db`
-        insert into users (google_id, email, name, picture_url,
-          yt_channel_id, yt_channel_name, yt_channel_url)
-        values (
-          ${account.providerAccountId},
-          ${user.email},
-          ${user.name ?? null},
-          ${user.image ?? null},
-          ${yt?.yt_channel_id ?? null},
-          ${yt?.yt_channel_name ?? null},
-          ${yt?.yt_channel_url ?? null}
-        )
-        on conflict (google_id) do update set
-          email           = excluded.email,
-          name            = excluded.name,
-          picture_url     = excluded.picture_url,
-          yt_channel_id   = coalesce(excluded.yt_channel_id,   users.yt_channel_id),
-          yt_channel_name = coalesce(excluded.yt_channel_name, users.yt_channel_name),
-          yt_channel_url  = coalesce(excluded.yt_channel_url,  users.yt_channel_url)
-      `;
+      try {
+        await db`
+          insert into users (google_id, email, name, picture_url,
+            yt_channel_id, yt_channel_name, yt_channel_url)
+          values (
+            ${account.providerAccountId},
+            ${user.email},
+            ${user.name ?? null},
+            ${user.image ?? null},
+            ${yt?.yt_channel_id ?? null},
+            ${yt?.yt_channel_name ?? null},
+            ${yt?.yt_channel_url ?? null}
+          )
+          on conflict (google_id) do update set
+            email           = excluded.email,
+            name            = excluded.name,
+            picture_url     = excluded.picture_url,
+            yt_channel_id   = coalesce(excluded.yt_channel_id,   users.yt_channel_id),
+            yt_channel_name = coalesce(excluded.yt_channel_name, users.yt_channel_name),
+            yt_channel_url  = coalesce(excluded.yt_channel_url,  users.yt_channel_url)
+        `;
+      } catch (err: unknown) {
+        // Another google_id already owns this email address.
+        if (err instanceof Error && err.message.includes("unique")) return false;
+        throw err;
+      }
 
       return true;
     },

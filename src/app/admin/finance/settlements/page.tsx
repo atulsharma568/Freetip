@@ -5,6 +5,7 @@ import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { getSettlements } from "@/lib/admin/payment-queries";
 import { formatINR } from "@/lib/admin/finance-queries";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
+import { requireOwner } from "@/lib/owner-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function SettlementsPage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  await requireOwner();
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);

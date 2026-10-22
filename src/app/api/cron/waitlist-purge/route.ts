@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/db";
 
 // Daily clean-up, run by Vercel Cron (see vercel.json). Deletes rate-limit
@@ -5,9 +6,15 @@ import { getDb } from "@/lib/db";
 // nobody joins the waitlist. Vercel sends CRON_SECRET as a bearer token.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  if (!secret) return new Response("Unauthorized", { status: 401 });
+
+  const provided = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  const match =
+    provided.length === expected.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  if (!match) return new Response("Unauthorized", { status: 401 });
+
   const sql = getDb();
   if (!sql) return new Response("No database", { status: 503 });
   await sql`delete from waitlist_attempts where created_at < now() - interval '1 hour'`;

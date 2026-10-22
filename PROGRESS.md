@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-22, updated after security pass)
+
+Security hardening (2026-10-22): confirmed live bypass of admin layout auth via RSC partial render — all 8 admin page.tsx files now call requireOwner() directly, independent of the layout; handle param validated against HANDLE_PATTERN before any DB query in [handle]/page.tsx; admin.ts args runtime-validated; auth.ts: email_verified required, fail-closed in production when DB missing, email unique-collision handled, access_type offline removed; next.config.ts: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy headers on every route; cron route: timingSafeEqual for bearer secret; creator.ts: redirect moved after try block, generic error catch, expanded RESERVED set; db.ts: ssl: "require" explicit.
+
 ## Current state (2026-10-22, updated after skill pass)
 
 Multi-skill enhancement pass (2026-10-22): a code review found 7 code-quality issues (2 must-fix before Razorpay, tracked in PROGRESS); design critique (two-reviewer, 24/40 fan, 21/40 creator) applied: upfront "Tips open soon" banner on fan tip page, removed Razorpay KYC CTA from dashboard, promoted creator h1 to display type, moved anonymous toggle above name field, added "No account or email" trust line, added handle rules hint in HandleSetup, "Saving…" → "Claiming…", fixed 8 mechanical design-system violations (beam on lime buttons, lime glow shadow on inputs, mono on counters, border-control on non-interactive tiles, rounded-2xl → 20px, text-accent on success text, select chevron added, aria-live only near char limit). Lint, tsc and build pass.

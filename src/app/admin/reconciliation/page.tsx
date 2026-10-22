@@ -3,6 +3,7 @@ import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { getReconciliationSummary } from "@/lib/admin/payment-queries";
 import { formatINR } from "@/lib/admin/finance-queries";
+import { requireOwner } from "@/lib/owner-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ function fmtTs(date: Date | null): string {
 }
 
 export default async function AdminReconciliationPage() {
+  await requireOwner();
   const summary = await getReconciliationSummary();
   const hasIssues = summary.openExceptions + summary.partialMatches > 0;
 

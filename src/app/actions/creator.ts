@@ -14,6 +14,8 @@ const RESERVED = new Set([
   "sitemap", "robots", "favicon", "icon", "opengraph",
   "tipsite", "www", "support", "help", "me", "creator", "creators",
   "null", "undefined", "anonymous", "system", "user", "users",
+  "settings", "login", "logout", "payments", "billing", "webhook",
+  "faq", "static", "security", "official", "staff",
 ]);
 
 export type HandleState =
@@ -46,22 +48,22 @@ export async function setHandle(
   const googleId = (session.user as { googleId?: string }).googleId;
   if (!googleId) redirect("/signin");
 
+  let rows: { handle: string }[];
   try {
-    const rows = await db<{ handle: string }[]>`
+    rows = await db<{ handle: string }[]>`
       update users set handle = ${handle}
       where google_id = ${googleId} and handle is null
       returning handle
     `;
-
-    if (!rows.length) return { status: "error", message: "Your handle is already set" };
-
-    redirect("/dashboard");
   } catch (err: unknown) {
     if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
       return { status: "error", message: "That handle is taken — try another" };
     }
-    throw err;
+    return { status: "error", message: "Something went wrong — try again shortly" };
   }
+
+  if (!rows.length) return { status: "error", message: "Your handle is already set" };
+  redirect("/dashboard");
 }
 
 // ── Settings ────────────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import { AdminEmptyState } from "@/components/admin/EmptyState";
+import { requireOwner } from "@/lib/owner-auth";
 
-export default function AdminAuditPage() {
+export default async function AdminAuditPage() {
+  await requireOwner();
   return (
     <div className="space-y-8">
       <div className="space-y-3">

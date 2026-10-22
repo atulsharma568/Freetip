@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireOwner } from "@/lib/owner-auth";
 
 const sections = [
   {
@@ -21,7 +22,8 @@ const sections = [
   },
 ];
 
-export default function AdminOverviewPage() {
+export default async function AdminOverviewPage() {
+  await requireOwner();
   return (
     <div className="space-y-8">
       <div className="space-y-3">

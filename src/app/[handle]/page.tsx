@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
+import { HANDLE_PATTERN } from "@/lib/waitlist";
 
 interface CreatorRow {
   name: string | null;
@@ -20,6 +21,7 @@ type Props = { params: Promise<{ handle: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
+  if (!HANDLE_PATTERN.test(handle)) return { title: SITE_NAME };
   const db = getDb();
   if (!db) return { title: `${handle} | ${SITE_NAME}` };
 
@@ -36,6 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CreatorPage({ params }: Props) {
   const { handle } = await params;
+  if (!HANDLE_PATTERN.test(handle)) notFound();
   const db = getDb();
 
   // No DB in dev without DATABASE_URL — treat as not found.

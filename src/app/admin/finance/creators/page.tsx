@@ -3,6 +3,7 @@ import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { getCreatorEarnings } from "@/lib/admin/creator-queries";
 import { formatINR } from "@/lib/admin/finance-queries";
+import { requireOwner } from "@/lib/owner-auth";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function CreatorEarningsPage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  await requireOwner();
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);

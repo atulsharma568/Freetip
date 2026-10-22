@@ -4,6 +4,7 @@ import { MetricCard, ExceptionCard } from "@/components/admin/MetricCard";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { getFinanceSummary, creatorNetMinor, pendingMinor, formatINR } from "@/lib/admin/finance-queries";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
+import { requireOwner } from "@/lib/owner-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export default async function AdminFinancePage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  await requireOwner();
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);

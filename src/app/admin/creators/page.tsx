@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { setCreatorStatus } from "@/app/actions/admin";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
+import { requireOwner } from "@/lib/owner-auth";
 
 interface CreatorRow {
   id: number;
@@ -22,6 +23,7 @@ const STATUS_STYLES = {
 };
 
 export default async function AdminCreatorsPage() {
+  await requireOwner();
   const db = getDb();
 
   const creators: CreatorRow[] = db

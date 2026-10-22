@@ -16,6 +16,7 @@ export function getDb() {
     prepare: false,
     idle_timeout: 20,
     connect_timeout: 10,
+    ssl: "require",
   });
   return cache.sql;
 }

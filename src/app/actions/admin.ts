@@ -12,8 +12,11 @@ export async function setCreatorStatus(
 ): Promise<void> {
   await requireOwner();
 
+  if (!Number.isSafeInteger(creatorId) || creatorId < 1) return;
+  if (!(["pending", "active", "suspended"] as const).includes(status)) return;
+
   const db = getDb();
-  if (!db) return;
+  if (!db) throw new Error("Database unavailable");
 
   await db`
     update users set creator_status = ${status} where id = ${creatorId}
