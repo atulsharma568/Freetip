@@ -120,7 +120,7 @@ export function TipForm({
                 type="button"
                 onClick={() => setSelected(preset)}
                 aria-pressed={selected === preset}
-                className={`numeric h-11 rounded-full px-5 text-sm font-semibold transition-colors duration-150 ${
+                className={`numeric h-11 rounded-full px-5 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.97] ${
                   selected === preset
                     ? "bg-accent text-ink"
                     : "border border-control text-text hover:border-muted"
@@ -133,7 +133,7 @@ export function TipForm({
               type="button"
               onClick={() => setSelected("custom")}
               aria-pressed={selected === "custom"}
-              className={`h-11 rounded-full px-5 text-sm font-semibold transition-colors duration-150 ${
+              className={`h-11 rounded-full px-5 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.97] ${
                 selected === "custom"
                   ? "bg-accent text-ink"
                   : "border border-control text-text hover:border-muted"
@@ -193,7 +193,7 @@ export function TipForm({
             onChange={(e) => setTipName(e.target.value)}
             placeholder={anonymous ? "Hidden" : "Riya, Kabir…"}
             disabled={anonymous}
-            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none disabled:opacity-40"
+            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color,opacity] duration-200 focus:border-accent focus:outline-none disabled:opacity-40"
           />
         </div>
 

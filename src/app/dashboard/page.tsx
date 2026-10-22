@@ -167,7 +167,7 @@ export default async function DashboardPage() {
 function StatusBadge({ status }: { status: CreatorStatus }) {
   const styles: Record<CreatorStatus, { dot: string; label: string; text: string }> = {
     pending: { dot: "bg-yellow-400", label: "Pending setup", text: "text-muted" },
-    active: { dot: "bg-accent", label: "Live", text: "text-text" },
+    active: { dot: "bg-accent animate-dot-pulse", label: "Live", text: "text-text" },
     suspended: { dot: "bg-red-400", label: "Suspended", text: "text-muted" },
   };
   const s = styles[status];
