@@ -2,6 +2,21 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-22, updated after Razorpay activation gate)
+
+Razorpay activation gate (2026-10-22, commit e1a6c60): creator payout onboarding flow that gates tip page activation.
+
+- `db/migrations/0008_payout_onboarding.sql`: adds `upi_vpa`, `legal_name` and `onboarding_state` (`not_started` → `submitted` → `active` | `rejected`) to users.
+- `submitPayoutDetails` server action: validates legal name and UPI VPA (regex `name@bankhandle`), stores to DB, sets `onboarding_state = 'submitted'`. Only accepted when state is `not_started` or `rejected`.
+- `PayoutOnboarding.tsx`: dashboard tile that branches by state — form → under-review panel → live. Pre-fills legal name from Google name, shows submitted UPI VPA back to creator.
+- Dashboard: pending tile replaced with `PayoutOnboarding`.
+- `setCreatorStatus` (admin): now syncs `onboarding_state` — approving → `active`, resetting to pending → `not_started`.
+- `rejectCreatorOnboarding` (admin): sets `onboarding_state = 'rejected'`; creator can resubmit.
+- Admin creators page: Payout column shows `onboarding_state` badge + UPI VPA; Reject button for submitted-but-pending creators.
+- `POST /api/webhooks/razorpay`: HMAC-SHA256 signature verified with `RAZORPAY_WEBHOOK_SECRET`; stubs for `payment.captured` and `payment.failed`.
+- `.env.example`: documents `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`.
+- **To activate:** run `0008_payout_onboarding.sql` in Neon. Add `RAZORPAY_WEBHOOK_SECRET` to Vercel when the Razorpay account is created.
+
 ## Current state (2026-10-22, updated after security pass)
 
 Security hardening (2026-10-22): confirmed live bypass of admin layout auth via RSC partial render — all 8 admin page.tsx files now call requireOwner() directly, independent of the layout; handle param validated against HANDLE_PATTERN before any DB query in [handle]/page.tsx; admin.ts args runtime-validated; auth.ts: email_verified required, fail-closed in production when DB missing, email unique-collision handled, access_type offline removed; next.config.ts: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy headers on every route; cron route: timingSafeEqual for bearer secret; creator.ts: redirect moved after try block, generic error catch, expanded RESERVED set; db.ts: ssl: "require" explicit.
