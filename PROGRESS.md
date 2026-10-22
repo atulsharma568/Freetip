@@ -2,6 +2,16 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-22, updated after payment flow)
+
+Razorpay payment flow (2026-10-22, commit d49eaee): fans can now pay on an active creator's tip page.
+
+- `src/app/actions/tip.ts`: `createTipOrder` server action — validates amount (≥ min, ≤ ₹1,00,000), fetches active creator by handle, calls `POST /v1/orders` on Razorpay, persists `tip_orders` + `payment_attempts` rows, returns `razorpayOrderId` and `razorpayKeyId` to the client.
+- `src/app/[handle]/TipForm.tsx`: real payment flow. Phase machine: idle → creating → checkout → success | error. Razorpay checkout.js loaded lazily at pay time. Success screen shows paid amount and "Send another tip".
+- `src/app/api/webhooks/razorpay/route.ts`: handles `payment.captured` and `payment.failed`. Idempotent via `payment_attempts.provider_payment_ref` UNIQUE constraint. Updates `tip_orders.status` and `payment_attempts` on capture or failure.
+- **Razorpay test keys are in Vercel.** To test end-to-end: activate a creator in `/admin/creators`, visit their tip page, and tip with Razorpay's test card (4111 1111 1111 1111, any CVV/expiry). The webhook fires if the webhook URL is registered in Razorpay dashboard.
+- Not yet built: OBS alerts, text-to-speech, creator payout initiation.
+
 ## Current state (2026-10-22, updated after Razorpay activation gate)
 
 Razorpay activation gate (2026-10-22, commit e1a6c60): creator payout onboarding flow that gates tip page activation.
