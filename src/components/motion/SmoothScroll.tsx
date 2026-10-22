@@ -14,7 +14,9 @@ export function SmoothScroll() {
     // Freeze Lenis while the title screen is active so the first scroll
     // gesture only dismisses the background — not the page content.
     // Resumes the instant GlobalBackground adds page-scrolled to body.
-    if (!document.body.classList.contains("page-scrolled")) {
+    // Skip the freeze on app routes (admin, dashboard) that have no splash.
+    const hasSplash = document.body.dataset.splash === "true";
+    if (hasSplash && !document.body.classList.contains("page-scrolled")) {
       lenis.stop();
       const mo = new MutationObserver(() => {
         if (document.body.classList.contains("page-scrolled")) {

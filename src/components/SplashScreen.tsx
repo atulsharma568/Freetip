@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { HeroHands } from "@/components/hero/HeroHands";
 
 // Full-viewport overlay that plays the handoff animation once on page load.
@@ -10,6 +10,13 @@ import { HeroHands } from "@/components/hero/HeroHands";
 export function SplashScreen() {
   const [fading, setFading] = useState(false);
   const [gone, setGone] = useState(false);
+
+  // Mark body so SmoothScroll knows this page has a splash and should freeze
+  // Lenis until GlobalBackground adds page-scrolled.
+  useLayoutEffect(() => {
+    document.body.dataset.splash = "true";
+    return () => { delete document.body.dataset.splash; };
+  }, []);
 
   if (gone) return null;
 
