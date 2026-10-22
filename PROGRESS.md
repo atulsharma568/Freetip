@@ -2,7 +2,7 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
-## Current state (2026-10-22)
+## Current state (2026-10-22, updated)
 
 Pre-launch landing page for a UPI-first tipping site for Indian YouTube live streamers, built with Next.js 16, Tailwind v4, GSAP, Lenis and one React Bits component.
 
@@ -20,7 +20,7 @@ Page sections, in order:
 - A share image for link previews, an iPhone home-screen icon, a 404 page that explains creator links aren't live yet, `robots.txt` and `sitemap.xml`.
 - Policy and company pages: `/terms`, `/privacy`, `/refunds`, `/delivery`, `/contact` (with Grievance Officer), `/pricing` and `/about`, linked from a new footer on every page. They are drafts: operator details are `[placeholders]` in `src/lib/legal.ts`, and the text needs legal review before launch.
 
-Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The first approved implementation slice is a read-only owner-finance foundation: forward ledger schema, server-side owner authorization, protected `/admin` pages and honest empty states. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
+Creator tip page and handle setup are now built (commit a1ea23e, 2026-10-22). Not built yet: Razorpay payment processing, real KYC onboarding flow, OBS alerts, text-to-speech. The first approved implementation slice is a read-only owner-finance foundation: forward ledger schema, server-side owner authorization, protected `/admin` pages and honest empty states. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
 ## Owner-finance foundation (2026-10-22)
 
@@ -35,6 +35,15 @@ Not built yet: the fan tip page, creator dashboard, the rest of the backend, Raz
 - `db/migrations/0001_finance_foundation.sql` now defines the forward-only finance tables, ledger accounts, reconciliation records and append-only history triggers. It does not connect to Razorpay.
 - `src/lib/owner-auth.ts`, `src/app/admin/` and the owner route test now provide a server-side owner allowlist and read-only admin shell. Unauthenticated `/admin` requests redirect to `/signin`; the owner allowlist fails closed when unset.
 - Finance, reconciliation and audit pages currently show empty states only. No payment, refund, settlement or payout action is exposed.
+
+## Creator tip page and handle setup (2026-10-22, commit a1ea23e)
+
+- `db/migrations/0003_creator_onboarding.sql`: adds `creator_status` (pending/active/suspended, default pending) and `razorpay_account_id` (nullable) to `users`. Safe to re-run.
+- `src/app/actions/creator.ts`: `setHandle` server action — validates handle regex, checks uniqueness, redirects to `/dashboard` on success.
+- `src/app/dashboard/HandleSetup.tsx` + updated `page.tsx`: dashboard now fetches the user row and branches — no handle → handle-picker form; handle set → tip page link + StatusBadge (pending/active/suspended) + next-step tile linking to `/contact` until Razorpay onboarding is built.
+- `src/app/[handle]/page.tsx`: dynamic server route; unknown handle → 404; non-active creator → NotReady screen; active creator → tip form. Includes `generateMetadata` per creator.
+- `src/app/[handle]/TipForm.tsx`: fan tip form — ₹49/99/199/499 presets + custom, optional name (disabled when anonymous), 150-char message with live counter, plasma anonymous Switch, beam Tip button. `useGSAP` (scoped) staggers five sections in on mount. Tip button shows a "payments coming soon" message since Razorpay is not yet integrated.
+- **To activate a creator:** run migration 0003 in Neon, then `UPDATE users SET creator_status = 'active' WHERE handle = 'yourhandle';`
 
 ## Implemented in the latest changes
 
