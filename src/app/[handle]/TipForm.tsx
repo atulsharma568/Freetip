@@ -1,10 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
-
-const MAX_MESSAGE_FALLBACK = 150;
 
 // Build 4 clean preset amounts from the creator's minimum tip (in paise).
 function buildPresets(minPaise: number): number[] {
@@ -27,19 +26,24 @@ interface Props {
   messageMaxChars: number;
 }
 
-export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipPaise, messageMaxChars }: Props) {
+export function TipForm({
+  name,
+  pictureUrl,
+  ytChannelName,
+  ytChannelUrl,
+  minTipPaise,
+  messageMaxChars,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const presets = buildPresets(minTipPaise);
-  const maxChars = messageMaxChars ?? MAX_MESSAGE_FALLBACK;
+  const minRupees = Math.ceil(minTipPaise / 100);
 
   const [selected, setSelected] = useState<number | "custom">(presets[0]);
   const [custom, setCustom] = useState("");
   const [tipName, setTipName] = useState("");
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
-  // Stagger sections in on mount.
   useGSAP(
     () => {
       gsap.from(".tip-section", {
@@ -54,25 +58,39 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipP
     { scope: containerRef },
   );
 
-  const amount =
-    selected === "custom" ? Math.max(0, parseInt(custom, 10) || 0) : selected;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (amount < 1) return;
-    setSubmitted(true);
-  };
+  const nearLimit = message.length >= messageMaxChars - 20;
 
   return (
     <div ref={containerRef} className="mx-auto w-full max-w-sm px-6 py-12 space-y-8">
+      {/* Coming-soon banner */}
+      <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
+        <p className="text-sm font-semibold text-text">Tips open soon.</p>
+        <p className="text-sm text-muted">
+          UPI and card payments are on their way.{" "}
+          <Link
+            href="/"
+            className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+          >
+            Join the waitlist
+          </Link>{" "}
+          to be first.
+        </p>
+      </div>
+
       {/* Creator */}
       <div className="tip-section flex items-center gap-4">
         {pictureUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={pictureUrl} alt="" width={56} height={56} className="shrink-0 rounded-full" />
+          <img
+            src={pictureUrl}
+            alt=""
+            width={56}
+            height={56}
+            className="shrink-0 rounded-full"
+          />
         )}
         <div className="min-w-0">
-          <h1 className="truncate font-semibold text-text">{name}</h1>
+          <h1 className="display truncate text-[clamp(1.5rem,5vw,2rem)]">{name}</h1>
           {ytChannelName && ytChannelUrl && (
             <a
               href={ytChannelUrl}
@@ -86,7 +104,7 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipP
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form className="space-y-6">
         {/* Amount presets */}
         <fieldset className="tip-section space-y-3">
           <legend className="text-sm font-medium uppercase tracking-widest text-muted">
@@ -131,18 +149,29 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipP
               </span>
               <input
                 type="number"
-                min={1}
+                inputMode="numeric"
+                min={minRupees}
                 max={100000}
                 value={custom}
                 onChange={(e) => setCustom(e.target.value)}
                 placeholder="Enter amount"
-                autoFocus
                 aria-label="Custom tip amount in rupees"
-                className="numeric w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text placeholder:text-muted transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_rgb(191_232_74/0.14)] focus:outline-none"
+                className="numeric w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
               />
             </div>
           )}
+          {minRupees > 1 && (
+            <p className="text-xs text-muted">Minimum ₹{minRupees}</p>
+          )}
         </fieldset>
+
+        {/* Anonymous — above name so the disabled state is explained before it happens */}
+        <div className="tip-section flex items-center gap-3">
+          <Switch id="anon-toggle" checked={anonymous} onChange={setAnonymous} />
+          <label htmlFor="anon-toggle" className="cursor-pointer select-none text-sm text-text">
+            Tip anonymously
+          </label>
+        </div>
 
         {/* Name */}
         <div className="tip-section space-y-2">
@@ -161,7 +190,7 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipP
             onChange={(e) => setTipName(e.target.value)}
             placeholder={anonymous ? "Hidden" : "Riya, Kabir…"}
             disabled={anonymous}
-            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_rgb(191_232_74/0.14)] focus:outline-none disabled:opacity-40"
+            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none disabled:opacity-40"
           />
         </div>
 
@@ -176,51 +205,35 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipP
           </label>
           <textarea
             id="tip-message"
-            maxLength={maxChars}
+            maxLength={messageMaxChars}
             rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Great stream today!"
-            className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_rgb(191_232_74/0.14)] focus:outline-none"
+            className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
           />
           <p
-            aria-live="polite"
-            className="numeric text-right text-xs text-muted"
+            aria-live={nearLimit ? "polite" : "off"}
+            className="text-right text-xs text-muted"
           >
-            {message.length}/{maxChars}
+            {message.length}/{messageMaxChars}
           </p>
         </div>
 
-        {/* Anonymous */}
-        <div className="tip-section flex items-center gap-3">
-          <Switch id="anon-toggle" checked={anonymous} onChange={setAnonymous} />
-          <label htmlFor="anon-toggle" className="cursor-pointer select-none text-sm text-text">
-            Tip anonymously
-          </label>
-        </div>
+        {/* Trust line */}
+        <p className="tip-section text-sm text-muted">
+          No account or email needed. You pay exactly the tip.
+        </p>
 
-        {/* Submit / coming-soon */}
-        <div className="tip-section space-y-3">
-          {submitted ? (
-            <div
-              role="status"
-              className="rounded-[var(--radius-field)] border border-control bg-surface px-5 py-4 space-y-1"
-            >
-              <p className="font-semibold text-text">Payments coming soon.</p>
-              <p className="text-sm text-muted">
-                We&apos;re integrating UPI and card payments. Join the waitlist
-                and we&apos;ll let you know when tips go live.
-              </p>
-            </div>
-          ) : (
-            <button
-              type="submit"
-              disabled={amount < 1}
-              className="beam w-full h-14 rounded-full bg-accent text-base font-semibold text-ink transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Tip ₹{amount > 0 ? amount : "—"} →
-            </button>
-          )}
+        {/* Disabled submit */}
+        <div className="tip-section">
+          <button
+            type="submit"
+            disabled
+            className="w-full h-14 rounded-full bg-accent text-base font-semibold text-ink opacity-50 cursor-not-allowed"
+          >
+            Tips open soon →
+          </button>
         </div>
       </form>
     </div>

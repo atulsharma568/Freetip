@@ -36,6 +36,9 @@ export function HandleSetup() {
             describedBy={state.status === "error" ? "handle-error" : undefined}
             scanning={pending}
           />
+          <p className="px-2 text-xs text-muted">
+            3–20 letters, numbers or underscores. You can&apos;t change this later.
+          </p>
           {state.status === "error" && (
             <p id="handle-error" role="alert" className="px-2 text-sm text-red-400">
               {state.message}
@@ -51,7 +54,7 @@ export function HandleSetup() {
           {pending ? (
             <>
               <TickLoader count={10} duration={0.8} className="text-ink" />
-              Saving…
+              Claiming…
             </>
           ) : (
             "Claim handle →"

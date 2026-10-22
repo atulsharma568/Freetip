@@ -83,15 +83,15 @@ export default async function DashboardPage() {
             Hey, {firstName}.
           </h1>
           <p className="text-lg text-muted">
-            Here&apos;s where things stand.
+            Your link is claimed. Here&apos;s where things stand.
           </p>
         </div>
 
         {/* Tip page link */}
-        <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-3">
-          <p className="text-sm font-medium uppercase tracking-widest text-muted">
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
             Your tip page
-          </p>
+          </h2>
           <Link
             href={`/${user.handle}`}
             className="numeric text-lg font-semibold text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
@@ -101,22 +101,25 @@ export default async function DashboardPage() {
           <StatusBadge status={user.creator_status} />
         </div>
 
-        {/* Next step tile */}
+        {/* Status tile */}
         {user.creator_status === "pending" && (
-          <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-4">
-            <p className="text-sm font-medium uppercase tracking-widest text-muted">
-              Next step
-            </p>
+          <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+              Status
+            </h2>
             <p className="text-text">
-              Complete your Razorpay account to start accepting tips. We&apos;ll
-              guide you through KYC — it takes about 10 minutes.
+              Payments aren&apos;t open yet. We&apos;ll email you when you can
+              connect payouts and go live.
             </p>
-            <Link
-              href="/contact"
-              className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-transform duration-150 ease-out active:scale-[0.97]"
-            >
-              Get started →
-            </Link>
+            <p className="text-sm text-muted">
+              Fans who visit your link see &ldquo;Not live yet&rdquo; until then.{" "}
+              <Link
+                href="/contact"
+                className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+              >
+                Questions? Contact us.
+              </Link>
+            </p>
           </div>
         )}
 
@@ -141,11 +144,11 @@ export default async function DashboardPage() {
         )}
 
         {/* Tip page settings — available regardless of activation status */}
-        <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-5">
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-5">
           <div className="space-y-1">
-            <p className="text-sm font-medium uppercase tracking-widest text-muted">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
               Tip page settings
-            </p>
+            </h2>
             <p className="text-sm text-muted">
               Changes apply the next time someone loads your tip page.
             </p>
@@ -205,13 +208,13 @@ function EarlyAccess({
             creator tools now — we&apos;ll email you when your link is ready.
           </p>
         </div>
-        <div className="rounded-2xl border border-control bg-surface px-6 py-5 text-left space-y-3">
-          <p className="text-sm font-medium text-muted uppercase tracking-widest">
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface px-6 py-5 text-left space-y-3">
+          <h2 className="text-sm font-medium text-muted uppercase tracking-widest">
             What&apos;s coming
-          </p>
+          </h2>
           <ul className="space-y-2 text-base text-text">
             {[
-              "Your tipsite.in/handle link",
+              `Your ${SITE_HOST}/handle link`,
               "UPI and card tips from fans",
               "OBS alerts with fan messages",
               "Text-to-speech (approve before play)",

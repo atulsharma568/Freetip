@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-22, updated after skill pass)
+
+Multi-skill enhancement pass (2026-10-22): a code review found 7 code-quality issues (2 must-fix before Razorpay, tracked in PROGRESS); design critique (two-reviewer, 24/40 fan, 21/40 creator) applied: upfront "Tips open soon" banner on fan tip page, removed Razorpay KYC CTA from dashboard, promoted creator h1 to display type, moved anonymous toggle above name field, added "No account or email" trust line, added handle rules hint in HandleSetup, "Saving…" → "Claiming…", fixed 8 mechanical design-system violations (beam on lime buttons, lime glow shadow on inputs, mono on counters, border-control on non-interactive tiles, rounded-2xl → 20px, text-accent on success text, select chevron added, aria-live only near char limit). Lint, tsc and build pass.
+
 ## Current state (2026-10-22, updated)
 
 Pre-launch landing page for a UPI-first tipping site for Indian YouTube live streamers, built with Next.js 16, Tailwind v4, GSAP, Lenis and one React Bits component.
