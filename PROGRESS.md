@@ -22,12 +22,15 @@ Page sections, in order:
 
 Not built yet: the fan tip page, creator dashboard, the rest of the backend, Razorpay payments and real accounts. The first approved implementation slice is a read-only owner-finance foundation: forward ledger schema, server-side owner authorization, protected `/admin` pages and honest empty states. The product name "Tipsite" and the domain `tipsite.in` are placeholders.
 
-## Owner-finance foundation (started 2026-10-22)
+## Owner-finance foundation (2026-10-22)
 
-- Scope selected: read-only owner finance foundation; no Razorpay payment execution, webhooks, refunds or payouts yet.
-- Planned reporting concepts: captured tips, refunds, provider fees/taxes, Tipsite fee, creator net, settlements, pending balances, disputes, reconciliation and audit history.
-- Financial records will be designed as immutable ledger inputs with provider references and explicit internal/provider/reconciliation states.
-- The dashboard must show empty states rather than fabricated totals until real payment data exists.
+- Scope: read-only owner finance foundation; no Razorpay payment execution, webhooks, refunds or payouts yet.
+- `db/migrations/0001_finance_foundation.sql`: double-entry ledger, tip orders, payment attempts, fee lines, refunds, disputes, settlements, creator payouts, reconciliation, audit events. Append-only triggers on ledger and audit tables.
+- `db/migrations/0002_finance_gap_fill.sql`: fills four gaps in 0001 — versioned `platform_fee_policies` (seeds 5% launch rate), `provider_events` for idempotent Razorpay webhook ingestion, `settlement_items` linking payments to settlement batches, `tip_orders.anonymous` flag, and `updated_at` columns + triggers on mutable tables.
+- `src/lib/owner-auth.ts` + `owner-auth-core.ts`: server-side owner guard using `OWNER_GOOGLE_IDS` env var; unauthenticated → redirect to `/signin`, non-owner → 404.
+- `/admin` layout + pages: protected admin shell with nav; sub-pages (`/admin/finance`, `/admin/audit`, `/admin/reconciliation`) are honest empty states — no fabricated totals.
+- Splash/scroll-lock isolated from `/admin`: `SplashScreen` sets `data-splash="true"` on body; `SmoothScroll` only freezes Lenis when that flag is present. Admin pages scroll freely.
+- **To activate:** run `0001` then `0002` in Neon SQL Editor; add `OWNER_GOOGLE_IDS=<your-google-id>` to Vercel env vars.
 - Competitor findings from the public REA pass are maintained in `docs/competitor-findings.md`.
 - `db/migrations/0001_finance_foundation.sql` now defines the forward-only finance tables, ledger accounts, reconciliation records and append-only history triggers. It does not connect to Razorpay.
 - `src/lib/owner-auth.ts`, `src/app/admin/` and the owner route test now provide a server-side owner allowlist and read-only admin shell. Unauthenticated `/admin` requests redirect to `/signin`; the owner allowlist fails closed when unset.
@@ -39,6 +42,13 @@ Fee correction and UPI MDR FAQ (2026-10-21, commit cd2c5a9):
 
 - `src/lib/legal.ts`: gateway fee corrected to Razorpay standard 2% + 18% GST = 2.36% effective; worked example updated from ₹92.50 → ₹92.64 on a ₹100 tip.
 - `src/components/sections/Faq.tsx`: "What does it cost?" answer updated to match; new FAQ item "Is there an extra charge on large tips?" explains the govt-mandated 0.4% UPI MDR on tips above ₹2,000 (comes out of creator payout, not the fan's tip).
+
+TTS decision (2026-10-21):
+- Engine: Amazon Polly, Kajal Neural voice (bilingual Hindi+English). Free tier: 1M chars/month for 12 months. After month 12: switch to Sarvam AI Bulbul V4 Flash (better Hinglish, ~6x cheaper at ₹200/10,000 alerts vs Polly's ₹1,350). Switch is a single API call change.
+- Rejected: Web Speech API and Edge TTS (poor Hinglish), ElevenLabs (mispronounces Roman-script Hindi), Sarvam now (only 100 free credits on signup, not enough for MVP).
+- TTS is a threshold feature, not default-on: creator sets a minimum tip amount (e.g. ₹49+) and a message character cap (e.g. 100 chars). Tips below the threshold get a silent alert only. This controls API cost and mirrors how StreamElements handles it.
+- Setup wizards: Razorpay KYC at /tmp/razorpay-kyc-wizard.sh, Polly at /tmp/polly-setup-wizard.sh.
+- Not built yet — decisions recorded here for when the tip page is built.
 
 Payment provider decision (2026-10-21): Razorpay confirmed as the payment provider. Cashfree was considered (lower headline rate) but Razorpay wins on zero annual fee, higher UPI success rate (~93% vs ~80–85%) and lower total cost at early volumes. Cashfree breaks even only above ~₹2 crore/year GMV.
 
