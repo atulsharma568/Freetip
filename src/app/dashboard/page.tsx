@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { HandleSetup } from "./HandleSetup";
+import { SettingsForm } from "./SettingsForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -19,6 +20,9 @@ interface UserRow {
   creator_status: CreatorStatus;
   name: string | null;
   picture_url: string | null;
+  min_tip_paise: number;
+  message_max_chars: number;
+  tts_enabled: boolean;
 }
 
 export default async function DashboardPage() {
@@ -31,7 +35,8 @@ export default async function DashboardPage() {
   let user: UserRow | null = null;
   if (db && googleId) {
     const rows = await db<UserRow[]>`
-      select handle, creator_status, name, picture_url
+      select handle, creator_status, name, picture_url,
+             min_tip_paise, message_max_chars, tts_enabled
       from users
       where google_id = ${googleId}
     `;
@@ -134,6 +139,23 @@ export default async function DashboardPage() {
             to find out why.
           </p>
         )}
+
+        {/* Tip page settings — available regardless of activation status */}
+        <div className="rounded-[var(--radius-surface)] border border-control bg-surface p-6 space-y-5">
+          <div className="space-y-1">
+            <p className="text-sm font-medium uppercase tracking-widest text-muted">
+              Tip page settings
+            </p>
+            <p className="text-sm text-muted">
+              Changes apply the next time someone loads your tip page.
+            </p>
+          </div>
+          <SettingsForm
+            minTipPaise={user.min_tip_paise}
+            messageMaxChars={user.message_max_chars}
+            ttsEnabled={user.tts_enabled}
+          />
+        </div>
       </div>
     </PageShell>
   );

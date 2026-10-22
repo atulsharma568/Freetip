@@ -12,6 +12,8 @@ interface CreatorRow {
   yt_channel_name: string | null;
   yt_channel_url: string | null;
   creator_status: "pending" | "active" | "suspended";
+  min_tip_paise: number;
+  message_max_chars: number;
 }
 
 type Props = { params: Promise<{ handle: string }> };
@@ -40,7 +42,8 @@ export default async function CreatorPage({ params }: Props) {
   if (!db) notFound();
 
   const rows = await db<CreatorRow[]>`
-    select name, picture_url, yt_channel_name, yt_channel_url, creator_status
+    select name, picture_url, yt_channel_name, yt_channel_url,
+           creator_status, min_tip_paise, message_max_chars
     from users
     where handle = ${handle}
   `;
@@ -64,6 +67,8 @@ export default async function CreatorPage({ params }: Props) {
         pictureUrl={creator.picture_url}
         ytChannelName={creator.yt_channel_name}
         ytChannelUrl={creator.yt_channel_url}
+        minTipPaise={creator.min_tip_paise}
+        messageMaxChars={creator.message_max_chars}
       />
     </PageShell>
   );

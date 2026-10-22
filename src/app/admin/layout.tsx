@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const navigation = [
   { href: "/admin", label: "Overview" },
+  { href: "/admin/creators", label: "Creators" },
   { href: "/admin/finance", label: "Finance" },
   { href: "/admin/finance/creators", label: "Creator earnings" },
   { href: "/admin/finance/payments", label: "Payment ledger" },

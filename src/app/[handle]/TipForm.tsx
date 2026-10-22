@@ -4,20 +4,35 @@ import { useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
 
-const PRESETS = [49, 99, 199, 499] as const;
-const MAX_MESSAGE = 150;
+const MAX_MESSAGE_FALLBACK = 150;
+
+// Build 4 clean preset amounts from the creator's minimum tip (in paise).
+function buildPresets(minPaise: number): number[] {
+  const min = Math.ceil(minPaise / 100);
+  const raw = [min, min * 2, min * 5, min * 10];
+  return raw.map((v) => {
+    if (v >= 1000) return Math.round(v / 500) * 500;
+    if (v >= 100) return Math.round(v / 100) * 100;
+    if (v >= 10) return Math.round(v / 10) * 10;
+    return v;
+  });
+}
 
 interface Props {
   name: string;
   pictureUrl: string | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
+  minTipPaise: number;
+  messageMaxChars: number;
 }
 
-export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl }: Props) {
+export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl, minTipPaise, messageMaxChars }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const presets = buildPresets(minTipPaise);
+  const maxChars = messageMaxChars ?? MAX_MESSAGE_FALLBACK;
 
-  const [selected, setSelected] = useState<(typeof PRESETS)[number] | "custom">(99);
+  const [selected, setSelected] = useState<number | "custom">(presets[0]);
   const [custom, setCustom] = useState("");
   const [tipName, setTipName] = useState("");
   const [message, setMessage] = useState("");
@@ -78,7 +93,7 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl }: Props
             Amount
           </legend>
           <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
+            {presets.map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -161,7 +176,7 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl }: Props
           </label>
           <textarea
             id="tip-message"
-            maxLength={MAX_MESSAGE}
+            maxLength={maxChars}
             rows={3}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -172,7 +187,7 @@ export function TipForm({ name, pictureUrl, ytChannelName, ytChannelUrl }: Props
             aria-live="polite"
             className="numeric text-right text-xs text-muted"
           >
-            {message.length}/{MAX_MESSAGE}
+            {message.length}/{maxChars}
           </p>
         </div>
 
