@@ -6,6 +6,17 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 Security hardening (2026-10-22): confirmed live bypass of admin layout auth via RSC partial render — all 8 admin page.tsx files now call requireOwner() directly, independent of the layout; handle param validated against HANDLE_PATTERN before any DB query in [handle]/page.tsx; admin.ts args runtime-validated; auth.ts: email_verified required, fail-closed in production when DB missing, email unique-collision handled, access_type offline removed; next.config.ts: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy headers on every route; cron route: timingSafeEqual for bearer secret; creator.ts: redirect moved after try block, generic error catch, expanded RESERVED set; db.ts: ssl: "require" explicit.
 
+## Current state (2026-10-22, updated after creator onboarding slice)
+
+Creator onboarding / public tip-page data (2026-10-22): two gaps that blocked creators from feeling fully onboarded are now closed.
+
+1. **Custom display name**: new `display_name` column (migration `0007_display_name.sql`). Creators set a streamer name in dashboard settings (first field, above bio, 50-char limit). The tip page uses `display_name ?? name` everywhere — h1, `<title>`, og metadata. Falls back to Google name when unset.
+2. **Self-preview on the tip page**: `/[handle]` now calls `auth()` server-side and compares the viewer's Google ID against the creator's. When a creator visits their own page while `pending` or `suspended`, they see the full `TipForm` with a "Preview — your page isn't live yet." banner instead of the generic "Not live yet" screen. Non-creator visitors on a non-active page still see the `NotReady` screen. Active creators show the standard "Tips open soon" banner to all visitors.
+
+**To activate display names:** run `db/migrations/0007_display_name.sql` in the Neon SQL Editor (safe to re-run).
+
+Lint: 0 errors (1 pre-existing warning in `date-range.ts`). tsc: clean. Build: clean.
+
 ## Current state (2026-10-22, updated after skill pass)
 
 Multi-skill enhancement pass (2026-10-22): a code review found 7 code-quality issues (2 must-fix before Razorpay, tracked in PROGRESS); design critique (two-reviewer, 24/40 fan, 21/40 creator) applied: upfront "Tips open soon" banner on fan tip page, removed Razorpay KYC CTA from dashboard, promoted creator h1 to display type, moved anonymous toggle above name field, added "No account or email" trust line, added handle rules hint in HandleSetup, "Saving…" → "Claiming…", fixed 8 mechanical design-system violations (beam on lime buttons, lime glow shadow on inputs, mono on counters, border-control on non-interactive tiles, rounded-2xl → 20px, text-accent on success text, select chevron added, aria-live only near char limit). Lint, tsc and build pass.

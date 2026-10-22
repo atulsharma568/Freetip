@@ -18,23 +18,25 @@ function buildPresets(minPaise: number): number[] {
 }
 
 interface Props {
-  name: string;
+  displayName: string;
   pictureUrl: string | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   minTipPaise: number;
   messageMaxChars: number;
   bio: string | null;
+  previewMode?: boolean;
 }
 
 export function TipForm({
-  name,
+  displayName,
   pictureUrl,
   ytChannelName,
   ytChannelUrl,
   minTipPaise,
   messageMaxChars,
   bio,
+  previewMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const presets = buildPresets(minTipPaise);
@@ -67,20 +69,27 @@ export function TipForm({
 
   return (
     <div ref={containerRef} className="mx-auto w-full max-w-sm px-6 py-12 space-y-8">
-      {/* Coming-soon banner */}
-      <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
-        <p className="text-sm font-semibold text-text">Tips open soon.</p>
-        <p className="text-sm text-muted">
-          UPI and card payments are on their way.{" "}
-          <Link
-            href="/"
-            className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
-          >
-            Join the waitlist
-          </Link>{" "}
-          to be first.
-        </p>
-      </div>
+      {/* Top banner — preview for the creator, or coming-soon for everyone else */}
+      {previewMode ? (
+        <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
+          <p className="text-sm font-semibold text-text">Preview — your page isn&apos;t live yet.</p>
+          <p className="text-sm text-muted">This is exactly what fans will see once you go live.</p>
+        </div>
+      ) : (
+        <div className="tip-section rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
+          <p className="text-sm font-semibold text-text">Tips open soon.</p>
+          <p className="text-sm text-muted">
+            UPI and card payments are on their way.{" "}
+            <Link
+              href="/"
+              className="text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+            >
+              Join the waitlist
+            </Link>{" "}
+            to be first.
+          </p>
+        </div>
+      )}
 
       {/* Creator */}
       <div className="tip-section flex items-center gap-4">
@@ -95,7 +104,7 @@ export function TipForm({
           />
         )}
         <div className="min-w-0">
-          <h1 className="display truncate text-[clamp(1.5rem,5vw,2rem)]">{name}</h1>
+          <h1 className="display truncate text-[clamp(1.5rem,5vw,2rem)]">{displayName}</h1>
           {ytChannelName && ytChannelUrl && (
             <a
               href={ytChannelUrl}

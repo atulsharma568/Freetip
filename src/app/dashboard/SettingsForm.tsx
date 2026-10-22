@@ -8,8 +8,10 @@ import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
 const MIN_TIP_OPTIONS = [1, 10, 20, 49, 99, 199, 499];
 
 const BIO_MAX = 160;
+const DISPLAY_NAME_MAX = 50;
 
 interface Props {
+  displayName: string;
   minTipPaise: number;
   messageMaxChars: number;
   ttsEnabled: boolean;
@@ -17,9 +19,10 @@ interface Props {
   bio: string;
 }
 
-export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, bio: initialBio }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, bio: initialBio }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
+  const [displayName, setDisplayName] = useState(initialDisplayName);
   const [tts, setTts] = useState(ttsEnabled);
   const [approve, setApprove] = useState(approveBeforePlay);
   const [chars, setChars] = useState(messageMaxChars);
@@ -28,6 +31,27 @@ export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled, approve
 
   return (
     <form action={action} className="space-y-6" onChange={() => setIsDirty(true)}>
+      {/* Display name */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="creator-display-name" className="text-sm font-medium uppercase tracking-widest text-muted">
+            Display name
+          </label>
+          <span className="text-xs text-muted">{displayName.length}/{DISPLAY_NAME_MAX}</span>
+        </div>
+        <input
+          id="creator-display-name"
+          name="display_name"
+          type="text"
+          maxLength={DISPLAY_NAME_MAX}
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="Your streamer name"
+          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+        />
+        <p className="text-xs text-muted">Shown on your tip page. Defaults to your Google name.</p>
+      </div>
+
       {/* Bio */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">

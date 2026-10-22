@@ -21,6 +21,7 @@ interface UserRow {
   creator_status: CreatorStatus;
   name: string | null;
   picture_url: string | null;
+  display_name: string | null;
   min_tip_paise: number;
   message_max_chars: number;
   tts_enabled: boolean;
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
   let user: UserRow | null = null;
   if (db && googleId) {
     const rows = await db<UserRow[]>`
-      select handle, creator_status, name, picture_url,
+      select handle, creator_status, name, picture_url, display_name,
              min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio
       from users
       where google_id = ${googleId}
@@ -168,6 +169,7 @@ export default async function DashboardPage() {
             </p>
           </div>
           <SettingsForm
+            displayName={user.display_name ?? ""}
             minTipPaise={user.min_tip_paise}
             messageMaxChars={user.message_max_chars}
             ttsEnabled={user.tts_enabled}

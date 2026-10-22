@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getDb } from "@/lib/db";
+import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 
 interface CreatorRow {
+  google_id: string;
+  display_name: string | null;
   name: string | null;
   picture_url: string | null;
   yt_channel_name: string | null;
@@ -25,7 +28,7 @@ const getCreator = cache(async (handle: string): Promise<CreatorRow | null> => {
   const db = getDb();
   if (!db) return null;
   const rows = await db<CreatorRow[]>`
-    select name, picture_url, yt_channel_name, yt_channel_url,
+    select google_id, display_name, name, picture_url, yt_channel_name, yt_channel_url,
            creator_status, min_tip_paise, message_max_chars, bio
     from users
     where handle = ${handle}
@@ -44,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: `${handle} | ${SITE_NAME}` };
   }
 
-  const displayName = creator.name ?? handle;
+  const displayName = creator.display_name ?? creator.name ?? handle;
   return {
     title: `Tip ${displayName} | ${SITE_NAME}`,
     description: `Send a tip to ${displayName} on ${SITE_NAME}. No fan account or email needed.`,
@@ -58,7 +61,12 @@ export default async function CreatorPage({ params }: Props) {
   const creator = await getCreator(handle);
   if (!creator) notFound();
 
-  if (creator.creator_status !== "active") {
+  // Allow the creator to preview their own page even while pending/suspended.
+  const session = await auth();
+  const viewerGoogleId = (session?.user as { googleId?: string })?.googleId;
+  const isOwnPage = !!viewerGoogleId && viewerGoogleId === creator.google_id;
+
+  if (creator.creator_status !== "active" && !isOwnPage) {
     return (
       <PageShell>
         <NotReady handle={handle} name={creator.name} />
@@ -66,16 +74,19 @@ export default async function CreatorPage({ params }: Props) {
     );
   }
 
+  const displayName = creator.display_name ?? creator.name ?? handle;
+
   return (
     <PageShell>
       <TipForm
-        name={creator.name ?? handle}
+        displayName={displayName}
         pictureUrl={creator.picture_url}
         ytChannelName={creator.yt_channel_name}
         ytChannelUrl={creator.yt_channel_url}
         minTipPaise={creator.min_tip_paise}
         messageMaxChars={creator.message_max_chars}
         bio={creator.bio}
+        previewMode={creator.creator_status !== "active"}
       />
     </PageShell>
   );

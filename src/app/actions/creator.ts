@@ -82,6 +82,7 @@ export async function saveSettings(
   const session = await auth();
   if (!session?.user) redirect("/signin");
 
+  const displayName = String(form.get("display_name") ?? "").trim().slice(0, 50) || null;
   const minTipRupees = parseInt(String(form.get("min_tip") ?? "49"), 10);
   const maxChars = parseInt(String(form.get("message_max_chars") ?? "150"), 10);
   const ttsEnabled = form.get("tts_enabled") === "on";
@@ -104,6 +105,7 @@ export async function saveSettings(
   try {
     await db`
       update users set
+        display_name        = ${displayName},
         min_tip_paise       = ${minTipRupees * 100},
         message_max_chars   = ${maxChars},
         tts_enabled         = ${ttsEnabled},
