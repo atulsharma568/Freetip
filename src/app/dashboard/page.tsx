@@ -25,6 +25,7 @@ interface UserRow {
   message_max_chars: number;
   tts_enabled: boolean;
   approve_before_play: boolean;
+  bio: string | null;
 }
 
 export default async function DashboardPage() {
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
   if (db && googleId) {
     const rows = await db<UserRow[]>`
       select handle, creator_status, name, picture_url,
-             min_tip_paise, message_max_chars, tts_enabled, approve_before_play
+             min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio
       from users
       where google_id = ${googleId}
     `;
@@ -171,6 +172,7 @@ export default async function DashboardPage() {
             messageMaxChars={user.message_max_chars}
             ttsEnabled={user.tts_enabled}
             approveBeforePlay={user.approve_before_play}
+            bio={user.bio ?? ""}
           />
         </div>
       </div>

@@ -86,6 +86,7 @@ export async function saveSettings(
   const maxChars = parseInt(String(form.get("message_max_chars") ?? "150"), 10);
   const ttsEnabled = form.get("tts_enabled") === "on";
   const approveBeforePlay = form.get("approve_before_play") === "on";
+  const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
 
   if (!Number.isInteger(minTipRupees) || minTipRupees < 1 || minTipRupees > 1000) {
     return { status: "error", message: "Min tip must be between ₹1 and ₹1,000" };
@@ -103,10 +104,11 @@ export async function saveSettings(
   try {
     await db`
       update users set
-        min_tip_paise      = ${minTipRupees * 100},
-        message_max_chars  = ${maxChars},
-        tts_enabled        = ${ttsEnabled},
-        approve_before_play = ${approveBeforePlay}
+        min_tip_paise       = ${minTipRupees * 100},
+        message_max_chars   = ${maxChars},
+        tts_enabled         = ${ttsEnabled},
+        approve_before_play = ${approveBeforePlay},
+        bio                 = ${bio}
       where google_id = ${googleId}
     `;
   } catch {

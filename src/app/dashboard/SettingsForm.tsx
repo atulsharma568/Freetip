@@ -7,23 +7,48 @@ import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
 
 const MIN_TIP_OPTIONS = [1, 10, 20, 49, 99, 199, 499];
 
+const BIO_MAX = 160;
+
 interface Props {
   minTipPaise: number;
   messageMaxChars: number;
   ttsEnabled: boolean;
   approveBeforePlay: boolean;
+  bio: string;
 }
 
-export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay }: Props) {
+export function SettingsForm({ minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, bio: initialBio }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [tts, setTts] = useState(ttsEnabled);
   const [approve, setApprove] = useState(approveBeforePlay);
   const [chars, setChars] = useState(messageMaxChars);
+  const [bio, setBio] = useState(initialBio);
   const [isDirty, setIsDirty] = useState(false);
 
   return (
     <form action={action} className="space-y-6" onChange={() => setIsDirty(true)}>
+      {/* Bio */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="creator-bio" className="text-sm font-medium uppercase tracking-widest text-muted">
+            Bio
+          </label>
+          <span className="text-xs text-muted">{bio.length}/{BIO_MAX}</span>
+        </div>
+        <textarea
+          id="creator-bio"
+          name="bio"
+          maxLength={BIO_MAX}
+          rows={2}
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          placeholder="Indian gaming streamer, live every night at 9 PM"
+          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+        />
+        <p className="text-xs text-muted">Shown on your public tip page.</p>
+      </div>
+
       {/* Min tip */}
       <div className="space-y-2">
         <label htmlFor="min-tip" className="text-sm font-medium uppercase tracking-widest text-muted">

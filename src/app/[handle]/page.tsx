@@ -16,6 +16,7 @@ interface CreatorRow {
   creator_status: "pending" | "active" | "suspended";
   min_tip_paise: number;
   message_max_chars: number;
+  bio: string | null;
 }
 
 // React.cache deduplicates this across generateMetadata and the page component
@@ -25,7 +26,7 @@ const getCreator = cache(async (handle: string): Promise<CreatorRow | null> => {
   if (!db) return null;
   const rows = await db<CreatorRow[]>`
     select name, picture_url, yt_channel_name, yt_channel_url,
-           creator_status, min_tip_paise, message_max_chars
+           creator_status, min_tip_paise, message_max_chars, bio
     from users
     where handle = ${handle}
   `;
@@ -74,6 +75,7 @@ export default async function CreatorPage({ params }: Props) {
         ytChannelUrl={creator.yt_channel_url}
         minTipPaise={creator.min_tip_paise}
         messageMaxChars={creator.message_max_chars}
+        bio={creator.bio}
       />
     </PageShell>
   );

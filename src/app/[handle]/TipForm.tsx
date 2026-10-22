@@ -24,6 +24,7 @@ interface Props {
   ytChannelUrl: string | null;
   minTipPaise: number;
   messageMaxChars: number;
+  bio: string | null;
 }
 
 export function TipForm({
@@ -33,6 +34,7 @@ export function TipForm({
   ytChannelUrl,
   minTipPaise,
   messageMaxChars,
+  bio,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const presets = buildPresets(minTipPaise);
@@ -103,6 +105,9 @@ export function TipForm({
             >
               {ytChannelName}
             </a>
+          )}
+          {bio && (
+            <p className="text-sm text-muted mt-1">{bio}</p>
           )}
         </div>
       </div>
