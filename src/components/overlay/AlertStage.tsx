@@ -8,15 +8,63 @@ export interface OverlayAlert {
   name: string;
   amountPaise: number;
   message: string | null;
+  // The server will read the message aloud (live overlay only).
+  speech?: boolean;
+}
+
+// An alert in the queue, with its speech already downloaded so the voice starts
+// with the card instead of after a wait.
+interface QueuedAlert extends OverlayAlert {
+  audio?: HTMLAudioElement;
+  speechMs?: number;
 }
 
 const POLL_MS = 4000;
 const BASE_SHOW_MS = 6000;
 const PER_CHAR_MS = 70;
 const MAX_EXTRA_MS = 8000;
+// Keep the card up a moment after the voice finishes.
+const SPEECH_TAIL_MS = 1500;
 
-function showMs(a: OverlayAlert) {
-  return BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
+function showMs(a: QueuedAlert) {
+  const byLength = BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
+  return a.speechMs ? Math.max(byLength, a.speechMs + SPEECH_TAIL_MS) : byLength;
+}
+
+// Downloads the speech for an alert. Any failure (speech off, engine down, slow
+// network) returns null and the alert simply plays silently.
+async function loadSpeech(
+  token: string,
+  id: number,
+): Promise<{ audio: HTMLAudioElement; ms: number } | null> {
+  try {
+    const res = await fetch(`/api/overlay/${token}/speech/${id}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (res.status !== 200) return null;
+    const url = URL.createObjectURL(await res.blob());
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    const seconds = await new Promise<number>((resolve) => {
+      audio.addEventListener("loadedmetadata", () => resolve(audio.duration), { once: true });
+      audio.addEventListener("error", () => resolve(NaN), { once: true });
+      setTimeout(() => resolve(NaN), 3000);
+    });
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      URL.revokeObjectURL(url);
+      return null;
+    }
+    return { audio, ms: Math.ceil(seconds * 1000) };
+  } catch {
+    return null;
+  }
+}
+
+function releaseSpeech(a: QueuedAlert) {
+  if (!a.audio) return;
+  a.audio.pause();
+  URL.revokeObjectURL(a.audio.src);
 }
 
 function rupees(paise: number) {
@@ -38,9 +86,9 @@ function rupees(paise: number) {
 export function AlertStage({ token, samples }: { token?: string; samples?: OverlayAlert[] }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1920, h: 1080 });
-  const [current, setCurrent] = useState<OverlayAlert | null>(null);
+  const [current, setCurrent] = useState<QueuedAlert | null>(null);
   const [invalid, setInvalid] = useState(false);
-  const queue = useRef<OverlayAlert[]>([]);
+  const queue = useRef<QueuedAlert[]>([]);
   const seen = useRef(0);
 
   useEffect(() => {
@@ -76,7 +124,17 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         }
         if (!res.ok) return;
         const body = (await res.json()) as { alert: OverlayAlert | null };
-        if (body.alert) queue.current.push(body.alert);
+        if (body.alert) {
+          const alert: QueuedAlert = body.alert;
+          if (alert.speech) {
+            const speech = await loadSpeech(token, alert.id);
+            if (speech) {
+              alert.audio = speech.audio;
+              alert.speechMs = speech.ms;
+            }
+          }
+          queue.current.push(alert);
+        }
       } catch {
         // Network blip: try again on the next tick.
       }
@@ -91,7 +149,14 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   // Play one alert at a time.
   useEffect(() => {
     if (current) {
-      const t = setTimeout(() => setCurrent(null), showMs(current));
+      // Start the voice with the card. A normal browser tab blocks sound until
+      // someone clicks; OBS's browser source allows it, so a refused play is
+      // simply silent.
+      current.audio?.play().catch(() => {});
+      const t = setTimeout(() => {
+        releaseSpeech(current);
+        setCurrent(null);
+      }, showMs(current));
       return () => clearTimeout(t);
     }
     const t = setInterval(() => {

@@ -140,6 +140,7 @@ export async function saveSettings(
   const minTipRupees = parseInt(String(form.get("min_tip") ?? "49"), 10);
   const maxChars = parseInt(String(form.get("message_max_chars") ?? "150"), 10);
   const ttsEnabled = form.get("tts_enabled") === "on";
+  const ttsMinRupees = parseInt(String(form.get("tts_min") ?? "49"), 10);
   const approveBeforePlay = form.get("approve_before_play") === "on";
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
   const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
@@ -149,6 +150,9 @@ export async function saveSettings(
   }
   if (!Number.isInteger(minTipRupees) || minTipRupees < 1 || minTipRupees > 1000) {
     return { status: "error", message: "Min tip must be between ₹1 and ₹1,000" };
+  }
+  if (!Number.isInteger(ttsMinRupees) || ttsMinRupees < 1 || ttsMinRupees > 1000) {
+    return { status: "error", message: "Read-aloud amount must be between ₹1 and ₹1,000" };
   }
   if (!Number.isInteger(maxChars) || maxChars < 10 || maxChars > 500) {
     return { status: "error", message: "Message limit must be between 10 and 500 characters" };
@@ -167,6 +171,7 @@ export async function saveSettings(
         min_tip_paise       = ${minTipRupees * 100},
         message_max_chars   = ${maxChars},
         tts_enabled         = ${ttsEnabled},
+        tts_min_paise       = ${ttsMinRupees * 100},
         approve_before_play = ${approveBeforePlay},
         alert_mode          = ${alertMode},
         bio                 = ${bio}

@@ -2,6 +2,18 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-23, updated after overlay text-to-speech)
+
+Text-to-speech on the OBS overlay (2026-10-23): built, not yet heard. It has not been tried against real Polly or inside real OBS (no AWS credentials exist yet, and the Polly setup wizard is gone from `/tmp`).
+
+- How it works: the overlay API marks an alert `speech: true` when the rules allow it; the overlay then downloads `GET /api/overlay/[token]/speech/[id]` (an MP3) before showing the card, plays it with the card, and keeps the card up until the voice ends (+1.5 s). Any failure (speech off, engine down, slow network, 204) shows the alert silently.
+- Rules (pure, `src/lib/tts-rules.ts`, `test/tts-rules.spec.ts`): only the fan's message is spoken, never the name. It needs `tts_enabled`, a tip of at least `users.tts_min_paise` (default ₹49, creator's "Read aloud from" setting), and a message that is approved, or pending with "approve before play" off. A rejected message is never spoken. Links and invisible characters are stripped, and the text is capped at the creator's message limit or 300 characters. The speech route re-checks every rule from the database and speaks only the stored text, only for a message shown in the last 10 minutes.
+- Previously `approve_before_play` was saved but not used anywhere. It now gates speech. Shortcut: in `instant` mode the message still shows on screen before approval (existing behaviour); with approve-before-play on it is just never spoken.
+- Engine: Amazon Polly, Kajal neural (`src/lib/tts.ts`), Devanagari text read as `hi-IN`, everything else `en-IN`. Roman-script Hindi is read with an English accent (known limit). Plain text, never SSML. Env vars are `POLLY_ACCESS_KEY_ID`, `POLLY_SECRET_ACCESS_KEY`, optional `POLLY_REGION` (default `ap-south-1`), not `AWS_*`, which Vercel reserves. Without them alerts play silently. Swapping to Sarvam later only changes `synthesize()`.
+- Browser note: a normal browser tab blocks sound until a click, so the voice is only heard in OBS (its browser source allows autoplay; tick "Control audio via OBS" to put it on the mixer). The `/overlay/preview` page does not speak.
+- **To activate:** run `db/migrations/0010_tts_threshold.sql` in Neon **before or right after the deploy** (the dashboard and overlay queries read `tts_min_paise` and fail until it exists), create an IAM user allowed only `polly:SynthesizeSpeech`, add the two `POLLY_*` variables in Vercel, then test in real OBS.
+- Verified: tsc clean, lint 0 errors (1 old warning), build clean, 12 new tts-rules tests plus 3 new overlay browser tests (speech downloaded and played; 204 plays silently; bad id and no database) and the existing overlay tests, all 32 passing in installed Chrome.
+
 ## Current state (2026-10-23, updated after OBS alerts)
 
 OBS alerts, visual only (2026-10-23): a creator gets one private overlay link for an OBS Browser source; captured tips play as alerts. Text-to-speech is the next slice (speech inside OBS's browser source is unreliable and needs its own testing).
@@ -271,3 +283,4 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 
 - 2026-10-22: installed portable Node.js 24.20.0 and Playwright Chromium outside the project, ran REA 6.4.0 against public StreamTipz, SuperTips and HyperChat surfaces, and recorded the findings in `docs/competitor-findings.md`. No project files were changed by the reverse-engineering tooling.
 - 2026-10-23: OBS alerts, visual only: private overlay link, three layouts (1080p, 2K, vertical), three alert modes, approval queue, preview page. Migration 0009 to run in Neon.
+- 2026-10-23: text-to-speech on the overlay (Polly Kajal, message only, threshold and approval rules, silent fallback), "Read aloud from" setting, migration 0010. Tested with mocked speech only; real Polly and real OBS still to try.

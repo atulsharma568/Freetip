@@ -34,6 +34,7 @@ interface UserRow {
   min_tip_paise: number;
   message_max_chars: number;
   tts_enabled: boolean;
+  tts_min_paise: number;
   approve_before_play: boolean;
   bio: string | null;
   alert_mode: AlertMode;
@@ -52,7 +53,7 @@ export default async function DashboardPage() {
     const rows = await db<UserRow[]>`
       select id, handle, creator_status, onboarding_state,
              name, picture_url, display_name, legal_name, upi_vpa,
-             min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio,
+             min_tip_paise, message_max_chars, tts_enabled, tts_min_paise, approve_before_play, bio,
              alert_mode, overlay_token_hash is not null as has_overlay_link
       from users
       where google_id = ${googleId}
@@ -206,6 +207,7 @@ export default async function DashboardPage() {
             minTipPaise={user.min_tip_paise}
             messageMaxChars={user.message_max_chars}
             ttsEnabled={user.tts_enabled}
+            ttsMinPaise={user.tts_min_paise}
             approveBeforePlay={user.approve_before_play}
             alertMode={user.alert_mode}
             bio={user.bio ?? ""}

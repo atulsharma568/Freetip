@@ -6,6 +6,7 @@ import {
   type AlertMode,
   type TipRow,
 } from "@/lib/alerts";
+import { shouldSpeak } from "@/lib/tts-rules";
 
 // Polled by the OBS browser source every few seconds. Each call hands out at
 // most one alert and marks it shown in the same request, so an alert plays once
@@ -17,6 +18,10 @@ const NO_STORE = { "Cache-Control": "no-store" };
 interface CandidateRow extends Omit<TipRow, "id"> {
   creator_id: number;
   alert_mode: AlertMode;
+  message_max_chars: number;
+  tts_enabled: boolean;
+  approve_before_play: boolean;
+  tts_min_paise: number;
   id: number | null;
 }
 
@@ -39,6 +44,7 @@ export async function GET(
   // message) from filling the candidate limit.
   const rows = await db<CandidateRow[]>`
     select u.id as creator_id, u.alert_mode,
+           u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise,
            t.id::int as id, t.fan_name, t.fan_message, t.gross_amount_minor, t.message_status,
            t.captured_at, t.message_decided_at, t.alert_shown_at, t.message_shown_at
     from users u
@@ -86,6 +92,23 @@ export async function GET(
   if (!claimed.length) return Response.json({ alert: null }, { headers: NO_STORE });
 
   const row = tips.find((r) => r.id === next.id)!;
+  // Whether the message will be read aloud. The overlay then fetches the audio
+  // from the speech route, which checks the same rules again.
+  const speak =
+    next.withMessage &&
+    shouldSpeak(
+      {
+        ttsEnabled: row.tts_enabled,
+        approveBeforePlay: row.approve_before_play,
+        ttsMinPaise: row.tts_min_paise,
+      },
+      {
+        message: row.fan_message,
+        messageStatus: row.message_status,
+        amountPaise: Number(row.gross_amount_minor),
+      },
+      row.message_max_chars,
+    );
   return Response.json(
     {
       alert: {
@@ -94,6 +117,7 @@ export async function GET(
         name: row.fan_name?.trim() || "Anonymous",
         amountPaise: Number(row.gross_amount_minor),
         message: next.withMessage ? row.fan_message!.trim() : null,
+        speech: speak,
       },
     },
     { headers: NO_STORE },

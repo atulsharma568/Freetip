@@ -22,17 +22,19 @@ interface Props {
   minTipPaise: number;
   messageMaxChars: number;
   ttsEnabled: boolean;
+  ttsMinPaise: number;
   approveBeforePlay: boolean;
   alertMode: AlertMode;
   bio: string;
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, alertMode, bio: initialBio }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [tts, setTts] = useState(ttsEnabled);
   const [approve, setApprove] = useState(approveBeforePlay);
+  const [ttsMin, setTtsMin] = useState(Math.round(ttsMinPaise / 100));
   const [chars, setChars] = useState(messageMaxChars);
   const [bio, setBio] = useState(initialBio);
   const [isDirty, setIsDirty] = useState(false);
@@ -168,16 +170,44 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           </label>
         </div>
         {tts && (
-          <div className="flex items-center gap-3 pl-10">
-            <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
-            <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
-              Approve before play
-              <span className="ml-2 text-muted text-xs">(recommended)</span>
-            </label>
-          </div>
+          <>
+            <div className="flex items-center gap-3 pl-10">
+              <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
+              <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
+                Approve before play
+                <span className="ml-2 text-muted text-xs">(recommended)</span>
+              </label>
+            </div>
+            <div className="space-y-2 pl-10">
+              <label htmlFor="tts-min" className="block text-sm text-text">
+                Read aloud from
+              </label>
+              <div className="relative">
+                <select
+                  id="tts-min"
+                  value={ttsMin}
+                  onChange={(e) => setTtsMin(Number(e.target.value))}
+                  className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent focus:outline-none transition-[border-color] appearance-none"
+                >
+                  {MIN_TIP_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      ₹{v} and above
+                    </option>
+                  ))}
+                </select>
+                <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+                  ↓
+                </span>
+              </div>
+              <p className="text-xs text-muted">
+                Smaller tips still show an alert, just without a voice. Only the message is read, never the name.
+              </p>
+            </div>
+          </>
         )}
-        {/* Always submit approve_before_play so it isn't silently reset when TTS is off */}
+        {/* Always submit these so they aren't silently reset when TTS is off */}
         <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
+        <input type="hidden" name="tts_min" value={ttsMin} />
       </div>
 
       {/* Always-present live region so screen readers announce changes reliably */}
