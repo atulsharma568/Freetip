@@ -2,6 +2,19 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-23, updated after OBS alerts)
+
+OBS alerts, visual only (2026-10-23): a creator gets one private overlay link for an OBS Browser source; captured tips play as alerts. Text-to-speech is the next slice (speech inside OBS's browser source is unreliable and needs its own testing).
+
+- Layouts: one link, the layout follows the source size. 1080p (1920×1080) and 2K (2560×1440) are one 16:9 design drawn at their own size; vertical (1080×1920) is a stacked layout. Everything is sized from one unit (1% of the stage width, measured with a ResizeObserver), not viewport or container units, which older OBS browsers may lack. Reduced motion falls back to a fade.
+- Alert modes (creator's choice, `users.alert_mode`, default `split`): `instant` plays everything at once; `split` plays name and amount at once and the message as its own card once approved; `approve` plays nothing until the message is decided. A rejected message is never shown (in `approve` mode the tipper is still thanked). Rules are pure and tested: `src/lib/alerts.ts`, `test/overlay-rules.spec.ts`.
+- Delivery: the overlay polls `GET /api/overlay/[token]` every 4 s. One query finds the creator by token hash plus candidate tips; the endpoint hands out at most one alert and marks it shown in the same request (`alert_shown_at` / `message_shown_at`), so it plays once. Shortcut: an OBS reload between hand-out and animation loses that one alert; an ack round trip would fix it. Alerts older than an hour are dropped so a late-opened overlay does not replay old tips.
+- Link security: 32 random bytes, only the SHA-256 hash is stored (`users.overlay_token_hash`), shown once, regenerating kills the old link. Overlay pages are `noindex`, `no-referrer`, disallowed in robots.txt; the API is `no-store`, 404s on a malformed or unknown token before any lookup beyond one indexed query.
+- Dashboard: "Alerts on stream" tile (create or replace link, OBS sizes, preview link), "Messages to approve" queue (hidden in `instant` mode), alert-mode radio in settings. `/overlay/preview` shows sample alerts at all three sizes, no secret needed.
+- `decideMessage` lives in `src/app/actions/messages.ts`, not `creator.ts`: a "use server" file that a server component imports is evaluated on the server, and `creator.ts` exports plain constants, which fails the build.
+- **To activate:** run `db/migrations/0009_obs_alerts.sql` in Neon.
+- Verified: tsc clean, lint 0 errors (1 old warning), build clean, all 5 overlay browser tests and 15 rules tests pass in installed Chrome (Playwright's own browser download is blocked here; run with `channel: "chrome"`). 6 other desktop tests fail: 5 `/signup` waitlist/metadata tests expect the old waitlist form and title ("Sign up" vs "Get early access"), and the skip-link test on `/kabirplays`. Not caused by this slice; not checked against a clean `main`. Not done: end-to-end with real captured tips (needs Neon migrated and a Razorpay test payment), a check in real OBS.
+
 ## Current state (2026-10-22, updated after payment flow)
 
 Razorpay payment flow (2026-10-22, commit d49eaee): fans can now pay on an active creator's tip page.
@@ -257,3 +270,4 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
  All four commits use the no-reply address. 136/136 Chromium tests, lint and tsc passed after the merge.
 
 - 2026-10-22: installed portable Node.js 24.20.0 and Playwright Chromium outside the project, ran REA 6.4.0 against public StreamTipz, SuperTips and HyperChat surfaces, and recorded the findings in `docs/competitor-findings.md`. No project files were changed by the reverse-engineering tooling.
+- 2026-10-23: OBS alerts, visual only: private overlay link, three layouts (1080p, 2K, vertical), three alert modes, approval queue, preview page. Migration 0009 to run in Neon.

@@ -4,6 +4,13 @@ import { useActionState, useState } from "react";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
+import type { AlertMode } from "@/lib/alerts";
+
+const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
+  { value: "instant", label: "Play everything at once", hint: "Name, amount and message show as soon as the tip lands." },
+  { value: "split", label: "Message after approval", hint: "Name and amount show at once; the message waits for you." },
+  { value: "approve", label: "Everything after approval", hint: "Nothing shows until you approve the message." },
+];
 
 const MIN_TIP_OPTIONS = [1, 10, 20, 49, 99, 199, 499];
 
@@ -16,10 +23,11 @@ interface Props {
   messageMaxChars: number;
   ttsEnabled: boolean;
   approveBeforePlay: boolean;
+  alertMode: AlertMode;
   bio: string;
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, bio: initialBio }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, approveBeforePlay, alertMode, bio: initialBio }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -127,6 +135,28 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           <span>500</span>
         </div>
       </div>
+
+      {/* Alert mode */}
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium uppercase tracking-widest text-muted">
+          Stream alerts
+        </legend>
+        {ALERT_OPTIONS.map((o) => (
+          <label key={o.value} className="flex cursor-pointer items-start gap-3">
+            <input
+              type="radio"
+              name="alert_mode"
+              value={o.value}
+              defaultChecked={o.value === alertMode}
+              className="mt-1 accent-accent"
+            />
+            <span className="text-sm text-text">
+              {o.label}
+              <span className="block text-xs text-muted">{o.hint}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
 
       {/* TTS */}
       <div className="space-y-3">

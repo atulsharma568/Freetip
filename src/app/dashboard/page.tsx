@@ -8,6 +8,9 @@ import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CreatorQR } from "./CreatorQR";
+import { OverlayTile } from "./OverlayTile";
+import { MessageQueue, type PendingMessage } from "./MessageQueue";
+import type { AlertMode } from "@/lib/alerts";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -19,6 +22,7 @@ type CreatorStatus = "pending" | "active" | "suspended";
 type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
 interface UserRow {
+  id: number;
   handle: string | null;
   creator_status: CreatorStatus;
   onboarding_state: OnboardingState;
@@ -32,6 +36,8 @@ interface UserRow {
   tts_enabled: boolean;
   approve_before_play: boolean;
   bio: string | null;
+  alert_mode: AlertMode;
+  has_overlay_link: boolean;
 }
 
 export default async function DashboardPage() {
@@ -44,9 +50,10 @@ export default async function DashboardPage() {
   let user: UserRow | null = null;
   if (db && googleId) {
     const rows = await db<UserRow[]>`
-      select handle, creator_status, onboarding_state,
+      select id, handle, creator_status, onboarding_state,
              name, picture_url, display_name, legal_name, upi_vpa,
-             min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio
+             min_tip_paise, message_max_chars, tts_enabled, approve_before_play, bio,
+             alert_mode, overlay_token_hash is not null as has_overlay_link
       from users
       where google_id = ${googleId}
     `;
@@ -54,6 +61,22 @@ export default async function DashboardPage() {
   }
 
   const firstName = session.user.name?.split(" ")[0] ?? "Creator";
+
+  // Messages waiting for approval (split and approve modes only).
+  let pending: PendingMessage[] = [];
+  if (db && user?.handle && user.alert_mode !== "instant") {
+    pending = await db<PendingMessage[]>`
+      select id::int as id, fan_name, fan_message, gross_amount_minor
+      from tip_orders
+      where creator_id = ${user.id}
+        and status = 'captured'
+        and message_status = 'pending'
+        and btrim(coalesce(fan_message, '')) <> ''
+        and captured_at > now() - interval '7 days'
+      order by captured_at
+      limit 20
+    `;
+  }
 
   // No DB or no row yet — fallback to early-access screen.
   if (!db || !user) {
@@ -151,6 +174,23 @@ export default async function DashboardPage() {
           </p>
         )}
 
+        {/* OBS alerts */}
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+            Alerts on stream
+          </h2>
+          <OverlayTile hasLink={user.has_overlay_link} />
+        </div>
+
+        {user.alert_mode !== "instant" && (
+          <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+              Messages to approve
+            </h2>
+            <MessageQueue items={pending} />
+          </div>
+        )}
+
         {/* Tip page settings — available regardless of activation status */}
         <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-5">
           <div className="space-y-1">
@@ -167,6 +207,7 @@ export default async function DashboardPage() {
             messageMaxChars={user.message_max_chars}
             ttsEnabled={user.tts_enabled}
             approveBeforePlay={user.approve_before_play}
+            alertMode={user.alert_mode}
             bio={user.bio ?? ""}
           />
         </div>

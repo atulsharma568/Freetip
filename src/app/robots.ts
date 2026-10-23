@@ -19,13 +19,13 @@ export default function robots(): MetadataRoute.Robots {
   if (!INDEXABLE) {
     return {
       rules: [
-        { userAgent: LINK_PREVIEWS, allow: "/", disallow: "/api/" },
+        { userAgent: LINK_PREVIEWS, allow: "/", disallow: ["/api/", "/overlay/"] },
         { userAgent: "*", disallow: "/" },
       ],
     };
   }
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/api/" },
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/overlay/"] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

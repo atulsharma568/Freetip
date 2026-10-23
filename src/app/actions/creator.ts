@@ -1,9 +1,12 @@
 "use server";
 
+import { createHash, randomBytes } from "crypto";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
+import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
+import { SITE_HOST } from "@/lib/site";
 
 // Handles that map to existing app routes or would cause confusion.
 // Next.js static routes already take precedence over /[handle], but we block
@@ -139,7 +142,11 @@ export async function saveSettings(
   const ttsEnabled = form.get("tts_enabled") === "on";
   const approveBeforePlay = form.get("approve_before_play") === "on";
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
+  const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
 
+  if (!ALERT_MODES.includes(alertMode)) {
+    return { status: "error", message: "Choose how alerts should play" };
+  }
   if (!Number.isInteger(minTipRupees) || minTipRupees < 1 || minTipRupees > 1000) {
     return { status: "error", message: "Min tip must be between ₹1 and ₹1,000" };
   }
@@ -161,6 +168,7 @@ export async function saveSettings(
         message_max_chars   = ${maxChars},
         tts_enabled         = ${ttsEnabled},
         approve_before_play = ${approveBeforePlay},
+        alert_mode          = ${alertMode},
         bio                 = ${bio}
       where google_id = ${googleId}
     `;
@@ -169,4 +177,39 @@ export async function saveSettings(
   }
 
   return { status: "ok" };
+}
+
+// ── OBS alerts ──────────────────────────────────────────────────────────────
+
+export type OverlayLinkState =
+  | { status: "error"; message: string }
+  | { status: "ok"; url: string };
+
+// Makes a new secret link and stores only its hash. The link is shown once; a
+// lost or leaked link is replaced by running this again, which kills the old one.
+export async function generateOverlayLink(): Promise<OverlayLinkState> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+
+  const googleId = (session.user as { googleId?: string }).googleId;
+  if (!googleId) redirect("/signin");
+
+  const db = getDb();
+  if (!db) return { status: "error", message: "Database unavailable — try again shortly" };
+
+  const token = randomBytes(32).toString("base64url");
+  const hash = createHash("sha256").update(token).digest("hex");
+
+  try {
+    const rows = await db`
+      update users set overlay_token_hash = ${hash}
+      where google_id = ${googleId} and handle is not null
+      returning id
+    `;
+    if (!rows.length) return { status: "error", message: "Claim your handle first" };
+  } catch {
+    return { status: "error", message: "Could not create the link — try again shortly" };
+  }
+
+  return { status: "ok", url: `https://${SITE_HOST}/overlay/${token}` };
 }
