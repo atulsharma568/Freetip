@@ -1,0 +1,176 @@
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { auth } from "@/auth";
+import { getDb } from "@/lib/db";
+import { PageShell } from "@/components/PageShell";
+import { SITE_NAME } from "@/lib/site";
+import {
+  TIP_RANGES,
+  formatRupees,
+  parseTipsQuery,
+  tipsHref,
+  type TipRange,
+} from "@/lib/earnings";
+import { DashboardNav } from "../DashboardNav";
+import { loadTips } from "../queries";
+
+export const metadata: Metadata = {
+  title: `Tips: ${SITE_NAME}`,
+  robots: { index: false },
+};
+
+const RANGE_LABELS: Record<TipRange, string> = {
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  all: "All time",
+};
+
+const dateFormat = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata",
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+export default async function TipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  const googleId = (session.user as { googleId?: string }).googleId;
+
+  const db = getDb();
+  if (!db || !googleId) redirect("/dashboard");
+  const [user] = await db<{ id: number; handle: string | null }[]>`
+    select id, handle from users where google_id = ${googleId}
+  `;
+  // Nothing to list until the creator has a link.
+  if (!user?.handle) redirect("/dashboard");
+
+  const query = parseTipsQuery(await searchParams);
+  const { tips, hasMore } = await loadTips(user.id, query);
+
+  return (
+    <PageShell>
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-16">
+        <div className="space-y-4">
+          <DashboardNav current="tips" />
+          <h1 className="display text-[clamp(2rem,8vw,3rem)]">Tips</h1>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter tips">
+          {TIP_RANGES.map((r) => (
+            <FilterLink
+              key={r}
+              href={tipsHref({ ...query, range: r, page: 1 })}
+              active={query.range === r}
+            >
+              {RANGE_LABELS[r]}
+            </FilterLink>
+          ))}
+          <FilterLink
+            href={tipsHref({ ...query, messageOnly: !query.messageOnly, page: 1 })}
+            active={query.messageOnly}
+          >
+            With a message
+          </FilterLink>
+        </div>
+
+        {tips.length === 0 ? (
+          <p className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 text-muted">
+            {query.page > 1
+              ? "No more tips here."
+              : query.range === "all" && !query.messageOnly
+                ? "No tips yet. They show up here once a fan has paid."
+                : "No tips match this filter."}
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {tips.map((t) => (
+              <li
+                key={t.id}
+                className="space-y-2 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5"
+              >
+                <p className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 break-words font-medium text-text">{t.name}</span>
+                  <span className="numeric shrink-0 text-lg font-semibold text-accent">
+                    {formatRupees(t.amountPaise)}
+                  </span>
+                </p>
+                <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm text-muted">
+                  <time dateTime={t.capturedAt.toISOString()}>
+                    {dateFormat.format(t.capturedAt)}
+                  </time>
+                  <span className="numeric">
+                    You&apos;d keep about {formatRupees(t.sharePaise)}
+                  </span>
+                </p>
+                {t.message && <p className="break-words text-base text-text">{t.message}</p>}
+                {t.rejected && (
+                  <p className="text-sm text-muted">You rejected this message.</p>
+                )}
+                {t.message && t.messageStatus === "pending" && (
+                  <p className="text-sm text-muted">Message waiting for your approval.</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(query.page > 1 || hasMore) && (
+          <nav aria-label="Pages" className="flex items-center justify-between gap-3">
+            {query.page > 1 ? (
+              <Link
+                href={tipsHref({ ...query, page: query.page - 1 })}
+                className="inline-flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent"
+              >
+                Newer
+              </Link>
+            ) : (
+              <span />
+            )}
+            {hasMore && (
+              <Link
+                href={tipsHref({ ...query, page: query.page + 1 })}
+                className="inline-flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent"
+              >
+                Older
+              </Link>
+            )}
+          </nav>
+        )}
+
+        <p className="text-sm text-muted">
+          Only paid tips are listed. The amount you&apos;d keep is an estimate
+          (our 5% and the payment processing charge taken off).
+        </p>
+      </div>
+    </PageShell>
+  );
+}
+
+function FilterLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "true" : undefined}
+      className={`inline-flex h-11 items-center rounded-full px-4 text-sm transition-colors duration-200 ${
+        active ? "bg-accent font-medium text-ink" : "border border-control text-text hover:border-accent"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}

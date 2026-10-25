@@ -11,6 +11,9 @@ import { SettingsForm } from "./SettingsForm";
 import { CreatorQR } from "./CreatorQR";
 import { OverlayTile } from "./OverlayTile";
 import { TipIsland } from "./TipIsland";
+import { DashboardNav } from "./DashboardNav";
+import { OverviewStrip } from "./OverviewStrip";
+import { loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
@@ -93,6 +96,8 @@ export default async function DashboardPage() {
     latestTipId = latest?.id ?? 0;
   }
 
+  const overview = db && user?.handle ? await loadOverview(user.id) : [];
+
   // No DB or no row yet — fallback to early-access screen.
   if (!db || !user) {
     return (
@@ -115,7 +120,9 @@ export default async function DashboardPage() {
   return (
     <PageShell>
       <TipIsland initialLastId={latestTipId} />
-      <div className="mx-auto w-full max-w-lg space-y-8 px-6 py-16">
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-16">
+        <DashboardNav current="overview" />
+
         {user.picture_url && (
           <Image
             src={user.picture_url}
@@ -135,6 +142,8 @@ export default async function DashboardPage() {
             Your link is claimed. Here&apos;s where things stand.
           </p>
         </div>
+
+        <OverviewStrip rows={overview} />
 
         {/* Tip page link */}
         <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
