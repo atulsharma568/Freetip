@@ -13,7 +13,8 @@ import { OverlayTile } from "./OverlayTile";
 import { TipIsland } from "./TipIsland";
 import { DashboardNav } from "./DashboardNav";
 import { OverviewStrip } from "./OverviewStrip";
-import { loadOverview } from "./queries";
+import { DailyChart } from "./DailyChart";
+import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
@@ -96,7 +97,10 @@ export default async function DashboardPage() {
     latestTipId = latest?.id ?? 0;
   }
 
-  const overview = db && user?.handle ? await loadOverview(user.id) : [];
+  const [overview, daily] =
+    db && user?.handle
+      ? await Promise.all([loadOverview(user.id), loadDailyTips(user.id, 30)])
+      : [[], []];
 
   // No DB or no row yet — fallback to early-access screen.
   if (!db || !user) {
@@ -144,6 +148,7 @@ export default async function DashboardPage() {
         </div>
 
         <OverviewStrip rows={overview} />
+        {daily.length > 0 && <DailyChart days={daily} />}
 
         {/* Tip page link */}
         <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">

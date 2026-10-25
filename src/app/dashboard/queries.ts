@@ -58,6 +58,40 @@ export async function loadOverview(creatorId: number): Promise<OverviewRow[]> {
   }));
 }
 
+export interface DayRow {
+  day: string; // YYYY-MM-DD, an India calendar day
+  count: number;
+  grossPaise: number;
+}
+
+// Captured tips per India calendar day for the last `days` days including
+// today, with empty days as zero so the chart has no gaps.
+export async function loadDailyTips(creatorId: number, days: number): Promise<DayRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db<{ day: string; count: number; gross: string }[]>`
+    with d as (
+      select generate_series(
+        (now() at time zone 'Asia/Kolkata')::date - ${days - 1}::int,
+        (now() at time zone 'Asia/Kolkata')::date,
+        interval '1 day'
+      )::date as day
+    )
+    select to_char(d.day, 'YYYY-MM-DD') as day,
+           count(t.id)::int as count,
+           coalesce(sum(t.gross_amount_minor), 0)::text as gross
+    from d
+    left join tip_orders t
+      on t.creator_id = ${creatorId}
+     and t.status = 'captured'
+     and t.captured_at is not null
+     and (t.captured_at at time zone 'Asia/Kolkata')::date = d.day
+    group by d.day
+    order by d.day
+  `;
+  return rows.map((r) => ({ day: r.day, count: r.count, grossPaise: Number(r.gross) }));
+}
+
 export interface TipRow {
   id: number;
   capturedAt: Date;

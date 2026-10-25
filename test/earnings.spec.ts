@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import {
   TIPS_PAGE_SIZE,
   csvCell,
+  dailyBars,
+  shortDay,
   formatIst,
   tipsCsv,
   estimateShare,
@@ -117,5 +119,39 @@ test.describe("tips CSV", () => {
     );
     expect(lines[1]).toBe('2026-10-25 23:59,Asha,100.00,92.64,"\'=cmd, hi",approved');
     expect(lines[2]).toBe("2026-10-25 15:30,Anonymous,1.00,0.93,,rejected");
+  });
+});
+
+test.describe("daily chart", () => {
+  const days = [
+    { day: "2026-10-23", grossPaise: 0 },
+    { day: "2026-10-24", grossPaise: 100 },
+    { day: "2026-10-25", grossPaise: 10000 },
+  ];
+
+  test("scales to the busiest day, with a visible minimum and no bar for zero", () => {
+    const [zero, small, big] = dailyBars(days, 300, 100);
+    expect(zero.height).toBe(0);
+    expect(big.height).toBe(100);
+    expect(big.y).toBe(0);
+    expect(small.height).toBe(3);
+    expect(small.y + small.height).toBe(100);
+  });
+
+  test("an all-zero or empty range draws nothing and does not break", () => {
+    expect(dailyBars(days.map((d) => ({ ...d, grossPaise: 0 })), 300, 100).every((b) => b.height === 0)).toBe(true);
+    expect(dailyBars([], 300, 100)).toEqual([]);
+  });
+
+  test("bars stay inside their slot", () => {
+    for (const b of dailyBars(days, 300, 100)) {
+      expect(b.x).toBeGreaterThanOrEqual(b.slotX);
+      expect(b.x + b.width).toBeLessThanOrEqual(b.slotX + b.slotWidth);
+    }
+  });
+
+  test("short day labels do not depend on the time zone", () => {
+    expect(shortDay("2026-10-25")).toBe("25 Oct");
+    expect(shortDay("2026-01-05")).toBe("5 Jan");
   });
 });

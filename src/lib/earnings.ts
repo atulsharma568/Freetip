@@ -120,3 +120,50 @@ export function tipsCsv(tips: CsvTip[]): string {
   );
   return "\uFEFF" + [header.join(","), ...lines].join("\r\n") + "\r\n";
 }
+
+// Daily bar chart geometry. Bars are scaled to the busiest day; a day with any
+// tips gets at least `minBar` so a small tip is still visible, a zero day gets
+// none.
+export interface DayBar {
+  day: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  slotX: number;
+  slotWidth: number;
+}
+
+export function dailyBars(
+  days: { day: string; grossPaise: number }[],
+  width: number,
+  height: number,
+  minBar = 3,
+): DayBar[] {
+  const slot = width / Math.max(days.length, 1);
+  const barWidth = Math.max(slot - 4, 2);
+  const max = Math.max(...days.map((d) => d.grossPaise), 0);
+  return days.map((d, i) => {
+    const h =
+      d.grossPaise <= 0 || max <= 0
+        ? 0
+        : Math.max(minBar, Math.round((d.grossPaise / max) * height));
+    return {
+      day: d.day,
+      x: i * slot + (slot - barWidth) / 2,
+      y: height - h,
+      width: barWidth,
+      height: h,
+      slotX: i * slot,
+      slotWidth: slot,
+    };
+  });
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// "2026-10-25" -> "25 Oct", without going through a Date and its time zone.
+export function shortDay(day: string): string {
+  const [, m, d] = day.split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]}`;
+}
