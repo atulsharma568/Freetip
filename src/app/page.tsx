@@ -10,6 +10,7 @@ import { Faq } from "@/components/sections/Faq";
 import { Closer } from "@/components/sections/Closer";
 import { SplashScreen } from "@/components/SplashScreen";
 import { GlobalBackground } from "@/components/GlobalBackground";
+import { OrganizationSchema } from "@/components/OrganizationSchema";
 import { ScrollEffects } from "@/components/motion/ScrollEffects";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -17,6 +18,7 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 export default function Home() {
   return (
     <>
+      <OrganizationSchema />
       <SplashScreen />
       <GlobalBackground />
       <a

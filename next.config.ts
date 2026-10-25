@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { hostRedirects } from "./src/lib/redirects";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -11,6 +12,10 @@ const nextConfig: NextConfig = {
   images: {
     // Creator avatars are Google account photos.
     remotePatterns: [{ protocol: "https", hostname: "*.googleusercontent.com" }],
+  },
+  // Old and alternate addresses go to the main domain (empty until it is set).
+  async redirects() {
+    return hostRedirects(process.env.NEXT_PUBLIC_SITE_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL);
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
