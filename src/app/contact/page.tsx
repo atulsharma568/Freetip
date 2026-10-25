@@ -42,7 +42,7 @@ const SECTIONS: LegalSection[] = [
           </tr>
           <tr>
             <th scope="row">Reply time</th>
-            <td>Within 1 working day</td>
+            <td>As soon as we can</td>
           </tr>
         </tbody>
       </table>

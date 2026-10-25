@@ -78,8 +78,9 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Write to <MailFill k="supportEmail" /> within 7 days of the payment
-          (for an unauthorised payment, as soon as you notice it). Include:
+          Write to <MailFill k="supportEmail" /> as soon as you notice the
+          problem (for an unauthorised payment, also tell your bank straight
+          away). Include:
         </p>
         <ul>
           <li>the payment ID from your confirmation screen, or the UPI reference (UTR);</li>
@@ -98,32 +99,12 @@ const SECTIONS: LegalSection[] = [
     id: "timeline",
     title: "What happens next",
     body: (
-      <table>
-        <thead>
-          <tr>
-            <th>Step</th>
-            <th>When</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>We acknowledge your request and give you a ticket number</td>
-            <td>Within 24 hours</td>
-          </tr>
-          <tr>
-            <td>We check it with our payment partner and tell you our decision</td>
-            <td>Within 5 working days</td>
-          </tr>
-          <tr>
-            <td>If approved, we start the refund</td>
-            <td>Within 2 working days of the decision</td>
-          </tr>
-          <tr>
-            <td>The money reaches your account</td>
-            <td>Usually 5 to 7 working days after that, depending on your bank</td>
-          </tr>
-        </tbody>
-      </table>
+      <p>
+        We acknowledge your request, check it with our payment partner and tell
+        you our decision. If we confirm an error, the money goes back the way
+        you paid. How soon it shows in your account depends on your bank, your
+        UPI app and our payment partner.
+      </p>
     ),
   },
   {
@@ -133,9 +114,9 @@ const SECTIONS: LegalSection[] = [
       <p>
         If money left your account but the payment failed or is stuck as
         pending, you usually don’t need to do anything: your bank or our payment
-        partner reverses it automatically, normally within 5 to 7 working days (often
-        sooner for UPI). If it hasn’t come back after 7 working days, write to
-        us with the details above and we will chase it.
+        partner reverses it automatically, normally within a few working days (often
+        sooner for UPI). If it hasn’t come back after that, write to us with
+        the details above and we will chase it.
       </p>
     ),
   },
@@ -219,8 +200,8 @@ export default function RefundsPage() {
         <p>
           The short version: tips are final once paid, but if you were charged
           twice, charged the wrong amount, or your tip didn’t go through, we
-          refund it in full to the way you paid. Tell us within 7 days and
-          you’ll have an answer within 5 working days.
+          put it right and return the money the way you paid. Tell us as soon
+          as you notice.
         </p>
       }
       sections={SECTIONS}

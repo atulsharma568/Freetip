@@ -72,9 +72,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          You must be at least 18 years old and able to enter a binding
-          contract under Indian law to use {SITE_NAME}, as a creator or as a
-          fan.
+          You must be able to enter a binding contract under Indian law to use
+          {SITE_NAME}, as a creator or as a fan.
         </p>
         <p>
           To receive tips, a creator must also have a bank account in India in

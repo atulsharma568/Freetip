@@ -287,9 +287,8 @@ const SECTIONS: LegalSection[] = [
     title: "Children",
     body: (
       <p>
-        {SITE_NAME} is only for people aged 18 and over. We don’t knowingly
-        collect data from children. If you think a child has given us personal
-        data, contact us and we will delete it.
+        We don’t knowingly collect data from children. If you think a child has
+        given us personal data, contact us and we will delete it.
       </p>
     ),
   },

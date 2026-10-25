@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-25, updated after the checklist and timelines)
+
+- Owner decisions applied (2026-10-25): the 18+ rule is dropped (terms keep only "able to enter a binding contract under Indian law"; the privacy policy keeps "we don't knowingly collect data from children"). Refund and support timelines now follow the competitors, who publish no day counts: the refunds page no longer has the 7-day window or the 24 h / 5 day / 2 day / 5 to 7 day table (it says "as soon as you notice" and that arrival depends on the bank, UPI app and payment partner), and the contact page's reply time reads "As soon as we can". Complaint (grievance) timelines (24 hours to acknowledge, 15 days to resolve, content removal 24 to 72 hours, privacy requests 30 days) were kept: Indian rules require them and the Grievance Officer page is something payment partners check. Worth a lawyer's view: without an age rule, creators who are under 18 raise questions under the DPDP Act (children's data) and the Contract Act (a minor can't be bound).
+- Owner's 20-item pre-launch checklist added to `docs/next-steps.md` (table with status) and saved to memory. Open on 2026-10-25: canonical tags, 301 redirects (need the domain), organization schema, breadcrumbs, Google Analytics, Search Console, a working contact form, and audits of titles, descriptions, H1s, alt text, lazy loading and internal links. Operator details are still to come from the owner.
+- Verified: tsc clean, lint 0 errors, build clean, desktop Chrome suite passes.
+
 ## Current state (2026-10-25, updated after tests and policy wording)
 
 Tests, accessibility and policy wording (2026-10-25):
