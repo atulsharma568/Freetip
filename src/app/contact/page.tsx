@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ContactForm } from "@/components/contact/ContactForm";
 import { Fill, MailFill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
 import { LEGAL_ROBOTS, OPERATOR } from "@/lib/legal";
@@ -14,6 +15,11 @@ export const metadata: Metadata = {
 };
 
 const SECTIONS: LegalSection[] = [
+  {
+    id: "message",
+    title: "Send us a message",
+    body: <ContactForm />,
+  },
   {
     id: "support",
     title: "Help and questions",
@@ -195,8 +201,8 @@ export default function ContactPage() {
       path="/contact"
       intro={
         <p>
-          Email is the fastest way to reach us. For a payment problem, include
-          the payment ID so we can find it quickly.
+          Send a message with the form below, or email us. For a payment
+          problem, include the payment ID so we can find it quickly.
         </p>
       }
       sections={SECTIONS}

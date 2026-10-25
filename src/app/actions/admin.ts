@@ -57,3 +57,17 @@ export async function rejectCreatorOnboarding(creatorId: number): Promise<void> 
 
   revalidatePath("/admin/creators");
 }
+
+export async function setMessageHandled(messageId: number, handled: boolean): Promise<void> {
+  await requireOwner();
+
+  if (!Number.isSafeInteger(messageId) || messageId < 1) return;
+
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  await db`
+    update contact_messages set status = ${handled ? "handled" : "new"} where id = ${messageId}
+  `;
+  revalidatePath("/admin/messages");
+}

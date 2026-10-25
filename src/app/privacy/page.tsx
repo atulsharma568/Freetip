@@ -75,14 +75,17 @@ const SECTIONS: LegalSection[] = [
         <h3>From everyone</h3>
         <ul>
           <li>
-            messages you send us, for example support requests or complaints;
+            messages you send us, for example support requests or complaints.
+            From the contact form we keep your name, your email, what the
+            message is about, the payment reference if you add one, and the
+            message itself, only to read it and reply;
           </li>
           <li>
             basic technical data such as your IP address, browser and device,
             used to keep the service secure and stop spam and fraud. To limit
-            how often one network can join the waitlist, we keep only a
-            scrambled (hashed) form of your IP address, never the address
-            itself. It is needed for one hour and deleted automatically within
+            how often one network can join the waitlist or send a contact
+            message, we keep only a scrambled (hashed) form of your IP
+            address, never the address itself. It is needed for one hour and deleted automatically within
             48 hours at the latest.
           </li>
         </ul>

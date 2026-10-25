@@ -15,6 +15,7 @@ const navigation = [
   { href: "/admin/finance/payments", label: "Payment ledger" },
   { href: "/admin/finance/settlements", label: "Settlements" },
   { href: "/admin/reconciliation", label: "Reconciliation" },
+  { href: "/admin/messages", label: "Messages" },
   { href: "/admin/audit", label: "Audit history" },
 ];
 
