@@ -19,7 +19,7 @@ test.describe("search and sharing metadata", () => {
     }
   });
 
-  test("sitemap.xml lists the public landing and signup routes", async ({ request }) => {
+  test("sitemap.xml lists the home page and leaves out noindex pages", async ({ request }) => {
     const response = await request.get("/sitemap.xml");
     const body = await response.text();
 
@@ -30,7 +30,9 @@ test.describe("search and sharing metadata", () => {
       (match) => new URL(match[1]).pathname,
     );
     expect(locations).toContain("/");
-    expect(locations).toContain("/signup");
+    // /signup and /signin are noindex, so they stay out of the sitemap.
+    expect(locations).not.toContain("/signup");
+    expect(locations).not.toContain("/signin");
   });
 
   test("home exposes its title, description, social cards and theme metadata", async ({ page }) => {
