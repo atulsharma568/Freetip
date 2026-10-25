@@ -1,62 +1,56 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// The waitlist form is the closing section of the home page. /signup is the
+// Google sign-up page and no longer holds a form; the channel field was
+// dropped from the form, and its rules stay covered in waitlist-rules.spec.ts.
 test.describe("waitlist validation", () => {
-  async function openForm(page: Page, path: string) {
-    await page.goto(path, { waitUntil: "networkidle" });
+  async function openHome(page: Page) {
+    await page.goto("/", { waitUntil: "networkidle" });
   }
 
-  test("signup rejects an invalid email before saving", async ({ page }) => {
-    await openForm(page, "/signup");
+  const join = (page: Page) =>
+    page.locator("#claim").getByRole("button", { name: "Join the waitlist" });
 
-    const email = page.locator("#signup-email");
+  test("home waitlist rejects an invalid email", async ({ page }) => {
+    await openHome(page);
+
+    const email = page.locator("#waitlist-email");
     await email.fill("nope");
-    await page.getByRole("button", { name: "Join the waitlist" }).click();
+    await join(page).click();
 
-    await expect(page.locator("#signup-status")).toHaveText("Enter a valid email address.");
+    await expect(page.locator("#waitlist-status")).toHaveText("Enter a valid email address.");
     await expect(email).toBeFocused();
   });
 
-  test("signup rejects a non-YouTube channel link and focuses the channel field", async ({ page }) => {
-    await openForm(page, "/signup");
+  test("home waitlist handle filters characters while typing", async ({ page }) => {
+    await openHome(page);
 
-    await page.locator("#signup-email").fill("qa@example.com");
-    const channel = page.locator("#signup-channel");
-    await channel.fill("twitter.com/x");
-    await page.getByRole("button", { name: "Join the waitlist" }).click();
-
-    await expect(page.locator("#signup-status")).toHaveText(
-      "Use your YouTube channel link, like youtube.com/@yourchannel.",
-    );
-    await expect(channel).toBeFocused();
-  });
-
-  test("signup handle filters characters while typing", async ({ page }) => {
-    await openForm(page, "/signup");
-
-    const handle = page.locator("#signup-handle");
+    const handle = page.locator("#handle");
     await handle.fill("Bad Name!");
     await expect(handle).toHaveValue("badname");
   });
 
-  test("signup reports an unavailable waitlist without a database", async ({ page }) => {
-    await openForm(page, "/signup");
+  test("home waitlist reports an unavailable waitlist without a database", async ({ page }) => {
+    await openHome(page);
 
-    await page.locator("#signup-email").fill("qa@example.com");
-    await page.getByRole("button", { name: "Join the waitlist" }).click();
+    await page.locator("#waitlist-email").fill("qa@example.com");
+    await join(page).click();
 
-    await expect(page.locator("#signup-status")).toHaveText(
+    await expect(page.locator("#waitlist-status")).toHaveText(
       "The waitlist isn't working right now. Please try again later.",
     );
   });
 
-  test("home waitlist rejects an invalid email", async ({ page }) => {
-    await openForm(page, "/");
+  test("signup offers Google sign-up and links to the terms and privacy policy", async ({ page }) => {
+    await page.goto("/signup", { waitUntil: "domcontentloaded" });
 
-    const email = page.locator("#waitlist-email");
-    await email.fill("nope");
-    await page.locator("#claim").getByRole("button", { name: "Join the waitlist" }).click();
-
-    await expect(page.locator("#waitlist-status")).toHaveText("Enter a valid email address.");
-    await expect(email).toBeFocused();
+    await expect(page.getByRole("heading", { level: 1, name: "Get early access" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    const consent = page.getByText("By continuing, you agree to our");
+    await expect(consent.getByRole("link", { name: "terms" })).toHaveAttribute("href", "/terms");
+    await expect(consent.getByRole("link", { name: "privacy policy" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
   });
 });

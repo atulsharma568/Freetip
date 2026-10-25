@@ -23,7 +23,11 @@ const ITEMS = [
   },
   {
     q: "How do I get paid?",
-    a: "Payouts go to your bank account in INR. Payout timing will be published at launch.",
+    a: "Payouts go to the bank account or UPI ID you register, in INR, on a regular schedule. Each payout shows in your dashboard. A payout can be delayed by bank holidays, verification checks, or a hold while we look into fraud or a chargeback.",
+  },
+  {
+    q: "Can a tip be refunded?",
+    a: "No. Tips are final once paid. We only put right payment errors, such as being charged twice or money taken for a payment that failed.",
   },
   {
     q: "How do tips show up on my stream?",

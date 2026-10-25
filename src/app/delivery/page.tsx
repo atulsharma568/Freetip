@@ -55,13 +55,15 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          Payouts are sent through our payment partner to the creator’s verified bank
-          account in India, in Indian rupees, after our fee and the payment
-          charge.
+          Payouts are sent through our payment partner to the bank account or
+          UPI ID the creator registers and we verify, in Indian rupees, after
+          our fee and the payment charge.
         </li>
         <li>
-          We will publish the payout schedule before launch and show the
-          status of every payout in the creator’s dashboard.
+          Payouts are made on a regular schedule, not the moment a tip lands.
+          We show the status of every payout in the creator’s dashboard and
+          don’t promise a particular day. We will tell creators before the
+          schedule changes.
         </li>
         <li>
           Payouts can be delayed by bank holidays, incomplete KYC, or a hold
@@ -90,7 +92,8 @@ export default function DeliveryPage() {
       intro={
         <p>
           {SITE_NAME} is fully digital. Tips are delivered instantly when the
-          payment succeeds, and payouts go to the creator’s bank account.
+          payment succeeds, and payouts go to the creator’s registered bank
+          account or UPI ID.
         </p>
       }
       sections={SECTIONS}

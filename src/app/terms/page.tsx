@@ -166,10 +166,11 @@ const SECTIONS: LegalSection[] = [
             <strong>Fans</strong> pay no fees to us.
           </li>
           <li>
-            <strong>Payouts</strong> go to the creator’s verified bank account,
-            in Indian rupees, through our payment partner. We will publish the payout
-            schedule before launch and show each payout in the creator’s
-            dashboard.
+            <strong>Payouts</strong> go to the bank account or UPI ID the creator
+            registers and we verify, in Indian rupees, through our payment
+            partner, on a regular schedule. We show each payout in the
+            creator’s dashboard and do not promise a particular day. If we
+            change the schedule we will tell creators beforehand.
           </li>
           <li>
             <strong>Holds:</strong> we may hold or delay a payout while we look
@@ -275,7 +276,8 @@ const SECTIONS: LegalSection[] = [
     title: "Refunds and chargebacks",
     body: (
       <p>
-        Tips are final once paid, except in the cases set out in our{" "}
+        Tips are final once paid and are not refundable. The only exceptions
+        are the payment errors set out in our{" "}
         <Link href="/refunds">refund and cancellation policy</Link>, such as a
         duplicate charge or a payment that went through but failed to reach
         the creator. Please contact us before raising a chargeback with your

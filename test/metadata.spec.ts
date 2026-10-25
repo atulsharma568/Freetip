@@ -63,10 +63,10 @@ test.describe("search and sharing metadata", () => {
 
   test("signup exposes its route metadata", async ({ page }) => {
     await page.goto("/signup", { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveTitle("Sign up: Tipsite");
+    await expect(page).toHaveTitle("Get early access: Tipsite");
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      "Join the Tipsite waitlist and hear when sign-up opens.",
+      /Sign up for early access to Tipsite/,
     );
   });
 

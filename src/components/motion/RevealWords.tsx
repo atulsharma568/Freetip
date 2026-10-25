@@ -10,8 +10,8 @@ gsap.registerPlugin(SplitText, ScrollTrigger);
 // scrolls into view: each word rises a little and fades from dim to full.
 // The words are in the page from the start (search engines, screen readers
 // and no-JavaScript visitors get them at once); reduced motion skips the
-// effect. SplitText keeps aria-label on the paragraph so a reader is given
-// the sentence, not one word at a time.
+// effect. SplitText's own aria-label is off (`aria: "none"`): ARIA does not
+// allow a label on a plain paragraph, and the words stay readable in place.
 export function RevealWords({
   children,
   className,
@@ -29,7 +29,7 @@ export function RevealWords({
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const split = SplitText.create(el, {
           type: "words",
-          aria: "auto",
+          aria: "none",
           onSplit: (self) =>
             gsap.from(self.words, {
               opacity: 0.12,

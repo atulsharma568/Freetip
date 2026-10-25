@@ -21,8 +21,11 @@ test.describe("keyboard and stream controls", () => {
       );
       await page.goto(route, { waitUntil: "domcontentloaded" });
 
-      await page.keyboard.press("Tab");
+      // Dynamic routes (the 404 for /kabirplays) stream their content in after
+      // the document loads, so wait for the link before the first Tab.
       const skipLink = page.getByRole("link", { name: "Skip to content" });
+      await skipLink.waitFor({ state: "attached" });
+      await page.keyboard.press("Tab");
 
       await expect(skipLink).toBeFocused();
       await expect(skipLink).toHaveAttribute("href", "#main");

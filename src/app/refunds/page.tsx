@@ -7,7 +7,7 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Refunds and cancellations: ${SITE_NAME}`,
-  description: `When a ${SITE_NAME} tip can be refunded, how to ask, and how long it takes.`,
+  description: `${SITE_NAME} tips are final. The few payment errors we do put right, how to report one, and how long it takes.`,
   robots: LEGAL_ROBOTS,
 };
 
@@ -16,22 +16,37 @@ const SECTIONS: LegalSection[] = [
     id: "final",
     title: "Tips are final",
     body: (
-      <p>
-        A tip is a voluntary gift. Once the payment succeeds it goes to the
-        creator straight away and may already have played live on their
-        stream, which can’t be undone. So a tip can’t be cancelled or refunded
-        because you changed your mind, picked the wrong amount, or didn’t like
-        how the creator reacted. Before you pay, the page always shows the
-        exact amount and the creator you are tipping.
-      </p>
+      <>
+        <p>
+          <strong>We don’t offer refunds on tips.</strong> A tip is a
+          voluntary gift. Once the payment succeeds it goes to the creator
+          straight away and may already have played live on their stream, which
+          can’t be undone. Before you pay, the page always shows the exact
+          amount and the creator you are tipping.
+        </p>
+        <p>A successful tip can’t be cancelled or refunded because:</p>
+        <ul>
+          <li>you changed your mind, or picked the wrong amount or creator;</li>
+          <li>
+            your message was blocked, held, rejected or not read aloud, or the
+            creator chose not to approve it;
+          </li>
+          <li>the creator was offline, or the stream ended before the alert played;</li>
+          <li>you didn’t like how the creator reacted, or the creator is banned or has left.</li>
+        </ul>
+      </>
     ),
   },
   {
     id: "when",
-    title: "When we refund",
+    title: "Payment errors we put right",
     body: (
       <>
-        <p>We refund the full amount when:</p>
+        <p>
+          The only exception is a payment error: money taken that should not
+          have been, or a tip that never worked. This isn’t a refund of a tip
+          you chose to send. We return the full amount when we confirm that:
+        </p>
         <ul>
           <li>you were charged more than once for the same tip;</li>
           <li>
@@ -49,15 +64,17 @@ const SECTIONS: LegalSection[] = [
           </li>
         </ul>
         <p>
-          A refund always goes back to the card, UPI account or other method you
-          paid with. We don’t refund in cash or to a different account.
+          The money always goes back to the card, UPI account or other method you
+          paid with. We don’t pay it in cash or to a different account. Whether
+          and how fast it arrives also depends on your bank, your UPI app and our
+          payment partner.
         </p>
       </>
     ),
   },
   {
     id: "how",
-    title: "How to ask for a refund",
+    title: "How to report a payment error",
     body: (
       <>
         <p>
