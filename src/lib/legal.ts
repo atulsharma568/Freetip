@@ -56,6 +56,24 @@ export const FEES = {
   example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.36", keep: "₹92.64" },
 };
 
+const money = (paise: number) =>
+  `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// The same worked example for any whole-rupee tip, worked in paise so nothing
+// drifts: our 5% and the payment processing charge, each rounded to the paise,
+// come out of the payout. `feeBreakdown(100)` matches `FEES.example`.
+export function feeBreakdown(rupees: number) {
+  const tip = Math.round(rupees * 100);
+  const platform = Math.round((tip * FEES.platformPercent) / 100);
+  const gateway = Math.round((tip * FEES.gatewayPercent) / 100);
+  return {
+    tip: money(tip),
+    platform: `−${money(platform)}`,
+    gateway: `−${money(gateway)}`,
+    keep: money(tip - platform - gateway),
+  };
+}
+
 // Services that process personal data for us. "planned" ones are not used yet.
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },

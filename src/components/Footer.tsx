@@ -42,7 +42,9 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
     },
     ...GROUPS,
   ];
-  const link = "link-line transition-colors duration-200 hover:text-text";
+  // Product links (section anchors) fill with lime; the rest draw a line.
+  const linkClass = (title: string) =>
+    `${title === "Product" ? "link-fill" : "link-line"} transition-colors duration-200 hover:text-text`;
 
   return (
     <footer className="border-t border-line/60">
@@ -62,11 +64,11 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
               {group.links.map((item) => (
                 <li key={item.href}>
                   {item.href.startsWith("/") && !item.href.startsWith("/#") ? (
-                    <Link href={item.href} className={link}>
+                    <Link href={item.href} className={linkClass(group.title)}>
                       {item.label}
                     </Link>
                   ) : (
-                    <a href={item.href} className={link}>
+                    <a href={item.href} className={linkClass(group.title)}>
                       {item.label}
                     </a>
                   )}

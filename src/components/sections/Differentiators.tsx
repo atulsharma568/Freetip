@@ -1,4 +1,5 @@
 import { RevealHeading } from "@/components/motion/RevealHeading";
+import { RevealWords } from "@/components/motion/RevealWords";
 import { SafetySteps } from "./SafetySteps";
 
 const QR_MODULES = [
@@ -54,10 +55,10 @@ export function Differentiators() {
             Less friction for fans. More control for you.
           </RevealHeading>
         </div>
-        <p className="max-w-[38ch] text-pretty text-lg text-muted md:col-span-5">
+        <RevealWords className="max-w-[38ch] text-pretty text-lg text-muted md:col-span-5">
           One tip link built around the way a live stream actually works: quick
           for viewers, visible on screen and careful with what gets spoken.
-        </p>
+        </RevealWords>
       </div>
 
       <div className="mt-16 grid gap-4 md:mt-24 md:grid-cols-12 md:grid-rows-[auto_auto]">

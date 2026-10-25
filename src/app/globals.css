@@ -317,15 +317,29 @@ body:not(.page-scrolled) .enter {
   color: var(--color-text);
 }
 
+/* Prose links rest on a grey line; the lime one grows from the centre over it. */
 .legal a {
   color: var(--color-text);
-  text-decoration: underline;
-  text-decoration-color: var(--color-line);
-  transition: text-decoration-color 200ms;
+  text-decoration: none;
+  background-image:
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-line), var(--color-line));
+  background-repeat: no-repeat;
+  background-position: 50% 100%, 0 100%;
+  background-size: 0% 1px, 100% 1px;
+  padding-bottom: 2px;
+  transition: background-size 350ms var(--ease-out-expo);
 }
 
-.legal a:hover {
-  text-decoration-color: var(--color-accent);
+.legal a:hover,
+.legal a:focus-visible {
+  background-size: 100% 1px, 100% 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legal a {
+    transition: none;
+  }
 }
 
 .legal table {
@@ -972,5 +986,116 @@ body:not(.page-scrolled) .enter {
 @media (prefers-reduced-motion: reduce) {
   .link-line {
     transition: color 200ms;
+  }
+}
+
+/* Centre-out link (.link-center): the lime line grows from the middle of the
+   text outwards. Used for links inside running prose. */
+.link-center {
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-position: 50% 100%;
+  background-size: 0% 1px;
+  padding-bottom: 2px;
+  transition:
+    background-size 350ms var(--ease-out-expo),
+    color 200ms;
+}
+.link-center:hover,
+.link-center:focus-visible {
+  background-size: 100% 1px;
+}
+
+/* Fill link (.link-fill): a lime block rises behind the text and the text
+   turns dark. A short line of padding keeps the block clear of its
+   neighbours. */
+.link-fill {
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 0%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  margin-inline: -0.25em;
+  padding-inline: 0.25em;
+  border-radius: 0.2em;
+  transition:
+    background-size 300ms var(--ease-out-expo),
+    color 200ms;
+}
+.link-fill:hover,
+.link-fill:focus-visible {
+  background-size: 100% 100%;
+  color: var(--color-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-center,
+  .link-fill {
+    transition: color 200ms;
+  }
+}
+
+/* Phone menu (Nav): the page behind is locked while it is open. The panel
+   opens with a clip from the top; its links rise in from GSAP in Nav.tsx. */
+html.menu-open,
+html.menu-open body {
+  overflow: hidden;
+}
+.mobile-menu {
+  clip-path: inset(0 0 100% 0);
+  visibility: hidden;
+  transition:
+    clip-path 500ms var(--ease-out-expo),
+    visibility 0s linear 500ms;
+}
+.mobile-menu[data-open="true"] {
+  clip-path: inset(0 0 0 0);
+  visibility: visible;
+  transition:
+    clip-path 500ms var(--ease-out-expo),
+    visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu {
+    clip-path: none;
+    opacity: 0;
+    transition: opacity 150ms, visibility 0s linear 150ms;
+  }
+  .mobile-menu[data-open="true"] {
+    opacity: 1;
+    transition: opacity 150ms, visibility 0s;
+  }
+}
+
+/* Menu button: two bars that cross into an X. */
+.menu-toggle-bars,
+.menu-toggle-bars::before {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 300ms var(--ease-out-expo);
+}
+.menu-toggle-bars {
+  position: relative;
+  transform: translateY(-3px);
+}
+.menu-toggle-bars::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 0;
+}
+.menu-toggle[data-open="true"] .menu-toggle-bars {
+  transform: rotate(45deg);
+}
+.menu-toggle[data-open="true"] .menu-toggle-bars::before {
+  transform: translateY(-6px) rotate(-90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-toggle-bars,
+  .menu-toggle-bars::before {
+    transition: none;
   }
 }

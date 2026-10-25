@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PencilSimple, User, SignOut, SquaresFour } from "@phosphor-icons/react";
 import { useSession, signOut } from "next-auth/react";
@@ -32,6 +32,56 @@ export function Nav() {
   const [pill, setPill] = useState({ x: 0, width: 0 });
   const dock = useRef<((x: number | null) => void) | null>(null);
   const { data: session } = useSession();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setMenuOpen(false);
+    if (restoreFocus) toggle.current?.focus();
+  }, []);
+
+  // The phone menu: lock the page behind it, close on Escape or when the
+  // screen grows to the desktop nav, keep Tab inside the header, and rise the
+  // links in one after another (a plain fade under reduced motion).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const root = document.documentElement;
+    root.classList.add("menu-open");
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") return closeMenu(true);
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        ref.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? [],
+      ).filter((el) => el.offsetParent !== null);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => desktop.matches && closeMenu();
+    document.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onResize);
+    const items = menu.current?.querySelectorAll<HTMLElement>("[data-menu-item]");
+    if (items?.length && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.fromTo(
+        items,
+        { y: 28, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.7, ease: "expo.out", stagger: 0.06, delay: 0.12, clearProps: "transform,opacity" },
+      );
+    }
+    menu.current?.querySelector<HTMLElement>("a[href]")?.focus({ preventScroll: true });
+    return () => {
+      root.classList.remove("menu-open");
+      document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onResize);
+    };
+  }, [menuOpen, closeMenu]);
 
   useGSAP(
     () => {
@@ -77,7 +127,7 @@ export function Nav() {
 
   return (
     <header ref={ref} className="group fixed inset-x-0 top-0 z-40">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between border border-transparent px-6 transition-[max-width,margin,height,padding,background-color,border-color,border-radius] duration-500 ease-out-expo group-[.is-scrolled]:mt-3 group-[.is-scrolled]:h-14 group-[.is-scrolled]:max-w-[min(80rem,calc(100%-3rem))] group-[.is-scrolled]:rounded-[28px] group-[.is-scrolled]:border-text/10 group-[.is-scrolled]:bg-surface/60 group-[.is-scrolled]:pr-[6px] group-[.is-scrolled]:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_18px_40px_-20px_rgb(0_0_0/0.8)] group-[.is-scrolled]:backdrop-blur-xl group-[.is-scrolled]:backdrop-saturate-150">
+      <div className="relative z-10 mx-auto flex h-16 max-w-7xl items-center justify-between border border-transparent px-6 transition-[max-width,margin,height,padding,background-color,border-color,border-radius] duration-500 ease-out-expo group-[.is-scrolled]:mt-3 group-[.is-scrolled]:h-14 group-[.is-scrolled]:max-w-[min(80rem,calc(100%-3rem))] group-[.is-scrolled]:rounded-[28px] group-[.is-scrolled]:border-text/10 group-[.is-scrolled]:bg-surface/60 group-[.is-scrolled]:pr-[6px] group-[.is-scrolled]:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_18px_40px_-20px_rgb(0_0_0/0.8)] group-[.is-scrolled]:backdrop-blur-xl group-[.is-scrolled]:backdrop-saturate-150">
         <Link href="/" className="display text-2xl">
           {SITE_NAME}
         </Link>
@@ -120,6 +170,7 @@ export function Nav() {
           </ul>
         </nav>
         <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 sm:flex">
           {session ? (
             <>
               <GlassOrbButton
@@ -137,6 +188,67 @@ export function Nav() {
               <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
                   Sign in
                 </GlassOrbButton>
+              <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
+                Sign up
+              </ChromeButton>
+            </>
+          )}
+          </div>
+          <button
+            ref={toggle}
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+            className="menu-toggle grid size-11 shrink-0 place-items-center rounded-full border border-text/15 bg-surface/60 text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.95] lg:hidden"
+            data-open={menuOpen}
+          >
+            <span aria-hidden="true" className="menu-toggle-bars" />
+          </button>
+        </div>
+      </div>
+      <div
+        ref={menu}
+        id="mobile-menu"
+        data-lenis-prevent
+        data-open={menuOpen}
+        inert={!menuOpen}
+        className="mobile-menu fixed inset-0 z-0 flex flex-col overflow-y-auto bg-ground/95 px-6 pb-10 pt-28 backdrop-blur-xl lg:hidden"
+      >
+        <nav aria-label="Menu" className="my-auto">
+          <ul className="space-y-1">
+            {LINKS.map((link) => (
+              <li key={link.href} data-menu-item>
+                <a
+                  href={link.href}
+                  onClick={() => closeMenu()}
+                  className="display block py-2 text-[clamp(2.5rem,13vw,4rem)] transition-colors duration-200 hover:text-accent focus-visible:text-accent"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div data-menu-item className="flex flex-wrap items-center gap-3 pt-8">
+          {session ? (
+            <>
+              <GlassOrbButton
+                onClick={() => signOut({ callbackUrl: "/" })}
+                icon={<SignOut weight="bold" size={15} />}
+              >
+                Sign out
+              </GlassOrbButton>
+              <ChromeButton href="/dashboard" icon={<SquaresFour weight="bold" size={15} />}>
+                Dashboard
+              </ChromeButton>
+            </>
+          ) : (
+            <>
+              <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
+                Sign in
+              </GlassOrbButton>
               <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
                 Sign up
               </ChromeButton>

@@ -51,12 +51,16 @@ function buildPresets(minPaise: number): number[] {
 const noopSubscribe = () => () => {};
 const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
 
+const CONFETTI_PIECES = 40;
+const CONFETTI_COLOURS = ["bg-accent", "bg-accent", "bg-accent", "bg-text", "bg-muted"];
+
 const rupeeText = (rupees: number) =>
   rupees.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
 // After a tip: a lime note slides in and flies off while the amount's reels
-// spin, then the fan can send another tip or pass the creator's page on.
-// Motion is skipped under reduced motion; the words are always there.
+// spin and a burst of lime confetti rises from the amount, then the fan can
+// send another tip or pass the creator's page on. Motion (confetti included)
+// is skipped under reduced motion; the words are always there.
 function SuccessScreen({
   amountPaise,
   displayName,
@@ -94,6 +98,30 @@ function SuccessScreen({
           .from(".success-line", { y: 14, opacity: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 0.9);
         const reels = gsap.utils.toArray<HTMLElement>("[data-reel]");
         if (reels.length) spinReels(gsap, reels).forEach((spin) => tl.add(spin, 0.3));
+        // Confetti: each piece shoots up and out, then drifts down turning and
+        // fading. They start hidden (opacity 0 in the markup).
+        const pieces = gsap.utils.toArray<HTMLElement>(".confetti-piece");
+        const burst = gsap.timeline({ delay: 1.05 });
+        pieces.forEach((piece) => {
+          const x = gsap.utils.random(-150, 150);
+          const rise = gsap.utils.random(70, 190);
+          const spin = gsap.utils.random(-540, 540);
+          burst
+            .set(piece, { opacity: 1, x: 0, y: 0, rotate: 0, scale: gsap.utils.random(0.7, 1.2) }, 0)
+            .to(piece, { x, y: -rise, rotate: spin / 2, duration: 0.55, ease: "power2.out" }, 0)
+            .to(
+              piece,
+              {
+                x: x * 1.15,
+                y: gsap.utils.random(120, 260),
+                rotate: spin,
+                opacity: 0,
+                duration: gsap.utils.random(0.9, 1.4),
+                ease: "power1.in",
+              },
+              0.55,
+            );
+        });
       });
     },
     { scope: ref },
@@ -132,7 +160,20 @@ function SuccessScreen({
           ₹
         </div>
       </div>
-      <div role="status" className="space-y-2">
+      <div role="status" className="relative space-y-2">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-10 m-0! size-0"
+        >
+          {Array.from({ length: CONFETTI_PIECES }, (_, i) => (
+            <span
+              key={i}
+              className={`confetti-piece absolute left-0 top-0 opacity-0 ${CONFETTI_COLOURS[i % CONFETTI_COLOURS.length]} ${
+                i % 3 === 0 ? "h-2 w-2 rounded-full" : i % 3 === 1 ? "h-1 w-3 rounded-[1px]" : "h-2.5 w-1 rounded-[1px]"
+              }`}
+            />
+          ))}
+        </div>
         <p className="sr-only">
           ₹{rupeeText(rupees)} sent to {displayName}.
         </p>
