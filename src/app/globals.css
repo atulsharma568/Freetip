@@ -952,3 +952,25 @@ body:not(.page-scrolled) .enter {
     animation: none;
   }
 }
+
+/* Line-hover link (.link-line): a lime underline draws in from the left on
+   hover or keyboard focus. Instant under reduced motion. */
+.link-line {
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  padding-bottom: 2px;
+  transition:
+    background-size 350ms var(--ease-out-expo),
+    color 200ms;
+}
+.link-line:hover,
+.link-line:focus-visible {
+  background-size: 100% 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-line {
+    transition: color 200ms;
+  }
+}

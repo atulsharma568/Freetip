@@ -42,7 +42,7 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
     },
     ...GROUPS,
   ];
-  const link = "transition-colors duration-200 hover:text-text";
+  const link = "link-line transition-colors duration-200 hover:text-text";
 
   return (
     <footer className="border-t border-line/60">

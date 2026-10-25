@@ -62,7 +62,7 @@ export function Faq() {
         {ITEMS.map((item, i) => {
           const isOpen = open === i;
           return (
-            <li key={item.q}>
+            <li key={item.q} className="group relative">
               <h3>
                 <button
                   type="button"
@@ -76,10 +76,14 @@ export function Faq() {
                   <Plus
                     aria-hidden="true"
                     weight="bold"
-                    className={`size-6 shrink-0 transition-transform duration-500 ease-out-expo ${isOpen ? "rotate-45" : ""}`}
+                    className={`size-6 shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none ${isOpen ? "rotate-45" : ""}`}
                   />
                 </button>
               </h3>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-x-0 top-0 h-px origin-left bg-accent transition-transform duration-500 ease-out-expo motion-reduce:transition-none group-hover:scale-x-100 ${isOpen ? "scale-x-100" : "scale-x-0"}`}
+              />
               <div
                 id={`faq-a-${i}`}
                 role="region"
@@ -87,7 +91,9 @@ export function Faq() {
                 className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out-expo ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
               >
                 <div className="overflow-hidden">
-                  <p className="max-w-[56ch] text-pretty pb-6 text-lg text-muted">
+                  <p
+                    className={`max-w-[56ch] text-pretty pb-6 text-lg text-muted transition-[transform,opacity] duration-500 delay-75 ease-out-expo motion-reduce:transition-none ${isOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
+                  >
                     {item.a}
                   </p>
                 </div>
