@@ -9,6 +9,7 @@ import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CreatorQR } from "./CreatorQR";
 import { OverlayTile } from "./OverlayTile";
+import { TipIsland } from "./TipIsland";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
@@ -79,6 +80,18 @@ export default async function DashboardPage() {
     `;
   }
 
+  // Newest captured tip, so the live island only announces tips that arrive
+  // while the dashboard is open.
+  let latestTipId = 0;
+  if (db && user?.handle) {
+    const [latest] = await db<{ id: number }[]>`
+      select coalesce(max(id), 0)::int as id
+      from tip_orders
+      where creator_id = ${user.id} and status = 'captured'
+    `;
+    latestTipId = latest?.id ?? 0;
+  }
+
   // No DB or no row yet — fallback to early-access screen.
   if (!db || !user) {
     return (
@@ -100,6 +113,7 @@ export default async function DashboardPage() {
   // Handle set — show tip page link and activation status.
   return (
     <PageShell>
+      <TipIsland initialLastId={latestTipId} />
       <div className="mx-auto w-full max-w-lg space-y-8 px-6 py-16">
         {user.picture_url && (
           // eslint-disable-next-line @next/next/no-img-element

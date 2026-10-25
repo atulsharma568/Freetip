@@ -838,3 +838,40 @@ body:not(.page-scrolled) .enter {
     scroll-behavior: auto !important;
   }
 }
+
+/* Dashboard tip island (TipIsland): rises in, opens to show the fan's message,
+   then folds away. Reduced motion keeps only a quick fade. */
+.tip-island {
+  animation: island-in 500ms var(--ease-out-expo) both;
+}
+.tip-island[data-leaving] {
+  animation: island-out 350ms ease-in both;
+}
+.tip-island-message {
+  display: grid;
+  animation: island-open 600ms var(--ease-out-expo) 450ms both;
+}
+@keyframes island-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes island-out {
+  to { opacity: 0; transform: translateY(12px) scale(0.96); }
+}
+@keyframes island-open {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-island,
+  .tip-island[data-leaving] {
+    animation: island-fade 200ms linear both;
+  }
+  .tip-island-message {
+    animation: none;
+  }
+}
+@keyframes island-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
