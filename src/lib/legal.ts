@@ -78,5 +78,7 @@ export function feeBreakdown(rupees: number) {
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
   { name: "Vercel", role: "website hosting", status: "active" },
-  { name: "Neon", role: "database (waitlist entries now; accounts and tips later)", status: "active" },
+  { name: "Neon", role: "database (waitlist entries and contact messages now; accounts and tips later)", status: "active" },
+  { name: "Resend", role: "emailing us a copy of each contact message (your name, email and message pass through it)", status: "planned" },
+  { name: "Amazon Web Services (Polly)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },
 ];

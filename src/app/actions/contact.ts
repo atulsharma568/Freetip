@@ -3,6 +3,7 @@
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { sendContactEmail } from "@/lib/contact-email";
 import { parseContact, type ContactState } from "@/lib/contact";
 
 // Saved messages allowed per network per hour. Kept low: a person sends one
@@ -52,6 +53,8 @@ export async function sendContact(
       insert into contact_messages (name, email, topic, payment_ref, message)
       values (${entry.name}, ${entry.email}, ${entry.topic}, ${entry.paymentRef}, ${entry.message})
     `;
+    // Saved. The email to the owner is a courtesy; its failure is only logged.
+    await sendContactEmail(entry);
     return { status: "ok" };
   } catch (error) {
     console.error("Contact: save failed.", error instanceof Error ? error.message : error);
