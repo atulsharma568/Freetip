@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
@@ -150,7 +151,11 @@ export function Money() {
             </div>
           </dl>
           <p className="mt-4 text-sm text-muted">
-            Example on a ₹{amount.toLocaleString("en-IN")} UPI or Indian card tip. International cards cost more.
+            Example on a ₹{amount.toLocaleString("en-IN")} UPI or Indian card tip. International cards cost more.{" "}
+            <Link href="/pricing" className="link-line text-text">
+              See full pricing
+            </Link>
+            .
           </p>
         </div>
       </div>

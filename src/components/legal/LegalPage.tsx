@@ -7,6 +7,42 @@ import { SITE_URL } from "@/lib/url";
 
 export type LegalSection = { id: string; title: string; body: ReactNode };
 
+// Pages that belong together, so each one links to its neighbours.
+const RELATED: Record<string, { href: string; label: string }[]> = {
+  "/terms": [
+    { href: "/privacy", label: "Privacy policy" },
+    { href: "/refunds", label: "Refunds and cancellations" },
+    { href: "/pricing", label: "Pricing" },
+  ],
+  "/privacy": [
+    { href: "/terms", label: "Terms of service" },
+    { href: "/contact", label: "Contact and grievances" },
+  ],
+  "/refunds": [
+    { href: "/terms", label: "Terms of service" },
+    { href: "/delivery", label: "Delivery policy" },
+    { href: "/contact", label: "Contact and grievances" },
+  ],
+  "/delivery": [
+    { href: "/refunds", label: "Refunds and cancellations" },
+    { href: "/terms", label: "Terms of service" },
+  ],
+  "/pricing": [
+    { href: "/terms", label: "Terms of service" },
+    { href: "/refunds", label: "Refunds and cancellations" },
+    { href: "/about", label: "About" },
+  ],
+  "/about": [
+    { href: "/pricing", label: "Pricing" },
+    { href: "/contact", label: "Contact and grievances" },
+  ],
+  "/contact": [
+    { href: "/privacy", label: "Privacy policy" },
+    { href: "/terms", label: "Terms of service" },
+    { href: "/refunds", label: "Refunds and cancellations" },
+  ],
+};
+
 // A policy page: breadcrumb trail (with BreadcrumbList data), title, date, the draft notice (until lib/legal.ts is filled
 // in and reviewed), an "On this page" list and numbered sections.
 export function LegalPage({
@@ -96,6 +132,20 @@ export function LegalPage({
               {section.body}
             </section>
           ))}
+          {RELATED[path] && (
+            <nav aria-label="Related pages" className="mt-12 border-t border-line/60 pt-6">
+              <p className="text-sm font-semibold">Related pages</p>
+              <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+                {RELATED[path].map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="link-line transition-colors duration-200 hover:text-text">
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
         </div>
       </div>
     </PageShell>
