@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
+import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { createTipOrder } from "@/app/actions/tip";
 
 // Razorpay checkout is loaded via a <script> tag at payment time.
@@ -45,6 +46,129 @@ function buildPresets(minPaise: number): number[] {
     if (v >= 10) return Math.round(v / 10) * 10;
     return v;
   });
+}
+
+const noopSubscribe = () => () => {};
+const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
+
+const rupeeText = (rupees: number) =>
+  rupees.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+
+// After a tip: a lime note slides in and flies off while the amount's reels
+// spin, then the fan can send another tip or pass the creator's page on.
+// Motion is skipped under reduced motion; the words are always there.
+function SuccessScreen({
+  amountPaise,
+  displayName,
+  handle,
+  anonymous,
+  onAgain,
+}: {
+  amountPaise: number;
+  displayName: string;
+  handle: string;
+  anonymous: boolean;
+  onAgain: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState("");
+  const shareable = useSyncExternalStore(noopSubscribe, canShare, () => false);
+  const rupees = amountPaise / 100;
+  const whole = Number.isInteger(rupees);
+
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const tl = gsap.timeline();
+        tl.fromTo(
+          ".success-note",
+          { y: 48, opacity: 0, rotate: -8, scale: 0.85 },
+          { y: 0, opacity: 1, rotate: -3, scale: 1, duration: 0.45, ease: "power3.out" },
+        )
+          .to(
+            ".success-note",
+            { x: 180, y: -140, rotate: 16, opacity: 0, duration: 0.7, ease: "power2.in" },
+            0.75,
+          )
+          .from(".success-line", { y: 14, opacity: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 0.9);
+        const reels = gsap.utils.toArray<HTMLElement>("[data-reel]");
+        if (reels.length) spinReels(gsap, reels).forEach((spin) => tl.add(spin, 0.3));
+      });
+    },
+    { scope: ref },
+  );
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/${handle}`);
+      setNotice("Link copied");
+    } catch {
+      setNotice("Could not copy the link.");
+    }
+  }
+
+  async function shareLink() {
+    try {
+      await navigator.share({
+        title: `Tip ${displayName}`,
+        url: `${window.location.origin}/${handle}`,
+      });
+    } catch {
+      // The sheet was closed: nothing to report.
+    }
+  }
+
+  const control =
+    "inline-flex h-12 items-center rounded-full border border-control px-6 text-sm font-semibold text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.97]";
+
+  return (
+    <div
+      ref={ref}
+      className="mx-auto flex w-full max-w-sm flex-col items-center space-y-8 overflow-x-clip px-6 py-20 text-center"
+    >
+      <div className="relative flex h-24 w-full items-center justify-center" aria-hidden="true">
+        <div className="success-note flex h-16 w-32 items-center justify-center rounded-[0.6rem] bg-accent text-3xl font-bold text-ink shadow-[0_10px_30px_-10px_rgb(0_0_0/0.6)]">
+          ₹
+        </div>
+      </div>
+      <div role="status" className="space-y-2">
+        <p className="sr-only">
+          ₹{rupeeText(rupees)} sent to {displayName}.
+        </p>
+        <p className="success-line text-[clamp(3.5rem,14vw,5rem)] font-semibold leading-none text-accent">
+          {whole ? (
+            <Odometer value={rupees} />
+          ) : (
+            <span aria-hidden="true" className="numeric">
+              ₹{rupeeText(rupees)}
+            </span>
+          )}
+        </p>
+        <p className="success-line text-xl font-semibold text-text">Sent to {displayName}!</p>
+        <p className="success-line text-sm text-muted">
+          {anonymous ? "Your tip is on its way." : "They'll see your message on stream."}
+        </p>
+      </div>
+      <div className="success-line flex flex-wrap justify-center gap-2">
+        <button type="button" onClick={onAgain} className={control}>
+          Send another tip
+        </button>
+        {shareable ? (
+          <button type="button" onClick={shareLink} className={control}>
+            Share {displayName}&apos;s page
+          </button>
+        ) : (
+          <button type="button" onClick={copyLink} className={control}>
+            Copy their link
+          </button>
+        )}
+      </div>
+      <p aria-live="polite" className="min-h-5 text-sm text-accent">
+        {notice}
+      </p>
+    </div>
+  );
 }
 
 type Phase = "idle" | "creating" | "checkout" | "success" | "error";
@@ -164,29 +288,19 @@ export function TipForm({
   // ── Success screen ──────────────────────────────────────────────────────────
   if (phase === "success") {
     return (
-      <div className="mx-auto flex w-full max-w-sm flex-col items-center px-6 py-20 space-y-8 text-center">
-        <div className="space-y-2">
-          <p className="numeric text-[clamp(3.5rem,14vw,5rem)] font-semibold leading-none text-accent">
-            ₹{paidAmount / 100}
-          </p>
-          <p className="text-xl font-semibold text-text">Sent to {displayName}!</p>
-          <p className="text-sm text-muted">
-            {anonymous ? "Your tip is on its way." : "They'll see your message on stream."}
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setPhase("idle");
-            setMessage("");
-            setTipName("");
-            setAnonymous(false);
-            setPaidAmount(0);
-          }}
-          className="inline-flex h-12 items-center rounded-full border border-control px-8 text-sm font-semibold text-text transition-colors duration-150 hover:border-muted"
-        >
-          Send another tip
-        </button>
-      </div>
+      <SuccessScreen
+        amountPaise={paidAmount}
+        displayName={displayName}
+        handle={handle}
+        anonymous={anonymous}
+        onAgain={() => {
+          setPhase("idle");
+          setMessage("");
+          setTipName("");
+          setAnonymous(false);
+          setPaidAmount(0);
+        }}
+      />
     );
   }
 
@@ -234,6 +348,19 @@ export function TipForm({
           <legend className="text-sm font-medium uppercase tracking-widest text-muted">
             Amount
           </legend>
+          <p
+            key={amountRupees}
+            aria-hidden="true"
+            className={`amount-numeral numeric font-semibold leading-none text-accent ${
+              String(Math.trunc(amountRupees)).length >= 5
+                ? "text-[clamp(2.75rem,12vw,3.5rem)]"
+                : String(Math.trunc(amountRupees)).length === 4
+                  ? "text-[clamp(3.25rem,14vw,4.25rem)]"
+                  : "text-[clamp(4rem,17vw,5.5rem)]"
+            }`}
+          >
+            ₹{rupeeText(amountRupees)}
+          </p>
           <div className="flex flex-wrap gap-2">
             {presets.map((preset) => (
               <button

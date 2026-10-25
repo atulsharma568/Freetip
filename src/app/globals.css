@@ -938,3 +938,17 @@ body:not(.page-scrolled) .enter {
     transition: opacity 200ms linear;
   }
 }
+
+/* Tip page amount numeral: a quick settle each time the amount changes. */
+.amount-numeral {
+  animation: amount-pop 160ms var(--ease-out-expo) both;
+}
+@keyframes amount-pop {
+  from { transform: scale(0.94); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .amount-numeral {
+    animation: none;
+  }
+}
