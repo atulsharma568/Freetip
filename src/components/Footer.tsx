@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 import { OPERATOR } from "@/lib/legal";
+import { AsciiWordmark } from "@/components/motion/AsciiWordmark";
 
 const SECTIONS = [
   { href: "#how", label: "How it works" },
@@ -74,6 +75,9 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
             </ul>
           </nav>
         ))}
+      </div>
+      <div className="mx-auto max-w-7xl px-6 pb-10">
+        <AsciiWordmark text={SITE_NAME.toUpperCase()} />
       </div>
       <div className="mx-auto max-w-7xl border-t border-line/60 px-6 py-6 text-sm text-muted">
         &copy; 2026 {OPERATOR.legalName || SITE_NAME}

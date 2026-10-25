@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { FEES } from "@/lib/legal";
+import { RevealHeading } from "@/components/motion/RevealHeading";
 
 // Worked example for a ₹100 tip (lib/legal.ts): the payment processing charge
 // is paid by the creator out of the payout, on top of our 5%. Fans always pay
@@ -64,9 +65,9 @@ export function Money() {
       id="fees"
       className="mx-auto max-w-7xl scroll-mt-24 px-6 pb-32 md:pb-48"
     >
-      <h2 className="display text-[clamp(2.5rem,6vw,4.5rem)]">
+      <RevealHeading className="display text-[clamp(2.5rem,6vw,4.5rem)]">
         Payments and fees
-      </h2>
+      </RevealHeading>
       <div className="mt-16 grid gap-4 md:mt-24 md:grid-cols-12 md:grid-rows-[auto_1fr]">
         <div
           data-tile

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "@phosphor-icons/react";
+import { RevealHeading } from "@/components/motion/RevealHeading";
 
 const ITEMS = [
   {
@@ -54,9 +55,9 @@ export function Faq() {
       id="faq"
       className="mx-auto grid max-w-7xl scroll-mt-24 gap-x-8 gap-y-12 px-6 pb-32 md:grid-cols-12 md:pb-48"
     >
-      <h2 className="display self-start text-[clamp(2.5rem,6vw,4.5rem)] md:sticky md:top-28 md:col-span-5">
+      <RevealHeading className="display self-start text-[clamp(2.5rem,6vw,4.5rem)] md:sticky md:top-28 md:col-span-5">
         Common questions
-      </h2>
+      </RevealHeading>
       <ul className="divide-y divide-line md:col-span-7">
         {ITEMS.map((item, i) => {
           const isOpen = open === i;

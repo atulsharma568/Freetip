@@ -1,3 +1,6 @@
+import { RevealHeading } from "@/components/motion/RevealHeading";
+import { SafetySteps } from "./SafetySteps";
+
 const QR_MODULES = [
   "11111110101011111",
   "10000010111010001",
@@ -47,9 +50,9 @@ export function Differentiators() {
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-accent">
             Why Tipsite
           </p>
-          <h2 className="display mt-4 max-w-[12ch] text-[clamp(2.5rem,6vw,4.5rem)]">
+          <RevealHeading className="display mt-4 max-w-[12ch] text-[clamp(2.5rem,6vw,4.5rem)]">
             Less friction for fans. More control for you.
-          </h2>
+          </RevealHeading>
         </div>
         <p className="max-w-[38ch] text-pretty text-lg text-muted md:col-span-5">
           One tip link built around the way a live stream actually works: quick
@@ -179,20 +182,7 @@ export function Differentiators() {
               banned words, then wait for your approval before playback.
             </p>
           </div>
-          <ol
-            aria-label="Text-to-speech safety steps"
-            className="grid gap-8 md:col-span-7 md:grid-cols-3 md:gap-5"
-          >
-            {SAFETY_STEPS.map((step) => (
-              <li key={step.number} className="border-t border-line pt-4">
-                <span className="inline-flex size-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-ink">
-                  {step.number}
-                </span>
-                <h4 className="mt-5 text-lg font-semibold">{step.title}</h4>
-                <p className="mt-2 text-muted">{step.text}</p>
-              </li>
-            ))}
-          </ol>
+          <SafetySteps steps={SAFETY_STEPS} />
         </div>
       </article>
     </section>

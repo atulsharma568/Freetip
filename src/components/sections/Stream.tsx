@@ -5,6 +5,7 @@ import { ArrowCounterClockwise, SpeakerHigh, SpeakerSlash } from "@phosphor-icon
 import { Switch } from "@/components/ui/Switch";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SAMPLE_TIP } from "@/lib/site";
+import { RevealHeading } from "@/components/motion/RevealHeading";
 
 const WORDS = SAMPLE_TIP.message.split(" ");
 
@@ -198,9 +199,9 @@ export function Stream() {
       className="mx-auto grid max-w-7xl scroll-mt-24 gap-x-8 gap-y-12 px-6 pb-32 md:grid-cols-12 md:pb-48"
     >
       <div className="min-w-0 md:col-span-5">
-        <h2 className="display text-[clamp(2.5rem,6vw,4.5rem)]">
+        <RevealHeading className="display text-[clamp(2.5rem,6vw,4.5rem)]">
           On your stream
-        </h2>
+        </RevealHeading>
         <div className="mt-8 max-w-[34ch] space-y-5 text-pretty text-lg text-muted md:mt-12">
           <p>
             <span className="text-text">OBS alerts.</span> Tips can show up on

@@ -875,3 +875,66 @@ body:not(.page-scrolled) .enter {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Scroll progress line (ScrollEffects): grows with the page scroll using a
+   scroll-driven animation. Browsers without support, and reduced motion,
+   simply don't show it. */
+.scroll-progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scroll-progress {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 60;
+      height: 2px;
+      pointer-events: none;
+      background: var(--color-accent);
+      transform-origin: left;
+      transform: scaleX(0);
+      animation: scroll-grow linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+@keyframes scroll-grow {
+  to { transform: scaleX(1); }
+}
+
+/* Soft blur under the nav (ScrollEffects): the blur is strongest at the top
+   edge and fades to nothing, using a mask. Kept small so it stays cheap. */
+.nav-blur {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  height: 5.5rem;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to bottom, #000 20%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 20%, transparent);
+}
+
+/* Sliding highlight (SafetySteps): a lime-tinted block that glides to the
+   hovered step. Hover only, so touch screens see the plain list. */
+.step-highlight {
+  position: absolute;
+  inset: 0 auto auto 0;
+  border-radius: var(--radius-field);
+  background: color-mix(in oklch, var(--color-accent) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-accent) 35%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 350ms var(--ease-out-expo),
+    width 350ms var(--ease-out-expo),
+    height 350ms var(--ease-out-expo),
+    opacity 200ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-highlight {
+    transition: opacity 200ms linear;
+  }
+}

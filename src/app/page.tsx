@@ -9,6 +9,7 @@ import { Faq } from "@/components/sections/Faq";
 import { Closer } from "@/components/sections/Closer";
 import { SplashScreen } from "@/components/SplashScreen";
 import { GlobalBackground } from "@/components/GlobalBackground";
+import { ScrollEffects } from "@/components/motion/ScrollEffects";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
         Skip to content
       </a>
       <div className="page-content">
+        <ScrollEffects />
         <Nav />
         <main id="main">
           <Hero />
