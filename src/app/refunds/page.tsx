@@ -198,6 +198,7 @@ export default function RefundsPage() {
   return (
     <LegalPage
       title="Refunds and cancellations"
+      path="/refunds"
       intro={
         <p>
           The short version: tips are final once paid, but if you were charged

@@ -433,6 +433,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of service"
+      path="/terms"
       intro={
         <p>
           The rules for using {SITE_NAME}, in plain language. The short version:

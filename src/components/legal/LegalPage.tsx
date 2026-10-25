@@ -1,24 +1,60 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { LEGAL_DRAFT, LEGAL_UPDATED } from "@/lib/legal";
+import { SITE_NAME } from "@/lib/site";
+import { SITE_URL } from "@/lib/url";
 
 export type LegalSection = { id: string; title: string; body: ReactNode };
 
-// A policy page: title, date, the draft notice (until lib/legal.ts is filled
+// A policy page: breadcrumb trail (with BreadcrumbList data), title, date, the draft notice (until lib/legal.ts is filled
 // in and reviewed), an "On this page" list and numbered sections.
 export function LegalPage({
   title,
+  path,
   intro,
   sections,
 }: {
   title: string;
+  path: string;
   intro: ReactNode;
   sections: LegalSection[];
 }) {
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: SITE_NAME, item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: title, item: `${SITE_URL}${path}` },
+    ],
+  };
+
   return (
     <PageShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbs).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-6 pb-28 pt-12 md:pt-20 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16">
         <div className="lg:col-start-2">
+          <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted">
+            <ol className="flex flex-wrap items-center gap-2">
+              <li>
+                <Link
+                  href="/"
+                  className="transition-colors duration-200 hover:text-text"
+                >
+                  {SITE_NAME}
+                </Link>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page" className="text-text">
+                {title}
+              </li>
+            </ol>
+          </nav>
           <h1 className="display text-[clamp(2.75rem,8vw,5rem)]">{title}</h1>
           <p className="mt-4 text-sm text-muted">Last updated {LEGAL_UPDATED}</p>
           {LEGAL_DRAFT && (

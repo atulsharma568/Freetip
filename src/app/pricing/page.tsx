@@ -95,6 +95,7 @@ export default function PricingPage() {
   return (
     <LegalPage
       title="Pricing"
+      path="/pricing"
       intro={
         <p>
           One plain fee, shown before you sign up and the same on every page:{" "}

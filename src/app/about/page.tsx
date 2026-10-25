@@ -71,6 +71,7 @@ export default function AboutPage() {
   return (
     <LegalPage
       title={`About ${SITE_NAME}`}
+      path="/about"
       intro={<p>Tips for Indian YouTube streamers, paid by UPI or card.</p>}
       sections={SECTIONS}
     />

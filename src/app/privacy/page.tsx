@@ -323,6 +323,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
+      path="/privacy"
       intro={
         <p>
           The short version: fans tip without an account or email, we collect

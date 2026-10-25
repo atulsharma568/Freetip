@@ -91,6 +91,7 @@ export default function DeliveryPage() {
   return (
     <LegalPage
       title="Delivery policy"
+      path="/delivery"
       intro={
         <p>
           {SITE_NAME} is fully digital. Tips are delivered instantly when the

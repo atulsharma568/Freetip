@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-25, updated after breadcrumbs)
+
+- Checklist item 15 done. `LegalPage` (all seven policy and company pages) now shows a visible trail ("Tipsite / Page title", the first part links home) above the H1 and adds `BreadcrumbList` JSON-LD with absolute URLs built from `SITE_URL`, so they follow `NEXT_PUBLIC_SITE_URL` once the domain is set. Each page passes a new `path` prop. Creator pages are not given breadcrumbs (one level under home, nothing to trail).
+- Verified: tsc clean, lint clean, build clean; the trail and the JSON-LD are in the served HTML of `/refunds`. Not run: the Playwright suite, and Google's Rich Results test (needs the live domain).
+
 ## Current state (2026-10-25, updated after the Open Graph images and title separator)
 
 - Checklist item 8 done. The share image is now built by one helper (`src/lib/og.tsx`). The home page keeps its image, the seven policy and company pages each have their own (`opengraph-image.tsx` per route), and creator pages get "Tip <name>" with their link. Creators who aren't active, don't exist or hit a database error get the generic text instead. The policy pages also set their own `og:title` and description; before, they inherited the home page's through the root layout.

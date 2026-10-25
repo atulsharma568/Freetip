@@ -192,6 +192,7 @@ export default function ContactPage() {
   return (
     <LegalPage
       title="Contact and grievances"
+      path="/contact"
       intro={
         <p>
           Email is the fastest way to reach us. For a payment problem, include
