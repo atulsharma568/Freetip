@@ -8,6 +8,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    // Creator avatars are Google account photos.
+    remotePatterns: [{ protocol: "https", hostname: "*.googleusercontent.com" }],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

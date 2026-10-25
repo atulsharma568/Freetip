@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
@@ -116,10 +117,10 @@ export default async function DashboardPage() {
       <TipIsland initialLastId={latestTipId} />
       <div className="mx-auto w-full max-w-lg space-y-8 px-6 py-16">
         {user.picture_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={user.picture_url}
-            alt=""
+            alt="Your profile photo"
+            loading="eager"
             width={56}
             height={56}
             className="rounded-full"
@@ -258,10 +259,10 @@ function EarlyAccess({
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-md space-y-8 text-center">
         {avatarUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={avatarUrl}
-            alt=""
+            alt="Your profile photo"
+            loading="eager"
             width={64}
             height={64}
             className="mx-auto rounded-full"

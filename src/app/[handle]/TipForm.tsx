@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
@@ -358,10 +359,10 @@ export function TipForm({
       {/* Creator */}
       <div className="tip-section flex items-center gap-4">
         {pictureUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={pictureUrl}
-            alt=""
+            alt={`${displayName}'s profile photo`}
+            loading="eager"
             width={56}
             height={56}
             className="shrink-0 rounded-full"
