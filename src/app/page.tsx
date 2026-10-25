@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/hero/Hero";
@@ -10,6 +11,8 @@ import { Closer } from "@/components/sections/Closer";
 import { SplashScreen } from "@/components/SplashScreen";
 import { GlobalBackground } from "@/components/GlobalBackground";
 import { ScrollEffects } from "@/components/motion/ScrollEffects";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
   return (

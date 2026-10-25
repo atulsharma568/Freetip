@@ -8,6 +8,7 @@ import { SITE_HOST, SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Terms of service: ${SITE_NAME}`,
   description: `The rules for creators and fans using ${SITE_NAME}.`,
+  alternates: { canonical: "/terms" },
   robots: LEGAL_ROBOTS,
 };
 

@@ -7,6 +7,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Delivery policy: ${SITE_NAME}`,
   description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`,
+  alternates: { canonical: "/delivery" },
   robots: LEGAL_ROBOTS,
 };
 

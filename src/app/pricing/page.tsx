@@ -7,6 +7,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
   description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`,
+  alternates: { canonical: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 

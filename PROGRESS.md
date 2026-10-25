@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-25, updated after the SEO metadata audit)
+
+- Checklist items 4 to 7 audited. Every public route already had a unique title and a description, and each has exactly one H1 (home, policy pages through `LegalPage`, creator page through `TipForm`). Added: `alternates.canonical` on the home page and the seven policy and company pages, and on creator pages (`/handle`, with Open Graph and Twitter title and description). Creator pages that are not active, don't exist or have a bad handle are now `noindex`. `/signup` came out of the sitemap because the page is `noindex`. Canonical URLs resolve against `metadataBase`, so they follow `NEXT_PUBLIC_SITE_URL` once the domain is set.
+- Not done in this pass: per-page Open Graph images (the site-wide image is still used everywhere, including creator pages), the title separator differs (`Name: Tipsite` on policy pages, `Tip Name | Tipsite` on creator pages), dashboard and admin pages have no description (they are `noindex`, so it doesn't matter).
+- Verified: tsc clean, lint clean, build clean.
+
 ## Current state (2026-10-25, updated after the checklist and timelines)
 
 - Owner decisions applied (2026-10-25): the 18+ rule is dropped (terms keep only "able to enter a binding contract under Indian law"; the privacy policy keeps "we don't knowingly collect data from children"). Refund and support timelines now follow the competitors, who publish no day counts: the refunds page no longer has the 7-day window or the 24 h / 5 day / 2 day / 5 to 7 day table (it says "as soon as you notice" and that arrival depends on the bank, UPI app and payment partner), and the contact page's reply time reads "As soon as we can". Complaint (grievance) timelines (24 hours to acknowledge, 15 days to resolve, content removal 24 to 72 hours, privacy requests 30 days) were kept: Indian rules require them and the Grievance Officer page is something payment partners check. Worth a lawyer's view: without an age rule, creators who are under 18 raise questions under the DPDP Act (children's data) and the Contract Act (a minor can't be bound).

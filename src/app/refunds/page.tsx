@@ -8,6 +8,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Refunds and cancellations: ${SITE_NAME}`,
   description: `${SITE_NAME} tips are final. The few payment errors we do put right, how to report one, and how long it takes.`,
+  alternates: { canonical: "/refunds" },
   robots: LEGAL_ROBOTS,
 };
 

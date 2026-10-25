@@ -40,17 +40,22 @@ type Props = { params: Promise<{ handle: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
-  if (!HANDLE_PATTERN.test(handle)) return { title: SITE_NAME };
+  if (!HANDLE_PATTERN.test(handle)) return { title: SITE_NAME, robots: { index: false } };
 
   const creator = await getCreator(handle);
   if (!creator || creator.creator_status !== "active") {
-    return { title: `${handle} | ${SITE_NAME}` };
+    return { title: `${handle} | ${SITE_NAME}`, robots: { index: false } };
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
+  const title = `Tip ${displayName} | ${SITE_NAME}`;
+  const description = `Send a tip to ${displayName} on ${SITE_NAME}. No fan account or email needed.`;
   return {
-    title: `Tip ${displayName} | ${SITE_NAME}`,
-    description: `Send a tip to ${displayName} on ${SITE_NAME}. No fan account or email needed.`,
+    title,
+    description,
+    alternates: { canonical: `/${handle}` },
+    openGraph: { title, description, url: `/${handle}` },
+    twitter: { title, description },
   };
 }
 
