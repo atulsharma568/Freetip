@@ -2,6 +2,7 @@ import { getDb } from "@/lib/db";
 import {
   GATEWAY_BPS,
   PLATFORM_BPS,
+  EXPORT_MAX_ROWS,
   TIPS_PAGE_SIZE,
   estimateShare,
   type TipsQuery,
@@ -69,23 +70,25 @@ export interface TipRow {
   rejected: boolean;
 }
 
-export async function loadTips(
+type DbTip = {
+  id: number;
+  captured_at: Date;
+  fan_name: string | null;
+  fan_message: string | null;
+  message_status: "pending" | "approved" | "rejected";
+  gross_amount_minor: string;
+};
+
+function selectTips(
   creatorId: number,
-  { range, messageOnly, page }: TipsQuery,
-): Promise<{ tips: TipRow[]; hasMore: boolean }> {
+  { range, messageOnly }: TipsQuery,
+  limit: number,
+  offset: number,
+) {
   const db = getDb();
-  if (!db) return { tips: [], hasMore: false };
+  if (!db) return Promise.resolve([] as DbTip[]);
   const days = range === "7d" ? 7 : range === "30d" ? 30 : null;
-  const rows = await db<
-    {
-      id: number;
-      captured_at: Date;
-      fan_name: string | null;
-      fan_message: string | null;
-      message_status: "pending" | "approved" | "rejected";
-      gross_amount_minor: string;
-    }[]
-  >`
+  return db<DbTip[]>`
     select id::int as id, captured_at, fan_name, fan_message, message_status,
            gross_amount_minor
     from tip_orders
@@ -95,23 +98,52 @@ export async function loadTips(
       ${days ? db`and captured_at > now() - make_interval(days => ${days})` : db``}
       ${messageOnly ? db`and btrim(coalesce(fan_message, '')) <> ''` : db``}
     order by captured_at desc, id desc
-    limit ${TIPS_PAGE_SIZE + 1}
-    offset ${(page - 1) * TIPS_PAGE_SIZE}
+    limit ${limit}
+    offset ${offset}
   `;
-  const tips = rows.slice(0, TIPS_PAGE_SIZE).map((r) => {
-    const gross = Number(r.gross_amount_minor);
-    const text = r.fan_message?.trim() ?? "";
-    const rejected = r.message_status === "rejected";
-    return {
-      id: r.id,
-      capturedAt: r.captured_at,
-      name: r.fan_name?.trim() || "Anonymous",
-      amountPaise: gross,
-      sharePaise: estimateShare(gross),
-      message: text && !rejected ? text : null,
-      messageStatus: r.message_status,
-      rejected: rejected && text !== "",
-    };
-  });
-  return { tips, hasMore: rows.length > TIPS_PAGE_SIZE };
+}
+
+function toTipRow(r: DbTip): TipRow {
+  const gross = Number(r.gross_amount_minor);
+  const text = r.fan_message?.trim() ?? "";
+  const rejected = r.message_status === "rejected";
+  return {
+    id: r.id,
+    capturedAt: r.captured_at,
+    name: r.fan_name?.trim() || "Anonymous",
+    amountPaise: gross,
+    sharePaise: estimateShare(gross),
+    message: text && !rejected ? text : null,
+    messageStatus: r.message_status,
+    rejected: rejected && text !== "",
+  };
+}
+
+export async function loadTips(
+  creatorId: number,
+  query: TipsQuery,
+): Promise<{ tips: TipRow[]; hasMore: boolean }> {
+  const rows = await selectTips(
+    creatorId,
+    query,
+    TIPS_PAGE_SIZE + 1,
+    (query.page - 1) * TIPS_PAGE_SIZE,
+  );
+  return {
+    tips: rows.slice(0, TIPS_PAGE_SIZE).map(toTipRow),
+    hasMore: rows.length > TIPS_PAGE_SIZE,
+  };
+}
+
+// Every tip matching the filters (paging ignored), newest first, capped so one
+// download cannot read the whole table. `truncated` is true when the cap hit.
+export async function loadTipsForExport(
+  creatorId: number,
+  query: TipsQuery,
+): Promise<{ tips: TipRow[]; truncated: boolean }> {
+  const rows = await selectTips(creatorId, query, EXPORT_MAX_ROWS + 1, 0);
+  return {
+    tips: rows.slice(0, EXPORT_MAX_ROWS).map(toTipRow),
+    truncated: rows.length > EXPORT_MAX_ROWS,
+  };
 }

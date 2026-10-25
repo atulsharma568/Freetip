@@ -57,3 +57,66 @@ export function tipsHref({ range, messageOnly, page }: TipsQuery): string {
   const s = qs.toString();
   return s ? `/dashboard/tips?${s}` : "/dashboard/tips";
 }
+
+// CSV export of the tips list.
+export const EXPORT_MAX_ROWS = 10000;
+
+// A cell a spreadsheet would run as a formula (=, +, -, @, tab, CR first) is
+// prefixed with an apostrophe so fan-typed text stays text. Cells with commas,
+// quotes or line breaks are quoted.
+export function csvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+const istParts = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+export function formatIst(d: Date): string {
+  const p = Object.fromEntries(istParts.formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
+}
+
+const plainRupees = (paise: number) => (paise / 100).toFixed(2);
+
+export interface CsvTip {
+  capturedAt: Date;
+  name: string;
+  amountPaise: number;
+  sharePaise: number;
+  message: string | null;
+  messageStatus: "pending" | "approved" | "rejected";
+}
+
+// Amounts are plain numbers so a spreadsheet can sum them. A rejected message's
+// text is already null, as on the tips page.
+export function tipsCsv(tips: CsvTip[]): string {
+  const header = [
+    "Date (IST)",
+    "Fan",
+    "Amount (INR)",
+    "Estimated share (INR)",
+    "Message",
+    "Message status",
+  ];
+  const lines = tips.map((t) =>
+    [
+      formatIst(t.capturedAt),
+      t.name,
+      plainRupees(t.amountPaise),
+      plainRupees(t.sharePaise),
+      t.message ?? "",
+      t.messageStatus,
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  return "\uFEFF" + [header.join(","), ...lines].join("\r\n") + "\r\n";
+}

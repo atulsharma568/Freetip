@@ -60,4 +60,11 @@ test.describe("creator dashboard routes", () => {
     expect(response.status()).toBe(307);
     expect(response.headers().location).toBe("/signin");
   });
+
+  test("the CSV export refuses signed-out visitors", async ({ request }) => {
+    const response = await request.get("/api/dashboard/tips/export?range=7d");
+
+    expect(response.status()).toBe(401);
+    expect(await response.text()).toBe("Unauthorized");
+  });
 });

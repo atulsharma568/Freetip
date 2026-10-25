@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import {
   TIPS_PAGE_SIZE,
+  csvCell,
+  formatIst,
+  tipsCsv,
   estimateShare,
   formatRupees,
   parseTipsQuery,
@@ -66,5 +69,53 @@ test.describe("tips page address", () => {
   test("page size is a sensible number", () => {
     expect(TIPS_PAGE_SIZE).toBeGreaterThan(0);
     expect(TIPS_PAGE_SIZE).toBeLessThanOrEqual(50);
+  });
+});
+
+test.describe("tips CSV", () => {
+  test("keeps fan-typed formulas as text", () => {
+    for (const v of ["=1+1", "+1", "-1", "@SUM(A1)", "\tx", "\rx"]) {
+      expect(csvCell(v).replace(/^"/, "").startsWith("'")).toBe(true);
+    }
+    expect(csvCell("plain")).toBe("plain");
+  });
+
+  test("quotes commas, quotes and line breaks", () => {
+    expect(csvCell('a,b')).toBe('"a,b"');
+    expect(csvCell('say "hi"')).toBe('"say ""hi"""');
+    expect(csvCell("one\ntwo")).toBe('"one\ntwo"');
+  });
+
+  test("writes IST times", () => {
+    // 18:29Z is 23:59 in India; 18:30Z is the next midnight.
+    expect(formatIst(new Date("2026-10-25T18:29:00Z"))).toBe("2026-10-25 23:59");
+    expect(formatIst(new Date("2026-10-25T18:30:00Z"))).toBe("2026-10-26 00:00");
+  });
+
+  test("rows carry plain amounts and a header", () => {
+    const csv = tipsCsv([
+      {
+        capturedAt: new Date("2026-10-25T18:29:00Z"),
+        name: "Asha",
+        amountPaise: 10000,
+        sharePaise: 9264,
+        message: "=cmd, hi",
+        messageStatus: "approved",
+      },
+      {
+        capturedAt: new Date("2026-10-25T10:00:00Z"),
+        name: "Anonymous",
+        amountPaise: 100,
+        sharePaise: 93,
+        message: null,
+        messageStatus: "rejected",
+      },
+    ]);
+    const lines = csv.replace("\uFEFF", "").trimEnd().split("\r\n");
+    expect(lines[0]).toBe(
+      "Date (IST),Fan,Amount (INR),Estimated share (INR),Message,Message status",
+    );
+    expect(lines[1]).toBe('2026-10-25 23:59,Asha,100.00,92.64,"\'=cmd, hi",approved');
+    expect(lines[2]).toBe("2026-10-25 15:30,Anonymous,1.00,0.93,,rejected");
   });
 });

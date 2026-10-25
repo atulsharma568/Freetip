@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { SITE_NAME } from "@/lib/site";
 import {
+  EXPORT_MAX_ROWS,
   TIP_RANGES,
   formatRupees,
   parseTipsQuery,
@@ -144,6 +145,22 @@ export default async function TipsPage({
           </nav>
         )}
 
+        {tips.length > 0 && (
+          <div className="space-y-2">
+            <a
+              href={exportHref(query)}
+              download="tips.csv"
+              className="inline-flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent"
+            >
+              Download CSV
+            </a>
+            <p className="text-sm text-muted">
+              Every tip matching the filters above, not just this page (up to{" "}
+              {EXPORT_MAX_ROWS.toLocaleString("en-IN")}). Times are in IST.
+            </p>
+          </div>
+        )}
+
         <p className="text-sm text-muted">
           Only paid tips are listed. The amount you&apos;d keep is an estimate
           (our 5% and the payment processing charge taken off).
@@ -151,6 +168,14 @@ export default async function TipsPage({
       </div>
     </PageShell>
   );
+}
+
+function exportHref({ range, messageOnly }: { range: TipRange; messageOnly: boolean }) {
+  const qs = new URLSearchParams();
+  if (range !== "all") qs.set("range", range);
+  if (messageOnly) qs.set("msg", "1");
+  const s = qs.toString();
+  return s ? `/api/dashboard/tips/export?${s}` : "/api/dashboard/tips/export";
 }
 
 function FilterLink({
