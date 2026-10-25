@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-25, updated after dashboard share controls)
+
+Creator dashboard share controls (2026-10-25): the QR tile (`src/app/dashboard/CreatorQR.tsx`) now has Copy link (with a polite live-region confirmation), Share (only where the browser has the Web Share API), Download PNG (1024px, white margin, no smoothing so it scans) and Download SVG. Written in our own code; the idea came from Vengeance UI's Share Sheet (MIT) but no code was copied. Skiper UI is inspiration only: its terms ban copying and its source is paid, and this repo is public.
+
+- Verified: tsc clean, lint clean on the file, build clean. Not tried in a browser (the dashboard needs a signed-in creator), so check Copy, Share (on a phone) and both downloads by hand.
+- AWS account for Polly is still awaiting activation (2026-10-25); the TTS steps in the section below are unchanged.
+
 ## Current state (2026-10-23, updated after overlay text-to-speech)
 
 Text-to-speech on the OBS overlay (2026-10-23): built, not yet heard. It has not been tried against real Polly or inside real OBS (no AWS credentials exist yet, and the Polly setup wizard is gone from `/tmp`).
