@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: `Delivery policy: ${SITE_NAME}`,
   description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`,
   alternates: { canonical: "/delivery" },
+  openGraph: { title: `Delivery policy: ${SITE_NAME}`, description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`, url: "/delivery" },
   robots: LEGAL_ROBOTS,
 };
 

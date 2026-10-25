@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-25, updated after the Open Graph images and title separator)
+
+- Checklist item 8 done. The share image is now built by one helper (`src/lib/og.tsx`). The home page keeps its image, the seven policy and company pages each have their own (`opengraph-image.tsx` per route), and creator pages get "Tip <name>" with their link. Creators who aren't active, don't exist or hit a database error get the generic text instead. The policy pages also set their own `og:title` and description; before, they inherited the home page's through the root layout.
+- Titles now use one separator everywhere: `Name: Tipsite` (creator pages were `Tip Name | Tipsite`). The creator query moved to `src/app/[handle]/creator.ts` so the page and its image share it.
+- Not checked with real data: the active-creator image (no local database). Check one real creator link in a WhatsApp preview once a creator is live.
+- Verified: tsc clean, lint clean (one old unused-variable warning in `src/lib/admin/date-range.ts`), build clean; `/pricing/opengraph-image` and a missing creator's image return a PNG.
+
 ## Current state (2026-10-25, updated after the SEO metadata audit)
 
 - Checklist items 4 to 7 audited. Every public route already had a unique title and a description, and each has exactly one H1 (home, policy pages through `LegalPage`, creator page through `TipForm`). Added: `alternates.canonical` on the home page and the seven policy and company pages, and on creator pages (`/handle`, with Open Graph and Twitter title and description). Creator pages that are not active, don't exist or have a bad handle are now `noindex`. `/signup` came out of the sitemap because the page is `noindex`. Canonical URLs resolve against `metadataBase`, so they follow `NEXT_PUBLIC_SITE_URL` once the domain is set.

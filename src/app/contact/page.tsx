@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: `Contact and grievances: ${SITE_NAME}`,
   description: `How to reach ${SITE_NAME} for help, payment problems, reports and complaints.`,
   alternates: { canonical: "/contact" },
+  openGraph: { title: `Contact and grievances: ${SITE_NAME}`, description: `How to reach ${SITE_NAME} for help, payment problems, reports and complaints.`, url: "/contact" },
   robots: LEGAL_ROBOTS,
 };
 

@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: `Terms of service: ${SITE_NAME}`,
   description: `The rules for creators and fans using ${SITE_NAME}.`,
   alternates: { canonical: "/terms" },
+  openGraph: { title: `Terms of service: ${SITE_NAME}`, description: `The rules for creators and fans using ${SITE_NAME}.`, url: "/terms" },
   robots: LEGAL_ROBOTS,
 };
 

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
   description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`,
   alternates: { canonical: "/pricing" },
+  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 

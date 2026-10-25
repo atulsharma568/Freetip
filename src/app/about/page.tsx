@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: `About: ${SITE_NAME}`,
   description: `${SITE_NAME} is a tipping page for Indian YouTube live streamers, paid by UPI or card.`,
   alternates: { canonical: "/about" },
+  openGraph: { title: `About: ${SITE_NAME}`, description: `${SITE_NAME} is a tipping page for Indian YouTube live streamers, paid by UPI or card.`, url: "/about" },
   robots: LEGAL_ROBOTS,
 };
 

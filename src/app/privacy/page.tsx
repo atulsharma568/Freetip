@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: `Privacy policy: ${SITE_NAME}`,
   description: `What personal data ${SITE_NAME} collects, why, how long we keep it and your rights.`,
   alternates: { canonical: "/privacy" },
+  openGraph: { title: `Privacy policy: ${SITE_NAME}`, description: `What personal data ${SITE_NAME} collects, why, how long we keep it and your rights.`, url: "/privacy" },
   robots: LEGAL_ROBOTS,
 };
 
