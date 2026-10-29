@@ -109,6 +109,28 @@ export async function GET(
       },
       row.message_max_chars,
     );
+
+  // The alert's sound: the fan's pick (even if the creator hid or repriced it
+  // afterwards), otherwise the creator's default. Only the alert card has one, not
+  // the follow-up message card. A lookup failure (for example the sounds table
+  // from migration 0013 is missing) just means a silent alert.
+  let sound: { url: string; volume: number; ms: number } | null = null;
+  if (next.kind === "alert") {
+    try {
+      const [found] = await db<{ blob_url: string; volume: number; duration_ms: number }[]>`
+        select s.blob_url, s.volume, s.duration_ms
+        from tip_orders t
+        join users u on u.id = t.creator_id
+        join creator_sounds s on s.id = coalesce(t.sound_id, u.default_sound_id)
+                             and s.creator_id = u.id
+        where t.id = ${next.id}
+      `;
+      if (found) sound = { url: found.blob_url, volume: found.volume, ms: found.duration_ms };
+    } catch (err) {
+      console.error("Overlay: could not look up the alert sound.", err);
+    }
+  }
+
   return Response.json(
     {
       alert: {
@@ -118,6 +140,7 @@ export async function GET(
         amountPaise: Number(row.gross_amount_minor),
         message: next.withMessage ? row.fan_message!.trim() : null,
         speech: speak,
+        sound,
       },
     },
     { headers: NO_STORE },

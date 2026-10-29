@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCreator } from "./creator";
+import { getCreator, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
 import { TipForm } from "./TipForm";
@@ -56,10 +56,12 @@ export default async function CreatorPage({ params }: Props) {
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
+  const sounds = await getTipSounds(handle);
 
   return (
     <PageShell>
       <TipForm
+        sounds={sounds}
         handle={handle}
         displayName={displayName}
         pictureUrl={creator.picture_url}

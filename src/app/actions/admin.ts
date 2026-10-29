@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/lib/owner-auth";
 import { getDb } from "@/lib/db";
+import { del } from "@vercel/blob";
 
 type CreatorStatus = "pending" | "active" | "suspended";
 
@@ -70,4 +71,26 @@ export async function setMessageHandled(messageId: number, handled: boolean): Pr
     update contact_messages set status = ${handled ? "handled" : "new"} where id = ${messageId}
   `;
   revalidatePath("/admin/messages");
+}
+
+// Owner removal of any creator's sound (for example one that breaks the rules).
+export async function adminDeleteSound(soundId: number): Promise<void> {
+  await requireOwner();
+
+  if (!Number.isSafeInteger(soundId) || soundId < 1) return;
+
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  const rows = await db<{ blob_url: string }[]>`
+    delete from creator_sounds where id = ${soundId} returning blob_url
+  `;
+  if (rows[0]) {
+    try {
+      await del(rows[0].blob_url);
+    } catch (err) {
+      console.error("Could not delete sound file", err);
+    }
+  }
+  revalidatePath("/admin/sounds");
 }

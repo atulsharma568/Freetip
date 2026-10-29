@@ -10,6 +10,8 @@ export interface OverlayAlert {
   message: string | null;
   // The server will read the message aloud (live overlay only).
   speech?: boolean;
+  // The creator's alert sound (live overlay only): played before the voice.
+  sound?: { url: string; volume: number; ms: number } | null;
 }
 
 // An alert in the queue, with its speech already downloaded so the voice starts
@@ -17,6 +19,7 @@ export interface OverlayAlert {
 interface QueuedAlert extends OverlayAlert {
   audio?: HTMLAudioElement;
   speechMs?: number;
+  clip?: HTMLAudioElement;
 }
 
 const POLL_MS = 4000;
@@ -28,7 +31,9 @@ const SPEECH_TAIL_MS = 1500;
 
 function showMs(a: QueuedAlert) {
   const byLength = BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
-  return a.speechMs ? Math.max(byLength, a.speechMs + SPEECH_TAIL_MS) : byLength;
+  // The sound plays first and the voice follows it, so the card stays for both.
+  const soundMs = a.clip && a.sound ? a.sound.ms : 0;
+  return a.speechMs ? Math.max(byLength, soundMs + a.speechMs + SPEECH_TAIL_MS) : Math.max(byLength, soundMs + SPEECH_TAIL_MS);
 }
 
 // Downloads the speech for an alert. Any failure (speech off, engine down, slow
@@ -62,9 +67,23 @@ async function loadSpeech(
 }
 
 function releaseSpeech(a: QueuedAlert) {
+  a.clip?.pause();
   if (!a.audio) return;
   a.audio.pause();
   URL.revokeObjectURL(a.audio.src);
+}
+
+// The sound is a plain file on a public URL, so it loads as an ordinary audio
+// element. A broken file or slow network never holds up the alert.
+function loadClip(sound: { url: string; volume: number }): HTMLAudioElement | undefined {
+  try {
+    const clip = new Audio(sound.url);
+    clip.preload = "auto";
+    clip.volume = Math.min(1, Math.max(0.1, sound.volume / 100));
+    return clip;
+  } catch {
+    return undefined;
+  }
 }
 
 function rupees(paise: number) {
@@ -126,6 +145,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         const body = (await res.json()) as { alert: OverlayAlert | null };
         if (body.alert) {
           const alert: QueuedAlert = body.alert;
+          if (alert.sound) alert.clip = loadClip(alert.sound);
           if (alert.speech) {
             const speech = await loadSpeech(token, alert.id);
             if (speech) {
@@ -152,12 +172,33 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       // Start the voice with the card. A normal browser tab blocks sound until
       // someone clicks; OBS's browser source allows it, so a refused play is
       // simply silent.
-      current.audio?.play().catch(() => {});
+      // The sound plays first and the voice starts when it ends. If the sound
+      // cannot play (blocked, broken file) the voice starts at once; a timer
+      // covers a clip that never reports its end.
+      const { audio, clip, sound } = current;
+      let started = false;
+      const startVoice = () => {
+        if (started) return;
+        started = true;
+        audio?.play().catch(() => {});
+      };
+      let fallback: ReturnType<typeof setTimeout> | undefined;
+      if (clip && sound) {
+        clip.addEventListener("ended", startVoice, { once: true });
+        clip.addEventListener("error", startVoice, { once: true });
+        fallback = setTimeout(startVoice, sound.ms + 500);
+        clip.play().catch(startVoice);
+      } else {
+        startVoice();
+      }
       const t = setTimeout(() => {
         releaseSpeech(current);
         setCurrent(null);
       }, showMs(current));
-      return () => clearTimeout(t);
+      return () => {
+        clearTimeout(t);
+        clearTimeout(fallback);
+      };
     }
     const t = setInterval(() => {
       const next = queue.current.shift();

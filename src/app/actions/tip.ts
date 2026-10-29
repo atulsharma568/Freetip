@@ -3,6 +3,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { checkPick } from "@/lib/sounds";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
@@ -59,6 +60,7 @@ export async function createTipOrder(
   fanName: string | null,
   fanMessage: string | null,
   anonymous: boolean,
+  soundId: number | null = null,
 ): Promise<TipOrderResult> {
   if (!Number.isInteger(amountPaise) || amountPaise < 100) {
     return { status: "error", message: "Invalid tip amount" };
@@ -113,6 +115,25 @@ export async function createTipOrder(
     };
   }
 
+  // The fan's sound pick. The creator's rules are enforced here, not on the page.
+  if (soundId !== null) {
+    if (!Number.isSafeInteger(soundId)) {
+      return { status: "error", message: "That sound is no longer available. Pick another or clear your choice." };
+    }
+    let sound: { enabled: boolean; min_paise: number } | undefined;
+    try {
+      [sound] = await db<{ enabled: boolean; min_paise: number }[]>`
+        select enabled, min_paise from creator_sounds
+        where id = ${soundId} and creator_id = ${creator.id}
+      `;
+    } catch (err) {
+      // The sounds table (migration 0013) is missing: refuse the pick, not the tip.
+      console.error("Tip: could not check the sound pick.", err);
+    }
+    const problem = checkPick(sound, amountPaise);
+    if (problem) return { status: "error", message: problem };
+  }
+
   const publicReference = `tip_${randomBytes(8).toString("hex")}`;
 
   // Create Razorpay order.
@@ -153,15 +174,28 @@ export async function createTipOrder(
     const storedMessage = fanMessage?.trim() || null;
 
     await db.begin(async (tx) => {
-      const orders = await tx<{ id: number }[]>`
-        insert into tip_orders
-          (creator_id, public_reference, gross_amount_minor, currency,
-           fan_name, fan_message, anonymous, status)
-        values
-          (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-           ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
-        returning id
-      `;
+      // The sound_id column comes from migration 0013, so it is only written when
+      // the fan picked a sound: every other tip works before the migration is run.
+      const orders =
+        soundId === null
+          ? await tx<{ id: number }[]>`
+              insert into tip_orders
+                (creator_id, public_reference, gross_amount_minor, currency,
+                 fan_name, fan_message, anonymous, status)
+              values
+                (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+                 ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
+              returning id
+            `
+          : await tx<{ id: number }[]>`
+              insert into tip_orders
+                (creator_id, public_reference, gross_amount_minor, currency,
+                 fan_name, fan_message, anonymous, status, sound_id)
+              values
+                (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+                 ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending', ${soundId})
+              returning id
+            `;
 
       await tx`
         insert into payment_attempts

@@ -9,6 +9,7 @@ import { TickLoader } from "@/components/ui/TickLoader";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { createTipOrder } from "@/app/actions/tip";
 import { tipTier } from "@/lib/tip-tier";
+import type { TipSound } from "./creator";
 
 // Razorpay checkout is loaded via a <script> tag at payment time.
 declare global {
@@ -91,6 +92,84 @@ function AlertCard({
       <p className={`mt-2 break-words text-sm leading-snug ${message ? "text-muted" : "text-control"}`}>
         {message || "Your message shows up here."}
       </p>
+    </div>
+  );
+}
+
+// One clip at a time, so previews never stack up.
+let previewing: HTMLAudioElement | null = null;
+function playPreview(url: string) {
+  previewing?.pause();
+  const audio = new Audio(url);
+  previewing = audio;
+  audio.play().catch(() => {});
+}
+
+// The creator's sounds. The first tile is "no pick": the creator's own default
+// plays, or nothing if they set none. A sound above the tip amount is locked and
+// says what it takes to unlock it. The server checks the pick again.
+function SoundPicker({
+  sounds,
+  selected,
+  amountPaise,
+  onSelect,
+}: {
+  sounds: TipSound[];
+  selected: number | null;
+  amountPaise: number;
+  onSelect: (id: number | null) => void;
+}) {
+  const tile =
+    "flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-field)] border px-3 py-2 text-left text-sm transition-[border-color,background-color] duration-150";
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted">
+        Alert sound <span className="text-control">(optional)</span>
+      </p>
+      <div role="radiogroup" aria-label="Alert sound" className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selected === null}
+          onClick={() => onSelect(null)}
+          className={`${tile} ${selected === null ? "border-accent bg-accent/10 text-text" : "border-control text-muted hover:border-muted"}`}
+        >
+          <span aria-hidden="true">✦</span>
+          <span className="min-w-0 flex-1 truncate">Streamer&apos;s default</span>
+        </button>
+        {sounds.map((s) => {
+          const locked = amountPaise < s.minPaise;
+          const on = selected === s.id;
+          return (
+            <div key={s.id} className="flex gap-1">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={on}
+                disabled={locked}
+                onClick={() => onSelect(s.id)}
+                className={`${tile} ${on ? "border-accent bg-accent/10 text-text" : "border-control text-text hover:border-muted"} ${
+                  locked ? "cursor-not-allowed opacity-50" : ""
+                }`}
+              >
+                <span aria-hidden="true">{s.emoji || "◉"}</span>
+                <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                <span className="numeric shrink-0 text-xs text-muted">
+                  {s.minPaise ? `₹${Math.ceil(s.minPaise / 100)}+` : "any"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => playPreview(s.url)}
+                aria-label={`Preview ${s.name}`}
+                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-control text-sm text-text transition-[transform,border-color] hover:border-muted active:scale-[0.95]"
+              >
+                ▶
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -284,6 +363,7 @@ interface Props {
   minTipPaise: number;
   messageMaxChars: number;
   bio: string | null;
+  sounds: TipSound[];
   previewMode?: boolean;
 }
 
@@ -296,6 +376,7 @@ export function TipForm({
   minTipPaise,
   messageMaxChars,
   bio,
+  sounds,
   previewMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -307,6 +388,7 @@ export function TipForm({
   const [tipName, setTipName] = useState("");
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [soundId, setSoundId] = useState<number | null>(null);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -338,9 +420,16 @@ export function TipForm({
   const amountPaise = Math.round(amountRupees * 100);
   // The name the overlay will show; it falls back to "Anonymous" the same way.
   const alertName = anonymous ? "Anonymous" : tipName.trim() || "Anonymous";
+  // A picked sound needs a big enough tip; lowering the amount afterwards blocks the
+  // button until the fan raises it again or picks another sound.
+  const chosenSound = sounds.find((s) => s.id === soundId) ?? null;
+  const soundTooPricey = !!chosenSound && amountPaise < chosenSound.minPaise;
   // After an error the fan can try again; only a request or the popup in flight blocks it.
   const canPay =
-    !previewMode && amountPaise >= minTipPaise && (phase === "idle" || phase === "error");
+    !previewMode &&
+    amountPaise >= minTipPaise &&
+    !soundTooPricey &&
+    (phase === "idle" || phase === "error");
 
   async function handlePay() {
     if (!canPay) return;
@@ -355,6 +444,7 @@ export function TipForm({
         anonymous ? null : tipName.trim() || null,
         message.trim() || null,
         anonymous,
+        soundId,
       );
     } catch {
       setPhase("error");
@@ -426,6 +516,7 @@ export function TipForm({
           setMessage("");
           setTipName("");
           setAnonymous(false);
+          setSoundId(null);
           setPaidAmount(0);
         }}
       />
@@ -606,6 +697,15 @@ export function TipForm({
                 {message.length}/{messageMaxChars}
               </p>
             </div>
+            {sounds.length > 0 && (
+              <SoundPicker sounds={sounds} selected={soundId} amountPaise={amountPaise} onSelect={setSoundId} />
+            )}
+            {soundTooPricey && chosenSound && (
+              <p role="alert" className="text-sm text-red-400">
+                Tip at least ₹{Math.ceil(chosenSound.minPaise / 100)} to play {chosenSound.name}, or pick another
+                sound.
+              </p>
+            )}
           </div>
 
           {/* 03 Send */}
@@ -623,7 +723,7 @@ export function TipForm({
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={previewMode || amountPaise < minTipPaise || phase === "creating" || phase === "checkout"}
+                disabled={previewMode || amountPaise < minTipPaise || soundTooPricey || phase === "creating" || phase === "checkout"}
                 className="beam w-full h-14 rounded-full bg-accent text-base font-semibold text-ink transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center justify-center gap-3"
               >
                 {phase === "creating" ? (

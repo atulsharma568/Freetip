@@ -27,3 +27,36 @@ export const getCreator = cache(async (handle: string): Promise<CreatorRow | nul
   `;
   return rows[0] ?? null;
 });
+
+export interface TipSound {
+  id: number;
+  name: string;
+  emoji: string;
+  minPaise: number;
+  url: string;
+}
+
+// The sounds fans may pick. Empty when the creator has none, and also when the
+// sounds table (migration 0013) does not exist yet, so the tip page keeps working.
+export const getTipSounds = cache(async (handle: string): Promise<TipSound[]> => {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const rows = await db<{ id: number; name: string; emoji: string | null; min_paise: number; blob_url: string }[]>`
+      select s.id, s.name, s.emoji, s.min_paise, s.blob_url
+      from creator_sounds s
+      join users u on u.id = s.creator_id
+      where u.handle = ${handle} and s.enabled
+      order by s.min_paise, s.created_at, s.id
+    `;
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      emoji: r.emoji ?? "",
+      minPaise: r.min_paise,
+      url: r.blob_url,
+    }));
+  } catch {
+    return [];
+  }
+});

@@ -77,7 +77,7 @@ export function feeBreakdown(rupees: number) {
 // Services that process personal data for us. "planned" ones are not used yet.
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
-  { name: "Vercel", role: "website hosting", status: "active" },
+  { name: "Vercel", role: "website hosting and the sound files creators upload", status: "active" },
   { name: "Neon", role: "database (waitlist entries and contact messages now; accounts and tips later)", status: "active" },
   { name: "Resend", role: "emailing us a copy of each contact message (your name, email and message pass through it)", status: "planned" },
   { name: "Amazon Web Services (Polly)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },

@@ -322,6 +322,14 @@ const SECTIONS: LegalSection[] = [
           aloud the name and message they add to a tip.
         </p>
         <p>
+          Creators can upload short sounds that fans pick to play with their
+          alert. You may upload only sounds you made or have the right to use
+          on your stream, and you are responsible for them, including any
+          copyright claim they cause. We can listen to, hide or remove any
+          sound, and may do so if we are told it breaks someone’s rights or
+          section 10.
+        </p>
+        <p>
           {SITE_NAME}’s name, logo, design and software belong to us. You may
           not copy them or use them in a way that suggests we endorse you.
         </p>
