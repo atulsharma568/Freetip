@@ -77,10 +77,19 @@ export function GlobalBackground() {
       return () => clearTimeout(id);
     }
 
+    // Once the title screen is gone, by any route (gesture or timer), the three
+    // listeners must go too, or the next wheel, touch or scroll key would still
+    // be swallowed.
     let dismissed = false;
+    const detach = () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("keydown", onKey);
+    };
     const sink = () => {
       if (dismissed) return;
       dismissed = true;
+      detach();
       setSunk(true);
       document.body.classList.add("page-scrolled");
     };
@@ -88,7 +97,20 @@ export function GlobalBackground() {
     const onWheel = (e: WheelEvent) => { e.preventDefault(); sink(); };
     const onTouch = (e: TouchEvent) => { e.preventDefault(); sink(); };
     const SCROLL_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", " "]);
-    const onKey = (e: KeyboardEvent) => { if (SCROLL_KEYS.has(e.key)) { e.preventDefault(); sink(); } };
+    // Space and the arrows mean something else on these: typing a space, moving
+    // the caret, activating a button, changing a select or a radio group. Leave
+    // those keys alone; the timer still ends the title screen.
+    const OWN_KEYS =
+      'input, textarea, select, button, summary, [contenteditable=""], [contenteditable="true"],' +
+      ' [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"],' +
+      ' [role="menuitem"], [role="slider"], [role="spinbutton"], [role="combobox"],' +
+      ' [role="listbox"], [role="option"], [role="textbox"]';
+    const onKey = (e: KeyboardEvent) => {
+      if (!SCROLL_KEYS.has(e.key)) return;
+      if (e.target instanceof Element && e.target.closest(OWN_KEYS)) return;
+      e.preventDefault();
+      sink();
+    };
 
     // Auto-sink so the hero is never permanently hidden. The title screen is
     // held for 5.2 s from when the splash ends (the logo builds during it);
@@ -105,16 +127,14 @@ export function GlobalBackground() {
       startHold();
     }
 
-    window.addEventListener("wheel", onWheel, { once: true, passive: false });
-    window.addEventListener("touchmove", onTouch, { once: true, passive: false });
-    window.addEventListener("keydown", onKey, { once: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchmove", onTouch, { passive: false });
+    window.addEventListener("keydown", onKey);
 
     return () => {
       clearTimeout(autoSink);
       window.removeEventListener("splash:done", startHold);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchmove", onTouch);
-      window.removeEventListener("keydown", onKey);
+      detach();
     };
   }, []);
 
