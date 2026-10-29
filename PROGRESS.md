@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-29, updated after untracking .env.local)
+
+- **Owner action, urgent: rotate the secrets that were in `.env.local`.** The repo is public, and commit `ea688dc` ("back up .env.local in the private repo", made when the repo was private) put `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET` into its history. Stopping tracking (this commit) does not remove them from history, and history is not rewritten (no force-push). Treat all three as exposed: (1) in Neon reset the database role's password (or create a new role) and put the new `DATABASE_URL` in Vercel and in your local `.env.local`; (2) generate a new `WAITLIST_SALT` (16+ characters, random; the only effect is that the per-network rate-limit hashes restart) and a new `CRON_SECRET`, set both in Vercel, then redeploy; (3) if that Neon database is also the live one, check its logs for unknown connections. Other secrets (Razorpay, Google, AWS Polly, Resend keys) were not in the file; a scan of all history found no other env, key or credential files.
+- `.env.local` is no longer tracked (`git rm --cached`; the file is still on disk). `.gitignore` already ignores `.env*` except `.env.example`, so it will not come back by accident.
+
 ## Current state (2026-10-29, updated after the logo performance check)
 
 - **Decision: the logo is not changed.** The two ideas deferred earlier (pre-splitting the letter paths so the body path is not drawn as 8 clipped copies, and a precomputed spine point table) were measured first and are not worth doing. Setup: production build, real Chrome, Pixel-sized viewport (390x844 at 2x, touch), CPU throttled 4x and 6x to stand in for a low-end phone, 3 runs per case, frame times from `requestAnimationFrame` over 8 to 9 s, plus a CPU profile of the main thread. Two scenarios: the title-screen intro, and the large looping footer logo scrolled into view.
