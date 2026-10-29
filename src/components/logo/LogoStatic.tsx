@@ -14,7 +14,7 @@ import {
   LOGO_COIN_MID,
   LOGO_COIN_RIM,
   LOGO_COIN_SYMBOL,
-  LOGO_OLIVE,
+  LOGO_ACCENT,
 } from "./logoStyle";
 
 // The finished logo with no animation and no hooks, so it can render in
@@ -33,8 +33,8 @@ export function LogoStatic({ height, color = "#eff0ea" }: { height: number; colo
       </defs>
       <path d={LOGO_BODY} fill={color} fillRule="evenodd" />
       <path d={LOGO_I_DOT} fill={color} fillRule="evenodd" />
-      <path d={LOGO_BANG_BODY} fill={LOGO_OLIVE} fillRule="evenodd" />
-      <path d={LOGO_BANG_DOT} fill={LOGO_OLIVE} fillRule="evenodd" />
+      <path d={LOGO_BANG_BODY} fill={LOGO_ACCENT} fillRule="evenodd" />
+      <path d={LOGO_BANG_DOT} fill={LOGO_ACCENT} fillRule="evenodd" />
       <g transform={`translate(${LOGO_COIN.cx} ${LOGO_COIN.cy})`}>
         <circle r={LOGO_COIN.r} fill="url(#logo-coin-face)" stroke={LOGO_COIN_LINE} strokeWidth="6" />
         <circle r={LOGO_COIN.r - 13} stroke={LOGO_COIN_RIM} strokeWidth="6" opacity="0.85" />
