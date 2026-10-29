@@ -103,19 +103,111 @@ html.lenis body {
    Only the page that has a title screen (the one holding .page-content, the
    home page) is affected. Without the :has() these rules matched every route,
    where nothing ever adds page-scrolled, and locked the body: no keyboard or
-   touch scrolling on the legal, contact, sign-in, tip and dashboard pages. */
+   touch scrolling on the legal, contact, sign-in, tip and dashboard pages.
+
+   Failsafe, in CSS so it works when scripts fail or are blocked: if
+   page-scrolled has still not been added after --title-failsafe (well past the
+   splash and the 5.2 s hold), the content shows, the splash overlay goes, the
+   scroll lock lifts and the paused entry animations jump to their end,
+   instead of leaving a blank page for good. The animations only apply while
+   the page is still on the title screen, so they stop the moment
+   page-scrolled arrives.
+   The hidden content takes no clicks or taps: an invisible link is a trap. */
+:root {
+  --title-failsafe: 15s;
+}
+@keyframes title-failsafe-unlock {
+  to {
+    overflow: visible;
+  }
+}
+@keyframes title-failsafe-show {
+  to {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@keyframes title-failsafe-hide {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
 .page-content {
   transition: opacity 600ms ease-out;
 }
 body:has(.page-content):not(.page-scrolled) {
   overflow: hidden;
+  animation: title-failsafe-unlock 0s linear var(--title-failsafe) forwards;
 }
 body:has(.page-content):not(.page-scrolled) .page-content {
   opacity: 0;
+  pointer-events: none;
+  animation: title-failsafe-show 0s linear var(--title-failsafe) forwards;
 }
-body:has(.page-content):not(.page-scrolled) .rise,
-body:has(.page-content):not(.page-scrolled) .enter {
-  animation-play-state: paused;
+body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
+  animation: title-failsafe-hide 0s linear var(--title-failsafe) forwards;
+}
+/* The entry animations stay paused on their first frame until the title screen
+   ends. Each gets a second animation that jumps it to its end state at the
+   failsafe time, so nothing is left invisible if the page never wakes. The
+   values repeat the .enter and .rise rules further down; keep them in step. */
+@keyframes title-failsafe-enter {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes title-failsafe-rise {
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  body:has(.page-content):not(.page-scrolled) .enter {
+    animation-name: enter, title-failsafe-enter;
+    animation-duration: 1100ms, 0s;
+    animation-timing-function: var(--ease-out-expo), linear;
+    animation-delay: calc(var(--i, 0) * 120ms + 100ms), var(--title-failsafe);
+    animation-fill-mode: both, forwards;
+    animation-play-state: paused, running;
+  }
+  body:has(.page-content):not(.page-scrolled) .rise {
+    animation-name: rise, title-failsafe-rise;
+    animation-duration: 900ms, 0s;
+    animation-timing-function: var(--ease-out-expo), linear;
+    animation-delay: calc(var(--i, 0) * 60ms), var(--title-failsafe);
+    animation-fill-mode: both, forwards;
+    animation-play-state: paused, running;
+  }
+}
+
+/* The title screen's "scroll" cue: wording for a mouse or a finger, and a
+   gentle bob on the arrow when motion is allowed. */
+.title-cue-touch {
+  display: none;
+}
+@media (hover: none) {
+  .title-cue-pointer {
+    display: none;
+  }
+  .title-cue-touch {
+    display: inline;
+  }
+}
+@keyframes title-cue-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .title-cue-arrow {
+    animation: title-cue-bob 1.8s ease-in-out infinite;
+  }
 }
 
 .lenis.lenis-smooth {

@@ -65,6 +65,8 @@ export function GlobalBackground() {
   const back = useRef<HTMLCanvasElement>(null);
   const front = useRef<HTMLCanvasElement>(null);
   const [sunk, setSunk] = useState(false);
+  // The "scroll" cue shows once the logo has had a moment to build.
+  const [cue, setCue] = useState(false);
 
   // Sink on first scroll intent (wheel, touch, keyboard), OR after a timeout.
   // The first gesture must ONLY dismiss the title screen — not scroll the page.
@@ -85,6 +87,8 @@ export function GlobalBackground() {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("pointerdown", onPointer);
     };
     const sink = () => {
       if (dismissed) return;
@@ -115,13 +119,26 @@ export function GlobalBackground() {
       sink();
     };
 
+    // Focus moving into the page while its content is still hidden (a keyboard
+    // user pressing Tab) would leave them on something they cannot see, and a
+    // tap or click on the title screen means "continue". Both end the title
+    // screen; neither event is blocked, so the control or link still works.
+    const onFocusIn = (e: FocusEvent) => {
+      if (e.target instanceof Element && e.target.closest(".page-content")) sink();
+    };
+    const onPointer = () => sink();
+
     // Auto-sink so the hero is never permanently hidden. The title screen is
     // held for 5.2 s from when the splash ends (the logo builds during it);
-    // the 9 s fallback covers a splash that never reports back.
+    // the 9 s fallback covers a splash that never reports back. (If scripts
+    // fail altogether, a CSS failsafe in globals.css reveals the page.)
     let autoSink: ReturnType<typeof setTimeout>;
+    let cueTimer: ReturnType<typeof setTimeout>;
     const startHold = () => {
       clearTimeout(autoSink);
       autoSink = setTimeout(sink, 5200);
+      clearTimeout(cueTimer);
+      cueTimer = setTimeout(() => setCue(true), 1400);
     };
     if (document.body.dataset.splash === "true") {
       window.addEventListener("splash:done", startHold, { once: true });
@@ -133,9 +150,12 @@ export function GlobalBackground() {
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchmove", onTouch, { passive: false });
     window.addEventListener("keydown", onKey);
+    window.addEventListener("focusin", onFocusIn);
+    window.addEventListener("pointerdown", onPointer);
 
     return () => {
       clearTimeout(autoSink);
+      clearTimeout(cueTimer);
       window.removeEventListener("splash:done", startHold);
       detach();
     };
@@ -255,6 +275,28 @@ export function GlobalBackground() {
         />
       </div>
       <canvas ref={front} className="absolute inset-0" />
+      <p
+        data-title-cue
+        className={`absolute inset-x-0 bottom-8 flex flex-col items-center gap-1 text-sm font-medium text-muted transition-opacity duration-500 ${
+          cue && !sunk ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <span className="title-cue-pointer">Scroll to continue</span>
+        <span className="title-cue-touch">Swipe up to continue</span>
+        <svg
+          className="title-cue-arrow"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m3.5 6 4.5 4.5L12.5 6" />
+        </svg>
+      </p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { skipTitleScreen } from "./helpers";
 
 test.describe("keyboard and stream controls", () => {
   for (const route of [
@@ -34,6 +35,7 @@ test.describe("keyboard and stream controls", () => {
 
   test("stream settings expose and toggle aria-checked state", async ({ page }) => {
     await page.goto("/", { waitUntil: "networkidle" });
+    await skipTitleScreen(page);
 
     const settings = page.locator("#stream");
     await settings.scrollIntoViewIfNeeded();

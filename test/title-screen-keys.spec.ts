@@ -15,6 +15,9 @@ const titleScreenUp = () =>
 async function openTitleScreen(page: Page) {
   await page.clock.install();
   await page.goto("/");
+  // The CSS failsafe runs on real time, not the fake clock: switch it off here so a
+  // slow test run can't have it reveal the page part-way through.
+  await page.addStyleTag({ content: ":root{--title-failsafe:1000s}" });
   // The fake clock runs on after install until paused; pause it a little ahead of
   // the page's own time (a slow load can overtake the first try, so try again).
   for (let margin = 2_000; ; margin *= 2) {
@@ -27,8 +30,8 @@ async function openTitleScreen(page: Page) {
     }
   }
   // Run the splash forward until it hands over to the title screen.
-  for (let i = 0; i < 300 && !(await page.evaluate(titleScreenUp)); i++) {
-    await page.clock.runFor(100);
+  for (let i = 0; i < 120 && !(await page.evaluate(titleScreenUp)); i++) {
+    await page.clock.runFor(250);
   }
   expect(await page.evaluate(titleScreenUp)).toBe(true);
 }
@@ -45,13 +48,23 @@ const pageScrolled = (page: Page) =>
   page.evaluate(() => document.body.classList.contains("page-scrolled"));
 
 test.describe("title screen keys", () => {
+  // Running the splash forward draws every frame of it, which takes a while when the
+  // machine is busy; the default 30 s was not always enough.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(async ({ page }) => {
     await openTitleScreen(page);
   });
 
   test("a space typed into a field is kept and does not dismiss the title screen", async ({ page }) => {
-    const field = page.locator("input[type=text], input:not([type])").first();
-    await field.evaluate((el) => (el as HTMLInputElement).focus());
+    // A field of our own, outside the hidden page: focusing one inside it ends the title screen.
+    const field = page.locator("#probe-field");
+    await page.evaluate(() => {
+      const input = document.createElement("input");
+      input.id = "probe-field";
+      document.body.appendChild(input);
+      input.focus();
+    });
     await page.keyboard.type(" b"); // the first key is the space
     await expect(field).toHaveValue(" b");
     expect(await pageScrolled(page)).toBe(false);
@@ -94,6 +107,44 @@ test.describe("title screen keys", () => {
     await page.keyboard.press("Space");
     expect(await page.evaluate(() => (window as unknown as { blocked?: boolean }).blocked)).toBe(false);
     expect(await pageScrolled(page)).toBe(false);
+  });
+
+  test("Tabbing into the hidden page ends the title screen instead of stranding focus", async ({ page }) => {
+    await page.keyboard.press("Tab"); // the skip link is visible, so this is fine
+    expect(await pageScrolled(page)).toBe(false);
+    await page.keyboard.press("Tab"); // the first control in the hidden page
+    expect(await pageScrolled(page)).toBe(true);
+  });
+
+  test("the hidden page takes no clicks, and a click on the title screen continues", async ({ page }) => {
+    const hidden = page.locator(".page-content");
+    await expect(hidden).toHaveCSS("pointer-events", "none");
+    const link = page.locator(".page-content a[href]").first();
+    const box = await link.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    expect(new URL(page.url()).pathname).toBe("/"); // the invisible link was not followed
+    expect(await pageScrolled(page)).toBe(true);
+  });
+
+  test("a 'scroll' cue appears after a moment and goes when the title screen does", async ({ page }) => {
+    const cue = page.locator("[data-title-cue]");
+    await expect(cue).toHaveCSS("opacity", "0");
+    await page.clock.runFor(1_500);
+    await expect(cue).toHaveCSS("opacity", "1");
+    await page.keyboard.press("Space");
+    await expect(cue).toHaveCSS("opacity", "0");
+  });
+
+  test("the entry animations wait through the title screen, then still play", async ({ page }) => {
+    const enter = page.locator(".page-content .enter").first();
+    // Paused on the first frame while the title screen is up (CSS animations run on
+    // real time, not the fake clock, so give them time to show they really are held).
+    await page.waitForTimeout(1_500);
+    await expect(enter).toHaveCSS("opacity", "0");
+    await page.keyboard.press("Space"); // ends the title screen
+    // Once it ends they play out as before and finish visible.
+    await expect(enter).toHaveCSS("opacity", "1", { timeout: 8_000 });
   });
 
   test("the first touch only dismisses the title screen, then touch is left alone", async ({ page }) => {

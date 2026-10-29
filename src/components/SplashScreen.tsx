@@ -35,6 +35,7 @@ export function SplashScreen() {
   return (
     <div
       aria-hidden="true"
+      data-splash-overlay
       className={`fixed inset-0 z-[100] bg-ground flex items-center transition-opacity duration-700 motion-reduce:duration-0 ease-out${fading ? " pointer-events-none opacity-0" : ""}`}
     >
       {/* Constrain height on portrait phones so the SVG doesn't scale up to

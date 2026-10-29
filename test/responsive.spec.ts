@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { skipTitleScreen } from "./helpers";
 
 const widths = [320, 390, 1440] as const;
 const publicRoutes = [
@@ -70,6 +71,7 @@ test.describe("no horizontal overflow", () => {
 test("On stream's approval row fits a 320px phone", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await skipTitleScreen(page);
   // The first sample approves itself after about 1.5s. Touching a setting
   // hands approval to the visitor, so the row stays until Approve is pressed.
   // A click before hydration is replayed by React later, so only click again

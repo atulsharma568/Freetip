@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { skipTitleScreen } from "./helpers";
 
 // The waitlist form is the closing section of the home page. /signup is the
 // Google sign-up page and no longer holds a form; the channel field was
@@ -6,6 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 test.describe("waitlist validation", () => {
   async function openHome(page: Page) {
     await page.goto("/", { waitUntil: "networkidle" });
+    await skipTitleScreen(page);
   }
 
   const join = (page: Page) =>
