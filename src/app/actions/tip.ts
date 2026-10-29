@@ -1,11 +1,57 @@
 "use server";
 
-import { randomBytes } from "crypto";
+import { createHmac, randomBytes } from "crypto";
+import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
   | { status: "ok"; razorpayOrderId: string; razorpayKeyId: string; amountPaise: number };
+
+// Tips one network may start per hour. High on purpose: Indian mobile users share
+// one address behind their carrier, and turning away a fan who is about to pay
+// costs more than an unpaid order does. This only stops a script creating orders
+// without end.
+const ORDER_LIMIT_PER_HOUR = 60;
+
+// True when this network may start another tip, and counts it. Never the reason a
+// payment fails: if the check can't run (no salt or address, or the table from
+// migration 0012 is missing) it logs and lets the tip through.
+async function underOrderLimit(db: NonNullable<ReturnType<typeof getDb>>): Promise<boolean> {
+  const salt = process.env.WAITLIST_SALT;
+  if (!salt || salt.length < 16) {
+    console.error("Tip: WAITLIST_SALT is not set, so tips are not rate limited.");
+    return true;
+  }
+
+  const list = await headers();
+  const ip = list.get("x-forwarded-for")?.split(",")[0]?.trim() || list.get("x-real-ip");
+  // With no address every visitor would share one count and could lock each other out.
+  if (!ip) return true;
+  // Only a keyed hash of the address is kept, and only for the hour the limit needs it.
+  const ipHash = createHmac("sha256", salt).update(ip).digest("hex");
+
+  try {
+    return await db.begin(async (tx) => {
+      // One request per network at a time, so a burst can't all read the count
+      // before any of it is recorded. The lock is released when the transaction ends.
+      await tx`select pg_advisory_xact_lock(hashtextextended(${ipHash}, 0))`;
+      const [{ recent }] = await tx<{ recent: number }[]>`
+        select count(*)::int as recent from tip_order_attempts
+        where ip_hash = ${ipHash} and created_at > now() - interval '1 hour'
+      `;
+      // A refused request is not recorded, so a flood can't keep real users on the
+      // same address locked out beyond the hour.
+      if (recent >= ORDER_LIMIT_PER_HOUR) return false;
+      await tx`insert into tip_order_attempts (ip_hash) values (${ipHash})`;
+      await tx`delete from tip_order_attempts where created_at < now() - interval '1 hour'`;
+      return true;
+    });
+  } catch (err) {
+    console.error("Tip: rate limit check failed, letting the tip through.", err);
+    return true;
+  }
+}
 
 export async function createTipOrder(
   handle: string,
@@ -35,6 +81,13 @@ export async function createTipOrder(
 
   const db = getDb();
   if (!db) return { status: "error", message: "Service unavailable — try again shortly" };
+
+  if (!(await underOrderLimit(db))) {
+    return {
+      status: "error",
+      message: "Too many tips started from your network — please try again in a little while",
+    };
+  }
 
   // Fetch creator — must be active.
   const creators = await db<{ id: number; min_tip_paise: number; message_max_chars: number }[]>`

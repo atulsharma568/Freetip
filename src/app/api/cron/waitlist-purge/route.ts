@@ -2,7 +2,7 @@ import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/db";
 
 // Daily clean-up, run by Vercel Cron (see vercel.json). Deletes rate-limit
-// rows (waitlist and contact form) older than an hour, so hashed IP addresses
+// rows (waitlist, contact form and tips) older than an hour, so hashed IP addresses
 // don't linger on days when nobody uses them. Vercel sends CRON_SECRET as a
 // bearer token.
 export async function GET(request: Request) {
@@ -21,5 +21,7 @@ export async function GET(request: Request) {
   await sql`delete from waitlist_attempts where created_at < now() - interval '1 hour'`;
   // Table from migration 0011; skip quietly where it hasn't been run yet.
   await sql`delete from contact_attempts where created_at < now() - interval '1 hour'`.catch(() => null);
+  // Table from migration 0012; same.
+  await sql`delete from tip_order_attempts where created_at < now() - interval '1 hour'`.catch(() => null);
   return new Response("OK");
 }
