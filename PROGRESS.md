@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-29, updated after the logo seam fix)
+
+- Fixed two hairline seams in the finished logo (owner report: a visible line on the F and the p). Cause: each letter is a separate clip of one traced shape, and clips that only touch draw their edge pixels at partial coverage. On the F the cut between F and r runs through the F's top arm (it overhangs the r), leaving a vertical line near the arm's end; the p had the same kind of line where its left cut meets the swoosh. Now neighbouring letter clips overlap by `SEAM` (2 logo units), and the F/r cut steps: above `ARM_BOTTOM` (234) the arm belongs to the F, below it the r starts at the cut (`src/components/logo/Logo.tsx`).
+- Verified: zoomed screenshots (3x) of the F and p before and after in real Chrome show the lines gone at rest; tsc, eslint and the production build pass. Not run: the Playwright suite, and a frame-by-frame look at the letter swing (the overlap is 2 units, so it should not show). Check on a real phone.
+
 ## Current state (2026-10-29, updated after untracking .env.local)
 
 - **Owner action, urgent: rotate the secrets that were in `.env.local`.** The repo is public, and commit `ea688dc` ("back up .env.local in the private repo", made when the repo was private) put `DATABASE_URL`, `WAITLIST_SALT` and `CRON_SECRET` into its history. Stopping tracking (this commit) does not remove them from history, and history is not rewritten (no force-push). Treat all three as exposed: (1) in Neon reset the database role's password (or create a new role) and put the new `DATABASE_URL` in Vercel and in your local `.env.local`; (2) generate a new `WAITLIST_SALT` (16+ characters, random; the only effect is that the per-network rate-limit hashes restart) and a new `CRON_SECRET`, set both in Vercel, then redeploy; (3) if that Neon database is also the live one, check its logs for unknown connections. Other secrets (Razorpay, Google, AWS Polly, Resend keys) were not in the file; a scan of all history found no other env, key or credential files.

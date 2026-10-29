@@ -40,6 +40,9 @@ const LETTER_TOP = 100;
 const LETTER_BOTTOM = 458; // the swoosh is the part of the artwork below this line
 const P_BOTTOM = 640; // the p keeps its tail, so its clip runs lower
 const VIEW_W = 1620;
+const SEAM = 2; // how far neighbouring letter clips overlap, in logo units
+const ARM_REACH = 60; // how far the F's top arm runs past the F/r cut
+const ARM_BOTTOM = 234; // the arm's underside; the r's top is just below it
 
 // Browsers may report a colour in a space GSAP cannot blend (oklab, color-mix),
 // so draw one pixel with it and read back plain rgb().
@@ -430,9 +433,18 @@ export function Logo({
         {Array.from({ length: LETTER_COUNT }, (_, i) => {
           const x = LOGO_LETTER_CUTS[i];
           const bottom = i === LETTER_COUNT - 1 ? P_BOTTOM : LETTER_BOTTOM;
+          // Neighbouring clips overlap by SEAM units: two clips that only touch each draw the edge
+          // pixels at partial coverage and leave a hairline between them.
+          const width = LOGO_LETTER_CUTS[i + 1] - x + (i === LETTER_COUNT - 1 ? 0 : SEAM);
+          // The F's top arm reaches over the r, so the cut between them steps: above ARM_BOTTOM the
+          // arm belongs to the F, below it the r starts at the cut.
+          const armEnd = LOGO_LETTER_CUTS[1] + ARM_REACH;
+          let d = `M${x} ${LETTER_TOP}h${width}V${bottom}H${x}Z`;
+          if (i === 0) d = `M${x} ${LETTER_TOP}H${armEnd}V${ARM_BOTTOM}H${x + width}V${bottom}H${x}Z`;
+          if (i === 1) d = `M${x - SEAM} ${ARM_BOTTOM - SEAM}h${width + SEAM}V${bottom}H${x - SEAM}Z`;
           return (
             <clipPath key={i} id={`${id}-l${i}`}>
-              <rect x={x} y={LETTER_TOP} width={LOGO_LETTER_CUTS[i + 1] - x} height={bottom - LETTER_TOP} />
+              <path d={d} />
             </clipPath>
           );
         })}
