@@ -93,6 +93,23 @@ export async function POST(request: Request): Promise<Response> {
             where id = ${updated[0].tip_order_id}
               and status not in ('refunded', 'disputed', 'closed')
           `;
+        } else {
+          // Nothing to update is normal for a duplicate webhook. No row at all means
+          // money was captured for an order we never saved (createTipOrder saves
+          // before the fan can pay, so this is not expected): log it so it is found.
+          // We still answer 200: a retry can't create the row, and repeated failures
+          // can get the webhook switched off at Razorpay.
+          const known = await tx`
+            select 1 from payment_attempts where provider_order_ref = ${payment.order_id} limit 1
+          `;
+          if (known.length === 0) {
+            console.error(
+              "Razorpay capture with no matching payment attempt",
+              payment.id,
+              payment.order_id,
+              payment.amount,
+            );
+          }
         }
       });
       break;

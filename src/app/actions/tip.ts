@@ -90,30 +90,36 @@ export async function createTipOrder(
     return { status: "error", message: "Could not start payment — try again shortly" };
   }
 
-  // Persist order + payment attempt. A failure here is non-fatal: the Razorpay
-  // order exists and the webhook will still arrive, so we log and continue.
+  // Persist order + payment attempt before the fan can pay. The webhook can only
+  // credit a payment to a row that exists, so if we can't save the rows the fan
+  // is told to try again and the payment popup never opens: nobody pays for a tip
+  // we can't track. The unused Razorpay order is harmless, and the one transaction
+  // means we never keep an order without its attempt.
   try {
     const storedName = anonymous ? null : (fanName?.trim() || null);
     const storedMessage = fanMessage?.trim() || null;
 
-    const orders = await db<{ id: number }[]>`
-      insert into tip_orders
-        (creator_id, public_reference, gross_amount_minor, currency,
-         fan_name, fan_message, anonymous, status)
-      values
-        (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-         ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
-      returning id
-    `;
+    await db.begin(async (tx) => {
+      const orders = await tx<{ id: number }[]>`
+        insert into tip_orders
+          (creator_id, public_reference, gross_amount_minor, currency,
+           fan_name, fan_message, anonymous, status)
+        values
+          (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+           ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
+        returning id
+      `;
 
-    await db`
-      insert into payment_attempts
-        (tip_order_id, provider, provider_order_ref, amount_minor, currency, idempotency_key)
-      values
-        (${orders[0].id}, 'razorpay', ${razorpayOrderId}, ${amountPaise}, 'INR', ${publicReference})
-    `;
+      await tx`
+        insert into payment_attempts
+          (tip_order_id, provider, provider_order_ref, amount_minor, currency, idempotency_key)
+        values
+          (${orders[0].id}, 'razorpay', ${razorpayOrderId}, ${amountPaise}, 'INR', ${publicReference})
+      `;
+    });
   } catch (err) {
-    console.error("DB persist error for tip order", err);
+    console.error("DB persist error for tip order", razorpayOrderId, err);
+    return { status: "error", message: "Service unavailable — try again shortly" };
   }
 
   return { status: "ok", razorpayOrderId, razorpayKeyId: keyId, amountPaise };
