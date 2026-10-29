@@ -33,6 +33,14 @@ async function openTitleScreen(page: Page) {
   expect(await page.evaluate(titleScreenUp)).toBe(true);
 }
 
+// Fire a bare event at the window and say whether the page called preventDefault on it.
+const fire = (page: Page, type: string) =>
+  page.evaluate((t) => {
+    const event = new Event(t, { bubbles: true, cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  }, type);
+
 const pageScrolled = (page: Page) =>
   page.evaluate(() => document.body.classList.contains("page-scrolled"));
 
@@ -72,6 +80,44 @@ test.describe("title screen keys", () => {
     await page.keyboard.press("Space");
     expect(await pageScrolled(page)).toBe(true);
     expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(0);
+  });
+
+  test("a custom focusable widget keeps its Space too", async ({ page }) => {
+    await page.evaluate(() => {
+      const widget = document.createElement("div"); // no role: only the tab stop marks it
+      widget.tabIndex = 0;
+      document.body.appendChild(widget);
+      widget.focus();
+      // Added last, so it runs after the title screen's own key handler.
+      window.addEventListener("keydown", (e) => ((window as unknown as { blocked: boolean }).blocked = e.defaultPrevented));
+    });
+    await page.keyboard.press("Space");
+    expect(await page.evaluate(() => (window as unknown as { blocked?: boolean }).blocked)).toBe(false);
+    expect(await pageScrolled(page)).toBe(false);
+  });
+
+  test("the first touch only dismisses the title screen, then touch is left alone", async ({ page }) => {
+    expect(await fire(page, "touchmove")).toBe(true); // swallowed: it only dismisses the title
+    expect(await pageScrolled(page)).toBe(true);
+    expect(await fire(page, "touchmove")).toBe(false);
+  });
+
+  test("once the title screen has timed out, touch is left alone", async ({ page }) => {
+    await page.clock.fastForward(6_000);
+    expect(await pageScrolled(page)).toBe(true);
+    expect(await fire(page, "touchmove")).toBe(false);
+  });
+
+  // Not checked through preventDefault: the smooth-scroll library calls it on every
+  // wheel event itself once the page is live. What matters is that the page moves.
+  test("once the title screen has timed out, the first mouse wheel scrolls the page", async ({ page }) => {
+    await page.clock.fastForward(6_000);
+    expect(await pageScrolled(page)).toBe(true);
+    await page.clock.runFor(1_000); // the smooth scroller wakes up and animates on the clock
+    await page.mouse.move(200, 300);
+    await page.mouse.wheel(0, 600);
+    await page.clock.runFor(1_500);
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(0);
   });
 
   test("once the title screen has timed out, the first Space scrolls the page", async ({ page }) => {

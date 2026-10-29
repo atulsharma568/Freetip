@@ -99,12 +99,15 @@ export function GlobalBackground() {
     const SCROLL_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", " "]);
     // Space and the arrows mean something else on these: typing a space, moving
     // the caret, activating a button, changing a select or a radio group. Leave
-    // those keys alone; the timer still ends the title screen.
+    // those keys alone; the timer still ends the title screen. A custom widget
+    // is caught by its role or by being put in the tab order on purpose.
     const OWN_KEYS =
       'input, textarea, select, button, summary, [contenteditable=""], [contenteditable="true"],' +
+      ' [tabindex]:not([tabindex="-1"]),' +
       ' [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"],' +
-      ' [role="menuitem"], [role="slider"], [role="spinbutton"], [role="combobox"],' +
-      ' [role="listbox"], [role="option"], [role="textbox"]';
+      ' [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="slider"],' +
+      ' [role="spinbutton"], [role="combobox"], [role="listbox"], [role="option"],' +
+      ' [role="textbox"], [role="searchbox"], [role="scrollbar"], [role="treeitem"], [role="gridcell"]';
     const onKey = (e: KeyboardEvent) => {
       if (!SCROLL_KEYS.has(e.key)) return;
       if (e.target instanceof Element && e.target.closest(OWN_KEYS)) return;
