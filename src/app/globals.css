@@ -1195,3 +1195,31 @@ html.menu-open body {
     transition: none;
   }
 }
+
+/* Tip page status dot: a solid lime dot with a ring that expands and fades. */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-accent);
+  animation: live-dot-ring 2s var(--ease-out-expo) infinite;
+}
+@keyframes live-dot-ring {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::after {
+    animation: none;
+    opacity: 0;
+  }
+}
