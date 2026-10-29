@@ -4,9 +4,15 @@ import { getDb } from "@/lib/db";
 // Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
 // Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
 //
-// Idempotency: payment_attempts.provider_payment_ref has a UNIQUE constraint.
-// A second webhook for the same payment_id updates 0 rows → we return 200 without
-// processing again.
+// One Razorpay order has one payment_attempts row but can see several payments:
+// the fan can fail a payment and retry in the same checkout popup. The row holds
+// the latest outcome, and a capture always wins:
+//   - captured replaces a failed row (and is ignored once the row is captured, so
+//     a duplicate webhook does nothing);
+//   - failed only fills a row that has no payment yet, so a late failure for an
+//     earlier payment can never overwrite a capture.
+// The attempt row and the tip order change in one transaction, so a crash between
+// the two can't leave the order behind: Razorpay's retry then redoes both.
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
   const expected = createHmac("sha256", secret).update(body).digest("hex");
@@ -63,28 +69,32 @@ export async function POST(request: Request): Promise<Response> {
       const payment = event.payload?.payment?.entity;
       if (!payment || !db) break;
 
-      // Update the payment_attempt row. The provider_payment_ref UNIQUE constraint
-      // makes this idempotent: a duplicate webhook for the same pay_xxx updates 0 rows.
-      const updated = await db<{ tip_order_id: number }[]>`
-        update payment_attempts
-        set
-          provider_payment_ref = ${payment.id},
-          provider_status      = 'captured',
-          payment_method       = ${payment.method ?? null},
-          captured_at          = now()
-        where provider_order_ref = ${payment.order_id}
-          and provider_payment_ref is null
-        returning tip_order_id
-      `;
-
-      if (updated.length > 0) {
-        await db`
-          update tip_orders
-          set status      = 'captured',
-              captured_at = now()
-          where id = ${updated[0].tip_order_id}
+      await db.begin(async (tx) => {
+        const updated = await tx<{ tip_order_id: number }[]>`
+          update payment_attempts
+          set
+            provider_payment_ref = ${payment.id},
+            provider_status      = 'captured',
+            payment_method       = ${payment.method ?? null},
+            captured_at          = now(),
+            failure_code         = null,
+            failure_reason       = null,
+            failed_at            = null
+          where provider_order_ref = ${payment.order_id}
+            and (provider_payment_ref is null or provider_status = 'failed')
+          returning tip_order_id
         `;
-      }
+
+        if (updated.length > 0) {
+          await tx`
+            update tip_orders
+            set status      = 'captured',
+                captured_at = now()
+            where id = ${updated[0].tip_order_id}
+              and status not in ('refunded', 'disputed', 'closed')
+          `;
+        }
+      });
       break;
     }
 
@@ -92,27 +102,29 @@ export async function POST(request: Request): Promise<Response> {
       const payment = event.payload?.payment?.entity;
       if (!payment || !db) break;
 
-      const updated = await db<{ tip_order_id: number }[]>`
-        update payment_attempts
-        set
-          provider_payment_ref = ${payment.id},
-          provider_status      = 'failed',
-          failure_code         = ${payment.error_code ?? null},
-          failure_reason       = ${payment.error_description ?? null},
-          failed_at            = now()
-        where provider_order_ref = ${payment.order_id}
-          and provider_payment_ref is null
-        returning tip_order_id
-      `;
-
-      if (updated.length > 0) {
-        await db`
-          update tip_orders
-          set status = 'failed'
-          where id = ${updated[0].tip_order_id}
-            and status = 'payment_pending'
+      await db.begin(async (tx) => {
+        const updated = await tx<{ tip_order_id: number }[]>`
+          update payment_attempts
+          set
+            provider_payment_ref = ${payment.id},
+            provider_status      = 'failed',
+            failure_code         = ${payment.error_code ?? null},
+            failure_reason       = ${payment.error_description ?? null},
+            failed_at            = now()
+          where provider_order_ref = ${payment.order_id}
+            and provider_payment_ref is null
+          returning tip_order_id
         `;
-      }
+
+        if (updated.length > 0) {
+          await tx`
+            update tip_orders
+            set status = 'failed'
+            where id = ${updated[0].tip_order_id}
+              and status = 'payment_pending'
+          `;
+        }
+      });
       break;
     }
 

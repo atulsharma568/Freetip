@@ -33,7 +33,11 @@ function loadRazorpayScript(): Promise<void> {
     script.id = "rzp-script";
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Razorpay"));
+    script.onerror = () => {
+      // Drop the dead tag so a retry builds a fresh one instead of waiting on this.
+      script.remove();
+      reject(new Error("Failed to load Razorpay"));
+    };
     document.body.appendChild(script);
   });
 }
@@ -274,20 +278,29 @@ export function TipForm({
   const amountRupees =
     selected === "custom" ? parseFloat(custom) || 0 : selected;
   const amountPaise = Math.round(amountRupees * 100);
-  const canPay = !previewMode && amountPaise >= minTipPaise && phase === "idle";
+  // After an error the fan can try again; only a request or the popup in flight blocks it.
+  const canPay =
+    !previewMode && amountPaise >= minTipPaise && (phase === "idle" || phase === "error");
 
   async function handlePay() {
     if (!canPay) return;
     setPhase("creating");
     setErrorMsg("");
 
-    const result = await createTipOrder(
-      handle,
-      amountPaise,
-      anonymous ? null : tipName.trim() || null,
-      message.trim() || null,
-      anonymous,
-    );
+    let result: Awaited<ReturnType<typeof createTipOrder>>;
+    try {
+      result = await createTipOrder(
+        handle,
+        amountPaise,
+        anonymous ? null : tipName.trim() || null,
+        message.trim() || null,
+        anonymous,
+      );
+    } catch {
+      setPhase("error");
+      setErrorMsg("Could not start payment — check your connection and try again");
+      return;
+    }
 
     if (result.status === "error") {
       setPhase("error");
@@ -305,26 +318,31 @@ export function TipForm({
 
     setPhase("checkout");
 
-    const rzp = new window.Razorpay({
-      key: result.razorpayKeyId,
-      amount: result.amountPaise,
-      currency: "INR",
-      name: "Freetip",
-      description: `Tip for ${displayName}`,
-      order_id: result.razorpayOrderId,
-      theme: { color: "#bfe84a" },
-      handler: () => {
-        setPaidAmount(result.amountPaise);
-        setPhase("success");
-      },
-      modal: {
-        ondismiss: () => {
-          setPhase("idle");
+    try {
+      const rzp = new window.Razorpay({
+        key: result.razorpayKeyId,
+        amount: result.amountPaise,
+        currency: "INR",
+        name: "Freetip",
+        description: `Tip for ${displayName}`,
+        order_id: result.razorpayOrderId,
+        theme: { color: "#bfe84a" },
+        handler: () => {
+          setPaidAmount(result.amountPaise);
+          setPhase("success");
         },
-      },
-    });
+        modal: {
+          ondismiss: () => {
+            setPhase("idle");
+          },
+        },
+      });
 
-    rzp.open();
+      rzp.open();
+    } catch {
+      setPhase("error");
+      setErrorMsg("Could not open payment — try again");
+    }
   }
 
   // ── Success screen ──────────────────────────────────────────────────────────
