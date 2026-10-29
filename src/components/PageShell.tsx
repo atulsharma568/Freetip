@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 import { Footer } from "@/components/Footer";
+import { Logo } from "@/components/logo/Logo";
 
 // Frame for pages other than home: the wordmark home, a way back, the page,
 // and the full footer.
@@ -15,8 +16,8 @@ export function PageShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <header className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
-        <Link href="/" className="display text-2xl">
-          {SITE_NAME}
+        <Link href="/" aria-label={`${SITE_NAME} home`} className="-mx-1 block px-1 text-text">
+          <Logo interactive className="h-9 w-auto" />
         </Link>
         <Link
           href="/"

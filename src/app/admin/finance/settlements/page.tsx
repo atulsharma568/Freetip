@@ -41,7 +41,7 @@ export default async function SettlementsPage({
         </h1>
         <p className="max-w-xl text-sm text-muted">
           Razorpay settlements are separate from creator payouts. A settlement is money
-          arriving in Tipsite&apos;s bank account; a payout is Tipsite transferring the
+          arriving in Freetip&apos;s bank account; a payout is Freetip transferring the
           creator&apos;s share to them.
         </p>
       </div>

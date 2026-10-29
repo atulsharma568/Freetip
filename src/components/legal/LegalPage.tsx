@@ -95,7 +95,7 @@ export function LegalPage({
           <p className="mt-4 text-sm text-muted">Last updated {LEGAL_UPDATED}</p>
           {LEGAL_DRAFT && (
             <p className="mt-6 max-w-[68ch] rounded-field border border-accent/40 bg-accent/10 p-4 text-sm text-text">
-              <strong>Draft before launch.</strong> Tipsite is not live yet. This
+              <strong>Draft before launch.</strong> Freetip is not live yet. This
               page describes how it will work at launch. Details in{" "}
               <span className="font-medium text-accent">[brackets]</span> are
               still to be filled in, and the text is waiting for legal review.

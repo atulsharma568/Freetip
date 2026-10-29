@@ -23,7 +23,7 @@ export async function sendContactEmail(entry: ContactEntry): Promise<"sent" | "o
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         // Resend's shared test sender works until a domain is verified there.
-        from: process.env.CONTACT_FROM_EMAIL || "Tipsite <onboarding@resend.dev>",
+        from: process.env.CONTACT_FROM_EMAIL || "Freetip <onboarding@resend.dev>",
         to: [to],
         reply_to: entry.email,
         subject,

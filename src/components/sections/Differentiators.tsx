@@ -49,7 +49,7 @@ export function Differentiators() {
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <div className="md:col-span-7">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-accent">
-            Why Tipsite
+            Why Freetip
           </p>
           <RevealHeading className="display mt-4 max-w-[12ch] text-[clamp(2.5rem,6vw,4.5rem)]">
             Less friction for fans. More control for you.

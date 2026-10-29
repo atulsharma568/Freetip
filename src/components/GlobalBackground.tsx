@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { INK_HEX as INK, SITE_NAME } from "@/lib/site";
+import { INK_HEX as INK } from "@/lib/site";
+import { Logo } from "@/components/logo/Logo";
 
 const LIME = "#bfe84a";
 const LAP = 20; // seconds per orbit lap
@@ -89,8 +90,20 @@ export function GlobalBackground() {
     const SCROLL_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", " "]);
     const onKey = (e: KeyboardEvent) => { if (SCROLL_KEYS.has(e.key)) { e.preventDefault(); sink(); } };
 
-    // Auto-sink after 5 s so the hero is never permanently hidden.
-    const autoSink = setTimeout(sink, 5000);
+    // Auto-sink so the hero is never permanently hidden. The title screen is
+    // held for 5.2 s from when the splash ends (the logo builds during it);
+    // the 9 s fallback covers a splash that never reports back.
+    let autoSink: ReturnType<typeof setTimeout>;
+    const startHold = () => {
+      clearTimeout(autoSink);
+      autoSink = setTimeout(sink, 5200);
+    };
+    if (document.body.dataset.splash === "true") {
+      window.addEventListener("splash:done", startHold, { once: true });
+      autoSink = setTimeout(sink, 9000);
+    } else {
+      startHold();
+    }
 
     window.addEventListener("wheel", onWheel, { once: true, passive: false });
     window.addEventListener("touchmove", onTouch, { once: true, passive: false });
@@ -98,6 +111,7 @@ export function GlobalBackground() {
 
     return () => {
       clearTimeout(autoSink);
+      window.removeEventListener("splash:done", startHold);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("keydown", onKey);
@@ -208,12 +222,14 @@ export function GlobalBackground() {
     >
       <canvas ref={back} className="absolute inset-0" />
       <div className="absolute inset-0 flex items-center justify-center">
-        <p
-          data-text={SITE_NAME}
-          className="glitch display select-none text-[clamp(5rem,_min(28vw,_45vh),_28rem)] text-text"
-        >
-          {SITE_NAME}
-        </p>
+        <Logo
+          decorative
+          variant="intro"
+          waitForSplash
+          loop
+          paused={sunk}
+          className="h-auto w-[min(86vw,72rem)] max-h-[60vh] select-none text-text"
+        />
       </div>
       <canvas ref={front} className="absolute inset-0" />
     </div>

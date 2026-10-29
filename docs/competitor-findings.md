@@ -36,7 +36,7 @@ The pass used REA 6.4.0 against public pages and public creator pages:
 ### Product lesson
 
 The strongest lesson is clarity around payment routing and creator setup. The
-riskiest pattern is personal UPI credential or OTP automation. Tipsite should
+riskiest pattern is personal UPI credential or OTP automation. Freetip should
 start with one verified Razorpay integration, not consumer-payment automation.
 
 ## SuperTips
@@ -59,8 +59,8 @@ start with one verified Razorpay integration, not consumer-payment automation.
 
 Public creator discovery, simple time filters and stream summaries are useful
 later. XP, loyalty, CRM, membership detection, chat bot and multi-goal systems
-are expansion features, not Tipsite v1 requirements. The public page currently
-asks for fan email; Tipsite intentionally does not.
+are expansion features, not Freetip v1 requirements. The public page currently
+asks for fan email; Freetip intentionally does not.
 
 ## HyperChat
 
@@ -106,11 +106,11 @@ The valuable pattern is the event lifecycle:
 
 `tip input → payment order → verified status → moderation → queue → OBS alert`
 
-Tipsite should adopt the explicit status page, signed moderation actions,
+Freetip should adopt the explicit status page, signed moderation actions,
 idempotent event handling and pre-aggregated reporting. Voice, media, sound,
 Hyperstore and multi-channel moderation should remain later work.
 
-## Tipsite decisions
+## Freetip decisions
 
 ### Build first
 

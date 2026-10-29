@@ -309,7 +309,7 @@ export function TipForm({
       key: result.razorpayKeyId,
       amount: result.amountPaise,
       currency: "INR",
-      name: "Tipsite",
+      name: "Freetip",
       description: `Tip for ${displayName}`,
       order_id: result.razorpayOrderId,
       theme: { color: "#bfe84a" },

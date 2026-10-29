@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The owner dashboard is the financial operations console for Tipsite. It should answer, without spreadsheet work:
+The owner dashboard is the financial operations console for Freetip. It should answer, without spreadsheet work:
 
 - How much money was captured from fans?
 - How much belongs to each creator?
-- How much did Tipsite earn?
+- How much did Freetip earn?
 - How much did Razorpay actually charge?
 - What has settled, what is pending, and what needs attention?
 - Can every total be traced back to an immutable payment or provider event?
@@ -32,7 +32,7 @@ Top-level cards:
 1. **Gross captured** — payment amounts successfully captured in the selected period.
 2. **Refunded** — completed and pending refund amounts, shown separately.
 3. **Razorpay costs** — actual provider-reported fees and taxes, never a guessed percentage.
-4. **Tipsite fee revenue** — platform fee earned under the fee-policy version active for each payment.
+4. **Freetip fee revenue** — platform fee earned under the fee-policy version active for each payment.
 5. **Creator net payable** — amount owed to creators after the configured deductions and adjustments.
 6. **Settled to creators** — amount confirmed as transferred/settled.
 7. **Pending or unsettled** — captured money not yet settled or paid out.
@@ -42,7 +42,7 @@ Charts and tables:
 
 - Gross captured, refunds, platform fee and creator net by day.
 - Net revenue by week or month.
-- Top creators by gross tips, creator net and Tipsite fee.
+- Top creators by gross tips, creator net and Freetip fee.
 - Payment status breakdown: created, authorized, captured, failed, refunded, partially refunded and disputed.
 - Settlement status breakdown: pending, processed, failed, reversed and held.
 
@@ -60,7 +60,7 @@ One row per creator, with search, filters and export:
 - Number of successful tips.
 - Refunds and chargebacks.
 - Actual Razorpay fees and taxes allocated to the creator.
-- Tipsite platform fee.
+- Freetip platform fee.
 - Other adjustments.
 - Creator net payable.
 - Amount transferred or settled.
@@ -85,7 +85,7 @@ Columns:
 - Captured timestamp.
 - Provider payment ID and order ID.
 - Provider fee and provider tax, when reported.
-- Tipsite fee-policy version and calculated fee.
+- Freetip fee-policy version and calculated fee.
 - Creator net amount.
 - Refund amount/status.
 - Transfer ID/status, if a creator transfer exists.
@@ -118,7 +118,7 @@ Settlement batch view:
 - Gross amount.
 - Provider fees and taxes.
 - Refunds, reversals and adjustments.
-- Net amount received by Tipsite or the relevant linked account.
+- Net amount received by Freetip or the relevant linked account.
 - Settlement status.
 - Bank/reference identifiers where safe to show.
 - Number of included payments.
@@ -202,7 +202,7 @@ The owner should be able to see, separately:
 - Payout hold/restriction reason.
 - Last successful payment and last successful settlement.
 
-Provider KYC status must not be treated as the same thing as Tipsite approval. A creator may be approved internally but not payout-ready, or provider-ready but not published on Tipsite.
+Provider KYC status must not be treated as the same thing as Freetip approval. A creator may be approved internally but not payout-ready, or provider-ready but not published on Freetip.
 
 ## Accounting model
 
@@ -215,7 +215,7 @@ Minimum entities:
 - `payment_events` — immutable, idempotent provider webhook/event records.
 - `payment_costs` — provider fee, tax and other provider-reported cost components.
 - `creator_allocations` — versioned calculation of creator share for a payment.
-- `platform_fee_policies` — effective-dated Tipsite fee rules.
+- `platform_fee_policies` — effective-dated Freetip fee rules.
 - `creator_transfers` — transfer/payout intent and provider transfer reference.
 - `settlements` — provider settlement batches and totals.
 - `refunds` — full/partial refund requests and provider results.
@@ -245,16 +245,16 @@ gross captured
 - chargebacks/reversals
 - actual provider fee
 - actual provider tax
-- Tipsite platform fee
+- Freetip platform fee
 - other approved adjustments
 = creator net payable
 ```
 
-These are reporting definitions, not final payment terms. The exact allocation depends on whether Tipsite uses a centrally collected Razorpay account or a linked-account/transfer model. That choice must be made before payment implementation.
+These are reporting definitions, not final payment terms. The exact allocation depends on whether Freetip uses a centrally collected Razorpay account or a linked-account/transfer model. That choice must be made before payment implementation.
 
 The platform report should distinguish:
 
-- **Tipsite fee revenue** — the configured platform fee.
+- **Freetip fee revenue** — the configured platform fee.
 - **Provider costs** — actual Razorpay fees/taxes charged to the relevant account.
 - **Net platform revenue** — platform fee revenue less approved platform-side costs and adjustments.
 - **Creator net payable** — creator allocation after the deductions agreed in the product terms.
@@ -324,13 +324,13 @@ Required safeguards:
 ## Decisions required before implementation
 
 1. **Razorpay operating model:** centrally collected account plus separate creator payout, or linked creator accounts/transfers through a Razorpay platform product.
-2. **Payout ownership:** does Razorpay settle directly to creators, or does Tipsite receive funds and pay creators?
+2. **Payout ownership:** does Razorpay settle directly to creators, or does Freetip receive funds and pay creators?
 3. **Accounting basis:** should reports use capture date, settlement date, transfer date, or allow switching between them?
-4. **Fee treatment:** which actual provider costs reduce creator net, and which are Tipsite costs?
+4. **Fee treatment:** which actual provider costs reduce creator net, and which are Freetip costs?
 5. **Refund policy:** who absorbs platform/provider fees on refunds?
 6. **Dispute policy:** how are chargebacks allocated to creators and when does a creator balance become negative?
 7. **Payout schedule:** daily, weekly, monthly, threshold-based, or provider-controlled?
-8. **Owner actions:** read-only first, or should refunds/holds/payout approvals eventually run from Tipsite?
+8. **Owner actions:** read-only first, or should refunds/holds/payout approvals eventually run from Freetip?
 9. **Timezones:** default Asia/Kolkata, with UTC timestamps retained for audit.
 10. **Data retention:** financial records, provider events, audit events and exports need explicit retention rules.
 
@@ -338,7 +338,7 @@ Required safeguards:
 
 - A total can be traced from overview → creator → payment → provider event → ledger entry.
 - Every amount identifies whether it is captured, refunded, pending, settled, estimated or reconciled.
-- Actual provider fees/taxes are stored separately from Tipsite fees.
+- Actual provider fees/taxes are stored separately from Freetip fees.
 - Reports are stable across daily, weekly, monthly and custom ranges.
 - Re-running provider events does not duplicate money.
 - Non-owners cannot access financial data or exports.

@@ -13,7 +13,7 @@ This file does not change the app, configuration, package files, or live copy.
 
 ## Translation and usage note
 
-Use short, spoken Hindi in Devanagari and conversational Hinglish in Roman script, with an Indian streamer/gamer voice rather than formal textbook Hindi. Keep **Tipsite, UPI, OBS, link, handle, stream, tip, card, email, QR, text-to-speech, creator, approval, Razorpay, YouTube**, URLs, sample names, amounts, and message limits in English/Latin script when that is the clearest UI treatment. `Tipsite` and `tipsite.in` are still placeholders; do not treat either as a finalized brand or domain. Do not translate a handle or URL.
+Use short, spoken Hindi in Devanagari and conversational Hinglish in Roman script, with an Indian streamer/gamer voice rather than formal textbook Hindi. Keep **Freetip, UPI, OBS, link, handle, stream, tip, card, email, QR, text-to-speech, creator, approval, Razorpay, YouTube**, URLs, sample names, amounts, and message limits in English/Latin script when that is the clearest UI treatment. `Freetip` and `tipsite.in` are still placeholders; do not treat either as a finalized brand or domain. Do not translate a handle or URL.
 
 The source copy is an audit of what is currently visible; it is not a claim that every demonstrated flow is live. Keep the sample labels exactly meaningful: `Sample page. No payment is taken.`, `Sample alert. Nothing is sent to a stream.`, `Sample only. No money moved.`, and `Non-scannable sample QR` are **`[DEMO]`** labels. The waitlist success and validation states are **`[LIVE]`**; the sign-in closed state is also live behavior, but it explicitly says that nothing was sent. Product payment, OBS, QR, filtering, approval, and TTS copy outside the waitlist remains **`[PLANNED]`**.
 
@@ -28,10 +28,10 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | Current English (exact) and source file | Natural Hindi (Devanagari) | Natural Hinglish (Roman) |
 |---|---|---|
 | `[A11Y]` `Skip to content`<br>Source: `src/app/page.tsx`; `src/components/PageShell.tsx` | `सीधे content पर जाएँ` | `Seedhe content par jaayen` |
-| `Tipsite`<br>Source: `src/lib/site.ts`, rendered by `src/components/Nav.tsx`, `src/components/PageShell.tsx`, `src/components/Footer.tsx` | `Tipsite` | `Tipsite` |
+| `Freetip`<br>Source: `src/lib/site.ts`, rendered by `src/components/Nav.tsx`, `src/components/PageShell.tsx`, `src/components/Footer.tsx` | `Freetip` | `Freetip` |
 | `How it works`<br>Source: `src/components/Nav.tsx`, `src/components/sections/Steps.tsx`, `src/components/Footer.tsx` | `यह कैसे काम करता है` | `Yeh kaise kaam karta hai` |
 | `On stream`<br>Source: `src/components/Nav.tsx`, `src/components/Footer.tsx` | `stream पर` | `Stream par` |
-| `Why Tipsite`<br>Source: `src/components/Nav.tsx`, `src/components/sections/Differentiators.tsx`, `src/components/Footer.tsx` | `Tipsite क्यों` | `Tipsite kyun` |
+| `Why Freetip`<br>Source: `src/components/Nav.tsx`, `src/components/sections/Differentiators.tsx`, `src/components/Footer.tsx` | `Freetip क्यों` | `Freetip kyun` |
 | `Fees`<br>Source: `src/components/Nav.tsx`, `src/components/Footer.tsx` | `Fees` | `Fees` |
 | `FAQ`<br>Source: `src/components/Nav.tsx`, `src/components/Footer.tsx` | `FAQ` | `FAQ` |
 | `Sign in`<br>Source: `src/components/Nav.tsx`, `src/components/auth/SignInForm.tsx` | `Sign in` | `Sign in` |
@@ -48,7 +48,7 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `Privacy policy`<br>Source: `src/components/Footer.tsx`, `src/components/waitlist/useWaitlist.tsx` | `Privacy policy` | `Privacy policy` |
 | `Refunds and cancellations`<br>Source: `src/components/Footer.tsx` | `Refunds और cancellations` | `Refunds aur cancellations` |
 | `Delivery policy`<br>Source: `src/components/Footer.tsx` | `Delivery policy` | `Delivery policy` |
-| `© 2026 Tipsite`<br>Source: `src/components/Footer.tsx`, value from `src/lib/legal.ts`/`src/lib/site.ts` | `© 2026 Tipsite` | `© 2026 Tipsite` |
+| `© 2026 Freetip`<br>Source: `src/components/Footer.tsx`, value from `src/lib/legal.ts`/`src/lib/site.ts` | `© 2026 Freetip` | `© 2026 Freetip` |
 
 ### Home — hero, sample tip card, sending state, and alert fan
 
@@ -140,11 +140,11 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[DEMO]` `Nothing shows or plays on stream. The tip still reaches you.`<br>Source: `src/components/sections/Stream.tsx` | `Stream पर कुछ दिखता या चलता नहीं। Tip फिर भी आप तक पहुँचता है।` | `Stream par kuch dikhta ya chalta nahi. Tip phir bhi aap tak pahunchta hai.` |
 | `[DEMO]` `Waiting for your approval. Viewers see nothing yet.`<br>Source: `src/components/sections/Stream.tsx` | `आपकी approval का इंतज़ार। अभी viewers को कुछ नहीं दिखता।` | `Aapki approval ka intezaar. Abhi viewers ko kuch nahi dikhta.` |
 
-### Home — Why Tipsite
+### Home — Why Freetip
 
 | Current English (exact) and source file | Natural Hindi (Devanagari) | Natural Hinglish (Roman) |
 |---|---|---|
-| `[PLANNED]` `Why Tipsite`<br>Source: `src/components/sections/Differentiators.tsx` | `Tipsite क्यों` | `Tipsite kyun` |
+| `[PLANNED]` `Why Freetip`<br>Source: `src/components/sections/Differentiators.tsx` | `Freetip क्यों` | `Freetip kyun` |
 | `[PLANNED]` `Less friction for fans. More control for you.`<br>Source: `src/components/sections/Differentiators.tsx` | `Fans के लिए कम रुकावट। आपके लिए ज़्यादा control।` | `Fans ke liye kam rukaavat. Aapke liye zyada control.` |
 | `[PLANNED]` `One tip link built around the way a live stream actually works: quick for viewers, visible on screen and careful with what gets spoken.`<br>Source: `src/components/sections/Differentiators.tsx` | `एक tip link, जो live stream के असली flow के हिसाब से बना है: viewers के लिए तेज़, screen पर साफ़ और बोले जाने वाले content पर सावधान।` | `Ek tip link, jo live stream ke asli flow ke hisaab se bana hai: viewers ke liye tez, screen par saaf aur bole jaane wale content par saavdhaan.` |
 | `[PLANNED]` `For fans`<br>Source: `src/components/sections/Differentiators.tsx` | `Fans के लिए` | `Fans ke liye` |

@@ -2,6 +2,14 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-29, updated after the Freetip rename and animated logo)
+
+- Product name is final: **Freetip** (owner, 2026-10-29). `SITE_NAME` and all written copy, tests and docs use it; `tipsite.in`, `tipsite.vercel.app` and the `tipsite` package name stay as placeholders until a domain is chosen. Entries below this one still say "Tipsite" because they are history.
+- New animated logo (`src/components/logo/`): the owner's artwork traced to SVG. On the title screen the letters wipe in, the swoosh draws from the F to the p with a 3D-flipping coin riding its head (rupee on the back, dollar on the front), the coin arcs into the p's bowl, the `!` drops in and its dot pops, then the coin flips and the `i` and `!` dots hop on a loop. Reduced motion shows the finished logo. Replaces the text wordmark in the nav, page header, footer (small and large), the blurred title-screen background, share images and icons. Colours are the logo's own olive for now; the owner may match them to the site's lime after seeing it live.
+- Title screen now holds 5.2 s from when the splash ends (the splash announces `splash:done`), not 5 s from page load.
+- Review findings not fixed yet (see the session review): Razorpay webhook ignores a successful retry after a failed attempt, Pay button stays dead after an error, page is invisible until first scroll or 5 s, unauthenticated order creation has no rate limit. Unused now: `AsciiWordmark`, `MoneyOrbit`, the glitch CSS.
+- Verified: tsc clean, lint 0 errors (1 old warning), production build clean; title screen checked at 1440 and 390 in Chrome. Not run: the Playwright suite.
+
 ## Current state (2026-10-25, updated after the dashboard earnings overview and tips page)
 
 - Creator dashboard (owner request; operator details left for later): `/dashboard` now opens with a section nav (Overview, Tips) and a "Tips received" strip for Today (IST midnight), Last 7 days, Last 30 days and All time, each with the tip count, the gross and "You'd keep about ₹X". The share is an estimate (our 5% and the 2.36% processing charge, each rounded to the paise per tip, same as the pricing page; ₹100 gives ₹92.64) and every tile block says so, including that the extra 0.4% UPI charge above ₹2,000 is not counted. Owner chose this over gross-only. No balance or "paid out" figure is shown: nothing writes `fee_lines`, `creator_payouts` or the ledger yet, so there is nothing real to show.

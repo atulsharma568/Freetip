@@ -22,6 +22,8 @@ export function SplashScreen() {
 
   const handleDone = () => {
     setFading(true);
+    // The logo on the title screen waits for this before it starts building.
+    window.dispatchEvent(new Event("splash:done"));
     // Under reduced motion the animation is instant; skip the title-screen
     // pause so the content appears straight away without needing a scroll.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

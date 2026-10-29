@@ -38,7 +38,7 @@ test.describe("search and sharing metadata", () => {
   test("home exposes its title, description, social cards and theme metadata", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
-    await expect(page).toHaveTitle("Tipsite: tips for YouTube streamers, paid by UPI or card");
+    await expect(page).toHaveTitle("Freetip: tips for YouTube streamers, paid by UPI or card");
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
       "Your link. Their UPI. Your bank. Tips for Indian YouTube streamers: fans pay with UPI or card, no account needed, with OBS alerts and text-to-speech.",
@@ -46,7 +46,7 @@ test.describe("search and sharing metadata", () => {
     await expect(page.locator('meta[property="og:type"]')).toHaveAttribute("content", "website");
     await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
       "content",
-      "Tipsite",
+      "Freetip",
     );
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
       "content",
@@ -65,10 +65,10 @@ test.describe("search and sharing metadata", () => {
 
   test("signup exposes its route metadata", async ({ page }) => {
     await page.goto("/signup", { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveTitle("Get early access: Tipsite");
+    await expect(page).toHaveTitle("Get early access: Freetip");
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      /Sign up for early access to Tipsite/,
+      /Sign up for early access to Freetip/,
     );
   });
 

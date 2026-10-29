@@ -70,7 +70,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: "eligibility",
-    title: "Who can use Tipsite",
+    title: "Who can use Freetip",
     body: (
       <>
         <p>
@@ -390,7 +390,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     id: "changes",
-    title: "Changes to Tipsite and to these terms",
+    title: "Changes to Freetip and to these terms",
     body: (
       <p>
         We may change or stop features as the product grows. If we change these

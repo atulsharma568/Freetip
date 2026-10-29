@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireOwner } from "@/lib/owner-auth";
 
 export const metadata: Metadata = {
-  title: "Owner console: Tipsite",
+  title: "Owner console: Freetip",
   robots: { index: false, follow: false },
 };
 
@@ -30,7 +30,7 @@ export default async function AdminLayout({
         <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-6 px-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-              Tipsite owner console
+              Freetip owner console
             </p>
             <p className="display text-xl">Finance foundation</p>
           </div>

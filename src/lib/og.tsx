@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { INK_HEX, SITE_NAME } from "@/lib/site";
+import { INK_HEX } from "@/lib/site";
+import { LogoStatic } from "@/components/logo/LogoStatic";
 
 // Shared by every link preview (WhatsApp, X, Discord…): flat, in the site's
 // palette and fonts. Pages pass their own headline lines and footer.
@@ -49,21 +50,8 @@ export async function renderOg({
           fontFamily: "Bricolage",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: LIME,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ width: 18, height: 18, borderRadius: 9, background: INK_HEX }} />
-          </div>
-          <div style={{ fontFamily: "Display", fontSize: 40 }}>{SITE_NAME}</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <LogoStatic height={72} color={TEXT} />
         </div>
 
         <div

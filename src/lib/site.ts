@@ -1,5 +1,5 @@
-// Placeholders: name, host and sample handle are not decided yet.
-export const SITE_NAME = "Tipsite";
+// The name is final. Placeholders: the host and the sample handle.
+export const SITE_NAME = "Freetip";
 export const SITE_HOST = "tipsite.in";
 export const SAMPLE_HANDLE = "aarav";
 

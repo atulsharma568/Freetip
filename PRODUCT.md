@@ -26,7 +26,7 @@ The first product slice after the landing page is a server-protected, read-only
 owner finance foundation. It may define ledger tables, owner access, dashboard
 navigation and honest empty states, but it must not simulate successful tips or
 claim that Razorpay is integrated. The foundation covers future reporting for
-captured tips, refunds, provider fees/taxes, Tipsite fees, creator net amounts,
+captured tips, refunds, provider fees/taxes, Freetip fees, creator net amounts,
 settlements, pending balances, disputes, reconciliation and audit history.
 
 The first slice is implemented under `/admin` with an `OWNER_GOOGLE_IDS`
@@ -43,7 +43,7 @@ UPI-first tipping for Indian YouTube live streamers: fans pay from the streamer'
 
 ## Competitor-derived product decisions
 
-The competitor review identified useful patterns worth keeping—short creator links, UPI, card support, OBS alerts, text-to-speech and clear fan inputs—and defaults we should avoid. Tipsite therefore intends to combine those useful parts with:
+The competitor review identified useful patterns worth keeping—short creator links, UPI, card support, OBS alerts, text-to-speech and clear fan inputs—and defaults we should avoid. Freetip therefore intends to combine those useful parts with:
 
 - No fan account and no fan email.
 - An optional fan name so a tip can be anonymous by choice.
@@ -62,7 +62,7 @@ Not confirmed, so the page must not name them as features: paid highlighted mess
 
 Fan Name and Message: the OBS alert shows the fan's optional name, the amount and the message, and text-to-speech reads the message aloud only after creator approval, so the sample tip card keeps its optional Name and Message fields. The owner asked what these fields mean and then asked for alerts and text-to-speech, so the fields stay. The name can be left blank for an anonymous tip. The exact message limit, moderation settings and approval interface remain to be built on the future tip page.
 
-Undecided: product name (placeholder "Tipsite"), domain, payout schedule, sign-in method for creator accounts (email code, password or Google); a waitlist collects sign-ups until then.
+Undecided: domain (the product name is final: Freetip), payout schedule, sign-in method for creator accounts (email code, password or Google); a waitlist collects sign-ups until then.
 
 ## Brand Commitments
 

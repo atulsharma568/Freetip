@@ -6,13 +6,14 @@ import { PencilSimple, User, SignOut, SquaresFour } from "@phosphor-icons/react"
 import { useSession, signOut } from "next-auth/react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SITE_NAME } from "@/lib/site";
+import { Logo } from "@/components/logo/Logo";
 import { ChromeButton } from "@/components/ui/ChromeButton";
 import { GlassOrbButton } from "@/components/ui/GlassOrbButton";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#stream", label: "On stream" },
-  { href: "#why", label: "Why Tipsite" },
+  { href: "#why", label: "Why Freetip" },
   { href: "#fees", label: "Fees" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -128,8 +129,8 @@ export function Nav() {
   return (
     <header ref={ref} className="group fixed inset-x-0 top-0 z-40">
       <div className="relative z-10 mx-auto flex h-16 max-w-7xl items-center justify-between border border-transparent px-6 transition-[max-width,margin,height,padding,background-color,border-color,border-radius] duration-500 ease-out-expo group-[.is-scrolled]:mt-3 group-[.is-scrolled]:h-14 group-[.is-scrolled]:max-w-[min(80rem,calc(100%-3rem))] group-[.is-scrolled]:rounded-[28px] group-[.is-scrolled]:border-text/10 group-[.is-scrolled]:bg-surface/60 group-[.is-scrolled]:pr-[6px] group-[.is-scrolled]:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_18px_40px_-20px_rgb(0_0_0/0.8)] group-[.is-scrolled]:backdrop-blur-xl group-[.is-scrolled]:backdrop-saturate-150">
-        <Link href="/" className="display text-2xl">
-          {SITE_NAME}
+        <Link href="/" aria-label={`${SITE_NAME} home`} className="-mx-1 block px-1 text-text">
+          <Logo interactive className="h-8 w-auto sm:h-9" />
         </Link>
         <nav aria-label="Primary" className="relative hidden lg:block">
           {/* Beside the list, not in it: a list may only hold list items. */}

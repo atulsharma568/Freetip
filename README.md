@@ -1,4 +1,4 @@
-# Tipsite
+# Freetip
 
 Pre-launch landing page for a tipping site for Indian YouTube creators. Fans pay a tip from a creator's page with UPI or card, with no account or email, and can leave their name blank for an anonymous tip. Payments are not integrated; creators can join a waitlist (stored in Postgres) until sign-up opens.
 
@@ -33,16 +33,16 @@ This writes a dated CSV in the current directory. The CSV contains personal data
 - `src/lib/legal.ts`: operator details and fee numbers used by the policy pages.
 - `src/components/hero/TipCard.tsx`: the self-playing sample tip card.
 - `src/components/hero/HeroHands.tsx`: the one-shot hand-to-hand lime ₹ note animation, with a reduced-motion still frame.
-- `src/components/sections/Differentiators.tsx`: the competitor-led "Why Tipsite" section covering no fan email/account, anonymous tips, QR-first sharing and safer approved text-to-speech.
+- `src/components/sections/Differentiators.tsx`: the competitor-led "Why Freetip" section covering no fan email/account, anonymous tips, QR-first sharing and safer approved text-to-speech.
 
 ## Placeholders to replace
 
-Name `Tipsite`, host `tipsite.in`, sample handle `aarav`, the sample creator, and the operator details in `src/lib/legal.ts`.
+Name `Freetip`, host `tipsite.in`, sample handle `aarav`, the sample creator, and the operator details in `src/lib/legal.ts`.
 
 ## What is represented on the landing page
 
 - Competitor strengths we kept: a short creator link, UPI payments, card payments, OBS alerts, text-to-speech, clear sample tip amounts and message moderation direction.
-- Tipsite differentiators: no fan account, no fan email, optional anonymous tips, UPI and card in one flow, QR-first sharing and creator approval before text-to-speech.
+- Freetip differentiators: no fan account, no fan email, optional anonymous tips, UPI and card in one flow, QR-first sharing and creator approval before text-to-speech.
 - Trust rules: every simulated payment, stream alert and QR is labelled as a sample; no customer numbers, testimonials or payout promises are fabricated.
 
 ## What is not built yet

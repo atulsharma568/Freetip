@@ -1,4 +1,4 @@
--- Tipsite finance foundation.
+-- Freetip finance foundation.
 --
 -- This migration defines the internal records needed for owner reporting. It
 -- does not connect to Razorpay, create orders, receive webhooks, issue
@@ -184,7 +184,7 @@ values
   ('processor_clearing', 'Processor clearing', 'asset'),
   ('settlement_clearing', 'Settlement clearing', 'asset'),
   ('creator_payable', 'Creator payable', 'liability'),
-  ('platform_fee_revenue', 'Tipsite platform fee revenue', 'revenue'),
+  ('platform_fee_revenue', 'Freetip platform fee revenue', 'revenue'),
   ('gateway_fee_expense', 'Gateway fee expense', 'expense'),
   ('gateway_tax', 'Gateway tax', 'expense'),
   ('refunds_payable', 'Refunds payable', 'liability'),

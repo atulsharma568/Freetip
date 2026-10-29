@@ -48,7 +48,7 @@ Build the product in three dependency-ordered phases. First, add an owner-only f
   - Add a versioned platform-fee policy and explicit accounting formulas.
 
 - [ ] **Task 4: Owner finance overview and creator earnings**
-  - Show gross captured tips, refunds, actual Razorpay fees/taxes, Tipsite fee revenue, creator net payable, settled amounts, pending/unsettled funds and reconciliation status.
+  - Show gross captured tips, refunds, actual Razorpay fees/taxes, Freetip fee revenue, creator net payable, settled amounts, pending/unsettled funds and reconciliation status.
   - Support daily, weekly, monthly and custom date ranges in Asia/Kolkata with an explicit timezone label.
   - Show the same metrics per creator with drill-down links to their payment ledger.
 
@@ -140,7 +140,7 @@ Build the product in three dependency-ordered phases. First, add an owner-only f
 - Which Razorpay operating model will be used: Route/linked-account transfers or a centrally collected account with a separate payout process?
 - Should creator net earnings be calculated on captured date, settlement date, transfer date or a selectable accounting basis?
 - Which adjustments belong in creator net: refunds, chargebacks, payment fees/tax, platform fee, transfer fee, manual credits/debits?
-- Are owner reports read-only initially, or should refunds/holds/payout approvals eventually be performed from Tipsite?
+- Are owner reports read-only initially, or should refunds/holds/payout approvals eventually be performed from Freetip?
 - Is creator access open to every Google sign-in, invitation-only, or owner-approved?
 - Is one YouTube channel allowed per account, or can a creator manage multiple channels?
 - What are the final handle reserved words, rename rules and publication rules?

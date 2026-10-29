@@ -66,7 +66,7 @@ export default async function AdminMessagesPage() {
               <div>
                 <p className="font-medium text-text">{m.name}</p>
                 <a
-                  href={`mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent("Re: your message to Tipsite")}`}
+                  href={`mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent("Re: your message to Freetip")}`}
                   className="text-sm text-muted transition-colors hover:text-text"
                 >
                   {m.email}

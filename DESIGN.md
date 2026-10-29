@@ -1,5 +1,5 @@
 ---
-name: Tipsite
+name: Freetip
 description: A dark, flat tipping page for Indian YouTube streamers. One acid-lime accent is spent as full fields at the moment a tip lands.
 colors:
   ground: "oklch(0.155 0.008 115)"
@@ -150,7 +150,7 @@ components:
     height: "64px"
 ---
 
-# Design System: Tipsite
+# Design System: Freetip
 
 ## Overview
 
@@ -160,7 +160,7 @@ The whole system is a dark room with one light that switches on when money arriv
 
 It is flat and exact. There are no shadows, gradients, glows or blurs. Depth comes from three tonal steps, and the lime fields are the loudest layer. Type does the personality work: a condensed, heavy Bricolage Grotesque for headlines, the same family at normal width for sentences, and Geist Mono reserved for money and the handle. Motion exists to demonstrate the product. The hero hands exchange a lime ₹ note once, a sample card plays itself and lights the headline beats, a sample stream alert lights its message word by word, and every motion is gated off under reduced motion.
 
-The owner pinned the direction as dark, flat and one sharp accent, and the page must not look AI-generated or templated. The system refuses the streamer-tool default of neon glow, mesh gradients and dense grids of feature cards. The "Why Tipsite" section is one deliberate bento-style explanation of the product edge, not a catalogue of every possible feature.
+The owner pinned the direction as dark, flat and one sharp accent, and the page must not look AI-generated or templated. The system refuses the streamer-tool default of neon glow, mesh gradients and dense grids of feature cards. The "Why Freetip" section is one deliberate bento-style explanation of the product edge, not a catalogue of every possible feature.
 
 **Key Characteristics:**
 - Warm-tinted near-black ground with off-white text. One lime accent plus its dark ink, and no second hue.
@@ -223,7 +223,7 @@ One container, `max-w-7xl` (1280px) with 24px side gutters, on a 12-column grid 
 
 Below md the nav drops its links, leaving wordmark and claim pill. The hero stacks copy above the card, the closing form stacks field over button, and the closing section's scroll expansion is disabled. The closing section is a full-bleed lime field that, from md up and with motion allowed, expands from an inset rounded shape to full width as it scrolls into view.
 
-The "Why Tipsite" section follows the stream alert. It uses a tall fan-friction tile beside two shorter payment and QR tiles, then a full-width safety tile. On small screens these tiles stack in reading order. The QR is an illustration labelled "Non-scannable sample QR" until real creator pages exist.
+The "Why Freetip" section follows the stream alert. It uses a tall fan-friction tile beside two shorter payment and QR tiles, then a full-width safety tile. On small screens these tiles stack in reading order. The QR is an illustration labelled "Non-scannable sample QR" until real creator pages exist.
 
 ## Elevation & Depth
 
@@ -313,7 +313,7 @@ The sample of what viewers see on a streamer's stream when a tip lands. It sits 
 On screens 1280px and wider, labelled sample alerts fan out from behind the hero tip card's left edge, tucked 3.5rem under it: up to three cards, each turned a little further (−4°, −11°, −18°) and stepped up and left. The front one is Acid Lime with Field Ink text, the others Raised Smoke with a Hairline border. When the card's success state settles (after the odometer lands), the tip it "sent" deals out from behind the card to the front (900ms expo), the others step back and the oldest fades out. Two sample alerts are fanned from the start. Decorative and `aria-hidden`; every card says "Sample alert". Hidden below 1280px, where there is no room beside the headline.
 
 ### Money Orbit
-At the top of the closing section, above the lime field, the wordmark "Tipsite" sits large in Chalk Display (up to 15rem) while 14 lime ₹ notes and coins circle it on a tilted ring (16s a lap). The far half of the ring is drawn on a canvas behind the word and the near half on one in front, so the money passes behind and in front of the letters; nearer pieces are bigger, brighter and glow more, and coins flip as they go. Every few seconds the word glitches: a lime and an Ash copy slip sideways in thin slices. Canvases pause off screen; reduced motion shows one still frame and no glitch. Decorative and `aria-hidden`.
+At the top of the closing section, above the lime field, the wordmark "Freetip" sits large in Chalk Display (up to 15rem) while 14 lime ₹ notes and coins circle it on a tilted ring (16s a lap). The far half of the ring is drawn on a canvas behind the word and the near half on one in front, so the money passes behind and in front of the letters; nearer pieces are bigger, brighter and glow more, and coins flip as they go. Every few seconds the word glitches: a lime and an Ash copy slip sideways in thin slices. Canvases pause off screen; reduced motion shows one still frame and no glitch. Decorative and `aria-hidden`.
 
 ### Steps Journey
 "How it works" has four steps: Claim, Share, Go live, Get paid. A lime line runs down the left of the list, drawn as the page scrolls: each step owns the segment from its numbered node to the next, filling in step with the 60% line of the screen (a 3px lime fill over a 1px Hairline track). A node is a 28px circle (32px from md) that fills lime with Field Ink when the line reaches it and goes dark again when scrolling back up. Beside each step (below it on phones) sits a small labelled sample card: the handle, a video description with the link, the lime stream alert (wiping in from its top edge) and the payout on a ₹100 tip, using `FEES.example` so it matches the fee tile. The cards rise in once. Under reduced motion the line is full, every node is lit and nothing moves; without JavaScript the same. It replaced the pinned sideways rail (2026-10-25); the idea came from Skiper UI's scroll-drawn SVG line (inspiration only, own code).
@@ -324,7 +324,7 @@ The "What it costs" tile leads with "5%" in Geist Mono on odometer reels. Below 
 ### Hero Handoff
 The hero handoff is a flat, decorative GSAP SVG band above the sample tip card, full-bleed on phones and spanning the hero on desktop. The fan's lighter hand enters from the left pinching a lime ₹ note; the streamer's muted hand enters open from the right, its fingers close over the note, the fan's pinch opens with a small tick burst, and the streamer leaves with the note. It plays once (about 2.7 seconds) when the band scrolls into view, after a short delay so the headline and CTA come first, and the sample tip card starts only after it ends. Only transforms and opacity animate; every turning part rotates around its own pivot. It has no shadow, gradient or realistic currency detail, and lime appears only on the note. The component is `aria-hidden`. Under reduced motion it shows the static exchange frame. Owner status: approved for now (2026-10-14), may be revised.
 
-### Why Tipsite
+### Why Freetip
 The competitor-led differentiator section is a calm bento composition of surfaces, not a feature wall. It uses one accent tile for UPI + card, a dark fan-friction tile for no account/no email/anonymous tipping, a raised QR tile with a non-scannable sample illustration, and a surface tile for the three-step safety treatment. Labels distinguish planned product behavior from a working feature, and the QR must remain labelled as a sample until it is generated from a real creator handle.
 
 ### Accordion
