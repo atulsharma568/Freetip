@@ -99,18 +99,22 @@ html.lenis body {
    Animations inside the hidden content are paused so they play from the
    start once the content becomes visible, not silently during the splash.
    overflow: hidden prevents native browser scroll during the title screen;
-   Lenis is also paused in SmoothScroll.tsx for the same reason. */
+   Lenis is also paused in SmoothScroll.tsx for the same reason.
+   Only the page that has a title screen (the one holding .page-content, the
+   home page) is affected. Without the :has() these rules matched every route,
+   where nothing ever adds page-scrolled, and locked the body: no keyboard or
+   touch scrolling on the legal, contact, sign-in, tip and dashboard pages. */
 .page-content {
   transition: opacity 600ms ease-out;
 }
-body:not(.page-scrolled) {
+body:has(.page-content):not(.page-scrolled) {
   overflow: hidden;
 }
-body:not(.page-scrolled) .page-content {
+body:has(.page-content):not(.page-scrolled) .page-content {
   opacity: 0;
 }
-body:not(.page-scrolled) .rise,
-body:not(.page-scrolled) .enter {
+body:has(.page-content):not(.page-scrolled) .rise,
+body:has(.page-content):not(.page-scrolled) .enter {
   animation-play-state: paused;
 }
 

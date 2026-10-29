@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-29, updated after the scroll-lock fix)
+
+- **Found while starting the "page invisible until first scroll" step, and live on the deployed site until this commit:** the title-screen CSS in `src/app/globals.css` (`body:not(.page-scrolled) { overflow: hidden }` plus the content-hiding and animation-pause rules) was not limited to the home page. Nothing adds `page-scrolled` on any other route, so every other route had a body locked to `overflow: hidden`: `PageDown`, Space and the arrow keys did nothing, and on a phone a finger swipe could not scroll at all (checked in real Chrome with a Pixel 5 touch swipe on `/terms` and `/contact`: scrollY stayed 0). The mouse wheel appeared to work only because the smooth-scroll library (Lenis) scrolls with script. That covers the legal pages, contact, sign-in, 404 and, from the same layout, very likely the creator tip page and dashboard (those need a database to render, so they were not driven here). The three rules now start `body:has(.page-content):not(.page-scrolled)`; `.page-content` is only on the home page (`src/app/page.tsx`), so only the home page has a title screen. No JavaScript is involved and nothing else changed.
+- New `test/page-scroll.spec.ts`: on `/terms`, `/privacy`, `/pricing`, `/contact`, `/signin` and a 404 the body is not `overflow: hidden`; `/terms` and `/privacy` scroll with `PageDown`, and on the phone project with a real touch swipe; and the home page still starts locked (body `overflow: hidden`, content opacity 0). Against the old CSS 18 of these fail; with the fix they pass (2 skipped: the swipe tests on the desktop project).
+- Verified: eslint and tsc clean; full suite 322 passed and 2 skipped, twice in a row.
+- Still to do in this step (owner chose "keep the title screen, make it safe"): content must never stay invisible if scripts fail or are blocked, Tabbing into a hidden control should end the title screen, and a small "scroll" cue should show.
+
 ## Current state (2026-10-29, updated after the order rate limit)
 
 - **Owner action: run `db/migrations/0012_tip_order_attempts.sql` in Neon.** Until it is run the limit does nothing (see "fails open" below); tips are not affected either way.
