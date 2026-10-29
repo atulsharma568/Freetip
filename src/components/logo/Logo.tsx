@@ -56,8 +56,8 @@ type CoinState = { x: number; y: number; k: number; a: number; lift: number; o: 
 
 // The coin is drawn flat and turned about its vertical axis by squashing the
 // face to |cos a| and drawing the rim as the gap between two faces |sin a|
-// apart, which is how a thick coin looks edge-on. At a = 0 the dollar side
-// faces the viewer; at a = pi the rupee side does.
+// apart, which is how a thick coin looks edge-on. At a = 0 the rupee side
+// faces the viewer; at a = pi the dollar side does.
 export function Logo({
   variant = "static",
   loop = false,
@@ -360,7 +360,7 @@ export function Logo({
           <ellipse rx={R - 13} ry={R - 13} stroke={LOGO_COIN_RIM} strokeWidth="6" opacity="0.85" />
           <path
             data-front
-            d={COIN_DOLLAR}
+            d={COIN_RUPEE}
             stroke={LOGO_COIN_SYMBOL}
             strokeWidth="13"
             strokeLinecap="round"
@@ -368,7 +368,7 @@ export function Logo({
           />
           <path
             data-back
-            d={COIN_RUPEE}
+            d={COIN_DOLLAR}
             stroke={LOGO_COIN_SYMBOL}
             strokeWidth="13"
             strokeLinecap="round"

@@ -7,7 +7,7 @@ import {
   LOGO_VIEWBOX,
 } from "./logoPaths";
 import {
-  COIN_DOLLAR,
+  COIN_RUPEE,
   LOGO_COIN_DARK,
   LOGO_COIN_LIGHT,
   LOGO_COIN_LINE,
@@ -38,7 +38,7 @@ export function LogoStatic({ height, color = "#eff0ea" }: { height: number; colo
       <g transform={`translate(${LOGO_COIN.cx} ${LOGO_COIN.cy})`}>
         <circle r={LOGO_COIN.r} fill="url(#logo-coin-face)" stroke={LOGO_COIN_LINE} strokeWidth="6" />
         <circle r={LOGO_COIN.r - 13} stroke={LOGO_COIN_RIM} strokeWidth="6" opacity="0.85" />
-        <path d={COIN_DOLLAR} stroke={LOGO_COIN_SYMBOL} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={COIN_RUPEE} stroke={LOGO_COIN_SYMBOL} strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
       </g>
     </svg>
   );
@@ -57,7 +57,7 @@ export function CoinMark({ size }: { size: number }) {
       </defs>
       <circle r="96" fill="url(#coin-mark-face)" stroke={LOGO_COIN_LINE} strokeWidth="8" />
       <circle r="80" stroke={LOGO_COIN_RIM} strokeWidth="7" opacity="0.85" />
-      <path d={COIN_DOLLAR} stroke={LOGO_COIN_SYMBOL} strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={COIN_RUPEE} stroke={LOGO_COIN_SYMBOL} strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

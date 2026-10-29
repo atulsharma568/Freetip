@@ -12,10 +12,10 @@ export const LOGO_COIN_LINE = "#1b2610";
 export const LOGO_COIN_SYMBOL = "#37431f";
 
 // Both symbols are drawn around (0, 0) for a coin of radius 96.
-/** Front face: a dollar sign, as in the logo. */
+/** Back face: a dollar sign, as in the original artwork. */
 export const COIN_DOLLAR =
   "M 24 -34 C 24 -58 -26 -58 -26 -30 C -26 -4 26 -10 26 18 C 26 46 -24 46 -24 22 M 0 -64 V 64";
-/** Back face: a rupee sign, since the product is for India. */
+/** Front face (the side the coin lands on): a rupee sign, since the product is for India. */
 export const COIN_RUPEE =
   "M -26 -40 H 28 M -26 -14 H 28 M -26 -40 H -2 C 32 -40 32 6 -2 6 H -26 L 22 62";
 
