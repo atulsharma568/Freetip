@@ -120,7 +120,7 @@ export const CONTEXT_WORDS: Record<string, string> = {
   "main": "मैं", "mat": "मत", "mere": "मेरे", "din": "दिन",
   "mast": "मस्त", "na": "ना", "ho": "हो", "to": "तो",
   "do": "दो", "ko": "को", "ram": "राम", "yeh": "यह",
-  "sun": "सुन", "log": "लोग", "par": "पर", "jab": "जब",
+  "sun": "सुन", "log": "लोग", "par": "पर", "jab": "जब", "ban": "बन",
 };
 
 // Short Hindi words that are also names, abbreviations or other languages: Hindi
@@ -130,13 +130,23 @@ export const SHORT_WORDS = new Set<string>([
   "ek", "fir", "haye", "hu", "hue", "hum", "ja", "jaa",
   "jana", "ji", "ka", "kafi", "kari", "ke", "ki", "kis",
   "le", "lena", "lo", "mila", "naa", "ne", "oho", "pe",
-  "sau", "se", "tak", "tu", "uff", "vo", "wo", "ye",
+  "dum", "har", "jo", "mil", "pi", "sa", "sau", "se", "si", "tak", "tu", "uff", "vo", "wo", "ye",
 ]);
 
 // "welcome to stream bhai" keeps its "to": these need a Hindi word beside them.
 export const NEEDS_HINDI_NEIGHBOUR = new Set<string>([
-  "do", "jab", "ko", "log", "par", "to",
+  "ban", "do", "jab", "ko", "log", "par", "to",
 ]);
+
+// "ki" is कि ("that") after these ("bola ki", "lagta hai ki") and की ("of") anywhere else.
+export const KI_THAT_AFTER = new Set<string>([
+  "bola", "bolta", "bolte", "batao", "bataya", "dekha", "dua", "hai", "hain", "hoga", "hogi", "hua",
+  "kaha", "kehta", "kehte", "khabar", "laga", "lagta", "lagti", "maloom", "matlab", "pata", "sach",
+  "socha", "sochta", "suna", "tha", "the", "thi", "umeed", "yaad", "yakeen",
+]);
+
+// "the" is थे ("they were") right after a Hindi verb form such as "rahe the".
+export const THE_AFTER_ENDING = /(ते|े|ए)$/;
 
 export const ENGLISH_GRAMMAR = new Set<string>([
   "a", "about", "also", "am", "an", "and", "are", "at",
@@ -254,9 +264,96 @@ const EXTRA: Record<string, string> = {
   "sitaram": "सीताराम", "jaishreeram": "जय श्री राम", "harharmahadev": "हर हर महादेव",
 };
 
+// Second expansion (2026-10-30), from test messages that showed words missing. Same
+// rule as EXTRA: only words that are not also common English words. Spellings with
+// a doubled vowel ("bakwaas", "sawaal") are not listed; hinglish.ts matches them to
+// the single-vowel spelling.
+const MORE: Record<string, string> = {
+  // The "as much as" family (jitna must not become "to win")
+  "jitna": "जितना", "jitni": "जितनी", "jitne": "जितने", "utna": "उतना", "utni": "उतनी", "utne": "उतने",
+  "jaisa": "जैसा", "waisa": "वैसा", "waisi": "वैसी", "kuchh": "कुछ", "kuchch": "कुछ",
+  // Where, when, which
+  "kahin": "कहीं", "jahan": "जहाँ", "yahin": "यहीं", "wahin": "वहीं", "tabhi": "तभी", "jisko": "जिसको",
+  "jisne": "जिसने", "jiska": "जिसका", "jiski": "जिसकी", "jiske": "जिसके", "kisne": "किसने",
+  "inhe": "इन्हें", "unhe": "उन्हें", "inhein": "इन्हें", "unhein": "उन्हें", "inka": "इनका", "inki": "इनकी",
+  "inke": "इनके", "kaunsa": "कौनसा", "kaunsi": "कौनसी", "kaunse": "कौनसे", "konsa": "कौनसा", "konsi": "कौनसी",
+  "konse": "कौनसे", "bina": "बिना", "bagair": "बग़ैर", "baghair": "बग़ैर", "khilaf": "ख़िलाफ़",
+  "wajah": "वजह", "beech": "बीच", "taraf": "तरफ़", "tarah": "तरह", "baare": "बारे", "kareeb": "क़रीब", "doori": "दूरी",
+  // Amount and order
+  "shayad": "शायद", "poora": "पूरा", "pura": "पूरा", "poori": "पूरी", "adhura": "अधूरा", "saara": "सारा",
+  "saari": "सारी", "saare": "सारे", "lagbhag": "लगभग", "takriban": "तक़रीबन", "dusra": "दूसरा", "dusri": "दूसरी",
+  "dusre": "दूसरे", "doosra": "दूसरा", "doosri": "दूसरी", "doosre": "दूसरे", "pehla": "पहला", "pehli": "पहली",
+  "pahla": "पहला", "pahli": "पहली", "tisra": "तीसरा", "aakhri": "आख़िरी", "aakhir": "आख़िर", "pichhla": "पिछला",
+  "pichhli": "पिछली", "kayi": "कई", "achanak": "अचानक", "chupchap": "चुपचाप", "chup": "चुप", "khamosh": "ख़ामोश",
+  "tez": "तेज़", "seedha": "सीधा", "sidha": "सीधा", "ulta": "उल्टा", "halka": "हल्का", "garam": "गरम",
+  "thanda": "ठंडा", "mitha": "मीठा", "teekha": "तीखा", "tikha": "तीखा", "alag": "अलग", "khaas": "ख़ास",
+  "bemisaal": "बेमिसाल", "anokha": "अनोखा", "sachcha": "सच्चा", "saccha": "सच्चा", "jhootha": "झूठा",
+  "jhooth": "झूठ", "mehnga": "महँगा", "dhamakedaar": "धमाकेदार", "bindass": "बिंदास", "faltu": "फ़ालतू",
+  "jugaad": "जुगाड़", "jugad": "जुगाड़", "vasool": "वसूल", "dilchasp": "दिलचस्प", "imaandar": "ईमानदार",
+  "mehnati": "मेहनती",
+  // Time
+  "tarikh": "तारीख़", "hafta": "हफ़्ता", "mahina": "महीना", "ghanta": "घंटा", "ghante": "घंटे", "lamha": "लम्हा",
+  "samay": "समय", "turant": "तुरंत", "fauran": "फ़ौरन", "dobara": "दोबारा", "dubara": "दोबारा", "raatbhar": "रातभर",
+  // People and things
+  "maa": "माँ", "baap": "बाप", "dadi": "दादी", "nani": "नानी", "mausi": "मौसी", "insaan": "इंसान",
+  "aurat": "औरत", "mard": "मर्द", "bachchon": "बच्चों", "bacchon": "बच्चों", "parivar": "परिवार",
+  "pariwar": "परिवार", "saathi": "साथी", "dushman": "दुश्मन", "janta": "जनता", "khiladi": "खिलाड़ी",
+  "haath": "हाथ", "aankh": "आँख", "aankhen": "आँखें", "dimaag": "दिमाग़", "dimag": "दिमाग़", "munh": "मुँह",
+  "chehra": "चेहरा", "awaaz": "आवाज़", "awaz": "आवाज़", "aawaz": "आवाज़", "gaane": "गाने", "geet": "गीत",
+  "sangeet": "संगीत", "kahani": "कहानी", "khabar": "ख़बर", "sawal": "सवाल", "jawab": "जवाब", "gaadi": "गाड़ी",
+  "kamra": "कमरा", "darwaza": "दरवाज़ा", "khidki": "खिड़की", "chhat": "छत", "naukri": "नौकरी",
+  "padhai": "पढ़ाई", "pariksha": "परीक्षा", "madad": "मदद", "dhoka": "धोखा", "kaand": "कांड",
+  // Feelings
+  "udaas": "उदास", "pareshan": "परेशान", "pareshaan": "परेशान", "khush": "ख़ुश", "naraz": "नाराज़",
+  "dard": "दर्द", "aansu": "आँसू", "muskaan": "मुस्कान", "chinta": "चिंता", "ishq": "इश्क़", "yaadein": "यादें",
+  "sapna": "सपना", "sapne": "सपने", "khwab": "ख़्वाब", "hosla": "हौसला", "hausla": "हौसला", "junoon": "जुनून",
+  "jazba": "जज़्बा", "hasi": "हँसी", "hansi": "हँसी", "mann": "मन", "dhyan": "ध्यान",
+  // Money
+  "udhaar": "उधार", "kharcha": "ख़र्चा", "kharch": "ख़र्च", "bachat": "बचत", "keemat": "क़ीमत", "kimat": "क़ीमत",
+  // Greetings and wishes
+  "pranam": "प्रणाम", "shubh": "शुभ", "shubhkamnaye": "शुभकामनाएँ", "shubhkamnayein": "शुभकामनाएँ",
+  "shubhkamna": "शुभकामना", "abhaar": "आभार", "kripya": "कृपया", "zara": "ज़रा", "jara": "ज़रा",
+  "chaliye": "चलिए", "haal": "हाल",
+  // Faith
+  "hanuman": "हनुमान", "bajrangbali": "बजरंगबली", "ganesh": "गणेश", "shiv": "शिव", "bholenath": "भोलेनाथ",
+  "durga": "दुर्गा", "lakshmi": "लक्ष्मी", "saraswati": "सरस्वती", "ganga": "गंगा", "prabhu": "प्रभु",
+  "rab": "रब", "mashallah": "माशाअल्लाह", "inshallah": "इंशाअल्लाह", "alhamdulillah": "अल्हम्दुलिल्लाह",
+  "subhanallah": "सुभानअल्लाह",
+  // Exclamations and small words
+  "arey": "अरे", "aree": "अरे", "sa": "सा", "si": "सी", "pi": "पी", "mil": "मिल", "dum": "दम",
+  "har": "हर", "jo": "जो", "thak": "थक", "khud": "ख़ुद", "mastt": "मस्त", "acchha": "अच्छा", "achchha": "अच्छा",
+  // Numbers
+  "chhah": "छह", "gyarah": "ग्यारह", "barah": "बारह", "terah": "तेरह", "chaudah": "चौदह", "pandrah": "पंद्रह",
+  "solah": "सोलह", "satrah": "सत्रह", "atharah": "अठारह", "unnis": "उन्नीस", "chalis": "चालीस", "assi": "अस्सी",
+  "dedh": "डेढ़", "dhai": "ढाई", "aadha": "आधा", "aadhi": "आधी", "aadhe": "आधे",
+};
+
+// Verb forms of the irregular verbs (kar, ja, aa, de, le, ho, kah, pi, ro, so), which
+// the stem endings in hinglish-verbs.ts do not cover. Weak words: converted only in a
+// clause that is already Hindi, because several are English too ("jane", "jake",
+// "karen", "hone", "doge").
+export const WEAK_EXTRA: Record<string, string> = {
+  "kehna": "कहना", "kehta": "कहता", "kehti": "कहती", "kehte": "कहते", "kehne": "कहने", "kehke": "कहके",
+  "kaho": "कहो", "kahe": "कहे", "kahunga": "कहूँगा", "kahega": "कहेगा", "bolega": "बोलेगा", "bolegi": "बोलेगी",
+  "karogi": "करोगी", "karein": "करें", "karen": "करें", "karun": "करूँ",
+  "hone": "होने", "hoke": "होके", "hokar": "होकर", "hoge": "होगे", "hogayi": "हो गई", "hogaye": "हो गए",
+  "hogyi": "हो गई", "hogye": "हो गए", "jaoge": "जाओगे", "jayega": "जाएगा", "jaega": "जाएगा",
+  "jayegi": "जाएगी", "jayenge": "जाएँगे", "jaenge": "जाएँगे", "jaye": "जाए", "jaaye": "जाए", "jata": "जाता",
+  "jati": "जाती", "jate": "जाते", "jaata": "जाता", "jaati": "जाती", "jaate": "जाते", "jane": "जाने",
+  "jaane": "जाने", "jake": "जाके", "jakar": "जाकर", "aaoge": "आओगे", "aayega": "आएगा", "ayega": "आएगा",
+  "aayegi": "आएगी", "aayenge": "आएँगे", "aata": "आता", "aati": "आती", "aane": "आने",
+  "aake": "आके", "aakar": "आकर", "aaungi": "आऊँगी", "dega": "देगा", "degi": "देगी", "denge": "देंगे",
+  "doge": "दोगे", "dungi": "दूँगी", "deta": "देता", "deti": "देती", "dene": "देने",
+  "dekar": "देकर", "deke": "देके", "diye": "दिए", "lega": "लेगा", "legi": "लेगी", "lenge": "लेंगे",
+  "loge": "लोगे", "lungi": "लूँगी", "leta": "लेता", "leti": "लेती", "lene": "लेने",
+  "lekar": "लेकर", "leke": "लेके", "khaunga": "खाऊँगा", "peena": "पीना", "peeta": "पीता", "peeti": "पीती",
+  "peene": "पीने", "piyega": "पिएगा", "piyenge": "पिएँगे", "piunga": "पिऊँगा",
+  "pioge": "पियोगे", "rona": "रोना", "roya": "रोया", "royi": "रोई", "rone": "रोने", "soyega": "सोएगा",
+  "soyegi": "सोएगी", "soyenge": "सोएँगे",
+};
 
 // Every word that is Hindi wherever it appears.
-export const WORDS: Record<string, string> = { ...BASE, ...EXTRA };
+export const WORDS: Record<string, string> = { ...BASE, ...EXTRA, ...MORE };
 
 // Respellings that would catch an English word or a common name: never generated.
 export const NOT_VARIANTS = new Set<string>(["chora", "salon", "niche", "kamal"]);
