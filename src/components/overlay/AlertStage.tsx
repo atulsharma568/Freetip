@@ -131,6 +131,33 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   const [invalid, setInvalid] = useState(false);
   const queue = useRef<QueuedAlert[]>([]);
   const seen = useRef(0);
+  // Dashboard commands: the first times the overlay saw, then only newer ones act.
+  const controlsSeen = useRef<{ skipAt: number; testAt: number } | null>(null);
+  const testCount = useRef(0);
+  const currentRef = useRef<QueuedAlert | null>(null);
+  const skipNow = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    currentRef.current = current;
+  }, [current]);
+
+  // Skip: clear the card on screen and drop what waits. A waiting alert was leased
+  // and never shown, so it is confirmed as handled, else it would come back when
+  // its lease runs out.
+  useEffect(() => {
+    skipNow.current = () => {
+      for (const a of queue.current) {
+        releaseSpeech(a);
+        if (token && a.id >= 0) void confirmShown(token, a);
+      }
+      queue.current = [];
+      const c = currentRef.current;
+      if (c) {
+        releaseSpeech(c);
+        setCurrent(null);
+      }
+    };
+  }, [token]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -170,7 +197,34 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
           return;
         }
         if (!res.ok) return;
-        const body = (await res.json()) as { alert: OverlayAlert | null };
+        const body = (await res.json()) as {
+          alert: OverlayAlert | null;
+          controls?: { skipAt: number; testAt: number };
+        };
+        const c = body.controls;
+        if (c) {
+          const was = controlsSeen.current;
+          if (!was) {
+            controlsSeen.current = { ...c };
+          } else {
+            if (c.skipAt > was.skipAt) {
+              was.skipAt = c.skipAt;
+              skipNow.current();
+            }
+            if (c.testAt > was.testAt) {
+              was.testAt = c.testAt;
+              testCount.current += 1;
+              // A made-up alert: negative id, nothing to confirm or speak.
+              queue.current.push({
+                id: -testCount.current,
+                kind: "alert",
+                name: "Test alert",
+                amountPaise: 4900,
+                message: "This is a test from your dashboard.",
+              });
+            }
+          }
+        }
         if (body.alert) {
           const alert: QueuedAlert = body.alert;
           if (alert.sound) alert.clip = loadClip(alert.sound);
@@ -200,7 +254,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   useEffect(() => {
     if (current) {
       // The card is up: confirm it (live overlay only; the preview has no token).
-      if (token) void confirmShown(token, current);
+      if (token && current.id >= 0) void confirmShown(token, current);
       // Start the voice with the card. A normal browser tab blocks sound until
       // someone clicks; OBS's browser source allows it, so a refused play is
       // simply silent.

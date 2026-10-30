@@ -31,6 +31,8 @@ interface CandidateRow extends Omit<TipRow, "id"> {
   approve_before_play: boolean;
   tts_min_paise: number;
   id: number | null;
+  overlay_skip_at: Date | null;
+  overlay_test_at: Date | null;
 }
 
 export async function GET(
@@ -53,6 +55,7 @@ export async function GET(
   const rows = await db<CandidateRow[]>`
     select u.id as creator_id, u.alert_mode,
            u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise,
+           u.overlay_skip_at, u.overlay_test_at,
            t.id::int as id, t.fan_name, t.fan_message, t.gross_amount_minor, t.message_status,
            t.captured_at, t.message_decided_at, t.alert_shown_at, t.message_shown_at
     from users u
@@ -77,10 +80,17 @@ export async function GET(
 
   if (!rows.length) return new Response("Not found", { status: 404, headers: NO_STORE });
 
+  // Dashboard commands (test, skip) for the overlay to act on, sent with every
+  // answer. An overlay only acts on a time newer than the first one it saw.
+  const controls = {
+    skipAt: rows[0].overlay_skip_at?.getTime() ?? 0,
+    testAt: rows[0].overlay_test_at?.getTime() ?? 0,
+  };
+
   const mode = rows[0].alert_mode;
   const tips = rows.filter((r): r is CandidateRow & { id: number } => r.id !== null);
   const next = pickNext(mode, tips, new Date());
-  if (!next) return Response.json({ alert: null }, { headers: NO_STORE });
+  if (!next) return Response.json({ alert: null, controls }, { headers: NO_STORE });
 
   const claimed =
     next.kind === "alert"
@@ -104,7 +114,7 @@ export async function GET(
         `;
 
   // Someone else (another open overlay) leased it first.
-  if (!claimed.length) return Response.json({ alert: null }, { headers: NO_STORE });
+  if (!claimed.length) return Response.json({ alert: null, controls }, { headers: NO_STORE });
 
   const row = tips.find((r) => r.id === next.id)!;
 
@@ -192,6 +202,7 @@ export async function GET(
         speech: speak,
         sound,
       },
+      controls,
     },
     { headers: NO_STORE },
   );

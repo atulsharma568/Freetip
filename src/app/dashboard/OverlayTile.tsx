@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { generateOverlayLink } from "@/app/actions/creator";
+import { replayLastAlert, sendTestAlert, skipAlert, type ControlResult } from "@/app/actions/overlay-controls";
 
 const SIZES = [
   { label: "1080p", w: 1920, h: 1080 },
@@ -15,6 +16,13 @@ export function OverlayTile({ hasLink }: { hasLink: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [control, setControl] = useState<ControlResult | null>(null);
+  const [controlPending, startControl] = useTransition();
+
+  function run(action: () => Promise<ControlResult>) {
+    setControl(null);
+    startControl(async () => setControl(await action()));
+  }
 
   function create() {
     if (hasLink && !url && !window.confirm("Your current link will stop working. Create a new one?")) {
@@ -86,6 +94,39 @@ export function OverlayTile({ hasLink }: { hasLink: boolean }) {
       >
         {pending ? "Creating…" : hasLink || url ? "Create a new link" : "Create link"}
       </button>
+
+      {(hasLink || url) && (
+        <div className="space-y-2 border-t border-line/60 pt-4">
+          <p className="text-xs text-muted">
+            With the alert open in OBS, these act within a few seconds.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Send test alert", action: sendTestAlert },
+              { label: "Skip current alert", action: skipAlert },
+              { label: "Replay last alert", action: replayLastAlert },
+            ].map((b) => (
+              <button
+                key={b.label}
+                type="button"
+                onClick={() => run(b.action)}
+                disabled={controlPending}
+                className="h-11 rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent disabled:opacity-40"
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+          {control && (
+            <p
+              role={control.status === "error" ? "alert" : "status"}
+              className={`text-sm ${control.status === "error" ? "text-red-400" : "text-muted"}`}
+            >
+              {control.message}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2 border-t border-line/60 pt-4 text-sm text-muted">
         <p>In OBS: Sources, add Browser, paste the link, then set the size for your scene:</p>

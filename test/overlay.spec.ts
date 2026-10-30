@@ -137,6 +137,46 @@ test.describe("OBS overlay routes", () => {
     await expect.poll(() => confirmed).toEqual([{ id: 7, kind: "alert" }]);
   });
 
+  test("a dashboard test alert shows a card, and an old command does not replay after a reload", async ({ page }) => {
+    // The first answer carries old command times: nothing may happen. The second
+    // carries a newer test time: the test card shows and is never confirmed.
+    let calls = 0;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) => {
+      calls += 1;
+      return route.fulfill({ json: { alert: null, controls: { skipAt: 100, testAt: calls === 1 ? 100 : 200 } } });
+    });
+    let acks = 0;
+    await page.route(`**/api/overlay/${TOKEN}/ack`, (route) => {
+      acks += 1;
+      return route.fulfill({ status: 204 });
+    });
+
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect.poll(() => calls).toBeGreaterThanOrEqual(1);
+    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(page.getByRole("status")).toContainText("This is a test from your dashboard.", { timeout: 15000 });
+    expect(acks).toBe(0);
+  });
+
+  test("a dashboard skip clears the card on screen", async ({ page }) => {
+    let calls = 0;
+    let skipServed = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) => {
+      calls += 1;
+      const alert = calls === 1 ? { ...SPEAKING_ALERT.alert, speech: false } : null;
+      if (calls >= 2) skipServed = true;
+      return route.fulfill({ json: { alert, controls: { skipAt: calls >= 2 ? 500 : 100, testAt: 0 } } });
+    });
+    await page.route(`**/api/overlay/${TOKEN}/ack`, (route) => route.fulfill({ status: 204 }));
+
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect(page.getByRole("status")).toContainText("great stream");
+    // The second poll (about 4s in) carries the skip. The card would stay up until
+    // about 6.5s, so it must be gone within a second of the skip, well before that.
+    await expect.poll(() => skipServed, { timeout: 8000 }).toBe(true);
+    await expect(page.getByRole("status")).toHaveCount(0, { timeout: 1000 });
+  });
+
   test("the preview never confirms anything", async ({ page }) => {
     let calls = 0;
     await page.route("**/api/overlay/**", (route) => {
