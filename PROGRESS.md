@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the domain comparison)
+
+- **Domain shopping (research only, nothing bought):** `.com` cheapest at Cloudflare (about ₹780 to ₹990 a year) or Porkbun (about ₹905 to ₹1,045); `.in` at Hostinger or BigRock (UPI and GST invoices, about ₹900 to ₹1,140 a year) or Namecheap or Porkbun (international card). Cloudflare selling `.in` is unconfirmed. Avoid GoDaddy (₹1 offers need 3 years, renewal ₹1,599). `.in` has no WHOIS privacy (NIXI KYC). Compare renewal prices, register in the owner's own name. **After buying:** point DNS at Vercel, set `NEXT_PUBLIC_SITE_URL`, add `https://<domain>/api/auth/callback/google` in Google Cloud, and add the Resend DNS records for a sender address on the domain.
+- **Done today (2026-10-30), for the next session:** sound save fixed (bigint ids), ₹20 tip preset chips, defaults ₹20 minimum and voice on (migration 0024, **owner to run in Neon**), overlay position grid built then removed (creators place the alert in OBS; migration 0025 unused), processing charge raised to 2.75%, Razorpay research and draft email (`docs/razorpay-email-draft.md`). **Owner actions open:** run migration 0024 in Neon; set `TTS_ENABLED` and the voice keys in Vercel; add the Google test user or publish the OAuth app; send the Razorpay email; ask the lawyer and accountant (payout design section 7); buy the domain.
+
 ## Current state (2026-10-30, updated after the Razorpay payout research)
 
 - Razorpay's public pages say Route needs turnover above ₹40 lakh plus a use-case review, and was discontinued from 1 January 2026 for accounts that do not qualify, so Freetip should plan on RazorpayX payouts (manual rail first). The RazorpayX fee is ₹1.50 to ₹7 per payout after 250 free a month. Findings are in `docs/payout-design.md` section 8; the draft email to Razorpay is `docs/razorpay-email-draft.md`. **Owner actions:** fill and send the email, then ask the lawyer and the accountant the section 7 questions. No code changed.
