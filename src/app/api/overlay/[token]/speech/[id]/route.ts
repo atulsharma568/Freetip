@@ -17,6 +17,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const SPEAK_WINDOW = "10 minutes";
 
 interface Row {
+  creator_id: number;
   fan_message: string | null;
   gross_amount_minor: string | number;
   message_status: SpeechTip["messageStatus"];
@@ -48,7 +49,7 @@ export async function GET(
   let rows: Row[];
   try {
     rows = await db<Row[]>`
-    select t.fan_message, t.gross_amount_minor, t.message_status, t.tts_requested,
+    select u.id as creator_id, t.fan_message, t.gross_amount_minor, t.message_status, t.tts_requested,
            u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise,
            u.banned_words
     from users u
@@ -84,7 +85,7 @@ export async function GET(
   const text = allowed ? speechText(row.fan_message, row.message_max_chars) : null;
   if (!text) return new Response(null, { status: 204, headers: NO_STORE });
 
-  const audio = await synthesize(text);
+  const audio = await synthesize(text, row.creator_id);
   if (!audio) return new Response(null, { status: 204, headers: NO_STORE });
 
   return new Response(Buffer.from(audio), {
