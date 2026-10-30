@@ -42,13 +42,13 @@ test.describe("pages without a title screen scroll normally", () => {
       await expect
         .poll(
           async () => {
-            await cdp.send("Input.synthesizeScrollGesture", {
-              x: 200,
-              y: 600,
-              yDistance: -400,
-              speed: 800,
-              gestureSourceType: "touch",
-            });
+            // Raw touch events (start, a series of moves, end) rather than the
+            // scroll-gesture shortcut, which does nothing on the CI runner.
+            await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 200, y: 700 }] });
+            for (let y = 700; y >= 300; y -= 40) {
+              await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 200, y }] });
+            }
+            await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
             return page.evaluate(scrollY);
           },
           { timeout: 15_000, intervals: [500, 1000, 1000] },
