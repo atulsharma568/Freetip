@@ -4,6 +4,8 @@ import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
 import { checkPick } from "@/lib/sounds";
+import { checkVoicePick } from "@/lib/tts-rules";
+import { ttsAvailable } from "@/lib/tts";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
@@ -61,6 +63,7 @@ export async function createTipOrder(
   fanMessage: string | null,
   anonymous: boolean,
   soundId: number | null = null,
+  voice = false,
 ): Promise<TipOrderResult> {
   if (!Number.isInteger(amountPaise) || amountPaise < 100) {
     return { status: "error", message: "Invalid tip amount" };
@@ -92,8 +95,10 @@ export async function createTipOrder(
   }
 
   // Fetch creator — must be active.
-  const creators = await db<{ id: number; min_tip_paise: number; message_max_chars: number }[]>`
-    select id, min_tip_paise, message_max_chars
+  const creators = await db<
+    { id: number; min_tip_paise: number; message_max_chars: number; tts_enabled: boolean; tts_min_paise: number }[]
+  >`
+    select id, min_tip_paise, message_max_chars, tts_enabled, tts_min_paise
     from users
     where handle = ${handle} and creator_status = 'active'
   `;
@@ -113,6 +118,20 @@ export async function createTipOrder(
       status: "error",
       message: `Message cannot exceed ${creator.message_max_chars} characters`,
     };
+  }
+
+  // A tip uses a sound or the voice, never both, and the voice needs the site
+  // switch, the creator's setting, a message and a big enough tip.
+  if (voice) {
+    const problem = checkVoicePick({
+      platformOn: ttsAvailable(),
+      creatorEnabled: creator.tts_enabled,
+      minPaise: creator.tts_min_paise,
+      amountPaise,
+      message: fanMessage,
+      hasSound: soundId !== null,
+    });
+    if (problem) return { status: "error", message: problem };
   }
 
   // The fan's sound pick. The creator's rules are enforced here, not on the page.
@@ -174,20 +193,12 @@ export async function createTipOrder(
     const storedMessage = fanMessage?.trim() || null;
 
     await db.begin(async (tx) => {
-      // The sound_id column comes from migration 0013, so it is only written when
-      // the fan picked a sound: every other tip works before the migration is run.
+      // sound_id (migration 0013) and tts_requested (migration 0014) are only
+      // written when the fan chose them: every other tip works before those
+      // migrations are run.
       const orders =
-        soundId === null
+        soundId !== null
           ? await tx<{ id: number }[]>`
-              insert into tip_orders
-                (creator_id, public_reference, gross_amount_minor, currency,
-                 fan_name, fan_message, anonymous, status)
-              values
-                (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-                 ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
-              returning id
-            `
-          : await tx<{ id: number }[]>`
               insert into tip_orders
                 (creator_id, public_reference, gross_amount_minor, currency,
                  fan_name, fan_message, anonymous, status, sound_id)
@@ -195,7 +206,26 @@ export async function createTipOrder(
                 (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
                  ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending', ${soundId})
               returning id
-            `;
+            `
+          : voice
+            ? await tx<{ id: number }[]>`
+                insert into tip_orders
+                  (creator_id, public_reference, gross_amount_minor, currency,
+                   fan_name, fan_message, anonymous, status, tts_requested)
+                values
+                  (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+                   ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending', true)
+                returning id
+              `
+            : await tx<{ id: number }[]>`
+                insert into tip_orders
+                  (creator_id, public_reference, gross_amount_minor, currency,
+                   fan_name, fan_message, anonymous, status)
+                values
+                  (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+                   ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
+                returning id
+              `;
 
       await tx`
         insert into payment_attempts

@@ -7,6 +7,7 @@ import {
   type TipRow,
 } from "@/lib/alerts";
 import { shouldSpeak } from "@/lib/tts-rules";
+import { ttsAvailable } from "@/lib/tts";
 
 // Polled by the OBS browser source every few seconds. Each call hands out at
 // most one alert and marks it shown in the same request, so an alert plays once
@@ -92,9 +93,25 @@ export async function GET(
   if (!claimed.length) return Response.json({ alert: null }, { headers: NO_STORE });
 
   const row = tips.find((r) => r.id === next.id)!;
+
+  // Whether the fan chose "read my message aloud" (migration 0014). A tip uses
+  // either the voice or a sound, never both. A lookup failure (the column is
+  // missing) means no voice.
+  let requested = false;
+  try {
+    const [found] = await db<{ tts_requested: boolean }[]>`
+      select tts_requested from tip_orders where id = ${next.id}
+    `;
+    requested = !!found?.tts_requested;
+  } catch (err) {
+    console.error("Overlay: could not look up the voice choice.", err);
+  }
+
   // Whether the message will be read aloud. The overlay then fetches the audio
   // from the speech route, which checks the same rules again.
   const speak =
+    requested &&
+    ttsAvailable() &&
     next.withMessage &&
     shouldSpeak(
       {
@@ -106,16 +123,18 @@ export async function GET(
         message: row.fan_message,
         messageStatus: row.message_status,
         amountPaise: Number(row.gross_amount_minor),
+        requested,
       },
       row.message_max_chars,
     );
 
   // The alert's sound: the fan's pick (even if the creator hid or repriced it
-  // afterwards), otherwise the creator's default. Only the alert card has one, not
-  // the follow-up message card. A lookup failure (for example the sounds table
-  // from migration 0013 is missing) just means a silent alert.
+  // afterwards), otherwise the creator's default. A voice tip has no sound at all,
+  // not even the default. Only the alert card has one, not the follow-up message
+  // card. A lookup failure (for example the sounds table from migration 0013 is
+  // missing) just means a silent alert.
   let sound: { url: string; volume: number; ms: number } | null = null;
-  if (next.kind === "alert") {
+  if (next.kind === "alert" && !requested) {
     try {
       const [found] = await db<{ blob_url: string; volume: number; duration_ms: number }[]>`
         select s.blob_url, s.volume, s.duration_ms

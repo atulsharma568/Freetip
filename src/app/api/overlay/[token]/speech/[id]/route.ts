@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
 import { shouldSpeak, speechText, type SpeechTip } from "@/lib/tts-rules";
-import { synthesize } from "@/lib/tts";
+import { synthesize, ttsAvailable } from "@/lib/tts";
 
 // The spoken version of one alert's message, as MP3. The overlay asks for it
 // after the alert is handed out. Nothing from the request is spoken: the text
@@ -18,6 +18,7 @@ interface Row {
   fan_message: string | null;
   gross_amount_minor: string | number;
   message_status: SpeechTip["messageStatus"];
+  tts_requested: boolean;
   message_max_chars: number;
   tts_enabled: boolean;
   approve_before_play: boolean;
@@ -33,12 +34,18 @@ export async function GET(
     return new Response("Not found", { status: 404, headers: NO_STORE });
   }
 
+  // The owner's switch for voice on the whole site.
+  if (!ttsAvailable()) return new Response(null, { status: 204, headers: NO_STORE });
+
   const db = getDb();
   if (!db) return new Response("Unavailable", { status: 503, headers: NO_STORE });
 
   const hash = createHash("sha256").update(token).digest("hex");
-  const rows = await db<Row[]>`
-    select t.fan_message, t.gross_amount_minor, t.message_status,
+  // tts_requested comes from migration 0014: without it nothing is spoken.
+  let rows: Row[];
+  try {
+    rows = await db<Row[]>`
+    select t.fan_message, t.gross_amount_minor, t.message_status, t.tts_requested,
            u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise
     from users u
     join tip_orders t on t.creator_id = u.id
@@ -47,6 +54,10 @@ export async function GET(
       and t.status = 'captured'
       and t.message_shown_at > now() - ${SPEAK_WINDOW}::interval
   `;
+  } catch (err) {
+    console.error("Speech: could not look up the alert.", err);
+    return new Response(null, { status: 204, headers: NO_STORE });
+  }
   const row = rows[0];
   if (!row) return new Response("Not found", { status: 404, headers: NO_STORE });
 
@@ -60,6 +71,7 @@ export async function GET(
       message: row.fan_message,
       messageStatus: row.message_status,
       amountPaise: Number(row.gross_amount_minor),
+      requested: row.tts_requested,
     },
     row.message_max_chars,
   );

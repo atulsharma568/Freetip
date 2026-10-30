@@ -69,7 +69,7 @@ export default async function SoundsPage() {
           <p className="text-pretty text-base text-muted">
             Upload short clips for your stream. Fans can pick one on your tip page, and it plays
             with their alert. Set a minimum tip for each, and choose one that plays when a fan
-            picks nothing.
+            picks nothing. A tip uses either a sound or a spoken message, never both.
           </p>
         </div>
 

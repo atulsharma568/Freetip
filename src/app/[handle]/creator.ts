@@ -12,6 +12,8 @@ export interface CreatorRow {
   min_tip_paise: number;
   message_max_chars: number;
   bio: string | null;
+  tts_enabled: boolean;
+  tts_min_paise: number;
 }
 
 // React.cache deduplicates this across generateMetadata and the page component
@@ -21,7 +23,8 @@ export const getCreator = cache(async (handle: string): Promise<CreatorRow | nul
   if (!db) return null;
   const rows = await db<CreatorRow[]>`
     select google_id, display_name, name, picture_url, yt_channel_name, yt_channel_url,
-           creator_status, min_tip_paise, message_max_chars, bio
+           creator_status, min_tip_paise, message_max_chars, bio,
+           tts_enabled, tts_min_paise
     from users
     where handle = ${handle}
   `;

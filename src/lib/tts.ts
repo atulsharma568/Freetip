@@ -28,8 +28,16 @@ export function ttsConfigured(): boolean {
   return getClient() !== null;
 }
 
+// The owner's switch for voice on the whole site: TTS_ENABLED=true in Vercel.
+// Off until the owner has chosen and set up an engine, whatever the creators'
+// own settings say. When it is off, nobody is offered a voice and none is played.
+export function ttsAvailable(): boolean {
+  return process.env.TTS_ENABLED === "true" && ttsConfigured();
+}
+
 // MP3 bytes for the text, or null if speech is off or the engine failed.
 export async function synthesize(text: string): Promise<Uint8Array | null> {
+  if (!ttsAvailable()) return null;
   const polly = getClient();
   if (!polly) return null;
   try {

@@ -44,6 +44,19 @@ export function SplashScreen() {
       <div className="w-full h-[28vh] min-h-[150px] sm:h-full sm:min-h-0">
         <HeroHands onDone={handleDone} immediate />
       </div>
+      {/* Real text from the first paint. The title screen keeps the page itself
+          invisible until the first scroll, so without this the largest visible
+          text would be the "scroll to continue" cue seconds later, and that is
+          what PageSpeed counted as the page's largest paint. This line is bigger
+          than the cue, so the cue never takes over. It is hidden the moment the splash
+          starts to fade, so no half-faded text is ever measured for contrast. */}
+      <p
+        className={`absolute inset-x-0 bottom-[12vh] px-6 text-center text-xl font-medium text-text sm:text-2xl${
+          fading ? " invisible" : ""
+        }`}
+      >
+        Tips for YouTube streamers
+      </p>
     </div>
   );
 }

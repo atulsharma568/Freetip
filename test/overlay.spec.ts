@@ -62,10 +62,12 @@ test.describe("OBS overlay routes", () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   });
 
-  test("the speech route rejects a bad id and, without a database, answers 503", async ({ request }) => {
+  test("the speech route rejects a bad id and stays silent while the site's voice switch is off", async ({ request }) => {
     expect((await request.get(`/api/overlay/${TOKEN}/speech/abc`)).status()).toBe(404);
+    // TTS_ENABLED is not set in the test server, so a valid id gets "no content"
+    // without touching the database or the speech engine.
     const res = await request.get(`/api/overlay/${TOKEN}/speech/7`);
-    expect(res.status()).toBe(503);
+    expect(res.status()).toBe(204);
     expect(res.headers()["cache-control"]).toBe("no-store");
   });
 

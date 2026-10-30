@@ -19,6 +19,9 @@ export interface SpeechTip {
   message: string | null;
   messageStatus: "pending" | "approved" | "rejected";
   amountPaise: number;
+  // The fan chose "read my message aloud". A tip uses either a sound or the voice,
+  // never both, and the voice only speaks when the fan asked for it.
+  requested: boolean;
 }
 
 // Polly bills per character, and a long message would hold the stream. The
@@ -46,6 +49,7 @@ export function speechText(message: string | null, maxChars: number): string | n
 
 export function shouldSpeak(settings: SpeechSettings, tip: SpeechTip, maxChars: number): boolean {
   if (!settings.ttsEnabled) return false;
+  if (!tip.requested) return false;
   if (tip.messageStatus === "rejected") return false;
   if (tip.messageStatus === "pending" && settings.approveBeforePlay) return false;
   if (tip.amountPaise < settings.ttsMinPaise) return false;
@@ -57,4 +61,24 @@ export function shouldSpeak(settings: SpeechSettings, tip: SpeechTip, maxChars: 
 // English accent; that is a known limit of the voice.
 export function languageFor(text: string): "hi-IN" | "en-IN" {
   return /[ऀ-ॿ]/.test(text) ? "hi-IN" : "en-IN";
+}
+
+// Whether a fan may choose "read my message aloud" when starting a tip. Returns
+// the reason when not. `platformOn` is the owner's switch for the whole site
+// (TTS_ENABLED); a sound and the voice are exclusive.
+export function checkVoicePick(input: {
+  platformOn: boolean;
+  creatorEnabled: boolean;
+  minPaise: number;
+  amountPaise: number;
+  message: string | null;
+  hasSound: boolean;
+}): string | null {
+  if (!input.platformOn || !input.creatorEnabled) return "Voice messages are not available right now.";
+  if (input.hasSound) return "Choose a sound or a spoken message, not both.";
+  if (!input.message?.trim()) return "Write a message for the voice to read.";
+  if (input.amountPaise < input.minPaise) {
+    return `Tip at least ₹${Math.ceil(input.minPaise / 100)} to have your message read aloud.`;
+  }
+  return null;
 }

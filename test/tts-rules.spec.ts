@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   SPEECH_MAX_CHARS,
+  checkVoicePick,
   languageFor,
   shouldSpeak,
   speechText,
@@ -13,6 +14,7 @@ const tip = (over: Partial<SpeechTip> = {}): SpeechTip => ({
   message: "great stream",
   messageStatus: "approved",
   amountPaise: 10000,
+  requested: true,
   ...over,
 });
 
@@ -60,5 +62,41 @@ test.describe("speech text", () => {
   test("picks the language from the script", () => {
     expect(languageFor("great stream")).toBe("en-IN");
     expect(languageFor("बहुत बढ़िया stream")).toBe("hi-IN");
+  });
+});
+
+test.describe("voice and sound are separate choices", () => {
+  test("a message is read only when the fan asked for it", () => {
+    expect(shouldSpeak(on, tip({ requested: false }), 150)).toBe(false);
+    expect(shouldSpeak(on, tip({ requested: true }), 150)).toBe(true);
+  });
+
+  const ok = {
+    platformOn: true,
+    creatorEnabled: true,
+    minPaise: 4900,
+    amountPaise: 10000,
+    message: "hello",
+    hasSound: false,
+  };
+
+  test("a voice pick is allowed when everything lines up", () => {
+    expect(checkVoicePick(ok)).toBeNull();
+    expect(checkVoicePick({ ...ok, amountPaise: 4900 })).toBeNull();
+  });
+
+  test("a sound and a voice together are refused", () => {
+    expect(checkVoicePick({ ...ok, hasSound: true })).toBe("Choose a sound or a spoken message, not both.");
+  });
+
+  test("refused when the site switch or the creator's setting is off", () => {
+    expect(checkVoicePick({ ...ok, platformOn: false })).toMatch(/not available/);
+    expect(checkVoicePick({ ...ok, creatorEnabled: false })).toMatch(/not available/);
+  });
+
+  test("refused with no message or a tip under the minimum", () => {
+    expect(checkVoicePick({ ...ok, message: "   " })).toMatch(/Write a message/);
+    expect(checkVoicePick({ ...ok, message: null })).toMatch(/Write a message/);
+    expect(checkVoicePick({ ...ok, amountPaise: 4800 })).toBe("Tip at least ₹49 to have your message read aloud.");
   });
 });

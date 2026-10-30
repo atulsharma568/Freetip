@@ -26,9 +26,12 @@ interface Props {
   approveBeforePlay: boolean;
   alertMode: AlertMode;
   bio: string;
+  // The site-wide voice switch (owner). When off, the voice controls are replaced
+  // by a note, and the saved values are kept as they are.
+  ttsAvailable: boolean;
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, ttsAvailable }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -161,54 +164,67 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
       </fieldset>
 
       {/* TTS */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <Switch id="tts-toggle" checked={tts} onChange={setTts} />
+      {!ttsAvailable ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted">Voice for messages</p>
+          <p className="text-sm text-muted">
+            Reading a fan&apos;s message aloud is coming soon. Your sounds work in the meantime, and your
+            voice settings will be kept.
+          </p>
           <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
-          <label htmlFor="tts-toggle" className="cursor-pointer select-none text-sm text-text">
-            Text-to-speech
-          </label>
+          <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
+          <input type="hidden" name="tts_min" value={ttsMin} />
         </div>
-        {tts && (
-          <>
-            <div className="flex items-center gap-3 pl-10">
-              <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
-              <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
-                Approve before play
-                <span className="ml-2 text-muted text-xs">(recommended)</span>
-              </label>
-            </div>
-            <div className="space-y-2 pl-10">
-              <label htmlFor="tts-min" className="block text-sm text-text">
-                Read aloud from
-              </label>
-              <div className="relative">
-                <select
-                  id="tts-min"
-                  value={ttsMin}
-                  onChange={(e) => setTtsMin(Number(e.target.value))}
-                  className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent focus:outline-none transition-[border-color] appearance-none"
-                >
-                  {MIN_TIP_OPTIONS.map((v) => (
-                    <option key={v} value={v}>
-                      ₹{v} and above
-                    </option>
-                  ))}
-                </select>
-                <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
-                  ↓
-                </span>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Switch id="tts-toggle" checked={tts} onChange={setTts} />
+            <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
+            <label htmlFor="tts-toggle" className="cursor-pointer select-none text-sm text-text">
+              Text-to-speech
+            </label>
+          </div>
+          {tts && (
+            <>
+              <div className="flex items-center gap-3 pl-10">
+                <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
+                <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
+                  Approve before play
+                  <span className="ml-2 text-muted text-xs">(recommended)</span>
+                </label>
               </div>
-              <p className="text-xs text-muted">
-                Smaller tips still show an alert, just without a voice. Only the message is read, never the name.
-              </p>
-            </div>
-          </>
-        )}
-        {/* Always submit these so they aren't silently reset when TTS is off */}
-        <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
-        <input type="hidden" name="tts_min" value={ttsMin} />
-      </div>
+              <div className="space-y-2 pl-10">
+                <label htmlFor="tts-min" className="block text-sm text-text">
+                  Read aloud from
+                </label>
+                <div className="relative">
+                  <select
+                    id="tts-min"
+                    value={ttsMin}
+                    onChange={(e) => setTtsMin(Number(e.target.value))}
+                    className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent focus:outline-none transition-[border-color] appearance-none"
+                  >
+                    {MIN_TIP_OPTIONS.map((v) => (
+                      <option key={v} value={v}>
+                        ₹{v} and above
+                      </option>
+                    ))}
+                  </select>
+                  <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
+                    ↓
+                  </span>
+                </div>
+                <p className="text-xs text-muted">
+                  Fans can choose to have their message read aloud once their tip reaches this amount. A tip uses either a sound or the voice, not both. Only the message is read, never the name.
+                </p>
+              </div>
+            </>
+          )}
+          {/* Always submit these so they aren't silently reset when TTS is off */}
+          <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
+          <input type="hidden" name="tts_min" value={ttsMin} />
+        </div>
+      )}
 
       {/* Always-present live region so screen readers announce changes reliably */}
       <p aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm">

@@ -17,6 +17,7 @@ import { DailyChart } from "./DailyChart";
 import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
+import { ttsAvailable } from "@/lib/tts";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -240,6 +241,7 @@ export default async function DashboardPage() {
             approveBeforePlay={user.approve_before_play}
             alertMode={user.alert_mode}
             bio={user.bio ?? ""}
+            ttsAvailable={ttsAvailable()}
           />
         </div>
       </div>

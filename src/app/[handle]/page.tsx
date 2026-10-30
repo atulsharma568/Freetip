@@ -7,6 +7,7 @@ import { PageShell } from "@/components/PageShell";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
+import { ttsAvailable } from "@/lib/tts";
 
 type Props = { params: Promise<{ handle: string }> };
 
@@ -57,11 +58,14 @@ export default async function CreatorPage({ params }: Props) {
 
   const displayName = creator.display_name ?? creator.name ?? handle;
   const sounds = await getTipSounds(handle);
+  // The voice is offered only when the site switch and the creator both have it on.
+  const voiceMinPaise = ttsAvailable() && creator.tts_enabled ? creator.tts_min_paise : null;
 
   return (
     <PageShell>
       <TipForm
         sounds={sounds}
+        voiceMinPaise={voiceMinPaise}
         handle={handle}
         displayName={displayName}
         pictureUrl={creator.picture_url}
