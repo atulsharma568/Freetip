@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
+  GATEWAY_BPS,
+  PLATFORM_BPS,
   TIPS_PAGE_SIZE,
   csvCell,
   dailyBars,
@@ -13,13 +15,32 @@ import {
 } from "../src/lib/earnings";
 
 test.describe("estimated creator share", () => {
-  test("a ₹100 tip leaves ₹92.64, the published example", () => {
-    expect(estimateShare(10000)).toBe(9264);
+  test("a ₹100 tip leaves ₹92.50, the published example", () => {
+    expect(estimateShare(10000)).toBe(9250);
   });
 
   test("rounds each charge to the paise, half up", () => {
-    // 1250 paise: 5% is 62.5 -> 63 and 2.36% is 29.5 -> 30, so 1157 stays.
-    expect(estimateShare(1250)).toBe(1157);
+    // 1250 paise: 5% is 62.5 -> 63 and 2.5% is 31.25 -> 31, so 1156 stays.
+    expect(estimateShare(1250)).toBe(1156);
+  });
+
+  // The dashboard's SQL (queries.ts) works the share as
+  // `gross - ((gross * bps + 5000) / 10000) - ((gross * bps + 5000) / 10000)`
+  // on bigint, where `/` truncates. Mirror it with BigInt and check it gives
+  // the same paise as the browser, odd paise included, so the overview strip
+  // and the tips list never disagree.
+  test("the dashboard SQL's integer rounding matches, odd paise included", () => {
+    const sql = (gross: number) => {
+      const g = BigInt(gross);
+      const half = BigInt(5000);
+      const unit = BigInt(10000);
+      const cut = (bps: number) => (g * BigInt(bps) + half) / unit;
+      return Number(g - cut(PLATFORM_BPS) - cut(GATEWAY_BPS));
+    };
+    const amounts = [99999, 100001, 123457, 9999999, 10000001, 1234567891];
+    for (let paise = 100; paise <= 50000; paise++) amounts.push(paise);
+    // One assertion at the end: `expect` per amount makes 50,000 calls slow.
+    expect(amounts.filter((paise) => sql(paise) !== estimateShare(paise))).toEqual([]);
   });
 
   test("never exceeds the tip and handles the minimum", () => {
@@ -28,7 +49,7 @@ test.describe("estimated creator share", () => {
   });
 
   test("formats rupees with Indian digit grouping", () => {
-    expect(formatRupees(9264)).toBe("₹92.64");
+    expect(formatRupees(9250)).toBe("₹92.50");
     expect(formatRupees(12345600)).toBe("₹1,23,456.00");
     expect(formatRupees(0)).toBe("₹0.00");
   });
@@ -100,7 +121,7 @@ test.describe("tips CSV", () => {
         capturedAt: new Date("2026-10-25T18:29:00Z"),
         name: "Asha",
         amountPaise: 10000,
-        sharePaise: 9264,
+        sharePaise: 9250,
         message: "=cmd, hi",
         messageStatus: "approved",
       },
@@ -108,7 +129,7 @@ test.describe("tips CSV", () => {
         capturedAt: new Date("2026-10-25T10:00:00Z"),
         name: "Anonymous",
         amountPaise: 100,
-        sharePaise: 93,
+        sharePaise: 92,
         message: null,
         messageStatus: "rejected",
       },
@@ -117,8 +138,8 @@ test.describe("tips CSV", () => {
     expect(lines[0]).toBe(
       "Date (IST),Fan,Amount (INR),Estimated share (INR),Message,Message status",
     );
-    expect(lines[1]).toBe('2026-10-25 23:59,Asha,100.00,92.64,"\'=cmd, hi",approved');
-    expect(lines[2]).toBe("2026-10-25 15:30,Anonymous,1.00,0.93,,rejected");
+    expect(lines[1]).toBe('2026-10-25 23:59,Asha,100.00,92.50,"\'=cmd, hi",approved');
+    expect(lines[2]).toBe("2026-10-25 15:30,Anonymous,1.00,0.92,,rejected");
   });
 });
 

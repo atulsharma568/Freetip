@@ -15,11 +15,11 @@ const ITEMS = [
   },
   {
     q: "What does it cost?",
-    a: "We take 5% of every tip. A payment processing charge also comes out of your payout. On a ₹100 tip you get ₹92.64. Fans pay exactly the amount they choose, with nothing added. International cards cost more.",
+    a: "We take 5% of every tip. A flat 2.5% processing charge also comes out of your payout. On a ₹100 tip you get ₹92.50. Fans pay exactly the amount they choose, with nothing added.",
   },
   {
     q: "Is there an extra charge on large tips?",
-    a: "For UPI tips above ₹2,000, a 0.4% payment network charge applies on top of the standard fees — this comes out of your payout, not the fan's tip. Card tips are not affected.",
+    a: "No. Nothing extra is added to a large tip today. There has been an announcement about a possible UPI fee on merchant payments above ₹2,000, and as far as we know it has not started. If any extra charge ever applies, we will tell creators beforehand.",
   },
   {
     q: "How do I get paid?",

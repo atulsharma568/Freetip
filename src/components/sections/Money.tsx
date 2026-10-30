@@ -8,10 +8,9 @@ import { FEES, feeBreakdown } from "@/lib/legal";
 import { RevealHeading } from "@/components/motion/RevealHeading";
 import { RevealWords } from "@/components/motion/RevealWords";
 
-// Worked example (lib/legal.ts): the payment processing charge is paid by the
+// Worked example (lib/legal.ts): our flat processing charge is paid by the
 // creator out of the payout, on top of our 5%. Fans always pay exactly the
-// tip. The visitor can try a few tip sizes; all stay under the ₹2,000 where an
-// extra UPI network charge starts (see the FAQ).
+// tip. The visitor can try a few tip sizes.
 const AMOUNTS = [50, 100, 500, 1000];
 
 export function Money() {
@@ -21,7 +20,7 @@ export function Money() {
   const rows = [
     { label: "Fan tips", value: example.tip },
     { label: `Our fee (${FEES.platformPercent}%)`, value: example.platform },
-    { label: `Payment processing (${FEES.gatewayPercent}%)`, value: example.gateway },
+    { label: `Processing charge (${FEES.gatewayPercent}%)`, value: example.gateway },
   ];
 
   useGSAP(
@@ -108,8 +107,7 @@ export function Money() {
           </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">What it costs</h3>
           <RevealWords className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
-            We take 5% of every tip. A payment processing charge comes out
-            of the payout too; fans pay exactly the tip.
+            {`We take ${FEES.platformPercent}% of every tip. A flat ${FEES.gatewayPercent}% processing charge comes out of the payout too; fans pay exactly the tip.`}
           </RevealWords>
           <fieldset className="mt-8">
             <legend className="text-sm text-muted">Try a tip</legend>
@@ -151,7 +149,7 @@ export function Money() {
             </div>
           </dl>
           <p className="mt-4 text-sm text-muted">
-            Example on a ₹{amount.toLocaleString("en-IN")} UPI or Indian card tip. International cards cost more.{" "}
+            Example on a ₹{amount.toLocaleString("en-IN")} UPI or card tip.{" "}
             <Link href="/pricing" className="link-line text-text">
               See full pricing
             </Link>

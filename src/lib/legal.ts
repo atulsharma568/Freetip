@@ -1,3 +1,5 @@
+import { PLATFORM_BPS, PROCESSING_BPS, splitTip } from "./money";
+
 // Operator details for the legal, contact and pricing pages. Empty values
 // render as visible [bracketed] placeholders (see <Fill>), so nothing is
 // guessed. Fill these in before launch and before applying to Razorpay.
@@ -40,37 +42,42 @@ export const LEGAL_DRAFT = true;
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
-export const LEGAL_UPDATED = "16 October 2026";
+export const LEGAL_UPDATED = "30 October 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.
 export const WAITLIST_CONSENT_VERSION = "privacy-2026-10-16";
 
-// Fee example shared by the home page, the pricing page and the terms.
-// Payment processing rate (Oct 2026): Razorpay standard 2% + 18% GST = 2.36% effective.
-// UPI tips above ₹2,000 carry an additional 0.4% MDR (govt-mandated, deducted from payout).
-// International cards cost more; re-check before launch.
+// The rates and the worked example shared by the home page, the pricing page,
+// the terms and the dashboard. The rules themselves live in `money.ts`
+// (basis points, rounded half up to the paise); the percentages here are
+// derived from them so a rate change is made in one place. The processing
+// charge is our own flat charge, taken from the creator's payout on top of the
+// platform fee. Fans pay exactly the tip. If a rate changes, change `money.ts`,
+// then update `example` below (the unit test fails until it matches).
 export const FEES = {
-  platformPercent: 5,
-  gatewayPercent: 2.36,
-  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.36", keep: "₹92.64" },
+  platformPercent: PLATFORM_BPS / 100,
+  gatewayPercent: PROCESSING_BPS / 100,
+  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.50", keep: "₹92.50" },
 };
 
 const money = (paise: number) =>
   `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// The same worked example for any whole-rupee tip, worked in paise so nothing
-// drifts: our 5% and the payment processing charge, each rounded to the paise,
-// come out of the payout. `feeBreakdown(100)` matches `FEES.example`.
+// The same worked example for any whole-rupee tip, worked in whole paise by
+// `splitTip` so nothing drifts: our platform fee and the processing charge,
+// each rounded half up to the paise, come out of the payout.
+// `feeBreakdown(100)` matches `FEES.example`. Tips are positive, so a zero or
+// negative amount throws, as `splitTip` does.
 export function feeBreakdown(rupees: number) {
-  const tip = Math.round(rupees * 100);
-  const platform = Math.round((tip * FEES.platformPercent) / 100);
-  const gateway = Math.round((tip * FEES.gatewayPercent) / 100);
+  const { grossPaise, platformFeePaise, processingPaise, creatorSharePaise } = splitTip(
+    Math.round(rupees * 100),
+  );
   return {
-    tip: money(tip),
-    platform: `−${money(platform)}`,
-    gateway: `−${money(gateway)}`,
-    keep: money(tip - platform - gateway),
+    tip: money(grossPaise),
+    platform: `−${money(platformFeePaise)}`,
+    gateway: `−${money(processingPaise)}`,
+    keep: money(creatorSharePaise),
   };
 }
 

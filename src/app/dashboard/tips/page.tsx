@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { SITE_NAME } from "@/lib/site";
+import { FEES } from "@/lib/legal";
 import {
   EXPORT_MAX_ROWS,
   TIP_RANGES,
@@ -163,7 +164,8 @@ export default async function TipsPage({
 
         <p className="text-sm text-muted">
           Only paid tips are listed. The amount you&apos;d keep is an estimate
-          (our 5% and the payment processing charge taken off).
+          (our {FEES.platformPercent}% and the {FEES.gatewayPercent}% processing
+          charge taken off).
         </p>
       </div>
     </PageShell>

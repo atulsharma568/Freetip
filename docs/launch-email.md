@@ -36,7 +36,7 @@ creator link.
 
 Claim your handle: {signup_url}
 
-Freetip keeps the path from your link to a fan's tip simple. 5% of every tip, Razorpay's charges on top.
+Freetip keeps the path from your link to a fan's tip simple. 5% of every tip, plus a flat 2.5% processing charge.
 
 If now is not the right time, you can come back to this email later.
 
@@ -59,7 +59,7 @@ creator link.
 
 Claim your handle: {signup_url}
 
-Freetip keeps the path from your link to a fan's tip simple. 5% of every tip, Razorpay's charges on top.
+Freetip keeps the path from your link to a fan's tip simple. 5% of every tip, plus a flat 2.5% processing charge.
 
 If now is not the right time, you can come back to this email later.
 
@@ -94,7 +94,7 @@ creator link set up kar sakte hain.
 
 Claim your handle: {signup_url}
 
-Freetip aapke link se fan ke tip tak ka flow simple rakhta hai. 5% of every tip, Razorpay's charges on top.
+Freetip aapke link se fan ke tip tak ka flow simple rakhta hai. 5% of every tip, plus a flat 2.5% processing charge.
 
 Agar abhi sahi time nahi hai, to aap is email par baad mein wapas aa sakte hain.
 
@@ -117,7 +117,7 @@ link set up kar sakte hain.
 
 Claim your handle: {signup_url}
 
-Freetip aapke link se fan ke tip tak ka flow simple rakhta hai. 5% of every tip, Razorpay's charges on top.
+Freetip aapke link se fan ke tip tak ka flow simple rakhta hai. 5% of every tip, plus a flat 2.5% processing charge.
 
 Agar abhi sahi time nahi hai, to aap is email par baad mein wapas aa sakte hain.
 

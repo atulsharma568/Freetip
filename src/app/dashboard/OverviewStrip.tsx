@@ -1,4 +1,5 @@
 import { formatRupees } from "@/lib/earnings";
+import { FEES } from "@/lib/legal";
 import type { OverviewKey, OverviewRow } from "./queries";
 
 const LABELS: Record<OverviewKey, string> = {
@@ -46,10 +47,9 @@ export function OverviewStrip({ rows }: { rows: OverviewRow[] }) {
         })}
       </dl>
       <p className="text-sm text-muted">
-        The amount you&apos;d keep is an estimate: each tip less our 5% and the
-        payment processing charge (2% plus 18% GST). Tips above ₹2,000 paid by
-        UPI carry an extra 0.4% charge that is not included. Payouts have not
-        started yet, so there is no balance to show.
+        The amount you&apos;d keep is an estimate: each tip less our{" "}
+        {FEES.platformPercent}% and the {FEES.gatewayPercent}% processing
+        charge. Payouts have not started yet, so there is no balance to show.
       </p>
     </section>
   );

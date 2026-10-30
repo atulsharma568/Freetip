@@ -1,19 +1,18 @@
-import { FEES } from "./legal";
+import { PROCESSING_BPS, splitTip } from "./money";
 
-// What a creator would keep from a captured tip, as an estimate: our 5% and the
-// payment processing charge (Razorpay's standard 2% + 18% GST), each rounded to
-// the paise like `feeBreakdown` on the pricing page. Worked in whole basis
-// points so the browser and the database round the same way. It leaves out the
-// extra 0.4% UPI charge on tips above ₹2,000, so it is only ever shown as an
-// estimate; real figures come from the payout engine once it exists.
-export const PLATFORM_BPS = Math.round(FEES.platformPercent * 100);
-export const GATEWAY_BPS = Math.round(FEES.gatewayPercent * 100);
+export { PLATFORM_BPS } from "./money";
 
-const cut = (grossPaise: number, bps: number) =>
-  Math.floor((grossPaise * bps + 5000) / 10000);
+// What a creator would keep from a captured tip, as an estimate: our 5% and
+// the flat processing charge, each rounded half up to the paise by `splitTip`
+// (money.ts), the same rule the pricing page's worked example uses. The rates
+// are exported in basis points for the dashboard's SQL, which does the same
+// half-up integer maths so the database and the browser agree. It is only ever
+// shown as an estimate; real figures come from the payout engine once it
+// exists.
+export const GATEWAY_BPS = PROCESSING_BPS;
 
 export function estimateShare(grossPaise: number): number {
-  return grossPaise - cut(grossPaise, PLATFORM_BPS) - cut(grossPaise, GATEWAY_BPS);
+  return splitTip(grossPaise).creatorSharePaise;
 }
 
 export function formatRupees(paise: number): string {

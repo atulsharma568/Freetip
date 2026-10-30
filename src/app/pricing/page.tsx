@@ -24,8 +24,8 @@ const SECTIONS: LegalSection[] = [
           text-to-speech, approval or QR code.
         </p>
         <p>
-          Our payment partner charges for processing each payment. That charge
-          is deducted from the creator’s payout as well, on top of our{" "}
+          We also charge a flat {FEES.gatewayPercent}% processing charge on each
+          tip. It is deducted from the creator’s payout as well, on top of our{" "}
           {FEES.platformPercent}%. Fans pay exactly the amount they choose;
           nothing is added at checkout.
         </p>
@@ -48,7 +48,7 @@ const SECTIONS: LegalSection[] = [
               <td className="numeric text-right">{FEES.example.platform}</td>
             </tr>
             <tr>
-              <th scope="row">Payment processing ({FEES.gatewayPercent}%)</th>
+              <th scope="row">Processing charge ({FEES.gatewayPercent}%)</th>
               <td className="numeric text-right">{FEES.example.gateway}</td>
             </tr>
             <tr>
@@ -60,9 +60,7 @@ const SECTIONS: LegalSection[] = [
           </tbody>
         </table>
         <p>
-          Applies to UPI and Indian cards, wallets and net banking. International
-          cards cost more. If the payment processing rate changes, we will update
-          this page.
+          If our fee or the processing charge changes, we will tell creators at least 30 days before it applies, and update this page.
         </p>
       </>
     ),
@@ -99,7 +97,8 @@ export default function PricingPage() {
       intro={
         <p>
           One plain fee, shown before you sign up and the same on every page:{" "}
-          {FEES.platformPercent}% of each tip, plus the payment charge.
+          {FEES.platformPercent}% of each tip, plus a flat {FEES.gatewayPercent}%
+          processing charge.
         </p>
       }
       sections={SECTIONS}
