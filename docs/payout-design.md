@@ -90,3 +90,16 @@ Dropped from v1 as over-built for a manual rail where the owner is the approver:
 - **Razorpay support**: may our payment gateway account plus RazorpayX pay creators' UPI IDs given RazorpayX terms GT 2.15(a)? Is Route open to a new business under ₹40 lakh turnover? Exact per-payout fee for UPI and the daily UPI limit on our account. Is `fee`/`tax` filled at capture for UPI and cards? Is the 0.4% MDR passed on to us for fans' tips above ₹2,000, and would it apply to UPI payouts if we use RazorpayX? How is `payout.failed` tested?
 - **Lawyer**: does collecting tips for creators and paying them out make Freetip a payment aggregator or a marketplace; who is the "merchant"; do the escrow and anti-pooling rules apply; are tips refundable or taxable supplies?
 - **Chartered accountant**: GST registration and treatment of the 5% fee; is Freetip an e-commerce operator for GST TCS and TDS 194-O; any TDS on creator payouts; what a payout statement must show; which bank account may be used to pay creators.
+
+## 8. What Razorpay's public pages say (checked 2026-10-30, owner to confirm in writing)
+
+Sources: Razorpay Route FAQs (razorpay.com/docs/payments/route/faqs), RazorpayX pricing sheet (cdn.razorpay.com/static/assets/razorpayx/pricing/RazorpayX_pricing.pdf) and the RazorpayX support article "What are the charges on RazorpayX?".
+
+- **Route may not be open to Freetip.** Access needs turnover above ₹40 lakh (domestic) in FY25 or FY26 plus a written use-case description showing who pays whom (RBI, September 2025); review takes 5 to 7 business days; Route was discontinued from 1 January 2026 for accounts that do not qualify, and they can reapply in a later financial year. Plan on RazorpayX payouts (the manual rail in section 3), not Route, until Razorpay says otherwise.
+- **Route fees, if ever available:** a gateway fee on the full payment plus a transfer fee on each amount sent to a linked account, both plus GST, both "as per your pricing plan". No percentage is published. A third party reports 0.25% plus GST for the transfer fee; unconfirmed.
+- **Linked-account checks:** a small test amount verifies the bank account or UPI ID before transfers are allowed; one UPI ID or bank account per linked account; ₹1 lakh limit per UPI transfer. The KYC list is not published.
+- **RazorpayX payout fee (current account):** 250 free payouts a month, then ₹1.50 for UPI or IMPS up to ₹1,000, ₹3 up to ₹25,000, ₹7 above; ₹2 for NEFT or RTGS; charged on success only; ₹20,000 minimum balance listed; GST not stated, assume extra. RazorpayX Lite costs more and is closed to new merchants.
+- **What this does to the rate:** without Route the cost per tip is the gateway fee (about 2.36% for UPI) plus a flat ₹1.50 to ₹3 per payout, which the 2.75% processing charge covers at the ₹500 minimum payout. The 2.75% was set with Route's transfer fee in mind; if Route stays closed it leaves more margin, and a lower rate is the owner's call.
+- **Still only for the accountant:** GST on the 5% fee and the processing charge, registration threshold, e-commerce operator treatment.
+
+The email to send is drafted in `docs/razorpay-email-draft.md`.

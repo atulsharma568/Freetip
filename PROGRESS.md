@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the Razorpay payout research)
+
+- Razorpay's public pages say Route needs turnover above ₹40 lakh plus a use-case review, and was discontinued from 1 January 2026 for accounts that do not qualify, so Freetip should plan on RazorpayX payouts (manual rail first). The RazorpayX fee is ₹1.50 to ₹7 per payout after 250 free a month. Findings are in `docs/payout-design.md` section 8; the draft email to Razorpay is `docs/razorpay-email-draft.md`. **Owner actions:** fill and send the email, then ask the lawyer and the accountant the section 7 questions. No code changed.
+
 ## Current state (2026-10-30, updated after the 2.75% processing charge)
 
 - **Processing charge raised from 2.5% to 2.75% (owner decision, stated openly, not hidden):** the owner wants a margin over Razorpay's real cost once creators are paid through Route (gateway about 2.36% plus a transfer fee reported at 0.25% plus GST, to be confirmed with Razorpay). `PROCESSING_BPS` is now 275 and `RULE_VERSION` is `2026-10-30.2`, so tips already posted keep their old 2.5% lines and nothing is rewritten. A ₹100 tip leaves the creator ₹92.25 (₹5.00 and ₹2.75). The fee tile, pricing, terms, dashboard notes and worked example read the rate from `FEES`; the FAQ, admin note, tests and docs were edited by hand. **Not changed:** no payout code exists yet, and the owner was told a quiet extra charge was declined. Tips captured but not yet posted when this deploys are posted at 2.75%; none were live money before this. 91 money, ledger and overlay tests pass.
