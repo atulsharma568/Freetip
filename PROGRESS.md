@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the tip defaults)
+
+- **Tip defaults (owner request):** `db/migrations/0024_tip_defaults.sql` makes the minimum tip ₹20 (was ₹49) and the voice on by default for new creators, and moves every creator still on the old ₹49 default to ₹20. The sound board and voice were already on the tip page: sounds show once a creator has added some (migration 0013), and the voice shows only when `TTS_ENABLED` is on in Vercel and the creator's voice setting is on. **Owner action:** run 0024 in Neon once. Not verified against a real database; no application code changed.
+
 ## Current state (2026-10-30, updated after payout engine step 1: the books)
 
 - **Owner decisions today:** the payout design (`docs/payout-design.md`, v2) is approved for steps 1 to 3; the payout sheet (step 4) stays blocked until Razorpay, a lawyer and an accountant answer section 7 of that file. The processing charge is now a **flat 2.5%**, Freetip's own, on top of the 5% fee (a ₹100 tip leaves the creator ₹92.50, was ₹92.64). The design was attacked by a fresh reader before any code (it found a webhook coupling, a dead event store, a test-mode leak, zero-amount ledger lines, wrong build order, false copy) and the finished step 1 was attacked again (it found live tips that could drop out of the books, a double-encoded jsonb log, the webhook waiting on database work, misleading labels); all of it is fixed.
