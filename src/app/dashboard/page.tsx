@@ -9,6 +9,7 @@ import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CreatorQR } from "./CreatorQR";
+import { GoalTile } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
 import { TipIsland } from "./TipIsland";
 import { DashboardNav } from "./DashboardNav";
@@ -77,6 +78,23 @@ export default async function DashboardPage() {
       bannedWords = found?.banned_words ?? "";
     } catch (err) {
       console.error("Dashboard: could not read the banned words.", err);
+    }
+  }
+
+  // The goal bar (migration 0018), read apart so the dashboard loads before it is run.
+  let goalTitle = "";
+  let goalRupees: number | null = null;
+  if (db && user) {
+    try {
+      const [found] = await db<{ goal_title: string | null; goal_target_paise: string | null }[]>`
+        select goal_title, goal_target_paise from users where id = ${user.id}
+      `;
+      if (found?.goal_title && found.goal_target_paise) {
+        goalTitle = found.goal_title;
+        goalRupees = Math.round(Number(found.goal_target_paise) / 100);
+      }
+    } catch (err) {
+      console.error("Dashboard: could not read the goal.", err);
     }
   }
 
@@ -223,6 +241,13 @@ export default async function DashboardPage() {
             Alerts on stream
           </h2>
           <OverlayTile hasLink={user.has_overlay_link} />
+        </div>
+
+        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+          <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+            Goal bar
+          </h2>
+          <GoalTile title={goalTitle} targetRupees={goalRupees} />
         </div>
 
         {user.alert_mode !== "instant" && (

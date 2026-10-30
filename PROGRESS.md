@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the goal bar)
+
+- **Goal bar overlay built** (fourth item of the AcePressure queue). A second OBS browser source: the creator's alert link with `/goal` on the end (`/overlay/<token>/goal`), transparent, shows a title, "₹raised / ₹target" and a lime progress bar, and nothing while there is no goal. It polls `GET /api/overlay/<token>/goal` every 5 s. Progress is the sum of captured tips (`gross_amount_minor`) since `users.goal_started_at`, so saving a goal restarts it from zero. Dashboard "Goal bar" tile (`GoalTile.tsx`, actions in `src/app/actions/goal.ts`) sets the name (60 chars) and a whole-rupee target (₹10 to ₹1,00,00,000, rules in `src/lib/goal.ts`) or removes the goal. Migration `0018_goal_bar.sql` adds `goal_title`, `goal_target_paise`, `goal_started_at`.
+- **Owner action:** run `db/migrations/0018_goal_bar.sql` in Neon. Until then the dashboard still loads (fail-soft read) and the goal route answers 503; the alert overlay is not touched.
+- Verified: tsc, eslint (0 errors) and the production build pass; new `test/goal.spec.ts` (4 tests) and `test/overlay.spec.ts` pass on desktop Chrome via a temporary config. **Not checked:** the SQL against a real database, the form in a browser, a real OBS source. Known limits: one goal at a time, no goal history, the bar has no confetti or "goal reached" moment, the goal URL is made by adding `/goal` by hand because the alert link is shown only once.
+- Next in the AcePressure queue: (5) Hinglish voice fix (needs a voice engine decision first).
+
 ## Current state (2026-10-30, updated after the alert controls)
 
 - **Test, skip and replay controls built** (third item of the AcePressure queue). Three buttons under "Alerts on stream" on the dashboard (`OverlayTile.tsx`, actions in `src/app/actions/overlay-controls.ts`, signed-in creator only, need an alert link). **Send test alert** shows a made-up card ("Test alert", ₹49) in OBS: no payment, no tip row, no voice, never confirmed to the server. **Skip current alert** clears the card on screen and drops any alert waiting behind it (a waiting one is confirmed as handled, otherwise it would come back when its 60 s lease ran out). **Replay last alert** makes the most recent shown alert (captured in the last hour, the overlay's own window) available again by clearing its shown and lease columns; a 10 s cooldown stops a double click replaying two, and it says so when there is nothing to replay.
