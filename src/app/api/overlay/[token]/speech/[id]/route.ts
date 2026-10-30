@@ -11,7 +11,8 @@ import { synthesize, ttsAvailable } from "@/lib/tts";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-// Only a message that was just shown can be spoken.
+// Only a message that was just handed out (leased) or shown can be spoken. The
+// overlay fetches the audio before the card appears, i.e. before the confirm.
 const SPEAK_WINDOW = "10 minutes";
 
 interface Row {
@@ -52,7 +53,8 @@ export async function GET(
     where u.overlay_token_hash = ${hash}
       and t.id = ${Number(id)}
       and t.status = 'captured'
-      and t.message_shown_at > now() - ${SPEAK_WINDOW}::interval
+      and (t.message_shown_at > now() - ${SPEAK_WINDOW}::interval
+           or t.message_lease_until > now() - ${SPEAK_WINDOW}::interval)
   `;
   } catch (err) {
     console.error("Speech: could not look up the alert.", err);

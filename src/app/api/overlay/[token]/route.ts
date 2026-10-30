@@ -10,11 +10,17 @@ import { shouldSpeak } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
 
 // Polled by the OBS browser source every few seconds. Each call hands out at
-// most one alert and marks it shown in the same request, so an alert plays once
-// even if two overlays are open. shortcut: if OBS reloads between the hand-out
-// and the animation, that one alert is lost; an ack round trip would fix it.
+// most one alert and leases it for 60 seconds, so two open overlays don't
+// both play it. The overlay confirms through ./ack once the card is on screen,
+// and only that sets *_shown_at. If the confirm never comes (OBS reloaded, the
+// network dropped) the lease runs out and the alert is handed out again: an
+// alert may show twice, but is never lost.
 
 const NO_STORE = { "Cache-Control": "no-store" };
+
+// The lease is 60 seconds (written into the queries below): long enough to cover
+// a card waiting behind the one on screen plus the speech download. The overlay
+// doesn't ask for more while it holds one.
 
 interface CandidateRow extends Omit<TipRow, "id"> {
   creator_id: number;
@@ -53,9 +59,12 @@ export async function GET(
       on t.creator_id = u.id
      and t.status = 'captured'
      and t.captured_at > now() - interval '1 day'
-     and (t.alert_shown_at is null
-          or (t.message_shown_at is null and t.message_status = 'approved'
-              and t.fan_message is not null))
+     and ((t.alert_shown_at is null
+           and (t.alert_lease_until is null or t.alert_lease_until <= now()))
+          or (t.alert_shown_at is not null
+              and t.message_shown_at is null and t.message_status = 'approved'
+              and t.fan_message is not null
+              and (t.message_lease_until is null or t.message_lease_until <= now())))
      and (u.alert_mode <> 'approve'
           or t.message_status <> 'pending'
           or t.fan_message is null
@@ -76,20 +85,24 @@ export async function GET(
     next.kind === "alert"
       ? await db`
           update tip_orders
-          set alert_shown_at   = now(),
-              message_shown_at = case when ${next.withMessage} then now() else message_shown_at end
+          set alert_lease_until   = now() + interval '60 seconds',
+              message_lease_until = case when ${next.withMessage}
+                                         then now() + interval '60 seconds'
+                                         else null end
           where id = ${next.id} and alert_shown_at is null and status = 'captured'
+            and (alert_lease_until is null or alert_lease_until <= now())
           returning id
         `
       : await db`
           update tip_orders
-          set message_shown_at = now()
+          set message_lease_until = now() + interval '60 seconds'
           where id = ${next.id} and message_shown_at is null
             and alert_shown_at is not null and status = 'captured'
+            and (message_lease_until is null or message_lease_until <= now())
           returning id
         `;
 
-  // Someone else (another open overlay) took it first.
+  // Someone else (another open overlay) leased it first.
   if (!claimed.length) return Response.json({ alert: null }, { headers: NO_STORE });
 
   const row = tips.find((r) => r.id === next.id)!;

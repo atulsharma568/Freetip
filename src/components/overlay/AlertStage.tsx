@@ -86,6 +86,28 @@ function loadClip(sound: { url: string; volume: number }): HTMLAudioElement | un
   }
 }
 
+// Tells the server the card is on screen, so it counts as shown. Until then the
+// server only holds the alert on a lease and would hand it out again after an OBS
+// reload. A failed confirm is tried once more; if both fail the lease runs out and
+// the alert may show twice, which beats losing it.
+async function confirmShown(token: string, alert: { id: number; kind: "alert" | "message" }) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`/api/overlay/${token}/ack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: alert.id, kind: alert.kind }),
+        cache: "no-store",
+        keepalive: true,
+      });
+      if (res.status < 500) return;
+    } catch {
+      // Network blip: try once more.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+}
+
 function rupees(paise: number) {
   const value = paise / 100;
   return value.toLocaleString("en-IN", {
@@ -133,7 +155,13 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
     }
     if (!token) return;
     let stopped = false;
+    let polling = false;
     const poll = async () => {
+      // Hold at most one alert in the queue (plus the one on screen): the server
+      // leases what it hands out, so taking more than the stage can show soon would
+      // let the leases run out.
+      if (polling || queue.current.length > 0) return;
+      polling = true;
       try {
         const res = await fetch(`/api/overlay/${token}`, { cache: "no-store" });
         if (res.status === 404) {
@@ -157,6 +185,8 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         }
       } catch {
         // Network blip: try again on the next tick.
+      } finally {
+        polling = false;
       }
     };
     poll();
@@ -169,6 +199,8 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   // Play one alert at a time.
   useEffect(() => {
     if (current) {
+      // The card is up: confirm it (live overlay only; the preview has no token).
+      if (token) void confirmShown(token, current);
       // Start the voice with the card. A normal browser tab blocks sound until
       // someone clicks; OBS's browser source allows it, so a refused play is
       // simply silent.
@@ -205,7 +237,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       if (next) setCurrent(next);
     }, 400);
     return () => clearInterval(t);
-  }, [current]);
+  }, [current, token]);
 
   const portrait = size.h > size.w;
 

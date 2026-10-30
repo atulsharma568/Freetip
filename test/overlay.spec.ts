@@ -119,4 +119,47 @@ test.describe("OBS overlay routes", () => {
     await expect(page.getByRole("status")).toContainText("great stream");
     expect(await page.evaluate(() => (window as unknown as { __plays: number }).__plays)).toBe(0);
   });
+  test("the overlay confirms an alert once its card is on screen", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route.fulfill({ json: served ? { alert: null } : { alert: { ...SPEAKING_ALERT.alert, speech: false } } }).then(() => {
+        served = true;
+      }),
+    );
+    const confirmed: unknown[] = [];
+    await page.route(`**/api/overlay/${TOKEN}/ack`, (route) => {
+      confirmed.push(route.request().postDataJSON());
+      return route.fulfill({ status: 204 });
+    });
+
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect(page.getByRole("status")).toContainText("great stream");
+    await expect.poll(() => confirmed).toEqual([{ id: 7, kind: "alert" }]);
+  });
+
+  test("the preview never confirms anything", async ({ page }) => {
+    let calls = 0;
+    await page.route("**/api/overlay/**", (route) => {
+      calls += 1;
+      return route.fulfill({ status: 204 });
+    });
+    await page.goto("/overlay/preview");
+    await expect(page.getByTestId("preview-stage").getByRole("status")).toContainText("Riya");
+    expect(calls).toBe(0);
+  });
+
+  test("the confirm route rejects a bad token or body and needs a database", async ({ request }) => {
+    const post = (token: string, data: unknown) =>
+      request.post(`/api/overlay/${token}/ack`, { data });
+
+    expect((await post("not-a-real-token", { id: 7, kind: "alert" })).status()).toBe(404);
+    expect((await post(TOKEN, { id: "7", kind: "alert" })).status()).toBe(400);
+    expect((await post(TOKEN, { id: 7, kind: "other" })).status()).toBe(400);
+    expect((await post(TOKEN, { id: -1, kind: "alert" })).status()).toBe(400);
+    const res = await post(TOKEN, { id: 7, kind: "message" });
+    expect(res.status()).toBe(503);
+    expect(res.headers()["cache-control"]).toBe("no-store");
+    // Only POST is accepted.
+    expect((await request.get(`/api/overlay/${TOKEN}/ack`)).status()).toBe(405);
+  });
 });
