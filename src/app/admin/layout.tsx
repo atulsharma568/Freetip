@@ -11,6 +11,7 @@ const navigation = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/creators", label: "Creators" },
   { href: "/admin/sounds", label: "Sounds" },
+  { href: "/admin/tts-words", label: "Voice words" },
   { href: "/admin/finance", label: "Finance" },
   { href: "/admin/finance/creators", label: "Creator earnings" },
   { href: "/admin/finance/payments", label: "Payment ledger" },

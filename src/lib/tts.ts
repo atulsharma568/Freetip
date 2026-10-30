@@ -1,5 +1,6 @@
 import "server-only";
 import { getDb } from "@/lib/db";
+import { recordUnknownWords } from "@/lib/tts-words";
 import { azureConfigured, azureSynthesize } from "@/lib/tts-azure";
 import { pollyConfigured, pollySynthesize } from "@/lib/tts-polly";
 import {
@@ -112,6 +113,7 @@ export async function synthesizeDetailed(
   if (!ttsAvailable()) return { ok: false, reason: "off" };
   const { text, language } = prepareSpeech(message);
   const db = getDb();
+  if (!options.testRun) await recordUnknownWords(message);
 
   // Cache first: the key includes the voice, so a changed voice setting is not
   // served an old clip. (A clip that fell back to Polly is cached under Azure's key

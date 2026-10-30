@@ -21,7 +21,9 @@ export async function GET(request: Request) {
   try {
     const clips = await sql`delete from tts_cache where last_used_at < now() - interval '30 days' returning hash`;
     const usage = await sql`delete from tts_usage where day < current_date - 90 returning day`;
-    return new Response(`OK (${clips.length} clips, ${usage.length} usage rows removed)`);
+    // Words seen once and not again for 90 days are noise (typos), not dictionary gaps.
+    const words = await sql`delete from tts_unknown_words where seen = 1 and last_seen < now() - interval '90 days' returning word`.catch(() => []);
+    return new Response(`OK (${clips.length} clips, ${usage.length} usage rows, ${words.length} words removed)`);
   } catch {
     // The tables from migration 0019 are missing: nothing to clean.
     return new Response("OK (no tts tables)");

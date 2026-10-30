@@ -94,3 +94,15 @@ export async function adminDeleteSound(soundId: number): Promise<void> {
   }
   revalidatePath("/admin/sounds");
 }
+
+// Marks a logged word as dealt with (added to the dictionary, or fine as English) so
+// it stops showing in /admin/tts-words.
+export async function reviewTtsWord(word: string): Promise<void> {
+  await requireOwner();
+
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  await db`update tts_unknown_words set reviewed = true where word = ${word}`;
+  revalidatePath("/admin/tts-words");
+}

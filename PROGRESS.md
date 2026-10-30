@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the voice word log)
+
+- Unknown-word log for the Hinglish dictionary (owner request): when a Hindi-looking tip is spoken (not a dashboard test), the Roman words the converter does not know are counted in `tts_unknown_words` (migration 0021, run it). Only single lower-case words and a count are stored, never the message or sender. `unknownHinglishWords` in `src/lib/hinglish.ts`, `recordUnknownWords` in `src/lib/tts-words.ts` (never throws). Owner page `/admin/tts-words` (Voice words in the admin nav) lists the open words, most common first, with "Mark reviewed" and a CSV download at `/admin/tts-words/export`. Workflow: download, add the Hindi words to `src/lib/hinglish-words.ts`, mark reviewed. English words (stream, goal) will show up too: mark them reviewed. The daily cron removes words seen once and not for 90 days. One new test; lint, tsc, build and `test/hinglish.spec.ts` pass. Not checked: against real Neon rows.
+- Owner decisions 2026-10-30: hero hands stay as they are (no revision). Payout engine: the owner left schedule, minimum and method to me; being designed next with xhigh effort.
+
 ## Current state (2026-10-30, updated after the Test voice button)
 
 - **Test voice button built** (dashboard tile "Test the voice", shown only when the owner's `TTS_ENABLED` switch is on and the creator is not suspended). A creator types a message (or picks a Hinglish or English sample), presses the button and hears it through the real engine with no payment. It also shows the text the voice was given (Roman Hindi already turned into Devanagari, so the dictionary can be checked by ear and by eye), the voice name, which engine made the clip (Azure or Polly) and whether it came from the cache. This is the free way to do the pending real Hinglish voice test.

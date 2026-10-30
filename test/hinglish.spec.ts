@@ -201,3 +201,13 @@ test.describe("Hinglish converter: verb forms, stretched spellings and safety", 
     expect(t(odd)).toBe(odd);
   });
 });
+
+test.describe("Unknown word log", () => {
+  test("lists unknown Roman words in Hindi-looking messages only", async () => {
+    const { unknownHinglishWords } = await import("../src/lib/hinglish");
+    expect(unknownHinglishWords("bhai kya zorbaxy stream hai")).toEqual(expect.arrayContaining(["zorbaxy"]));
+    expect(unknownHinglishWords("bhai kya mast hai")).toEqual([]);
+    expect(unknownHinglishWords("zorbaxy great stream today")).toEqual([]);
+    expect(unknownHinglishWords("bhai kya zorbaxy @qwertyu lo-fiq hai")).not.toContain("qwertyu");
+  });
+});

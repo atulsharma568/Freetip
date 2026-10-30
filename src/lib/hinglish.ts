@@ -353,6 +353,29 @@ export function hindiSpeech(text: string): { text: string; hindi: boolean } {
   return { text: transliterateHinglish(text), hindi: true };
 }
 
+// Roman words in a Hindi-looking message that the tables do not know: either Hindi
+// words to add to the dictionary or English words that are fine as they are. The
+// owner reads them in /admin/tts-words. Only words, never the message, are kept.
+export function unknownHinglishWords(text: string): string[] {
+  if (!text || !isHinglish(text)) return [];
+  const found = new Set<string>();
+  for (const m of text.matchAll(TOKEN)) {
+    const word = m[0];
+    if (DEVANAGARI.test(word[0])) continue;
+    const start = m.index!;
+    const end = start + word.length;
+    const before = start ? text[start - 1] : " ";
+    const after = end < text.length ? text[end] : " ";
+    if (ATTACHED.has(before) || ATTACHED.has(after) || /\d/.test(before + after)) continue;
+    const low = word.toLowerCase();
+    if (low.length < 3 || low.length > 20) continue;
+    if (SHORT_WORDS.has(low) || CONTEXT.has(low) || ENGLISH_GRAMMAR.has(low) || resolve(low)) continue;
+    found.add(low);
+    if (found.size >= 20) break;
+  }
+  return [...found];
+}
+
 // For tests and tuning: every spelling the converter knows, by kind.
 export function knownSpellings(): ReadonlyMap<string, string> {
   return LOOKUP.strong;
