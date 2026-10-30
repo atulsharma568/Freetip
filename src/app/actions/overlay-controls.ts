@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
+import { parseOverlayPosition } from "@/lib/overlay-position";
 
 // Dashboard buttons for the OBS overlay: test, skip and replay. Only the signed-in
 // creator's own overlay is touched. Test and skip just write a timestamp that the
@@ -92,4 +93,19 @@ export async function replayLastAlert(): Promise<ControlResult> {
     console.error("Overlay controls: replay failed.", err);
     return FAILED;
   }
+}
+
+// Where the alert card sits on the stream. The overlay's next poll picks it up.
+export async function setOverlayPosition(position: string): Promise<ControlResult> {
+  const valid = parseOverlayPosition(position);
+  if (!valid) return { status: "error", message: "Pick one of the nine spots." };
+  const who = await creatorId();
+  if ("status" in who) return who;
+  try {
+    await who.db`update users set overlay_position = ${valid} where id = ${who.id}`;
+  } catch (err) {
+    console.error("Overlay controls: position failed.", err);
+    return FAILED;
+  }
+  return { status: "ok", message: "Position saved. OBS picks it up within a few seconds." };
 }

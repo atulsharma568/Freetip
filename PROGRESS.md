@@ -2,6 +2,14 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the sound save fix, ₹20 preset and overlay position)
+
+- **Sound "Sound not found" on Save fixed (owner report):** `creator_sounds.id` is a `bigint`, which the Postgres driver returns as a string, so the sounds page passed a string id to `updateSound`/`deleteSound`/`setDefaultSound`, and `Number.isSafeInteger` rejected it. The sounds page (`src/app/dashboard/sounds/page.tsx`) and the tip page sound list (`src/app/[handle]/creator.ts`) now convert the id to a number. Not tried against the live site.
+- **Tip page presets (owner request):** `buildPresets` in `src/app/[handle]/TipForm.tsx` now gives the creator's minimum, then fixed steps ₹20, ₹50, ₹100, ₹200, ₹500, ₹1,000 (a step within ₹5 or a quarter of the minimum is skipped, at most 5 chips). A ₹20 minimum shows ₹20, ₹50, ₹100, ₹200, ₹500.
+- **Overlay position (owner request):** `db/migrations/0025_overlay_position.sql` adds `users.overlay_position` (nine spots, default `bottom-center`). The dashboard "Alerts on stream" tile has a 3 x 3 picker (`setOverlayPosition` in `src/app/actions/overlay-controls.ts`); the overlay poll sends the position and `AlertStage` places the card (also in vertical). Both the poll and the dashboard read it apart, so they keep working before the migration is run. **Owner action:** run 0025 in Neon.
+- **Verified:** tsc, eslint and the production build pass; the 226 pure tests pass (93 browser tests could not run here: Chromium is not installed). **Not verified:** the overlay in a real OBS browser source, the picker in a browser.
+- **Payout approach (explained to the owner, not built):** direct-to-creator payouts need Razorpay Route (linked accounts and transfers) or RazorpayX Payouts, plus the answers still blocked in `docs/payout-design.md` section 7.
+
 ## Current state (2026-10-30, updated after the tip defaults)
 
 - **Tip defaults (owner request):** `db/migrations/0024_tip_defaults.sql` makes the minimum tip ₹20 (was ₹49) and the voice on by default for new creators, and moves every creator still on the old ₹49 default to ₹20. The sound board and voice were already on the tip page: sounds show once a creator has added some (migration 0013), and the voice shows only when `TTS_ENABLED` is on in Vercel and the creator's voice setting is on. **Owner action:** run 0024 in Neon once. Not verified against a real database; no application code changed.

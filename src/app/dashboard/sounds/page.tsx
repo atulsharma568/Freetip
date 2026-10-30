@@ -49,7 +49,8 @@ export default async function SoundsPage() {
   `;
 
   const sounds: SoundRow[] = rows.map((r) => ({
-    id: r.id,
+    // bigint columns come back as strings; the actions need real numbers.
+    id: Number(r.id),
     name: r.name,
     emoji: r.emoji ?? "",
     minRupees: Math.ceil(r.min_paise / 100),
@@ -76,7 +77,7 @@ export default async function SoundsPage() {
         <SoundsManager
           creatorId={user.id}
           sounds={sounds}
-          defaultSoundId={user.default_sound_id}
+          defaultSoundId={user.default_sound_id === null ? null : Number(user.default_sound_id)}
           usedBytes={usedBytes}
           maxBytes={MAX_SOUND_BYTES_PER_CREATOR}
           maxSounds={MAX_SOUNDS_PER_CREATOR}

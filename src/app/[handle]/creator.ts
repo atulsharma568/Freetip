@@ -53,7 +53,7 @@ export const getTipSounds = cache(async (handle: string): Promise<TipSound[]> =>
       order by s.min_paise, s.created_at, s.id
     `;
     return rows.map((r) => ({
-      id: r.id,
+      id: Number(r.id),
       name: r.name,
       emoji: r.emoji ?? "",
       minPaise: r.min_paise,

@@ -20,6 +20,7 @@ import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { ttsAvailable } from "@/lib/tts";
+import { DEFAULT_OVERLAY_POSITION, parseOverlayPosition } from "@/lib/overlay-position";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -79,6 +80,18 @@ export default async function DashboardPage() {
       bannedWords = found?.banned_words ?? "";
     } catch (err) {
       console.error("Dashboard: could not read the banned words.", err);
+    }
+  }
+
+  // Where the alert card sits on stream (migration 0025), read apart so the
+  // dashboard loads before it is run.
+  let overlayPosition = DEFAULT_OVERLAY_POSITION;
+  if (db && user) {
+    try {
+      const [found] = await db<{ overlay_position: string }[]>`select overlay_position from users where id = ${user.id}`;
+      overlayPosition = parseOverlayPosition(found?.overlay_position) ?? DEFAULT_OVERLAY_POSITION;
+    } catch (err) {
+      console.error("Dashboard: could not read the overlay position.", err);
     }
   }
 
@@ -241,7 +254,7 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
             Alerts on stream
           </h2>
-          <OverlayTile hasLink={user.has_overlay_link} />
+          <OverlayTile hasLink={user.has_overlay_link} position={overlayPosition} />
         </div>
 
         {ttsAvailable() && user.creator_status !== "suspended" && (

@@ -1,3 +1,4 @@
+import { DEFAULT_OVERLAY_POSITION, parseOverlayPosition } from "@/lib/overlay-position";
 import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
 import {
@@ -82,9 +83,21 @@ export async function GET(
 
   // Dashboard commands (test, skip) for the overlay to act on, sent with every
   // answer. An overlay only acts on a time newer than the first one it saw.
+  // The card position (migration 0025), read apart so the overlay keeps working
+  // before that migration is run.
+  let position = DEFAULT_OVERLAY_POSITION;
+  try {
+    const [found] = await db<{ overlay_position: string }[]>`
+      select overlay_position from users where id = ${rows[0].creator_id}
+    `;
+    position = parseOverlayPosition(found?.overlay_position) ?? DEFAULT_OVERLAY_POSITION;
+  } catch {
+    // keep the default
+  }
   const controls = {
     skipAt: rows[0].overlay_skip_at?.getTime() ?? 0,
     testAt: rows[0].overlay_test_at?.getTime() ?? 0,
+    position,
   };
 
   const mode = rows[0].alert_mode;

@@ -44,15 +44,15 @@ function loadRazorpayScript(): Promise<void> {
   });
 }
 
+// The creator's minimum first, then fixed steps above it (₹20, ₹50, ₹100 ...), so a
+// ₹20 minimum gives ₹20, ₹50, ₹100, ₹200, ₹500. A step too close to the minimum is skipped.
+const PRESET_STEPS = [20, 50, 100, 200, 500, 1000];
+
 function buildPresets(minPaise: number): number[] {
   const min = Math.ceil(minPaise / 100);
-  const raw = [min, min * 2, min * 5, min * 10];
-  return raw.map((v) => {
-    if (v >= 1000) return Math.round(v / 500) * 500;
-    if (v >= 100) return Math.round(v / 100) * 100;
-    if (v >= 10) return Math.round(v / 10) * 10;
-    return v;
-  });
+  const gap = Math.max(5, min * 0.25);
+  const steps = PRESET_STEPS.filter((v) => v - min >= gap);
+  return [min, ...steps].slice(0, 5);
 }
 
 const noopSubscribe = () => () => {};

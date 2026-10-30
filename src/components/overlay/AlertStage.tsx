@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DEFAULT_OVERLAY_POSITION, parseOverlayPosition, type OverlayPosition } from "@/lib/overlay-position";
 
 export interface OverlayAlert {
   id: number;
@@ -129,6 +130,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   const [size, setSize] = useState({ w: 1920, h: 1080 });
   const [current, setCurrent] = useState<QueuedAlert | null>(null);
   const [invalid, setInvalid] = useState(false);
+  const [position, setPosition] = useState<OverlayPosition>(DEFAULT_OVERLAY_POSITION);
   const queue = useRef<QueuedAlert[]>([]);
   const seen = useRef(0);
   // Dashboard commands: the first times the overlay saw, then only newer ones act.
@@ -199,10 +201,11 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         if (!res.ok) return;
         const body = (await res.json()) as {
           alert: OverlayAlert | null;
-          controls?: { skipAt: number; testAt: number };
+          controls?: { skipAt: number; testAt: number; position?: string };
         };
         const c = body.controls;
         if (c) {
+          setPosition(parseOverlayPosition(c.position) ?? DEFAULT_OVERLAY_POSITION);
           const was = controlsSeen.current;
           if (!was) {
             controlsSeen.current = { ...c };
@@ -308,7 +311,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       {current && (
         <div
           key={`${current.id}-${current.kind}`}
-          className="ov-card"
+          className={`ov-card ov-v-${position.split("-")[0]} ov-h-${position.split("-")[1]}`}
           style={{ "--dur": `${showMs(current)}ms` } as React.CSSProperties}
           role="status"
         >
@@ -332,7 +335,8 @@ const CSS = `
   width: calc(var(--u) * 36); padding: calc(var(--u) * 1.6) calc(var(--u) * 2);
   background: #12130e; color: #f2f3ec; border-left: calc(var(--u) * 0.45) solid #bfe84a;
   border-radius: calc(var(--u) * 1); overflow-wrap: anywhere;
-  transform: translateX(-50%);
+  --tx: -50%; --ty: 0px; --dy: 40px;
+  transform: translate(var(--tx), var(--ty));
   animation: ov-in 450ms cubic-bezier(.2,.8,.2,1) both, ov-out 400ms ease-in calc(var(--dur) - 400ms) forwards;
 }
 .ov-line { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: calc(var(--u) * 1.5); }
@@ -341,11 +345,19 @@ const CSS = `
 .ov-message { margin: calc(var(--u) * 0.8) 0 0; font-size: calc(var(--u) * 1.8); line-height: 1.3; color: #c9cbbd; }
 .ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4) calc(var(--u) * 5); border-left-width: calc(var(--u) * 1.2); border-radius: calc(var(--u) * 3); }
 .ov-portrait .ov-name { font-size: calc(var(--u) * 5.2); }
+.ov-h-left { left: calc(var(--u) * 3); --tx: 0px; }
+.ov-h-right { left: auto; right: calc(var(--u) * 3); --tx: 0px; }
+.ov-v-top { top: calc(var(--u) * 6); bottom: auto; --dy: -40px; }
+.ov-v-middle { top: 50%; bottom: auto; --ty: -50%; }
+.ov-portrait .ov-h-left { left: calc(var(--u) * 5); }
+.ov-portrait .ov-h-right { right: calc(var(--u) * 5); }
+.ov-portrait .ov-v-top { top: calc(var(--u) * 14); bottom: auto; }
+.ov-portrait .ov-v-middle { top: 50%; bottom: auto; }
 .ov-portrait .ov-amount { font-size: calc(var(--u) * 9); }
 .ov-portrait .ov-message { font-size: calc(var(--u) * 5); margin-top: calc(var(--u) * 2.4); }
 .ov-invalid { position: absolute; inset: auto 0 0 0; margin: 0; padding: 12px; font-size: 14px; color: #f2f3ec; background: #12130e; }
-@keyframes ov-in { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes ov-out { to { opacity: 0; transform: translate(-50%, 20px); } }
+@keyframes ov-in { from { opacity: 0; transform: translate(var(--tx), calc(var(--ty) + var(--dy))); } to { opacity: 1; transform: translate(var(--tx), var(--ty)); } }
+@keyframes ov-out { to { opacity: 0; transform: translate(var(--tx), calc(var(--ty) + var(--dy) / 2)); } }
 @media (prefers-reduced-motion: reduce) {
   .ov-card { animation: ov-fade 200ms both, ov-fade-out 200ms linear calc(var(--dur) - 200ms) forwards; }
   @keyframes ov-fade { from { opacity: 0; } to { opacity: 1; } }

@@ -3,7 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { generateOverlayLink } from "@/app/actions/creator";
-import { replayLastAlert, sendTestAlert, skipAlert, type ControlResult } from "@/app/actions/overlay-controls";
+import {
+  replayLastAlert,
+  sendTestAlert,
+  setOverlayPosition,
+  skipAlert,
+  type ControlResult,
+} from "@/app/actions/overlay-controls";
+import { OVERLAY_POSITIONS, type OverlayPosition } from "@/lib/overlay-position";
 
 const SIZES = [
   { label: "1080p", w: 1920, h: 1080 },
@@ -11,7 +18,8 @@ const SIZES = [
   { label: "Vertical", w: 1080, h: 1920 },
 ];
 
-export function OverlayTile({ hasLink }: { hasLink: boolean }) {
+export function OverlayTile({ hasLink, position }: { hasLink: boolean; position: OverlayPosition }) {
+  const [spot, setSpot] = useState<OverlayPosition>(position);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -127,6 +135,28 @@ export function OverlayTile({ hasLink }: { hasLink: boolean }) {
           )}
         </div>
       )}
+
+      <div className="space-y-2 border-t border-line/60 pt-4">
+        <p className="text-sm text-muted">Where the alert shows on your screen:</p>
+        <div className="grid w-44 grid-cols-3 gap-1.5" role="group" aria-label="Alert position">
+          {OVERLAY_POSITIONS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={spot === p}
+              aria-label={p.replace("-", " ")}
+              disabled={controlPending}
+              onClick={() => {
+                setSpot(p);
+                run(() => setOverlayPosition(p));
+              }}
+              className={`h-9 rounded-md border transition-colors disabled:opacity-40 ${
+                spot === p ? "border-accent bg-accent" : "border-control hover:border-muted"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-2 border-t border-line/60 pt-4 text-sm text-muted">
         <p>In OBS: Sources, add Browser, paste the link, then set the size for your scene:</p>
