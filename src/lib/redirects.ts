@@ -10,7 +10,11 @@ export type HostRedirect = {
   statusCode: 301;
 };
 
-export function hostRedirects(siteUrl?: string, productionHost?: string): HostRedirect[] {
+// Once a custom domain is attached, VERCEL_PROJECT_PRODUCTION_URL becomes that
+// domain, so the original vercel.app address has to be named explicitly.
+export const LEGACY_HOSTS = ["tipsite.vercel.app"];
+
+export function hostRedirects(siteUrl?: string, productionHost?: string, extraHosts: string[] = []): HostRedirect[] {
   if (!siteUrl) return [];
   let main: URL;
   try {
@@ -22,6 +26,7 @@ export function hostRedirects(siteUrl?: string, productionHost?: string): HostRe
   const hosts = new Set<string>();
   // The vercel.app address, and the other of www / no-www.
   if (productionHost) hosts.add(productionHost.toLowerCase());
+  for (const host of extraHosts) hosts.add(host.toLowerCase());
   hosts.add(main.hostname.startsWith("www.") ? main.hostname.slice(4) : `www.${main.hostname}`);
   hosts.delete(main.hostname);
 

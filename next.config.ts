@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { hostRedirects } from "./src/lib/redirects";
+import { hostRedirects, LEGACY_HOSTS } from "./src/lib/redirects";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   },
   // Old and alternate addresses go to the main domain (empty until it is set).
   async redirects() {
-    return hostRedirects(process.env.NEXT_PUBLIC_SITE_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL);
+    return hostRedirects(process.env.NEXT_PUBLIC_SITE_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL, LEGACY_HOSTS);
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

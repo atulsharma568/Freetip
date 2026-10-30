@@ -19,6 +19,13 @@ test.describe("host redirects", () => {
     }
   });
 
+  test("a legacy host is redirected even when the production host is the main domain", () => {
+    const rules = hostRedirects("https://freetip.in", "freetip.in", ["tipsite.vercel.app"]);
+    const hosts = rules.map((r) => r.has[0].value);
+    expect(new Set(hosts)).toEqual(new Set(["tipsite.vercel.app", "www.freetip.in"]));
+    expect(hosts).not.toContain("freetip.in");
+  });
+
   test("a www main domain redirects the bare domain, never itself", () => {
     const hosts = hostRedirects("https://www.tipsite.in", "www.tipsite.in").map((r) => r.has[0].value);
     expect(new Set(hosts)).toEqual(new Set(["tipsite.in"]));
