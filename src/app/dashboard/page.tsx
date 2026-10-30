@@ -12,6 +12,7 @@ import { CreatorQR } from "./CreatorQR";
 import { GoalTile } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
 import { TipIsland } from "./TipIsland";
+import { VoiceTest } from "./VoiceTest";
 import { DashboardNav } from "./DashboardNav";
 import { OverviewStrip } from "./OverviewStrip";
 import { DailyChart } from "./DailyChart";
@@ -242,6 +243,15 @@ export default async function DashboardPage() {
           </h2>
           <OverlayTile hasLink={user.has_overlay_link} />
         </div>
+
+        {ttsAvailable() && user.creator_status !== "suspended" && (
+          <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+              Test the voice
+            </h2>
+            <VoiceTest maxChars={user.message_max_chars} />
+          </div>
+        )}
 
         <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">

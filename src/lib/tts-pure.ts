@@ -73,3 +73,11 @@ export function withinLimits(
 ): boolean {
   return used.creatorToday + chars <= limits.creatorDailyChars && used.siteMonth + chars <= limits.siteMonthlyChars;
 }
+
+// A creator trying the voice from the dashboard may use at most this share of their
+// daily characters, so testing can never leave their real tip alerts silent.
+export const TEST_SHARE = 0.5;
+
+export function testLimits(limits: Limits): Limits {
+  return { ...limits, creatorDailyChars: Math.floor(limits.creatorDailyChars * TEST_SHARE) };
+}

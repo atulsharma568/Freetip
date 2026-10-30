@@ -2,7 +2,15 @@ import "server-only";
 import { getDb } from "@/lib/db";
 import { azureConfigured, azureSynthesize } from "@/lib/tts-azure";
 import { pollyConfigured, pollySynthesize } from "@/lib/tts-polly";
-import { azureVoice, cacheKey, limitsFromEnv, prepareSpeech, withinLimits } from "@/lib/tts-pure";
+import {
+  azureVoice,
+  cacheKey,
+  limitsFromEnv,
+  prepareSpeech,
+  testLimits,
+  withinLimits,
+  type Prepared,
+} from "@/lib/tts-pure";
 
 // Text-to-speech engine layer. Azure Speech is the main engine (free tier), Amazon
 // Polly the fallback if Azure is not set up or fails. A clip is cached by voice and
@@ -75,7 +83,33 @@ async function addUsage(db: Db, creatorId: number, engine: string, chars: number
 // MP3 bytes for the message, or null if speech is off, over a cap, or every engine
 // failed. `creatorId` is whose alert it is, for the daily cap.
 export async function synthesize(message: string, creatorId: number): Promise<Uint8Array | null> {
-  if (!ttsAvailable()) return null;
+  const result = await synthesizeDetailed(message, creatorId);
+  return result.ok ? result.audio : null;
+}
+
+// What happened, for the dashboard's "Test voice" button: the clip plus the text the
+// engine was given, the voice, which engine made it and whether it came from the
+// cache; or why there is no clip.
+export type SynthesisResult =
+  | {
+      ok: true;
+      audio: Uint8Array;
+      spoken: string;
+      language: Prepared["language"];
+      voice: string;
+      engine: "azure" | "polly";
+      cached: boolean;
+    }
+  | { ok: false; reason: "off" | "cap" | "failed" };
+
+// `testRun` holds a creator's own tests to half their daily characters, so trying
+// the voice never leaves their real alerts silent.
+export async function synthesizeDetailed(
+  message: string,
+  creatorId: number,
+  options: { testRun?: boolean } = {},
+): Promise<SynthesisResult> {
+  if (!ttsAvailable()) return { ok: false, reason: "off" };
   const { text, language } = prepareSpeech(message);
   const db = getDb();
 
@@ -83,34 +117,40 @@ export async function synthesize(message: string, creatorId: number): Promise<Ui
   // served an old clip. (A clip that fell back to Polly is cached under Azure's key
   // too; it is still a fine clip for that text.)
   const azure = azureConfigured();
-  const hash = azure ? cacheKey("azure", azureVoice(language), text) : cacheKey("polly", "kajal", text);
+  const voice = azure ? azureVoice(language) : "Kajal";
+  const hash = azure ? cacheKey("azure", voice, text) : cacheKey("polly", "kajal", text);
   if (db) {
     const cached = await readCache(db, hash);
-    if (cached) return cached;
+    if (cached) {
+      return { ok: true, audio: cached, spoken: text, language, voice, engine: azure ? "azure" : "polly", cached: true };
+    }
   }
 
-  if (db && !withinLimits(await usedChars(db, creatorId), text.length, limitsFromEnv())) {
+  const limits = options.testRun ? testLimits(limitsFromEnv()) : limitsFromEnv();
+  if (db && !withinLimits(await usedChars(db, creatorId), text.length, limits)) {
     console.error(`TTS: cap reached for creator ${creatorId} or for the month; playing silently.`);
-    return null;
+    return { ok: false, reason: "cap" };
   }
 
   let audio: Uint8Array | null = null;
-  let engine = "";
+  let engine: "azure" | "polly" = "azure";
+  let usedVoice = voice;
   if (azure) {
     const out = await azureSynthesize(text, language);
     if (out) {
       audio = out.audio;
-      engine = "azure";
+      usedVoice = out.voice;
     }
   }
   if (!audio && pollyConfigured()) {
     audio = await pollySynthesize(text, language);
     engine = "polly";
+    usedVoice = "Kajal";
   }
-  if (!audio || !audio.byteLength) return null;
+  if (!audio || !audio.byteLength) return { ok: false, reason: "failed" };
 
   if (db) {
     await Promise.all([writeCache(db, hash, audio), addUsage(db, creatorId, engine, text.length)]);
   }
-  return audio;
+  return { ok: true, audio, spoken: text, language, voice: usedVoice, engine, cached: false };
 }
