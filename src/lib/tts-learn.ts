@@ -7,7 +7,7 @@
 // nothing on the profanity lists in either script.
 
 import { z } from "zod";
-import { findBlockedWord } from "@/lib/message-filter";
+import { findBlockedWord } from "./message-filter";
 
 export const LEARN_MIN_SEEN = 3; // a word must have turned up this many times
 export const LEARN_MAX_PER_RUN = 40;
