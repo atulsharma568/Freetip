@@ -215,7 +215,7 @@ test.describe("sync: check, backfill, then post", () => {
       `select sum(e.credit_minor - e.debit_minor)::text as share
          from ledger_entries e join ledger_accounts a on a.id = e.account_id where a.code = 'creator_payable'`,
     );
-    expect(share.rows[0].share).toBe("9250");
+    expect(share.rows[0].share).toBe("9225");
   });
 
   test("without live keys it still posts what can be posted", async () => {

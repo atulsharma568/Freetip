@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-10-30, updated after the 2.75% processing charge)
+
+- **Processing charge raised from 2.5% to 2.75% (owner decision, stated openly, not hidden):** the owner wants a margin over Razorpay's real cost once creators are paid through Route (gateway about 2.36% plus a transfer fee reported at 0.25% plus GST, to be confirmed with Razorpay). `PROCESSING_BPS` is now 275 and `RULE_VERSION` is `2026-10-30.2`, so tips already posted keep their old 2.5% lines and nothing is rewritten. A ₹100 tip leaves the creator ₹92.25 (₹5.00 and ₹2.75). The fee tile, pricing, terms, dashboard notes and worked example read the rate from `FEES`; the FAQ, admin note, tests and docs were edited by hand. **Not changed:** no payout code exists yet, and the owner was told a quiet extra charge was declined. Tips captured but not yet posted when this deploys are posted at 2.75%; none were live money before this. 91 money, ledger and overlay tests pass.
+
 ## Current state (2026-10-30, updated after the sound save fix, ₹20 preset and overlay position)
 
 - **Sound "Sound not found" on Save fixed (owner report):** `creator_sounds.id` is a `bigint`, which the Postgres driver returns as a string, so the sounds page passed a string id to `updateSound`/`deleteSound`/`setDefaultSound`, and `Number.isSafeInteger` rejected it. The sounds page (`src/app/dashboard/sounds/page.tsx`) and the tip page sound list (`src/app/[handle]/creator.ts`) now convert the id to a number. Not tried against the live site.

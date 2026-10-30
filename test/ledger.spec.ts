@@ -102,9 +102,9 @@ test.describe("posting a captured tip", () => {
 
     const b = await balances(pg);
     expect(b.processor_clearing).toEqual({ debit: 10000, credit: 0 });
-    expect(b.creator_payable).toEqual({ debit: 0, credit: 9250 });
+    expect(b.creator_payable).toEqual({ debit: 0, credit: 9225 });
     expect(b.platform_fee_revenue).toEqual({ debit: 0, credit: 500 });
-    expect(b.gateway_fee_expense).toEqual({ debit: 0, credit: 250 });
+    expect(b.gateway_fee_expense).toEqual({ debit: 0, credit: 275 });
     expect(await everyTransactionBalances(pg)).toBe(true);
 
     const entry = await pg.query<{ creator_id: string }>(
@@ -124,8 +124,8 @@ test.describe("posting a captured tip", () => {
       `select fee_type, amount_minor::text, source, rule_version from fee_lines order by fee_type`,
     );
     expect(fees.rows).toEqual([
-      { fee_type: "gateway_fee", amount_minor: "250", source: "accrual", rule_version: "2026-10-30.1" },
-      { fee_type: "platform_fee", amount_minor: "500", source: "accrual", rule_version: "2026-10-30.1" },
+      { fee_type: "gateway_fee", amount_minor: "275", source: "accrual", rule_version: "2026-10-30.2" },
+      { fee_type: "platform_fee", amount_minor: "500", source: "accrual", rule_version: "2026-10-30.2" },
     ]);
   });
 
@@ -194,7 +194,7 @@ test.describe("posting a captured tip", () => {
       expect(Number(share.rows[0].share)).toBe(splitTip(gross).creatorSharePaise);
       // The dashboard's SQL rounding gives the same figure.
       const sql = await pg.query<{ share: string }>(
-        `select ($1::bigint - (($1::bigint * 500 + 5000) / 10000) - (($1::bigint * 250 + 5000) / 10000))::text as share`,
+        `select ($1::bigint - (($1::bigint * 500 + 5000) / 10000) - (($1::bigint * 275 + 5000) / 10000))::text as share`,
         [gross],
       );
       expect(Number(sql.rows[0].share)).toBe(splitTip(gross).creatorSharePaise);
@@ -410,7 +410,7 @@ test.describe("after a capture", () => {
       [t.paymentRef],
     );
     expect(facts.rows[0]).toEqual({ a: "10000", c: "INR", f: "236", x: "36" });
-    expect((await balances(pg)).creator_payable.credit).toBe(9250);
+    expect((await balances(pg)).creator_payable.credit).toBe(9225);
 
     const ev = await pg.query<{ event_id: string; payload: Record<string, unknown>; processing_status: string }>(
       `select event_id, payload, processing_status from provider_events`,

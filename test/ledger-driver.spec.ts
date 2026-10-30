@@ -77,8 +77,8 @@ test.describe("through the real postgres.js driver", () => {
           group by a.code order by a.code`,
       );
       expect(Object.fromEntries(r.rows.map((x) => [x.code, x.credit]))).toEqual({
-        creator_payable: "9250",
-        gateway_fee_expense: "250",
+        creator_payable: "9225",
+        gateway_fee_expense: "275",
         platform_fee_revenue: "500",
         processor_clearing: "0",
       });

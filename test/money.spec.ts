@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { capturePosting, feeLines, splitTip, toPaise } from "../src/lib/money";
 
-test.describe("tip split (flat 2.5% processing charge)", () => {
-  test("a ₹100 tip leaves the creator ₹92.50", () => {
+test.describe("tip split (flat 2.75% processing charge)", () => {
+  test("a ₹100 tip leaves the creator ₹92.25", () => {
     expect(splitTip(10000)).toEqual({
       grossPaise: 10000,
       platformFeePaise: 500,
-      processingPaise: 250,
-      creatorSharePaise: 9250,
+      processingPaise: 275,
+      creatorSharePaise: 9225,
     });
   });
 
@@ -20,8 +20,8 @@ test.describe("tip split (flat 2.5% processing charge)", () => {
   });
 
   test("rounds each charge half up to the paise", () => {
-    // 1250 paise: 5% is 62.5 -> 63, 2.5% is 31.25 -> 31.
-    expect(splitTip(1250)).toMatchObject({ platformFeePaise: 63, processingPaise: 31, creatorSharePaise: 1156 });
+    // 1250 paise: 5% is 62.5 -> 63, 2.75% is 34.375 -> 34.
+    expect(splitTip(1250)).toMatchObject({ platformFeePaise: 63, processingPaise: 34, creatorSharePaise: 1153 });
   });
 
   test("parts always add up across a wide range of amounts", () => {
@@ -43,9 +43,9 @@ test.describe("capture posting", () => {
   test("a ₹100 tip posts a balanced entry", () => {
     expect(capturePosting(splitTip(10000))).toEqual([
       { account: "processor_clearing", debitPaise: 10000, creditPaise: 0 },
-      { account: "creator_payable", debitPaise: 0, creditPaise: 9250 },
+      { account: "creator_payable", debitPaise: 0, creditPaise: 9225 },
       { account: "platform_fee_revenue", debitPaise: 0, creditPaise: 500 },
-      { account: "gateway_fee_expense", debitPaise: 0, creditPaise: 250 },
+      { account: "gateway_fee_expense", debitPaise: 0, creditPaise: 275 },
     ]);
   });
 
@@ -65,7 +65,7 @@ test.describe("capture posting", () => {
   test("fee lines skip zero amounts and carry the rate", () => {
     expect(feeLines(splitTip(10000))).toEqual([
       { feeType: "platform_fee", amountPaise: 500, bps: 500 },
-      { feeType: "gateway_fee", amountPaise: 250, bps: 250 },
+      { feeType: "gateway_fee", amountPaise: 275, bps: 275 },
     ]);
     expect(feeLines(splitTip(1))).toEqual([]);
   });

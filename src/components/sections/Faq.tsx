@@ -15,7 +15,7 @@ const ITEMS = [
   },
   {
     q: "What does it cost?",
-    a: "We take 5% of every tip. A flat 2.5% processing charge also comes out of your payout. On a ₹100 tip you get ₹92.50. Fans pay exactly the amount they choose, with nothing added.",
+    a: "We take 5% of every tip. A flat 2.75% processing charge also comes out of your payout. On a ₹100 tip you get ₹92.25. Fans pay exactly the amount they choose, with nothing added.",
   },
   {
     q: "Is there an extra charge on large tips?",

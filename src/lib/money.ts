@@ -7,9 +7,9 @@
 // choice, 2026-10-30), each worked in basis points and rounded half up to the
 // paise. The creator keeps what is left. `RULE_VERSION` is saved with every fee
 // line so a later change of rate never rewrites an old tip.
-export const RULE_VERSION = "2026-10-30.1";
+export const RULE_VERSION = "2026-10-30.2";
 export const PLATFORM_BPS = 500; // 5%
-export const PROCESSING_BPS = 250; // 2.5%, shown as Freetip's processing charge
+export const PROCESSING_BPS = 275; // 2.75%, shown as Freetip's processing charge
 
 const cut = (paise: number, bps: number) => Math.floor((paise * bps + 5000) / 10000);
 
