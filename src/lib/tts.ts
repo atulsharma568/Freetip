@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb } from "@/lib/db";
-import { recordUnknownWords } from "@/lib/tts-words";
+import { loadLearnedWords, recordUnknownWords } from "@/lib/tts-words";
 import { azureConfigured, azureSynthesize } from "@/lib/tts-azure";
 import { pollyConfigured, pollySynthesize } from "@/lib/tts-polly";
 import {
@@ -111,6 +111,7 @@ export async function synthesizeDetailed(
   options: { testRun?: boolean } = {},
 ): Promise<SynthesisResult> {
   if (!ttsAvailable()) return { ok: false, reason: "off" };
+  await loadLearnedWords();
   const { text, language } = prepareSpeech(message);
   const db = getDb();
   if (!options.testRun) await recordUnknownWords(message);

@@ -106,3 +106,18 @@ export async function reviewTtsWord(word: string): Promise<void> {
   await db`update tts_unknown_words set reviewed = true where word = ${word}`;
   revalidatePath("/admin/tts-words");
 }
+
+// Removes a word the voice learned by itself, and stops it being learned again.
+export async function removeLearnedWord(word: string): Promise<void> {
+  await requireOwner();
+
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  await db`delete from tts_learned_words where word = ${word}`;
+  await db`
+    insert into tts_unknown_words (word, reviewed, outcome) values (${word}, true, 'removed')
+    on conflict (word) do update set reviewed = true, outcome = 'removed'
+  `;
+  revalidatePath("/admin/tts-words");
+}

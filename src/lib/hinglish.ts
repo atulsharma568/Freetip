@@ -140,12 +140,33 @@ interface Hit {
   weak: boolean;
 }
 
+// Words learned automatically from tip messages (see tts-learn.ts), filled in by the
+// server from the database. Weak: they convert only inside a Hindi clause, and
+// never override a hand-written word.
+const LEARNED = new Map<string, string>();
+
+export function setLearnedWords(entries: Iterable<readonly [string, string]>): void {
+  LEARNED.clear();
+  for (const [word, dev] of entries) {
+    if (!/^[a-z]{3,20}$/.test(word) || !/^[ऀ-ॿ]{1,30}$/.test(dev)) continue;
+    if (LOOKUP.strong.has(word) || LOOKUP.weak.has(word) || CONTEXT.has(word) || SHORT_WORDS.has(word) || ENGLISH_GRAMMAR.has(word)) continue;
+    LEARNED.set(word, dev);
+  }
+}
+
+// Whether the converter already has an opinion about this lower-case Roman word.
+export function knowsWord(low: string): boolean {
+  return SHORT_WORDS.has(low) || CONTEXT.has(low) || ENGLISH_GRAMMAR.has(low) || resolve(low) !== undefined;
+}
+
 // The Devanagari for a Roman word that is Hindi everywhere or (weak) inside Hindi.
 function resolve(low: string): Hit | undefined {
   const strong = LOOKUP.strong.get(low);
   if (strong) return { dev: strong, weak: false };
   const weak = LOOKUP.weak.get(low);
   if (weak) return { dev: weak, weak: true };
+  const learned = LEARNED.get(low);
+  if (learned) return { dev: learned, weak: true };
   if (CONTEXT.has(low) || ENGLISH_GRAMMAR.has(low)) return undefined;
   for (const c of cutBack(low)) {
     // A stretched spelling must land on a word that is Hindi in its own right, not a
@@ -369,7 +390,7 @@ export function unknownHinglishWords(text: string): string[] {
     if (ATTACHED.has(before) || ATTACHED.has(after) || /\d/.test(before + after)) continue;
     const low = word.toLowerCase();
     if (low.length < 3 || low.length > 20) continue;
-    if (SHORT_WORDS.has(low) || CONTEXT.has(low) || ENGLISH_GRAMMAR.has(low) || resolve(low)) continue;
+    if (knowsWord(low)) continue;
     found.add(low);
     if (found.size >= 20) break;
   }

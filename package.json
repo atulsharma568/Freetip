@@ -11,6 +11,7 @@
     "export:waitlist": "node scripts/export-waitlist.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@aws-sdk/client-polly": "^3.1156.0",
     "@gsap/react": "^2.1.2",
     "@phosphor-icons/react": "^2.1.10",
@@ -22,7 +23,8 @@
     "postgres": "^3.4.9",
     "qrcode.react": "^4.2.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

@@ -211,3 +211,37 @@ test.describe("Unknown word log", () => {
     expect(unknownHinglishWords("bhai kya zorbaxy @qwertyu lo-fiq hai")).not.toContain("qwertyu");
   });
 });
+
+test.describe("Automatic learning rules", () => {
+  const verdict = (o: Partial<import("../src/lib/tts-learn").Verdict>) => ({
+    word: "pasandida", is_hindi: true, devanagari: "पसंदीदा", also_english: false, offensive: false, confident: true, ...o,
+  });
+
+  test("learns only what the model is sure of and our own rules accept", async () => {
+    const { decide } = await import("../src/lib/tts-learn");
+    const asked = new Set(["pasandida", "stream", "chodu", "main"]);
+    expect(decide(asked, verdict({}))).toEqual({ outcome: "learned", devanagari: "पसंदीदा" });
+    expect(decide(asked, verdict({ word: "stream", is_hindi: false, devanagari: "" }))).toEqual({ outcome: "english" });
+    expect(decide(asked, verdict({ confident: false }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ also_english: true }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ offensive: true }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ word: "chodu", devanagari: "चोदू" }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ devanagari: "pasandida" }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ devanagari: "पसंदीदा hai" }))?.outcome).toBe("rejected");
+    expect(decide(asked, verdict({ word: "unasked" }))).toBeNull();
+  });
+
+  test("learned words convert inside Hindi clauses, never override, and stop being logged", async () => {
+    const { setLearnedWords, transliterateHinglish: tr, unknownHinglishWords } = await import("../src/lib/hinglish");
+    try {
+      setLearnedWords([["pasandida", "पसंदीदा"], ["bhai", "WRONG"], ["main", "WRONG"]]);
+      expect(tr("bhai ye pasandida hai")).toBe("भाई ये पसंदीदा है");
+      expect(tr("my pasandida game")).toBe("my pasandida game");
+      expect(tr("bhai kya hai")).toBe("भाई क्या है");
+      expect(unknownHinglishWords("bhai ye pasandida hai")).not.toContain("pasandida");
+    } finally {
+      setLearnedWords([]);
+    }
+    expect(unknownHinglishWords("bhai ye pasandida hai")).toContain("pasandida");
+  });
+});
