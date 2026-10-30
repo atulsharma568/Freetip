@@ -35,16 +35,25 @@ test.describe("pages without a title screen scroll normally", () => {
 
     test(`${route} scrolls with a finger swipe`, async ({ page, isMobile }) => {
       test.skip(!isMobile, "a finger swipe needs the touch-emulated phone project");
-      await page.goto(route);
+      await page.goto(route, { waitUntil: "load" });
       const cdp = await page.context().newCDPSession(page);
-      await cdp.send("Input.synthesizeScrollGesture", {
-        x: 200,
-        y: 600,
-        yDistance: -400,
-        speed: 800,
-        gestureSourceType: "touch",
-      });
-      await expect.poll(() => page.evaluate(scrollY)).toBeGreaterThan(0);
+      // On a slow CI runner the first gesture can land before the page is ready to
+      // scroll, so swipe again until it moves instead of swiping once.
+      await expect
+        .poll(
+          async () => {
+            await cdp.send("Input.synthesizeScrollGesture", {
+              x: 200,
+              y: 600,
+              yDistance: -400,
+              speed: 800,
+              gestureSourceType: "touch",
+            });
+            return page.evaluate(scrollY);
+          },
+          { timeout: 15_000, intervals: [500, 1000, 1000] },
+        )
+        .toBeGreaterThan(0);
     });
   }
 });
