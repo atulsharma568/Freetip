@@ -1,5 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { after } from "next/server";
 import { getDb } from "@/lib/db";
+import type { LedgerDb } from "@/lib/accrual";
+import { afterCapture } from "@/lib/capture-follow-up";
 
 // Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
 // Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
@@ -29,6 +32,8 @@ interface RazorpayPaymentEntity {
   currency: string;
   status: string;
   method?: string;
+  fee?: number | null;  // paise, Razorpay's charge incl. GST; may be null at capture
+  tax?: number | null;  // paise, the GST part of fee
   error_code?: string;
   error_description?: string;
 }
@@ -112,6 +117,16 @@ export async function POST(request: Request): Promise<Response> {
           }
         }
       });
+
+      // The capture above is committed. What follows (saving Razorpay's captured
+      // amount, posting the creator's share, logging the event) must never delay
+      // the answer or undo the capture, so it runs after the response is sent;
+      // afterCapture catches its own errors, and it also runs for a repeated
+      // delivery so a posting that failed earlier is retried. The daily sweep
+      // covers anything that still did not run.
+      const eventId = request.headers.get("x-razorpay-event-id");
+      const ledgerDb = db as unknown as LedgerDb;
+      after(() => afterCapture(ledgerDb, payment, eventId));
       break;
     }
 

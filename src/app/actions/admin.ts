@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/lib/owner-auth";
 import { getDb } from "@/lib/db";
+import type { LedgerDb, SweepResult } from "@/lib/accrual";
+import { syncBooks } from "@/lib/books-sync";
 import { del } from "@vercel/blob";
 
 type CreatorStatus = "pending" | "active" | "suspended";
@@ -120,4 +122,65 @@ export async function removeLearnedWord(word: string): Promise<void> {
     on conflict (word) do update set reviewed = true, outcome = 'removed'
   `;
   revalidatePath("/admin/tts-words");
+}
+
+// What the page shows after the owner presses Sync. Plain data only (it crosses
+// from the server to the browser), so dates are ISO strings.
+export interface SyncProblem {
+  paymentId: string;
+  orderId: string | null;
+  amountPaise: number;
+  method: string | null;
+  createdAt: string;
+  kind: "unknown_order" | "not_marked_captured";
+}
+
+export type SyncReport = {
+  check:
+    | { ran: true; checked: number; truncated: boolean; problems: SyncProblem[]; backfillable: number }
+    | { ran: false; reason: string; detail?: string };
+  backfilled: number;
+  sweep: SweepResult | null;
+};
+
+export type SyncState =
+  | { status: "idle" }
+  | { status: "done"; report: SyncReport }
+  | { status: "error"; message: string };
+
+// The same three steps the daily job runs, on demand: ask Razorpay what it captured
+// recently, fill in what the site failed to save for payments it did capture, then
+// post every captured live tip that is not on the books yet. Safe to press as often
+// as wanted: a tip is posted once, keyed by its Razorpay payment id. It is a
+// button (a POST), not a link, because it calls Razorpay and changes the books.
+export async function syncBooksNow(): Promise<SyncState> {
+  await requireOwner();
+
+  const db = getDb();
+  if (!db) return { status: "error", message: "The database is not set up." };
+
+  try {
+    const r = await syncBooks(db as unknown as LedgerDb, {
+      keyId: process.env.RAZORPAY_KEY_ID,
+      keySecret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    revalidatePath("/admin");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/finance/creators");
+    revalidatePath("/admin/finance/payments");
+    revalidatePath("/admin/reconciliation");
+    const check: SyncReport["check"] = r.check.ok
+      ? {
+          ran: true,
+          checked: r.check.checked,
+          truncated: r.check.truncated,
+          backfillable: r.check.backfill.length,
+          problems: r.check.problems.map((p) => ({ ...p, createdAt: p.createdAt.toISOString() })),
+        }
+      : { ran: false, reason: r.check.reason, detail: r.check.detail };
+    return { status: "done", report: { check, backfilled: r.backfilled, sweep: r.sweep } };
+  } catch (err) {
+    console.error("Admin: syncing the books failed", err);
+    return { status: "error", message: "Could not sync. Has migration 0023 been run?" };
+  }
 }

@@ -1,10 +1,17 @@
 import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
-import { getCreatorEarnings } from "@/lib/admin/creator-queries";
-import { formatINR } from "@/lib/admin/finance-queries";
+import { getCreatorEarnings, type CreatorEarningsRow } from "@/lib/admin/creator-queries";
+import { formatINR, getTestModeTipCount } from "@/lib/admin/finance-queries";
 import { requireOwner } from "@/lib/owner-auth";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
+import { adminDb } from "@/lib/admin/server-db";
+import {
+  CouldNotRead,
+  DefinitionNote,
+  FinanceNotSetUp,
+  TestModeLine,
+} from "../../_components/Notices";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +25,11 @@ function fmt(date: Date | null): string {
   });
 }
 
+// A negative balance is shown in red with its minus sign; it is never rounded up.
+function Signed({ minor }: { minor: number }) {
+  return <span className={minor < 0 ? "text-red-400" : undefined}>{formatINR(minor)}</span>;
+}
+
 export default async function CreatorEarningsPage({
   searchParams,
 }: {
@@ -27,7 +39,10 @@ export default async function CreatorEarningsPage({
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);
-  const rows = await getCreatorEarnings(range);
+
+  const db = adminDb();
+  const result = db ? await getCreatorEarnings(db, range) : null;
+  const testModeTips = db ? await getTestModeTipCount(db, range) : null;
 
   return (
     <div className="space-y-8">
@@ -38,113 +53,100 @@ export default async function CreatorEarningsPage({
         <h1 className="display text-[clamp(2rem,5vw,3.5rem)] leading-[0.95]">
           Per-creator breakdown
         </h1>
+        <DefinitionNote>
+          Live Razorpay payments only. Share and fee are what the ledger posted in the period; owed
+          now is the creator&apos;s whole balance on the ledger and can be negative.
+        </DefinitionNote>
       </div>
 
       <Suspense>
         <DateRangeNav current={preset} />
       </Suspense>
 
-      {rows.length === 0 ? (
+      {testModeTips?.ok && <TestModeLine count={testModeTips.data} />}
+
+      {!result ? (
+        <FinanceNotSetUp />
+      ) : !result.ok ? (
+        <CouldNotRead detail={result.error} />
+      ) : result.data.length === 0 ? (
         <AdminEmptyState
-          title="No creator earnings in this period"
-          description="Creators with at least one captured tip will appear here once payment data exists. Amounts show gross tips, fees, net payable, settled and pending — all from real ledger records."
+          title="No creator earnings yet"
+          description="Creators with a live captured tip, or anything owed to them on the ledger, appear here. Test-mode tips are not counted."
         />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-control">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-control bg-surface/60">
-                <th className="px-4 py-3 text-left font-medium text-muted">Creator</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Tips</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Gross</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Refunded</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Provider fees</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Platform fee</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Net payable</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Settled</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Pending</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Last tip</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-control">
-              {rows.map((r) => (
-                <tr key={r.creatorId} className="hover:bg-surface/40 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-text">
-                      {r.name ?? "—"}
-                    </p>
-                    {r.handle && (
-                      <p className="text-xs text-muted">@{r.handle}</p>
-                    )}
-                    {r.ytChannelName && (
-                      <p className="text-xs text-muted/60">{r.ytChannelName}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.tipCount}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-accent">
-                    {formatINR(r.grossMinor)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.refundedMinor > 0 ? formatINR(r.refundedMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.providerFeesMinor > 0 ? formatINR(r.providerFeesMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.platformFeeMinor > 0 ? formatINR(r.platformFeeMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
-                    {formatINR(r.creatorNetMinor)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.settledMinor > 0 ? formatINR(r.settledMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.pendingMinor > 0 ? formatINR(r.pendingMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted">
-                    {fmt(r.lastTipAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-control bg-surface/60">
-                <td className="px-4 py-3 text-sm font-medium text-muted">
-                  {rows.length} creator{rows.length !== 1 ? "s" : ""}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {rows.reduce((s, r) => s + r.tipCount, 0)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-accent">
-                  {formatINR(rows.reduce((s, r) => s + r.grossMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.refundedMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.providerFeesMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.platformFeeMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.creatorNetMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.settledMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.pendingMinor, 0))}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <CreatorTable rows={result.data} />
       )}
+    </div>
+  );
+}
+
+function CreatorTable({ rows }: { rows: CreatorEarningsRow[] }) {
+  const sum = (pick: (r: CreatorEarningsRow) => number) => rows.reduce((s, r) => s + pick(r), 0);
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-control">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-control bg-surface/60">
+            <th className="px-4 py-3 text-left font-medium text-muted">Creator</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Tips</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Gross</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Creator share</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Our fee</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Owed now</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Last tip</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-control">
+          {rows.map((r) => (
+            <tr key={r.creatorId} className="hover:bg-surface/40 transition-colors">
+              <td className="px-4 py-3">
+                <p className="font-medium text-text">{r.name ?? "—"}</p>
+                {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}
+                {r.ytChannelName && <p className="text-xs text-muted/60">{r.ytChannelName}</p>}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">{r.tipCount}</td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-accent">
+                {formatINR(r.grossMinor)}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                <Signed minor={r.creatorShareMinor} />
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                <Signed minor={r.ourFeeMinor} />
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
+                <Signed minor={r.owedNowMinor} />
+              </td>
+              <td className="px-4 py-3 text-right text-muted">{fmt(r.lastTipAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-control bg-surface/60">
+            <td className="px-4 py-3 text-sm font-medium text-muted">
+              {rows.length} creator{rows.length !== 1 ? "s" : ""}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              {sum((r) => r.tipCount)}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-accent">
+              {formatINR(sum((r) => r.grossMinor))}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              <Signed minor={sum((r) => r.creatorShareMinor)} />
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              <Signed minor={sum((r) => r.ourFeeMinor)} />
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
+              <Signed minor={sum((r) => r.owedNowMinor)} />
+            </td>
+            <td />
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

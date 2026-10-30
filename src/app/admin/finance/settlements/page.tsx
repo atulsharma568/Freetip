@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
-import { getSettlements } from "@/lib/admin/payment-queries";
+import { getSettlements, type SettlementRow } from "@/lib/admin/payment-queries";
 import { formatINR } from "@/lib/admin/finance-queries";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
+import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
+import { CouldNotRead, DefinitionNote, FinanceNotSetUp } from "../../_components/Notices";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,8 @@ export default async function SettlementsPage({
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);
-  const rows = await getSettlements(range);
+  const db = adminDb();
+  const result = db ? await getSettlements(db, range) : null;
 
   return (
     <div className="space-y-8">
@@ -44,92 +47,107 @@ export default async function SettlementsPage({
           arriving in Freetip&apos;s bank account; a payout is Freetip transferring the
           creator&apos;s share to them.
         </p>
+        <DefinitionNote>
+          Nothing is recorded here yet: the site does not read Razorpay&apos;s settlement reports and
+          does not pay creators, so an empty list does not mean nothing was settled. The gross
+          amount posted but not yet settled, according to the books, is on the Finance page.
+        </DefinitionNote>
       </div>
 
       <Suspense>
         <DateRangeNav current={preset} />
       </Suspense>
 
-      {rows.length === 0 ? (
+      {!result ? (
+        <FinanceNotSetUp />
+      ) : !result.ok ? (
+        <CouldNotRead detail={result.error} />
+      ) : result.data.length === 0 ? (
         <AdminEmptyState
-          title="No settlement batches in this period"
-          description="Razorpay settlement batches will appear here once the payment integration is live and the first settlement cycle completes. Each batch shows gross received, provider fees and taxes, net amount and the number of included payments."
+          title="No settlements recorded"
+          description="The site does not record Razorpay settlements yet, so this list is empty whatever Razorpay has paid out. Matching settlement reports to the ledger is a later step."
         />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-control">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-control bg-surface/60">
-                <th className="px-4 py-3 text-left font-medium text-muted">Settlement ID</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Payments</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Gross</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Provider fees</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Taxes</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Net received</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Settled</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Expected</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-control">
-              {rows.map((r) => (
-                <tr key={r.settlementId} className="hover:bg-surface/40 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-muted">
-                    {r.providerRef}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.paymentCount > 0 ? r.paymentCount : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-accent">
-                    {formatINR(r.grossMinor)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.feesMinor > 0 ? formatINR(r.feesMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                    {r.taxesMinor > 0 ? formatINR(r.taxesMinor) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
-                    {formatINR(r.netMinor)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted">
-                    {fmtDate(r.settledAt)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted">
-                    {fmtDate(r.expectedAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-control bg-surface/60">
-                <td className="px-4 py-3 text-sm font-medium text-muted">
-                  {rows.length} batch{rows.length !== 1 ? "es" : ""}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {rows.reduce((s, r) => s + r.paymentCount, 0)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-accent">
-                  {formatINR(rows.reduce((s, r) => s + r.grossMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.feesMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.taxesMinor, 0))}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
-                  {formatINR(rows.reduce((s, r) => s + r.netMinor, 0))}
-                </td>
-                <td colSpan={3} />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <SettlementTable rows={result.data} />
       )}
+    </div>
+  );
+}
+
+function SettlementTable({ rows }: { rows: SettlementRow[] }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-control">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-control bg-surface/60">
+            <th className="px-4 py-3 text-left font-medium text-muted">Settlement ID</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Payments</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Gross</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Provider fees</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Taxes</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Net received</th>
+            <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Settled</th>
+            <th className="px-4 py-3 text-right font-medium text-muted">Expected</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-control">
+          {rows.map((r) => (
+            <tr key={r.settlementId} className="hover:bg-surface/40 transition-colors">
+              <td className="px-4 py-3 font-mono text-xs text-muted">
+                {r.providerRef}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                {r.paymentCount > 0 ? r.paymentCount : "—"}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-accent">
+                {formatINR(r.grossMinor)}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                {r.feesMinor > 0 ? formatINR(r.feesMinor) : "—"}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                {r.taxesMinor > 0 ? formatINR(r.taxesMinor) : "—"}
+              </td>
+              <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
+                {formatINR(r.netMinor)}
+              </td>
+              <td className="px-4 py-3">
+                <StatusBadge status={r.status} />
+              </td>
+              <td className="px-4 py-3 text-right text-muted">
+                {fmtDate(r.settledAt)}
+              </td>
+              <td className="px-4 py-3 text-right text-muted">
+                {fmtDate(r.expectedAt)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-control bg-surface/60">
+            <td className="px-4 py-3 text-sm font-medium text-muted">
+              {rows.length} batch{rows.length !== 1 ? "es" : ""}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              {rows.reduce((s, r) => s + r.paymentCount, 0)}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-accent">
+              {formatINR(rows.reduce((s, r) => s + r.grossMinor, 0))}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              {formatINR(rows.reduce((s, r) => s + r.feesMinor, 0))}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-medium text-text">
+              {formatINR(rows.reduce((s, r) => s + r.taxesMinor, 0))}
+            </td>
+            <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
+              {formatINR(rows.reduce((s, r) => s + r.netMinor, 0))}
+            </td>
+            <td colSpan={3} />
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

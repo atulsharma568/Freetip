@@ -1,31 +1,41 @@
-import "server-only";
-import { getDb } from "@/lib/db";
+import type { LedgerDb } from "../accrual";
 import type { DateRange } from "./date-range";
+import { load, toWhole, type Loaded } from "./result";
 
-export type CreatorEarningsRow = {
+// Per creator, live money only (see finance-queries.ts for the definitions).
+//
+//   tips, gross      live tips captured in the period
+//   creatorShare     creator_payable credit minus debit posted in the period
+//   ourFee           platform_fee_revenue credit minus debit posted in the period
+//                    (the ledger transaction names the creator)
+//   owedNow          creator_payable credit minus debit, all time. NOT floored at
+//                    zero: a creator who owes us money shows a negative figure.
+//   lastTipAt        the latest live captured tip, all time
+//
+// A creator is listed when they have a live captured tip or anything on their
+// creator_payable account.
+
+export interface CreatorEarningsRow {
   creatorId: number;
   name: string | null;
   handle: string | null;
   ytChannelName: string | null;
   tipCount: number;
   grossMinor: number;
-  refundedMinor: number;
-  providerFeesMinor: number;
-  platformFeeMinor: number;
-  creatorNetMinor: number;
-  settledMinor: number;
-  pendingMinor: number;
+  creatorShareMinor: number;
+  ourFeeMinor: number;
+  owedNowMinor: number;
   lastTipAt: Date | null;
-  lastPayoutAt: Date | null;
-};
+}
 
-export async function getCreatorEarnings(
+export function getCreatorEarnings(
+  db: LedgerDb,
   range: DateRange,
-): Promise<CreatorEarningsRow[]> {
-  const db = getDb();
-  if (!db) return [];
+): Promise<Loaded<CreatorEarningsRow[]>> {
+  return load("creator earnings", async () => {
+    const from = range.from.toISOString();
+    const to = range.to.toISOString();
 
-  try {
     const rows = await db<{
       creator_id: string;
       name: string | null;
@@ -33,112 +43,76 @@ export async function getCreatorEarnings(
       yt_channel_name: string | null;
       tip_count: string;
       gross_minor: string;
-      refunded_minor: string;
-      provider_fees_minor: string;
-      platform_fee_minor: string;
-      settled_minor: string;
+      share_period: string;
+      fee_period: string;
+      owed_now: string;
       last_tip_at: Date | null;
-      last_payout_at: Date | null;
     }[]>`
-      select
-        u.id                                                          as creator_id,
-        u.name,
-        u.handle,
-        u.yt_channel_name,
-        coalesce(t.tip_count, 0)::text                               as tip_count,
-        coalesce(t.gross_minor, 0)::text                             as gross_minor,
-        coalesce(r.refunded_minor, 0)::text                          as refunded_minor,
-        coalesce(f.provider_fees_minor, 0)::text                     as provider_fees_minor,
-        coalesce(f.platform_fee_minor, 0)::text                      as platform_fee_minor,
-        coalesce(p.settled_minor, 0)::text                           as settled_minor,
-        t.last_tip_at,
-        p.last_payout_at
-      from users u
-      -- Tips captured in the period
-      left join (
-        select
-          creator_id,
-          count(*)                   as tip_count,
-          sum(gross_amount_minor)    as gross_minor,
-          max(captured_at)           as last_tip_at
-        from tip_orders
-        where status = 'captured'
-          and captured_at >= ${range.from}
-          and captured_at < ${range.to}
-        group by creator_id
-      ) t on t.creator_id = u.id
-      -- Refunds in the period
-      left join (
-        select
-          o.creator_id,
-          sum(rf.processed_amount_minor) as refunded_minor
-        from refunds rf
-        join tip_orders o on o.id = rf.tip_order_id
-        where rf.status = 'processed'
-          and rf.processed_at >= ${range.from}
-          and rf.processed_at < ${range.to}
-        group by o.creator_id
-      ) r on r.creator_id = u.id
-      -- Fee lines in the period
-      left join (
-        select
-          creator_id,
-          sum(case when fee_type in ('gateway_fee','gateway_tax','upi_mdr')
-                   then amount_minor else 0 end) as provider_fees_minor,
-          sum(case when fee_type = 'platform_fee'
-                   then amount_minor else 0 end) as platform_fee_minor
-        from fee_lines
-        where effective_at >= ${range.from}
-          and effective_at < ${range.to}
-        group by creator_id
-      ) f on f.creator_id = u.id
-      -- Creator payouts completed in the period
-      left join (
-        select
-          creator_id,
-          sum(amount_minor) as settled_minor,
-          max(completed_at) as last_payout_at
-        from creator_payouts
-        where status = 'completed'
-          and completed_at >= ${range.from}
-          and completed_at < ${range.to}
-        group by creator_id
-      ) p on p.creator_id = u.id
-      -- Only include creators who have at least one tip ever (not just in range)
-      where exists (
-        select 1 from tip_orders o2
-        where o2.creator_id = u.id and o2.status = 'captured'
-      )
-      order by coalesce(t.gross_minor, 0) desc, u.name
+      select u.id::text                              as creator_id,
+             u.name,
+             u.handle,
+             u.yt_channel_name,
+             coalesce(t.tip_count, 0)::text          as tip_count,
+             coalesce(t.gross_minor, 0)::text        as gross_minor,
+             coalesce(sh.share_period, 0)::text      as share_period,
+             coalesce(fe.fee_period, 0)::text        as fee_period,
+             coalesce(sh.owed_now, 0)::text          as owed_now,
+             lt.last_tip_at
+        from users u
+        left join (
+          select o.creator_id,
+                 count(*)                 as tip_count,
+                 sum(o.gross_amount_minor) as gross_minor
+            from tip_orders o
+           where o.status = 'captured'
+             and o.captured_at >= ${from}::timestamptz
+             and o.captured_at <  ${to}::timestamptz
+             and exists (select 1 from payment_attempts pa where pa.tip_order_id = o.id and pa.livemode is true)
+           group by o.creator_id
+        ) t on t.creator_id = u.id
+        left join (
+          select e.creator_id,
+                 sum(e.credit_minor - e.debit_minor) as owed_now,
+                 sum(case when x.effective_at >= ${from}::timestamptz
+                           and x.effective_at <  ${to}::timestamptz
+                          then e.credit_minor - e.debit_minor else 0 end) as share_period
+            from ledger_entries e
+            join ledger_accounts a      on a.id = e.account_id and a.code = 'creator_payable'
+            join ledger_transactions x  on x.id = e.ledger_transaction_id
+           group by e.creator_id
+        ) sh on sh.creator_id = u.id
+        left join (
+          select x.creator_id,
+                 sum(e.credit_minor - e.debit_minor) as fee_period
+            from ledger_entries e
+            join ledger_accounts a      on a.id = e.account_id and a.code = 'platform_fee_revenue'
+            join ledger_transactions x  on x.id = e.ledger_transaction_id
+           where x.effective_at >= ${from}::timestamptz
+             and x.effective_at <  ${to}::timestamptz
+           group by x.creator_id
+        ) fe on fe.creator_id = u.id
+        left join (
+          select o.creator_id, max(o.captured_at) as last_tip_at
+            from tip_orders o
+           where o.status = 'captured'
+             and exists (select 1 from payment_attempts pa where pa.tip_order_id = o.id and pa.livemode is true)
+           group by o.creator_id
+        ) lt on lt.creator_id = u.id
+       where lt.creator_id is not null or sh.creator_id is not null
+       order by coalesce(t.gross_minor, 0) desc, u.name, u.id
     `;
 
-    return rows.map((r) => {
-      const gross = Number(r.gross_minor);
-      const refunded = Number(r.refunded_minor);
-      const providerFees = Number(r.provider_fees_minor);
-      const platformFee = Number(r.platform_fee_minor);
-      const settled = Number(r.settled_minor);
-      const net = Math.max(0, gross - refunded - providerFees - platformFee);
-      const pending = Math.max(0, gross - refunded - settled);
-
-      return {
-        creatorId: Number(r.creator_id),
-        name: r.name,
-        handle: r.handle,
-        ytChannelName: r.yt_channel_name,
-        tipCount: Number(r.tip_count),
-        grossMinor: gross,
-        refundedMinor: refunded,
-        providerFeesMinor: providerFees,
-        platformFeeMinor: platformFee,
-        creatorNetMinor: net,
-        settledMinor: settled,
-        pendingMinor: pending,
-        lastTipAt: r.last_tip_at,
-        lastPayoutAt: r.last_payout_at,
-      };
-    });
-  } catch {
-    return [];
-  }
+    return rows.map((r) => ({
+      creatorId: toWhole(r.creator_id),
+      name: r.name,
+      handle: r.handle,
+      ytChannelName: r.yt_channel_name,
+      tipCount: toWhole(r.tip_count),
+      grossMinor: toWhole(r.gross_minor),
+      creatorShareMinor: toWhole(r.share_period),
+      ourFeeMinor: toWhole(r.fee_period),
+      owedNowMinor: toWhole(r.owed_now),
+      lastTipAt: r.last_tip_at,
+    }));
+  });
 }

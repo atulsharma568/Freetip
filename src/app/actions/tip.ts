@@ -212,11 +212,16 @@ export async function createTipOrder(
   // is told to try again and the payment popup never opens: nobody pays for a tip
   // we can't track. The unused Razorpay order is harmless, and the one transaction
   // means we never keep an order without its attempt.
-  try {
-    const storedName = anonymous ? null : (fanName?.trim() || null);
-    const storedMessage = fanMessage?.trim() || null;
+  const storedName = anonymous ? null : (fanName?.trim() || null);
+  const storedMessage = fanMessage?.trim() || null;
+  // Which Razorpay mode this payment is in (migration 0023), saved in the same
+  // transaction as the attempt. Only live money is ever posted to a creator's books;
+  // a missing value counts as test money. Before the migration has run the column
+  // does not exist, so that case is retried without it (undefined_column, 42703).
+  const live = keyId.startsWith("rzp_live_");
 
-    await db.begin(async (tx) => {
+  const persist = (withMode: boolean) =>
+    db.begin(async (tx) => {
       // sound_id (migration 0013) and tts_requested (migration 0014) are only
       // written when the fan chose them: every other tip works before those
       // migrations are run.
@@ -251,13 +256,31 @@ export async function createTipOrder(
                 returning id
               `;
 
-      await tx`
-        insert into payment_attempts
-          (tip_order_id, provider, provider_order_ref, amount_minor, currency, idempotency_key)
-        values
-          (${orders[0].id}, 'razorpay', ${razorpayOrderId}, ${amountPaise}, 'INR', ${publicReference})
-      `;
+      if (withMode) {
+        await tx`
+          insert into payment_attempts
+            (tip_order_id, provider, provider_order_ref, amount_minor, currency, idempotency_key, livemode)
+          values
+            (${orders[0].id}, 'razorpay', ${razorpayOrderId}, ${amountPaise}, 'INR', ${publicReference}, ${live})
+        `;
+      } else {
+        await tx`
+          insert into payment_attempts
+            (tip_order_id, provider, provider_order_ref, amount_minor, currency, idempotency_key)
+          values
+            (${orders[0].id}, 'razorpay', ${razorpayOrderId}, ${amountPaise}, 'INR', ${publicReference})
+        `;
+      }
     });
+
+  try {
+    try {
+      await persist(true);
+    } catch (err) {
+      if ((err as { code?: string }).code !== "42703") throw err;
+      console.error("Tip: payment_attempts.livemode is missing (migration 0023 not run yet)");
+      await persist(false);
+    }
   } catch (err) {
     console.error("DB persist error for tip order", razorpayOrderId, err);
     return { status: "error", message: "Service unavailable — try again shortly" };

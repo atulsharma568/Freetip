@@ -34,7 +34,6 @@ export function rangeFromPreset(preset: RangePreset): DateRange {
   const ist = nowIST();
 
   const todayStart = startOfDayIST(ist);
-  const tomorrowStart = addDays(todayStart, 1);
   const yesterdayStart = addDays(todayStart, -1);
 
   // ISO week: Monday = day 1. getUTCDay() returns 0 (Sun)..6 (Sat).
@@ -65,6 +64,12 @@ export function rangeFromPreset(preset: RangePreset): DateRange {
     case "last_month":
       return { from: lastMonthStart, to: lastMonthEnd, label: "Last month" };
   }
+}
+
+// Everything up to the end of today, for figures that are not about a period.
+export function rangeAllTime(): DateRange {
+  const tomorrowStart = addDays(startOfDayIST(nowIST()), 1);
+  return { from: new Date(0), to: tomorrowStart, label: "All time" };
 }
 
 export function parsePreset(value: string | undefined): RangePreset {
