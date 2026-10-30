@@ -1,3 +1,5 @@
+-- UNUSED (2026-10-30): the dashboard picker was removed; creators place the alert
+-- by resizing and moving the Browser source in OBS. The column is harmless.
 -- Where the alert card sits on the OBS screen. Safe to re-run.
 --
 -- users.overlay_position — one of the nine spots on a 3 x 3 grid, vertical first:
