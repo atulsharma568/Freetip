@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
+import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
 
 // Handles that map to existing app routes or would cause confusion.
@@ -144,6 +145,13 @@ export async function saveSettings(
   const approveBeforePlay = form.get("approve_before_play") === "on";
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
   const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
+  const rawBanned = String(form.get("banned_words") ?? "");
+
+  if (rawBanned.length > MAX_BANNED_LIST_CHARS) {
+    return { status: "error", message: "Banned words list is too long" };
+  }
+  // Stored one per line, cleaned: what the creator sees after saving is what is used.
+  const bannedWords = parseBannedWords(rawBanned).join("\n");
 
   if (!ALERT_MODES.includes(alertMode)) {
     return { status: "error", message: "Choose how alerts should play" };
@@ -179,6 +187,15 @@ export async function saveSettings(
     `;
   } catch {
     return { status: "error", message: "Could not save settings — try again shortly" };
+  }
+
+  // Apart from the rest so the settings above still save if migration 0016 has
+  // not been run yet.
+  try {
+    await db`update users set banned_words = ${bannedWords} where google_id = ${googleId}`;
+  } catch (err) {
+    console.error("Settings: could not save the banned words.", err);
+    return { status: "error", message: "Settings saved, but the banned words could not be saved — try again shortly" };
   }
 
   return { status: "ok" };

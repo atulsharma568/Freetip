@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
 import type { AlertMode } from "@/lib/alerts";
+import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
 
 const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
   { value: "instant", label: "Play everything at once", hint: "Name, amount and message show as soon as the tip lands." },
@@ -26,12 +27,13 @@ interface Props {
   approveBeforePlay: boolean;
   alertMode: AlertMode;
   bio: string;
+  bannedWords: string;
   // The site-wide voice switch (owner). When off, the voice controls are replaced
   // by a note, and the saved values are kept as they are.
   ttsAvailable: boolean;
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, ttsAvailable }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, ttsAvailable }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -40,6 +42,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
   const [ttsMin, setTtsMin] = useState(Math.round(ttsMinPaise / 100));
   const [chars, setChars] = useState(messageMaxChars);
   const [bio, setBio] = useState(initialBio);
+  const [banned, setBanned] = useState(initialBanned);
   const [isDirty, setIsDirty] = useState(false);
 
   return (
@@ -139,6 +142,31 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           <span>10</span>
           <span>500</span>
         </div>
+      </div>
+
+      {/* Banned words */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="banned-words" className="text-sm font-medium uppercase tracking-widest text-muted">
+            Banned words
+          </label>
+          <span className="text-xs text-muted">{banned.length}/{MAX_BANNED_LIST_CHARS}</span>
+        </div>
+        <textarea
+          id="banned-words"
+          name="banned_words"
+          rows={3}
+          maxLength={MAX_BANNED_LIST_CHARS}
+          value={banned}
+          onChange={(e) => setBanned(e.target.value)}
+          aria-describedby="banned-words-hint"
+          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+        />
+        <p id="banned-words-hint" className="text-xs text-muted">
+          One word or phrase per line, or separated by commas. A tip with one in the name or message is
+          turned away before payment, and never shown or read on stream. Common abuse in English and Hindi is
+          always blocked.
+        </p>
       </div>
 
       {/* Alert mode */}

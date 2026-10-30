@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
+import { parseBannedWords } from "@/lib/message-filter";
 import { shouldSpeak, speechText, type SpeechTip } from "@/lib/tts-rules";
 import { synthesize, ttsAvailable } from "@/lib/tts";
 
@@ -24,6 +25,7 @@ interface Row {
   tts_enabled: boolean;
   approve_before_play: boolean;
   tts_min_paise: number;
+  banned_words: string | null;
 }
 
 export async function GET(
@@ -47,7 +49,8 @@ export async function GET(
   try {
     rows = await db<Row[]>`
     select t.fan_message, t.gross_amount_minor, t.message_status, t.tts_requested,
-           u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise
+           u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise,
+           u.banned_words
     from users u
     join tip_orders t on t.creator_id = u.id
     where u.overlay_token_hash = ${hash}
@@ -68,6 +71,7 @@ export async function GET(
       ttsEnabled: row.tts_enabled,
       approveBeforePlay: row.approve_before_play,
       ttsMinPaise: row.tts_min_paise,
+      bannedWords: parseBannedWords(row.banned_words),
     },
     {
       message: row.fan_message,

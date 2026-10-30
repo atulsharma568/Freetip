@@ -68,6 +68,18 @@ export default async function DashboardPage() {
     user = rows[0] ?? null;
   }
 
+  // The creator's banned words (migration 0016), read apart so the dashboard still
+  // loads before that migration is run.
+  let bannedWords = "";
+  if (db && user) {
+    try {
+      const [found] = await db<{ banned_words: string }[]>`select banned_words from users where id = ${user.id}`;
+      bannedWords = found?.banned_words ?? "";
+    } catch (err) {
+      console.error("Dashboard: could not read the banned words.", err);
+    }
+  }
+
   const firstName = session.user.name?.split(" ")[0] ?? "Creator";
 
   // Messages waiting for approval (split and approve modes only).
@@ -241,6 +253,7 @@ export default async function DashboardPage() {
             approveBeforePlay={user.approve_before_play}
             alertMode={user.alert_mode}
             bio={user.bio ?? ""}
+            bannedWords={bannedWords}
             ttsAvailable={ttsAvailable()}
           />
         </div>

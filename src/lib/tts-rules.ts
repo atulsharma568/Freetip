@@ -9,10 +9,14 @@
 //   - the creator has approved it, or "approve before play" is off. A rejected
 //     message is never spoken.
 
+import { cleanForSpeech, findBlockedWord } from "@/lib/message-filter";
+
 export interface SpeechSettings {
   ttsEnabled: boolean;
   approveBeforePlay: boolean;
   ttsMinPaise: number;
+  // The creator's own banned words. A message with one is never read.
+  bannedWords?: readonly string[];
 }
 
 export interface SpeechTip {
@@ -30,21 +34,10 @@ export const SPEECH_MAX_CHARS = 300;
 
 export const DEFAULT_TTS_MIN_PAISE = 4900;
 
-const URL_PATTERN = /\b(?:https?:\/\/|www\.)\S+/gi;
-// Control characters (and the zero-width ones used to hide text).
-const INVISIBLE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200f\u2028-\u202e\u2060\ufeff]/g;
-
-// The text to speak, or null when nothing speakable is left.
+// The text to speak, or null when nothing speakable is left. Cleanup (links,
+// emoji, symbol noise, letter floods) is in message-filter.ts.
 export function speechText(message: string | null, maxChars: number): string | null {
-  if (!message) return null;
-  const cleaned = message
-    .replace(INVISIBLE, " ")
-    .replace(URL_PATTERN, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, Math.min(maxChars, SPEECH_MAX_CHARS))
-    .trim();
-  return cleaned || null;
+  return cleanForSpeech(message, Math.min(maxChars, SPEECH_MAX_CHARS));
 }
 
 export function shouldSpeak(settings: SpeechSettings, tip: SpeechTip, maxChars: number): boolean {
@@ -53,6 +46,7 @@ export function shouldSpeak(settings: SpeechSettings, tip: SpeechTip, maxChars: 
   if (tip.messageStatus === "rejected") return false;
   if (tip.messageStatus === "pending" && settings.approveBeforePlay) return false;
   if (tip.amountPaise < settings.ttsMinPaise) return false;
+  if (findBlockedWord(tip.message, settings.bannedWords) !== null) return false;
   return speechText(tip.message, maxChars) !== null;
 }
 

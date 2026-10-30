@@ -6,6 +6,7 @@ import {
   type AlertMode,
   type TipRow,
 } from "@/lib/alerts";
+import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { shouldSpeak } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
 
@@ -120,6 +121,22 @@ export async function GET(
     console.error("Overlay: could not look up the voice choice.", err);
   }
 
+  // The creator's banned words (migration 0016); without them only the built-in
+  // list applies. A tip that got through before a word was added is still held
+  // back here: its message is dropped from the alert and a blocked name shows as
+  // Anonymous.
+  let bannedWords: string[] = [];
+  try {
+    const [found] = await db<{ banned_words: string }[]>`
+      select banned_words from users where id = ${row.creator_id}
+    `;
+    bannedWords = parseBannedWords(found?.banned_words);
+  } catch (err) {
+    console.error("Overlay: could not read the banned words.", err);
+  }
+  const messageBlocked = findBlockedWord(row.fan_message, bannedWords) !== null;
+  const nameBlocked = findBlockedWord(row.fan_name, bannedWords) !== null;
+
   // Whether the message will be read aloud. The overlay then fetches the audio
   // from the speech route, which checks the same rules again.
   const speak =
@@ -131,6 +148,7 @@ export async function GET(
         ttsEnabled: row.tts_enabled,
         approveBeforePlay: row.approve_before_play,
         ttsMinPaise: row.tts_min_paise,
+        bannedWords,
       },
       {
         message: row.fan_message,
@@ -168,9 +186,9 @@ export async function GET(
       alert: {
         id: next.id,
         kind: next.kind,
-        name: row.fan_name?.trim() || "Anonymous",
+        name: (!nameBlocked && row.fan_name?.trim()) || "Anonymous",
         amountPaise: Number(row.gross_amount_minor),
-        message: next.withMessage ? row.fan_message!.trim() : null,
+        message: next.withMessage && !messageBlocked ? row.fan_message!.trim() : null,
         speech: speak,
         sound,
       },

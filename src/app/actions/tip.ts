@@ -3,6 +3,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { checkPick } from "@/lib/sounds";
 import { checkVoicePick } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
@@ -117,6 +118,29 @@ export async function createTipOrder(
     return {
       status: "error",
       message: `Message cannot exceed ${creator.message_max_chars} characters`,
+    };
+  }
+
+  // Our profanity list plus the creator's own banned words, on the message and on
+  // the name (both appear on the stream). Checked before payment so a fan never
+  // pays for words that would not be shown. The creator's list (migration 0016) is
+  // looked up apart so a missing column only drops that list, never the tip.
+  let bannedWords: string[] = [];
+  try {
+    const [row] = await db<{ banned_words: string }[]>`
+      select banned_words from users where id = ${creator.id}
+    `;
+    bannedWords = parseBannedWords(row?.banned_words);
+  } catch (err) {
+    console.error("Tip: could not read the creator's banned words.", err);
+  }
+  if (
+    findBlockedWord(fanMessage, bannedWords) !== null ||
+    (!anonymous && findBlockedWord(fanName, bannedWords) !== null)
+  ) {
+    return {
+      status: "error",
+      message: "Your name or message has a word that isn't allowed on this stream. Please change it and try again.",
     };
   }
 

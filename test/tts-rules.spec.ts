@@ -56,7 +56,7 @@ test.describe("speech text", () => {
 
   test("honours the creator's limit and the hard cap", () => {
     expect(speechText("abcdefghij", 5)).toBe("abcde");
-    expect(speechText("a".repeat(1000), 1000)).toHaveLength(SPEECH_MAX_CHARS);
+    expect(speechText("ab".repeat(500), 1000)).toHaveLength(SPEECH_MAX_CHARS);
   });
 
   test("picks the language from the script", () => {
