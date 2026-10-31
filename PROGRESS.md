@@ -39,6 +39,8 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 ## Current state (2026-10-31, updated after the Google verification privacy note)
 
+- **Privacy section 3 expanded to Google's checklist (2026-10-31, after reading support.google.com/cloud/answer/13806988).** Added inside the Google section: how the data is stored and protected (the access token is used once at sign-in and never saved; only the Google account ID is in the session cookie), retention and how to delete it, what we do not do (no sale, ads, brokers, credit, databases, AI or ML training), and a table of each Google data item with purpose, storage and sharing. Claims checked against `src/auth.ts` and the public tip page. When the text changes but the URL stays the same, Google says to reply to the Trust and Safety email thread. Owner still to do that, and to add the Data Access scopes and demo video after the branding result.
+
 - **Secrets rotated (owner, 2026-10-31).** `DATABASE_URL` (Neon password reset), `WAITLIST_SALT` and `CRON_SECRET` were replaced in Vercel Production, the site was redeployed and the local `.env.local` updated. This closes the exposure from commit `ea688dc`. Migration audit the same day: 0012 to 0021, 0023 and 0024 are all applied in Neon (0022 is parked, 0025 unused). Google verification appeal was submitted and is in progress.
 
 - **Google said again the privacy page lacked content (2026-10-31).** The live page returned the full text but carried `noindex`. `/privacy` and `/terms` no longer use `LEGAL_ROBOTS` and are in the sitemap; other policy pages stay noindex while `LEGAL_DRAFT` is true. The owner must press retry or resubmit in Google Cloud Console, as the message may be the old result.

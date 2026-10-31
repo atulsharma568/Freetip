@@ -130,12 +130,66 @@ const SECTIONS: LegalSection[] = [
           </a>
           , including its Limited Use requirements.
         </p>
+        <h3>How we store and protect it</h3>
         <p>
-          You can take away our access at any time from your Google Account at
-          myaccount.google.com/permissions. If you close your creator account, we
-          delete your profile within 30 days, as described under “How long we keep
-          it”.
+          We keep your email, name, picture, Google account ID and YouTube channel
+          details in our database (Neon, in Singapore). They are encrypted in
+          transit (HTTPS) and at rest, and only people who need them to run
+          Freetip can reach them. Google’s access token is used once, at the
+          moment you sign in, to look up your channel. We do not save it or any
+          refresh token, so we cannot call YouTube on your behalf later. After
+          sign-in, your browser holds one encrypted session cookie that contains
+          only your Google account ID.
         </p>
+        <h3>How long we keep it, and how to delete it</h3>
+        <p>
+          We keep this data while your creator account is open. To have it
+          deleted, close your account or ask us through the{" "}
+          <a href="/contact">contact form</a> from the email you signed up with.
+          We delete your profile, including the Google data above, within 30 days,
+          except records we must keep by law (tip, payout and tax records, which
+          do not include your YouTube data). You can also take away our access at
+          any time from your Google Account at myaccount.google.com/permissions;
+          without that access we can no longer read your channel.
+        </p>
+        <h3>What we do not do with it</h3>
+        <p>
+          We do not sell Google user data, use it for advertising, or give it to
+          data brokers. We do not use it to build databases, to decide credit or
+          lending, or to develop, improve or train any artificial intelligence or
+          machine-learning model, and we do not pass it to anyone for those
+          purposes.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Google data</th>
+              <th>Why we use it</th>
+              <th>Stored?</th>
+              <th>Shared with</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Email (verified), name, picture</td>
+              <td>Identify you; your name and picture also appear on your public tip page</td>
+              <td>Yes, while your account is open</td>
+              <td>Only the services that run the site</td>
+            </tr>
+            <tr>
+              <td>YouTube channel ID, name and link (read-only)</td>
+              <td>Link your channel to your tip page</td>
+              <td>Yes, while your account is open</td>
+              <td>Only the services that run the site; the channel name and link appear on your public tip page</td>
+            </tr>
+            <tr>
+              <td>Google access token</td>
+              <td>Look up your channel once at sign-in</td>
+              <td>No</td>
+              <td>Nobody</td>
+            </tr>
+          </tbody>
+        </table>
       </>
     ),
   },
