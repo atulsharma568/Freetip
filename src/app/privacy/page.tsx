@@ -93,6 +93,45 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "google",
+    title: "Google sign-in and YouTube data",
+    body: (
+      <>
+        <p>
+          When you sign in with Google, we ask Google for four things: your email
+          address (and whether Google has verified it), your name, your profile
+          picture, and read-only access to your YouTube channel
+          (the <code>youtube.readonly</code> permission).
+        </p>
+        <p>
+          We use the YouTube access only to find the channel you own. From it we
+          store the channel ID, the channel name and the channel link, next to
+          your name, email and picture. We do not read your videos, comments,
+          subscribers, watch history or analytics, and we never post to YouTube
+          for you.
+        </p>
+        <p>
+          We use this information only to link your channel to your Freetip page,
+          so fans can tip you and your alerts can show on your stream. It is not
+          used for advertising, not sold, and not shared, except with the services
+          listed above that run the site or where the law requires it. Nobody at
+          Freetip reads this data except to keep the service secure, to help you
+          with your consent, or where the law requires it.
+        </p>
+        <p>
+          Our use of information received from Google APIs follows the Google API
+          Services User Data Policy, including its Limited Use requirements.
+        </p>
+        <p>
+          You can take away our access at any time from your Google Account at
+          myaccount.google.com/permissions. If you close your creator account, we
+          delete your profile within 30 days, as described under “How long we keep
+          it”.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "why",
     title: "Why we use it",
     body: (
@@ -105,6 +144,11 @@ const SECTIONS: LegalSection[] = [
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td>Sign you in and link your YouTube channel to your creator page</td>
+            <td>Google account details, and your channel ID, name and link</td>
+            <td>Providing the service you asked for</td>
+          </tr>
           <tr>
             <td>Tell you when {SITE_NAME} launches and hold your handle request</td>
             <td>Waitlist details</td>
@@ -224,10 +268,11 @@ const SECTIONS: LegalSection[] = [
     title: "Cookies and tracking",
     body: (
       <p>
+        We set one essential cookie, which keeps you signed in after you sign in
+        with Google. It holds no tracking data and is needed to run the account.
         We don’t use advertising or analytics cookies, tracking pixels or
-        cross-site tracking. Right now the site sets no cookies at all. If we
-        ever add a cookie that isn’t strictly needed to run the service, we
-        will update this policy and ask for your consent first.
+        cross-site tracking. If we ever add a cookie that isn’t strictly needed to
+        run the service, we will update this policy and ask for your consent first.
       </p>
     ),
   },
