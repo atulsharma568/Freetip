@@ -105,7 +105,7 @@ export function Money() {
               className="text-[clamp(4.5rem,10vw,7rem)] font-semibold tracking-tight"
             />
           </span>
-          <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">What it costs</h3>
+          <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">Our fee</h3>
           <RevealWords className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
             {`We take ${FEES.platformPercent}% of every tip. A flat ${FEES.gatewayPercent}% processing charge comes out of the payout too; fans pay exactly the tip.`}
           </RevealWords>

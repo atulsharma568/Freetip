@@ -69,7 +69,7 @@ const STEPS = [
   },
   {
     verb: "Get paid",
-    text: "Fans pay with UPI or card. Tips are paid out to your bank account in INR.",
+    text: "Fans pay with UPI or card. Tips are paid out to your UPI ID or bank account in INR.",
     sample: (
       <Sample label="Sample payout, on a ₹100 tip">
         <dl className="text-base">

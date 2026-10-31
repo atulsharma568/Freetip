@@ -6,9 +6,9 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
-  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`,
+  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a flat ${FEES.gatewayPercent}% processing charge, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`,
   alternates: { canonical: "/pricing" },
-  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
+  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a flat ${FEES.gatewayPercent}% processing charge, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 

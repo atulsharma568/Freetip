@@ -61,8 +61,8 @@ const SECTIONS: LegalSection[] = [
           aloud.
         </li>
         <li>
-          <strong>Payout:</strong> money we send to a creator’s bank account
-          from the tips they received, after fees.
+          <strong>Payout:</strong> money we send to a creator’s UPI ID or bank
+          account from the tips they received, after fees.
         </li>
       </ul>
     ),
@@ -77,9 +77,9 @@ const SECTIONS: LegalSection[] = [
           {SITE_NAME}, as a creator or as a fan.
         </p>
         <p>
-          To receive tips, a creator must also have a bank account in India in
-          their own name and complete the identity and bank checks (KYC) that we
-          or our payment partner ask for. You can’t use {SITE_NAME} if we have
+          To receive tips, a creator must also have a UPI ID or bank account in
+          India in their own name and complete the identity and account checks
+          (KYC) that we or our payment partner ask for. You can’t use {SITE_NAME} if we have
           closed your account before for breaking these terms, or if the law
           does not allow you to.
         </p>
