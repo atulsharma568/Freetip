@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { findUnpostableCaptures, postCaptureAccrual, postMissingAccruals } from "../src/lib/accrual";
+import { postTipReversal } from "../src/lib/reversal";
 import { afterCapture } from "../src/lib/capture-follow-up";
 import { splitTip } from "../src/lib/money";
 import { asLedgerDb, freshDatabase, migrationFiles, readMigration } from "./helpers/pg";
@@ -492,5 +493,49 @@ test.describe("after a capture", () => {
     const status = await pg.query<{ status: string }>(`select status from tip_orders`);
     expect(status.rows[0].status).toBe("captured");
     expect(await count(pg, "ledger_transactions")).toBe(0);
+  });
+});
+
+test.describe("a payment Razorpay takes back (record only)", () => {
+  test("a lost chargeback reverses the capture and marks the tip disputed", async () => {
+    const pg = await freshDatabase();
+    const t = await tip(pg);
+    await postCaptureAccrual(asLedgerDb(pg), t.paymentRef);
+    const res = await postTipReversal(asLedgerDb(pg), t.paymentRef, t.gross, "dispute_lost");
+    expect(res).toEqual({ status: "reversed" });
+
+    const b = await balances(pg);
+    expect(b.creator_payable).toEqual({ debit: 9225, credit: 9225 });
+    expect(b.processor_clearing).toEqual({ debit: 10000, credit: 10000 });
+    expect(await everyTransactionBalances(pg)).toBe(true);
+    const s = await pg.query<{ status: string }>(`select status from tip_orders where id = $1`, [t.tipId]);
+    expect(s.rows[0].status).toBe("disputed");
+  });
+
+  test("a repeated event posts once, a refund marks refunded", async () => {
+    const pg = await freshDatabase();
+    const t = await tip(pg);
+    await postCaptureAccrual(asLedgerDb(pg), t.paymentRef);
+    expect((await postTipReversal(asLedgerDb(pg), t.paymentRef, t.gross, "refund")).status).toBe("reversed");
+    expect((await postTipReversal(asLedgerDb(pg), t.paymentRef, t.gross, "refund")).status).toBe("already");
+    expect(await count(pg, "ledger_transactions")).toBe(2);
+    const s = await pg.query<{ status: string }>(`select status from tip_orders where id = $1`, [t.tipId]);
+    expect(s.rows[0].status).toBe("refunded");
+  });
+
+  test("a partial amount or an unposted tip is left alone", async () => {
+    const pg = await freshDatabase();
+    const t = await tip(pg);
+    await postCaptureAccrual(asLedgerDb(pg), t.paymentRef);
+    expect(await postTipReversal(asLedgerDb(pg), t.paymentRef, 5000, "refund")).toEqual({
+      status: "skipped",
+      reason: "partial_amount",
+    });
+    const test = await tip(pg, { livemode: false });
+    expect(await postTipReversal(asLedgerDb(pg), test.paymentRef, test.gross, "refund")).toEqual({
+      status: "skipped",
+      reason: "no_capture_posting",
+    });
+    expect(await count(pg, "ledger_transactions")).toBe(1);
   });
 });

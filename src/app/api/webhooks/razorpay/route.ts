@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { getDb } from "@/lib/db";
 import type { LedgerDb } from "@/lib/accrual";
 import { afterCapture } from "@/lib/capture-follow-up";
+import { postTipReversal } from "@/lib/reversal";
 
 // Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
 // Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
@@ -38,9 +39,16 @@ interface RazorpayPaymentEntity {
   error_description?: string;
 }
 
+interface RazorpayTakeback {
+  payment_id?: string;
+  amount: number;       // paise
+}
+
 interface RazorpayEvent {
   event?: string;
   payload?: {
+    refund?: { entity?: RazorpayTakeback };
+    dispute?: { entity?: RazorpayTakeback };
     payment?: {
       entity?: RazorpayPaymentEntity;
     };
@@ -155,6 +163,30 @@ export async function POST(request: Request): Promise<Response> {
             where id = ${updated[0].tip_order_id}
               and status = 'payment_pending'
           `;
+        }
+      });
+      break;
+    }
+
+    // Tips are final, so these are not a feature: they are Razorpay taking a whole
+    // payment back (a payment error put right, or a chargeback lost). Record only.
+    case "refund.processed":
+    case "payment.dispute.lost": {
+      const kind = event.event === "refund.processed" ? "refund" : "dispute_lost";
+      const entity = kind === "refund" ? event.payload?.refund?.entity : event.payload?.dispute?.entity;
+      if (!entity?.payment_id || !db) break;
+
+      const ledgerDb = db as unknown as LedgerDb;
+      const paymentId = entity.payment_id;
+      const amount = entity.amount;
+      after(async () => {
+        try {
+          const result = await postTipReversal(ledgerDb, paymentId, amount, kind);
+          if (result.status === "skipped" && result.reason === "partial_amount") {
+            console.error("Razorpay took back part of a payment; not posted, look at it by hand", paymentId, amount);
+          }
+        } catch (err) {
+          console.error("Could not record a reversal; Razorpay will retry", paymentId, err);
         }
       });
       break;
