@@ -503,6 +503,7 @@ export default function TermsPage() {
         </p>
       }
       sections={SECTIONS}
+      hideDraftNotice
     />
   );
 }
