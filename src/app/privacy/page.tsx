@@ -33,7 +33,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>We only collect what we need. It depends on how you use {SITE_NAME}.</p>
-        <h3>If you join the waitlist (now)</h3>
+        <h3>If you join the waitlist</h3>
         <ul>
           <li>your email address;</li>
           <li>
@@ -120,12 +120,16 @@ const SECTIONS: LegalSection[] = [
           used for advertising, not sold, and not shared, except with the services
           that run the site (listed under “Who we share it with”) or where the
           law requires it. Nobody at
-          Freetip reads this data except to keep the service secure, to help you
-          with your consent, or where the law requires it.
+          Freetip reads this data except with your permission (for example when
+          you ask us for support), to keep the service secure, or where the law
+          requires it.
         </p>
         <p>
-          Our use of information received from Google APIs follows the Google API
-          Services User Data Policy, including its Limited Use requirements.
+          Our use of information received from Google APIs follows the{" "}
+          <a href="https://developers.google.com/terms/api-services-user-data-policy">
+            Google API Services User Data Policy
+          </a>
+          , including its Limited Use requirements.
         </p>
         <p>
           You can take away our access at any time from your Google Account at
@@ -155,7 +159,7 @@ const SECTIONS: LegalSection[] = [
             <td>Providing the service you asked for</td>
           </tr>
           <tr>
-            <td>Tell you when {SITE_NAME} launches and hold your handle request</td>
+            <td>Keep you posted about {SITE_NAME} and hold your handle request</td>
             <td>Waitlist details</td>
             <td>Your consent</td>
           </tr>
@@ -276,7 +280,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         We set one essential cookie, which keeps you signed in after you sign in
-        with Google. It holds no tracking data and is needed to run the account.
+        with Google. It holds no tracking data and is needed to run the account.{" "}
         {process.env.NEXT_PUBLIC_GA_ID
           ? "If you press Accept on the banner, we also load Google Analytics, which sets cookies and sends Google anonymised visit data (pages viewed, rough location, device type) so we can count visits. If you press No thanks, nothing from Google loads, and you can clear this choice in your browser’s site data. It never runs on the creator or owner areas or the stream alert. We don’t use advertising cookies, tracking pixels or cross-site tracking."
           : "We don’t use advertising or analytics cookies, tracking pixels or cross-site tracking. If we ever add a cookie that isn’t strictly needed to run the service, we will update this policy and ask for your consent first."}
@@ -387,6 +391,7 @@ export default function PrivacyPage() {
         </p>
       }
       sections={SECTIONS}
+      hideDraftNotice
     />
   );
 }

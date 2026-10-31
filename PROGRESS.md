@@ -39,6 +39,8 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 ## Current state (2026-10-31, updated after the Google verification privacy note)
 
+- **Privacy page tidied before the Google branding request (2026-10-31).** The draft banner is hidden on `/privacy` only (`hideDraftNotice` on `LegalPage`; `LEGAL_DRAFT` stays true, so the pages are still noindex and the other pages keep the banner). Section 3 now says nobody reads the Google data except with the user's permission, for security, or by law, and links the Google API Services User Data Policy. Fixed the missing space in the cookies text and the stale waitlist wording. tsc, eslint and the build pass. **Owner, before submitting in Google Cloud Console:** check the redirect URI `https://freetip.in/api/auth/callback/google` is on the OAuth client, authorised domain `freetip.in`, privacy and terms URLs, app name, logo, and your own support email. The YouTube scope also needs Google's sensitive-scope review (days to weeks, maybe a demo video).
+
 - **Google verification said the privacy policy lacked detail.** `/privacy` never mentioned Google sign-in or YouTube data, and said the site sets no cookies (sign-in now sets one). Added a "Google sign-in and YouTube data" section (the four Google permissions, the read-only `youtube.readonly` use, what is stored, the purpose, the Limited Use statement, how to revoke access), a Google row in the purposes table, and rewrote the cookies paragraph to name the one essential session cookie. Still to confirm: Google's re-check on `freetip.in/privacy`, which is live once this is deployed. Build and lint pass; no browser test was run.
 
 ## Current state (2026-10-31, updated after opening signup)

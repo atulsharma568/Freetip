@@ -57,11 +57,13 @@ export function LegalPage({
   path,
   intro,
   sections,
+  hideDraftNotice = false,
 }: {
   title: string;
   path: string;
   intro: ReactNode;
   sections: LegalSection[];
+  hideDraftNotice?: boolean;
 }) {
   const breadcrumbs = {
     "@context": "https://schema.org",
@@ -100,7 +102,7 @@ export function LegalPage({
           </nav>
           <h1 className="display text-[clamp(2.75rem,8vw,5rem)]">{title}</h1>
           <p className="mt-4 text-sm text-muted">Last updated {LEGAL_UPDATED}</p>
-          {LEGAL_DRAFT && (
+          {LEGAL_DRAFT && !hideDraftNotice && (
             <p className="mt-6 max-w-[68ch] rounded-field border border-accent/40 bg-accent/10 p-4 text-sm text-text">
               <strong>Draft.</strong> Details in{" "}
               <span className="font-medium text-accent">[brackets]</span> are
