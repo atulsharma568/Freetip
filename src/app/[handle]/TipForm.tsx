@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { createTipOrder } from "@/app/actions/tip";
+import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { tipTier } from "@/lib/tip-tier";
 import type { TipSound } from "./creator";
 
@@ -452,11 +453,14 @@ export function TipForm({
     { scope: containerRef },
   );
 
-  const nearLimit = message.length >= messageMaxChars - 20;
-
   const amountRupees =
     selected === "custom" ? parseFloat(custom) || 0 : selected;
   const amountPaise = Math.round(amountRupees * 100);
+  // A bigger tip allows a longer message. The server applies the same rule.
+  const messageLimit = messageLimitFor(messageMaxChars, amountPaise);
+  const moreChars = nextMessageStep(messageMaxChars, amountPaise);
+  const messageTooLong = message.length > messageLimit;
+  const nearLimit = message.length >= messageLimit - 20;
   // The name the overlay will show; it falls back to "Anonymous" the same way.
   const alertName = anonymous ? "Anonymous" : tipName.trim() || "Anonymous";
   // A picked sound or the voice needs a big enough tip (and the voice a message);
@@ -466,7 +470,7 @@ export function TipForm({
   const soundTooPricey = !!chosenSound && amountPaise < chosenSound.minPaise;
   const voiceTooPricey = extra.kind === "voice" && voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceNeedsMessage = extra.kind === "voice" && !message.trim();
-  const extraBlocked = soundTooPricey || voiceTooPricey || voiceNeedsMessage;
+  const extraBlocked = soundTooPricey || voiceTooPricey || voiceNeedsMessage || messageTooLong;
   // After an error the fan can try again; only a request or the popup in flight blocks it.
   const canPay =
     !previewMode &&
@@ -738,8 +742,17 @@ export function TipForm({
                 className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
               />
               <p aria-live={nearLimit ? "polite" : "off"} className="text-right text-xs text-muted">
-                {message.length}/{messageMaxChars}
+                {message.length}/{messageLimit}
+                {moreChars && ` · tip ₹${moreChars.rupees} or more for ${moreChars.limit}`}
               </p>
+              {messageTooLong && (
+                <p role="alert" className="text-sm text-red-400">
+                  Your message is {message.length - messageLimit} characters too long for this tip.
+                  {moreChars
+                    ? ` Shorten it, or tip ₹${moreChars.rupees} or more for ${moreChars.limit} characters.`
+                    : " Please shorten it."}
+                </p>
+              )}
             </div>
             {(sounds.length > 0 || voiceMinPaise !== null) && (
               <ExtraPicker

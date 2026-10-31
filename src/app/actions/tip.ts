@@ -3,6 +3,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { checkPick } from "@/lib/sounds";
 import { checkVoicePick } from "@/lib/tts-rules";
@@ -114,10 +115,14 @@ export async function createTipOrder(
       message: `Minimum tip is ₹${Math.ceil(creator.min_tip_paise / 100)}`,
     };
   }
-  if (fanMessage && fanMessage.length > creator.message_max_chars) {
+  const messageLimit = messageLimitFor(creator.message_max_chars, amountPaise);
+  if (fanMessage && fanMessage.length > messageLimit) {
+    const more = nextMessageStep(creator.message_max_chars, amountPaise);
     return {
       status: "error",
-      message: `Message cannot exceed ${creator.message_max_chars} characters`,
+      message:
+        `Message cannot exceed ${messageLimit} characters` +
+        (more ? `. Tip ₹${more.rupees} or more for ${more.limit}.` : ""),
     };
   }
 

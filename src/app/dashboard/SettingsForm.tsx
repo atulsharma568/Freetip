@@ -121,7 +121,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="msg-chars" className="text-sm font-medium uppercase tracking-widest text-muted">
-            Message limit
+            Longest message
           </label>
           <span id="msg-chars-value" className="text-sm text-text">{chars} chars</span>
         </div>
@@ -142,6 +142,10 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           <span>10</span>
           <span>500</span>
         </div>
+        <p className="text-xs text-muted">
+          Fans get this many characters when they tip ₹300 or more. Smaller tips get
+          less: about three quarters from ₹100, and half under ₹100.
+        </p>
       </div>
 
       {/* Banned words */}
