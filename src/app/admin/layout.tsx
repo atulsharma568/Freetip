@@ -14,6 +14,7 @@ const navigation = [
   { href: "/admin/tts-words", label: "Voice words" },
   { href: "/admin/finance", label: "Finance" },
   { href: "/admin/finance/creators", label: "Creator earnings" },
+  { href: "/admin/finance/balances", label: "Balances" },
   { href: "/admin/finance/payments", label: "Payment ledger" },
   { href: "/admin/finance/settlements", label: "Settlements" },
   { href: "/admin/reconciliation", label: "Reconciliation" },
