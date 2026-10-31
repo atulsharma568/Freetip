@@ -145,7 +145,7 @@ const SECTIONS: LegalSection[] = [
         <p>
           We keep this data while your creator account is open. To have it
           deleted, close your account or ask us through the{" "}
-          <a href="/contact">contact form</a> from the email you signed up with.
+          <Link href="/contact">contact form</Link> from the email you signed up with.
           We delete your profile, including the Google data above, within 30 days,
           except records we must keep by law (tip, payout and tax records, which
           do not include your YouTube data). You can also take away our access at
