@@ -277,9 +277,9 @@ const SECTIONS: LegalSection[] = [
       <p>
         We set one essential cookie, which keeps you signed in after you sign in
         with Google. It holds no tracking data and is needed to run the account.
-        We don’t use advertising or analytics cookies, tracking pixels or
-        cross-site tracking. If we ever add a cookie that isn’t strictly needed to
-        run the service, we will update this policy and ask for your consent first.
+        {process.env.NEXT_PUBLIC_GA_ID
+          ? "If you press Accept on the banner, we also load Google Analytics, which sets cookies and sends Google anonymised visit data (pages viewed, rough location, device type) so we can count visits. If you press No thanks, nothing from Google loads, and you can clear this choice in your browser’s site data. It never runs on the creator or owner areas or the stream alert. We don’t use advertising cookies, tracking pixels or cross-site tracking."
+          : "We don’t use advertising or analytics cookies, tracking pixels or cross-site tracking. If we ever add a cookie that isn’t strictly needed to run the service, we will update this policy and ask for your consent first."}
       </p>
     ),
   },

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import { Analytics } from "@/components/Analytics";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { SITE_NAME } from "@/lib/site";
 import { SITE_URL } from "@/lib/url";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SessionProvider>
           <SmoothScroll />
           {children}
+          <Analytics />
         </SessionProvider>
       </body>
     </html>
