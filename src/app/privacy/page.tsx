@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fill, MailFill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
-import { LEGAL_ROBOTS, PROCESSORS } from "@/lib/legal";
+import { PROCESSORS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   description: `What personal data ${SITE_NAME} collects, why, how long we keep it and your rights.`,
   alternates: { canonical: "/privacy" },
   openGraph: { title: `Privacy policy: ${SITE_NAME}`, description: `What personal data ${SITE_NAME} collects, why, how long we keep it and your rights.`, url: "/privacy" },
-  robots: LEGAL_ROBOTS,
 };
 
 const SECTIONS: LegalSection[] = [
