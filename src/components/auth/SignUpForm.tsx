@@ -21,10 +21,10 @@ export function SignUpForm() {
 
   return (
     <>
-      <h1 className="display text-[clamp(2.75rem,10vw,4rem)]">Get early access</h1>
+      <h1 className="display text-[clamp(2.75rem,10vw,4rem)]">Create your account</h1>
       <p className="mt-4 text-pretty text-lg text-muted">
-        Limited spots. Sign up with Google and we&apos;ll connect your YouTube
-        channel automatically.
+        Sign up with Google and we&apos;ll connect your YouTube channel
+        automatically.
       </p>
 
       <div className="mt-10 space-y-4">

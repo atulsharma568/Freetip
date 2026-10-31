@@ -46,7 +46,7 @@ test.describe("waitlist validation", () => {
   test("signup offers Google sign-up and links to the terms and privacy policy", async ({ page }) => {
     await page.goto("/signup", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { level: 1, name: "Get early access" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Create your account" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
     const consent = page.getByText("By continuing, you agree to our");
     await expect(consent.getByRole("link", { name: "terms" })).toHaveAttribute("href", "/terms");

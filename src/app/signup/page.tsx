@@ -4,8 +4,8 @@ import { SignUpForm } from "@/components/auth/SignUpForm";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: `Get early access: ${SITE_NAME}`,
-  description: `Sign up for early access to ${SITE_NAME}. Limited spots — connect your Google and YouTube account to reserve yours.`,
+  title: `Sign up: ${SITE_NAME}`,
+  description: `Create your ${SITE_NAME} account with Google and start receiving tips on your YouTube stream.`,
   robots: { index: false },
 };
 

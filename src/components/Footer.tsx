@@ -18,6 +18,7 @@ const GROUPS = [
       { href: "/about", label: "About" },
       { href: "/pricing", label: "Pricing" },
       { href: "/contact", label: "Contact and grievances" },
+      { href: "/signin", label: "Sign in" },
     ],
   },
   {

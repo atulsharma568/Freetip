@@ -41,7 +41,7 @@ export function SignInForm() {
       <p className="mt-8 text-sm text-muted">
         New here?{" "}
         <Link href="/signup" className="text-text underline decoration-line hover:decoration-accent">
-          Get early access
+          Sign up
         </Link>
       </p>
     </>

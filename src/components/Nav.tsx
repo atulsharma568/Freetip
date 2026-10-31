@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { PencilSimple, User, SignOut, SquaresFour } from "@phosphor-icons/react";
+import { PencilSimple, SignOut, SquaresFour } from "@phosphor-icons/react";
 import { useSession, signOut } from "next-auth/react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { SITE_NAME } from "@/lib/site";
@@ -19,8 +19,8 @@ const LINKS = [
 ];
 
 // At the top the nav is a full-width bar. Once the page scrolls it eases into
-// a floating frosted-glass capsule, with Sign in (glass orb) and Sign up
-// (chrome) at the right. Links near the pointer lift and swell a
+// a floating frosted-glass capsule, with Sign up (chrome) at the right.
+// Sign in lives on the sign-up page and in the footer. Links near the pointer lift and swell a
 // little, like a dock, and a solid lime pill slides behind whichever link is
 // hovered or focused.
 
@@ -186,9 +186,6 @@ export function Nav() {
             </>
           ) : (
             <>
-              <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
-                  Sign in
-                </GlassOrbButton>
               <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
                 Sign up
               </ChromeButton>
@@ -247,9 +244,6 @@ export function Nav() {
             </>
           ) : (
             <>
-              <GlassOrbButton href="/signin" icon={<User weight="bold" size={15} />}>
-                Sign in
-              </GlassOrbButton>
               <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
                 Sign up
               </ChromeButton>
