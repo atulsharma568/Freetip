@@ -86,6 +86,8 @@ Dropped from v1 as over-built for a manual rail where the owner is the approver:
 - **Terms mismatch.** Terms promise a bank account, KYC, payouts "through our payment partner" to a UPI ID "we verify". The form collects a UPI ID and the owner pays by hand with a name check. The wording changes with step 4.
 - **Razorpay's real fee may differ from 2.36%.** The variance shows in the books.
 
+**Update 2026-10-31:** the owner has no budget for a lawyer or accountant, so the rules were read from public sources instead: see `docs/rules-check.md`. Its finding: paying creators from our own account looks like payment aggregation under the 2025 RBI directions, so step 4 (manual sheet) should not be built; ask Razorpay and Cashfree about split settlement instead. The lawyer and accountant questions below are kept as the list of what is still unsettled.
+
 
 - **Razorpay support**: may our payment gateway account plus RazorpayX pay creators' UPI IDs given RazorpayX terms GT 2.15(a)? Is Route open to a new business under ₹40 lakh turnover? Exact per-payout fee for UPI and the daily UPI limit on our account. Is `fee`/`tax` filled at capture for UPI and cards? Is the 0.4% MDR passed on to us for fans' tips above ₹2,000, and would it apply to UPI payouts if we use RazorpayX? How is `payout.failed` tested?
 - **Lawyer**: does collecting tips for creators and paying them out make Freetip a payment aggregator or a marketplace; who is the "merchant"; do the escrow and anti-pooling rules apply; are tips refundable or taxable supplies?
