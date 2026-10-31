@@ -61,7 +61,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           For a double charge, a failed payment or a tip that didn’t go
-          through, email us with the payment ID or UPI reference (UTR), the
+          through, {OPERATOR.supportEmail ? "email us" : "send us the form above"} with the payment ID or UPI reference (UTR), the
           amount, date and the creator’s handle. Our{" "}
           <Link href="/refunds">refund policy</Link> explains what happens next.
         </p>
@@ -100,9 +100,16 @@ const SECTIONS: LegalSection[] = [
               </td>
             </tr>
             <tr>
-              <th scope="row">Email</th>
+              <th scope="row">{OPERATOR.grievanceEmail ? "Email" : "How to reach"}</th>
               <td>
-                <MailFill k="grievanceEmail" />
+                {OPERATOR.grievanceEmail ? (
+                  <MailFill k="grievanceEmail" />
+                ) : (
+                  <>
+                    Use the <a href="#message">form at the top of this page</a> and start
+                    your message with “Complaint”
+                  </>
+                )}
               </td>
             </tr>
             <tr>
