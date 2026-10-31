@@ -4,15 +4,15 @@ import { PLATFORM_BPS, PROCESSING_BPS, splitTip } from "./money";
 // render as visible [bracketed] placeholders (see <Fill>), so nothing is
 // guessed. Fill these in before launch and before applying to Razorpay.
 export const OPERATOR = {
-  legalName: "",
-  businessType: "", // e.g. "private limited company", "LLP", "sole proprietorship"
-  registeredAddress: "",
-  courtCity: "", // city whose courts handle disputes
+  legalName: "Atul Sharma",
+  businessType: "sole proprietorship", // e.g. "private limited company", "LLP", "sole proprietorship"
+  registeredAddress: "Bengaluru, Karnataka, India (an online-only business with no public office)",
+  courtCity: "Bengaluru", // city whose courts handle disputes
   supportEmail: "",
   phone: "",
   hours: "", // e.g. "Monday to Friday, 10:00 to 18:00 IST"
-  grievanceOfficer: "",
-  grievanceDesignation: "",
+  grievanceOfficer: "Atul Sharma",
+  grievanceDesignation: "Founder",
   grievanceEmail: "",
   gstin: "", // leave empty if not registered for GST
   dataRegion: "Singapore (AWS ap-southeast-1)", // where the database and server run

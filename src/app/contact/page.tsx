@@ -27,27 +27,25 @@ const SECTIONS: LegalSection[] = [
       <table>
         <tbody>
           <tr>
-            <th scope="row">Email</th>
+            <th scope="row">{OPERATOR.supportEmail ? "Email" : "Contact"}</th>
             <td>
-              <MailFill k="supportEmail" />
+              {OPERATOR.supportEmail ? <MailFill k="supportEmail" /> : "Use the form on this page"}
             </td>
           </tr>
-          <tr>
-            <th scope="row">Phone</th>
-            <td>
-              {OPERATOR.phone ? (
+          {OPERATOR.phone && (
+            <tr>
+              <th scope="row">Phone</th>
+              <td>
                 <a href={`tel:${OPERATOR.phone.replace(/\s/g, "")}`}>{OPERATOR.phone}</a>
-              ) : (
-                <Fill k="phone" />
-              )}
-            </td>
-          </tr>
-          <tr>
-            <th scope="row">Hours</th>
-            <td>
-              <Fill k="hours" />
-            </td>
-          </tr>
+              </td>
+            </tr>
+          )}
+          {OPERATOR.hours && (
+            <tr>
+              <th scope="row">Hours</th>
+              <td>{OPERATOR.hours}</td>
+            </tr>
+          )}
           <tr>
             <th scope="row">Reply time</th>
             <td>As soon as we can</td>

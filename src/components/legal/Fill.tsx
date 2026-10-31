@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OPERATOR, PLACEHOLDER, type OperatorKey } from "@/lib/legal";
 
 // An operator detail from lib/legal.ts, or a visible [placeholder] until it
@@ -12,8 +13,9 @@ export function Fill({ k }: { k: OperatorKey }) {
   );
 }
 
-// A mailto link for an operator email, or its placeholder.
+// A mailto link for an operator email. With no email set (the owner uses the
+// contact form instead, 2026-10-31) it links to the contact form.
 export function MailFill({ k }: { k: "supportEmail" | "grievanceEmail" }) {
   const value = OPERATOR[k];
-  return value ? <a href={`mailto:${value}`}>{value}</a> : <Fill k={k} />;
+  return value ? <a href={`mailto:${value}`}>{value}</a> : <Link href="/contact">contact form</Link>;
 }
