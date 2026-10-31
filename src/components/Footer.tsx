@@ -27,7 +27,8 @@ const GROUPS = [
       { href: "/terms", label: "Terms of service" },
       { href: "/privacy", label: "Privacy policy" },
       { href: "/refunds", label: "Refunds and cancellations" },
-      { href: "/delivery", label: "Delivery policy" },
+      { href: "/delivery", label: "Shipping and delivery" },
+      { href: "/community-guidelines", label: "Community guidelines" },
     ],
   },
 ];

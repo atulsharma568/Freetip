@@ -4,7 +4,7 @@ import { SITE_URL } from "@/lib/url";
 
 // Policy pages join the sitemap once they are no longer drafts (they are
 // marked noindex until then). /signup and /signin are noindex, so they stay out.
-const LEGAL_PATHS = ["/about", "/pricing", "/contact", "/terms", "/privacy", "/refunds", "/delivery"];
+const LEGAL_PATHS = ["/about", "/pricing", "/contact", "/terms", "/privacy", "/refunds", "/delivery", "/community-guidelines"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const paths = ["", ...(LEGAL_DRAFT ? [] : LEGAL_PATHS)];

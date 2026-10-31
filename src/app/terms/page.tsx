@@ -28,13 +28,12 @@ const SECTIONS: LegalSection[] = [
         <p>
           These terms are an agreement between you and us. They apply whenever
           you use {SITE_NAME}: when you join the waitlist, create a creator
-          page, or send a tip. Our <Link href="/privacy">privacy policy</Link>,{" "}
+          page, or send a tip. Our{" "}
+          <Link href="/community-guidelines">community guidelines</Link>,{" "}
+          <Link href="/privacy">privacy policy</Link>,{" "}
           <Link href="/refunds">refund and cancellation policy</Link> and{" "}
-          <Link href="/delivery">delivery policy</Link> are part of these terms.
-        </p>
-        <p>
-          {SITE_NAME} is not live yet. Until it launches, only the waitlist
-          and the sample pages work, and no money moves.
+          <Link href="/delivery">shipping and delivery policy</Link> are part of
+          these terms.
         </p>
       </>
     ),
@@ -256,16 +255,22 @@ const SECTIONS: LegalSection[] = [
           <li>raise chargebacks for tips you made yourself and intended to make;</li>
           <li>
             get around our fees, screening or limits, or interfere with, scrape,
-            overload or reverse-engineer the service; or
+            overload or reverse-engineer the service;
           </li>
           <li>
-            break YouTube’s or any other platform’s rules while using {SITE_NAME}.
+            break YouTube’s or any other platform’s rules while using {SITE_NAME};
+            or
+          </li>
+          <li>
+            use {SITE_NAME} for anything our payment partner or the banks do not
+            allow.
           </li>
         </ul>
         <p>
-          We may remove a message, block a fan from tipping, or act under
-          section 10 if we find or are told about content or behaviour like
-          this. To report something, see{" "}
+          Our <Link href="/community-guidelines">community guidelines</Link>{" "}
+          explain these rules with examples. We may remove a message, block a fan
+          from tipping, or act under section 10 if we find or are told about
+          content or behaviour like this. To report something, see{" "}
           <Link href="/contact#grievance">grievances</Link>.
         </p>
       </>
@@ -347,7 +352,9 @@ const SECTIONS: LegalSection[] = [
         down, or a tip that fails because of an NPCI or network disruption. If a
         payment fails for any of these reasons, the fan&apos;s money is returned
         by the bank or payment system; the creator does not receive the tip and
-        we do not receive our fee.
+        we do not receive our fee. Links to other websites are there for your
+        convenience; we don’t control those sites and are not responsible for
+        them.
       </p>
     ),
   },
@@ -358,9 +365,9 @@ const SECTIONS: LegalSection[] = [
       <p>
         We work to keep {SITE_NAME} running smoothly and securely, but we
         provide it “as is”. We can’t promise it will always be available,
-        error-free or that screening will catch every bad message. We are not
-        responsible for what creators do on their streams, or for whether a
-        creator acts on a tip.
+        error-free or that screening will catch every bad message. We don’t
+        endorse creators or their content, and we are not responsible for what
+        creators do on their streams, or for whether a creator acts on a tip.
       </p>
     ),
   },
@@ -396,6 +403,29 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "mistakes",
+    title: "Mistakes on our site",
+    body: (
+      <p>
+        If a page shows a wrong price, fee or description, we will correct it as
+        soon as we find it. A tip is always charged at the amount you confirm on
+        the payment screen; if a payment itself went wrong, our{" "}
+        <Link href="/refunds">refund and cancellation policy</Link> applies.
+      </p>
+    ),
+  },
+  {
+    id: "feedback",
+    title: "Ideas and feedback",
+    body: (
+      <p>
+        If you send us ideas or suggestions for {SITE_NAME}, we may use them
+        without owing you anything. We won’t publish your name or personal
+        details with them.
+      </p>
+    ),
+  },
+  {
     id: "changes",
     title: "Changes to Freetip and to these terms",
     body: (
@@ -407,6 +437,29 @@ const SECTIONS: LegalSection[] = [
         you keep using {SITE_NAME} after a change applies, the new terms apply
         to you; if you don’t agree, you can close your account.
       </p>
+    ),
+  },
+  {
+    id: "general",
+    title: "General",
+    body: (
+      <ul>
+        <li>
+          If a court finds part of these terms invalid, the rest still applies.
+        </li>
+        <li>
+          If we don’t enforce a right straight away, we can still enforce it
+          later.
+        </li>
+        <li>
+          These terms, with the policies they link to, are the whole agreement
+          between you and us about {SITE_NAME}.
+        </li>
+        <li>
+          Anything owed before an account is closed, such as fees, a chargeback or
+          a cost under section 15, is still owed after it closes.
+        </li>
+      </ul>
     ),
   },
   {

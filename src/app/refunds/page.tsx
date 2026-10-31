@@ -30,8 +30,10 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>you changed your mind, or picked the wrong amount or creator;</li>
           <li>
-            your message was blocked, held, rejected or not read aloud, or the
-            creator chose not to approve it;
+            your message was held, rejected, removed or not read aloud, or the
+            creator chose not to approve it (a name or message our filter blocks
+            is stopped before you pay, so you are never charged for it; see our{" "}
+            <Link href="/community-guidelines">community guidelines</Link>);
           </li>
           <li>the creator was offline, or the stream ended before the alert played;</li>
           <li>you didn’t like how the creator reacted, or the creator is banned or has left.</li>
@@ -136,12 +138,21 @@ const SECTIONS: LegalSection[] = [
           When a bank opens a chargeback, we share the payment records with
           our payment partner and the bank. The disputed amount may be held from the
           creator’s payouts until it is settled.{" "}
-          <strong>
-            Repeatedly raising chargebacks for tips you sent intentionally may
-            result in your account being suspended and future tips blocked.
-          </strong>
+          If you repeatedly raise chargebacks for tips you meant to send, we may
+          block further tips from you.
         </p>
       </>
+    ),
+  },
+  {
+    id: "from-creator",
+    title: "Money back from a creator",
+    body: (
+      <p>
+        We can’t return a tip on a creator’s behalf. If a creator chooses to give
+        money back to a fan, they do it themselves, outside {SITE_NAME}, and it
+        does not change the tip on {SITE_NAME}.
+      </p>
     ),
   },
   {

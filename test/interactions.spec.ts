@@ -10,6 +10,7 @@ test.describe("keyboard and stream controls", () => {
     "/privacy",
     "/refunds",
     "/delivery",
+    "/community-guidelines",
     "/contact",
     "/pricing",
     "/about",

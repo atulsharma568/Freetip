@@ -7,7 +7,7 @@ export const contentType = OG_TYPE;
 
 export default function Image() {
   return renderOg({
-    lines: [{ text: "Delivery" }, { text: "policy", accent: true }],
+    lines: [{ text: "Shipping and" }, { text: "delivery", accent: true }],
     pill: `${SITE_HOST}/delivery`,
     note: "Tips for Indian YouTube streamers",
     fontSize: 110,

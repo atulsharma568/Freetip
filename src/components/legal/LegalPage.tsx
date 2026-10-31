@@ -10,6 +10,7 @@ export type LegalSection = { id: string; title: string; body: ReactNode };
 // Pages that belong together, so each one links to its neighbours.
 const RELATED: Record<string, { href: string; label: string }[]> = {
   "/terms": [
+    { href: "/community-guidelines", label: "Community guidelines" },
     { href: "/privacy", label: "Privacy policy" },
     { href: "/refunds", label: "Refunds and cancellations" },
     { href: "/pricing", label: "Pricing" },
@@ -20,7 +21,8 @@ const RELATED: Record<string, { href: string; label: string }[]> = {
   ],
   "/refunds": [
     { href: "/terms", label: "Terms of service" },
-    { href: "/delivery", label: "Delivery policy" },
+    { href: "/delivery", label: "Shipping and delivery" },
+    { href: "/community-guidelines", label: "Community guidelines" },
     { href: "/contact", label: "Contact and grievances" },
   ],
   "/delivery": [
@@ -34,6 +36,11 @@ const RELATED: Record<string, { href: string; label: string }[]> = {
   ],
   "/about": [
     { href: "/pricing", label: "Pricing" },
+    { href: "/contact", label: "Contact and grievances" },
+  ],
+  "/community-guidelines": [
+    { href: "/terms", label: "Terms of service" },
+    { href: "/refunds", label: "Refunds and cancellations" },
     { href: "/contact", label: "Contact and grievances" },
   ],
   "/contact": [
@@ -95,8 +102,7 @@ export function LegalPage({
           <p className="mt-4 text-sm text-muted">Last updated {LEGAL_UPDATED}</p>
           {LEGAL_DRAFT && (
             <p className="mt-6 max-w-[68ch] rounded-field border border-accent/40 bg-accent/10 p-4 text-sm text-text">
-              <strong>Draft before launch.</strong> Freetip is not live yet. This
-              page describes how it will work at launch. Details in{" "}
+              <strong>Draft.</strong> Details in{" "}
               <span className="font-medium text-accent">[brackets]</span> are
               still to be filled in, and the text is waiting for legal review.
             </p>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fill } from "@/components/legal/Fill";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
-import { LEGAL_ROBOTS } from "@/lib/legal";
+import { FEES, LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -37,7 +37,11 @@ const SECTIONS: LegalSection[] = [
     title: "How we work",
     body: (
       <ul>
-        <li>One plain fee, the same on every page. No surprises in the payout.</li>
+        <li>
+          Plain pricing, the same on every page: fans pay exactly the tip, and
+          creators pay our {FEES.platformPercent}% fee and a {FEES.gatewayPercent}%
+          processing charge from their payout.
+        </li>
         <li>Fans stay private: an optional name, an anonymous option, no account.</li>
         <li>Creators stay in control of what plays on their stream.</li>
         <li>Samples are labelled as samples. We won’t show numbers we don’t have.</li>
@@ -49,8 +53,8 @@ const SECTIONS: LegalSection[] = [
     title: "Where we are",
     body: (
       <p>
-        {SITE_NAME} is not live yet. You can{" "}
-        <Link href="/signup">join the waitlist</Link> to hear when it opens.
+        Creators can <Link href="/signup">sign up</Link> now and set up their
+        page and alerts.
       </p>
     ),
   },

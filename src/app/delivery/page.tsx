@@ -5,10 +5,10 @@ import { LEGAL_ROBOTS } from "@/lib/legal";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: `Delivery policy: ${SITE_NAME}`,
-  description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`,
+  title: `Shipping and delivery policy: ${SITE_NAME}`,
+  description: `${SITE_NAME} is a digital service with nothing to ship: how tips and payouts are delivered.`,
   alternates: { canonical: "/delivery" },
-  openGraph: { title: `Delivery policy: ${SITE_NAME}`, description: `${SITE_NAME} is a digital service: how tips and payouts are delivered.`, url: "/delivery" },
+  openGraph: { title: `Shipping and delivery policy: ${SITE_NAME}`, description: `${SITE_NAME} is a digital service with nothing to ship: how tips and payouts are delivered.`, url: "/delivery" },
   robots: LEGAL_ROBOTS,
 };
 
@@ -19,8 +19,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         {SITE_NAME} is an online service. We don’t sell or ship physical
-        goods, so there are no shipping charges, delivery addresses or courier
-        times.
+        goods, so there are no shipping charges, delivery addresses, courier
+        times or tracking numbers.
       </p>
     ),
   },
@@ -31,8 +31,9 @@ const SECTIONS: LegalSection[] = [
       <ul>
         <li>
           A tip is delivered the moment the payment succeeds. You see a
-          confirmation on screen with a payment ID; keep it in case you need
-          help.
+          confirmation on screen with a reference; keep it in case you need
+          help. We don’t ask for your email, so we don’t send a receipt; our
+          payment partner may send its own if you gave it your email or phone.
         </li>
         <li>
           The tip is added to the creator’s balance straight away, whether or
@@ -49,6 +50,19 @@ const SECTIONS: LegalSection[] = [
           <Link href="/refunds#failed">failed or pending payments</Link>.
         </li>
       </ul>
+    ),
+  },
+  {
+    id: "records",
+    title: "The records we keep",
+    body: (
+      <p>
+        For each tip we keep the payment reference, when the payment succeeded
+        and when its alert was sent to the creator’s stream. We use them to
+        answer questions about a tip and, if a payment is disputed, to show our
+        payment partner and the bank what happened. How long we keep them is in
+        our <Link href="/privacy#keep">privacy policy</Link>.
+      </p>
     ),
   },
   {
@@ -90,7 +104,7 @@ const SECTIONS: LegalSection[] = [
 export default function DeliveryPage() {
   return (
     <LegalPage
-      title="Delivery policy"
+      title="Shipping and delivery policy"
       path="/delivery"
       intro={
         <p>

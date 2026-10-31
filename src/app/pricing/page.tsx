@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const SECTIONS: LegalSection[] = [
   {
     id: "fee",
-    title: "One fee",
+    title: "What creators pay",
     body: (
       <>
         <p>
@@ -96,9 +96,10 @@ export default function PricingPage() {
       path="/pricing"
       intro={
         <p>
-          One plain fee, shown before you sign up and the same on every page:{" "}
+          Simple pricing, shown before you sign up and the same on every page:{" "}
           {FEES.platformPercent}% of each tip, plus a flat {FEES.gatewayPercent}%
-          processing charge.
+          processing charge, both from the creator’s payout. Fans pay exactly the
+          amount they choose.
         </p>
       }
       sections={SECTIONS}

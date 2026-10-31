@@ -42,7 +42,7 @@ export const LEGAL_DRAFT = true;
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
-export const LEGAL_UPDATED = "30 October 2026";
+export const LEGAL_UPDATED = "31 October 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.
@@ -85,7 +85,8 @@ export function feeBreakdown(rupees: number) {
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
   { name: "Vercel", role: "website hosting and the sound files creators upload", status: "active" },
-  { name: "Neon", role: "database (waitlist entries and contact messages now; accounts and tips later)", status: "active" },
+  { name: "Neon", role: "database (creator accounts, tips, waitlist entries and contact messages)", status: "active" },
   { name: "Resend", role: "emailing us a copy of each contact message (your name, email and message pass through it)", status: "planned" },
-  { name: "Amazon Web Services (Polly)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },
+  { name: "Microsoft Azure (Speech)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },
+  { name: "Amazon Web Services (Polly)", role: "reading a message aloud when Azure is unavailable (the message text only)", status: "planned" },
 ];

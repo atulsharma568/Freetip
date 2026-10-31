@@ -45,7 +45,7 @@ const SECTIONS: LegalSection[] = [
             and which version of this notice you agreed to.
           </li>
         </ul>
-        <h3>If you send a tip (after launch)</h3>
+        <h3>If you send a tip</h3>
         <ul>
           <li>
             the amount, the optional name and message you add, the creator you
@@ -62,12 +62,16 @@ const SECTIONS: LegalSection[] = [
             privacy policy.
           </li>
         </ul>
-        <h3>If you are a creator (after launch)</h3>
+        <h3>If you are a creator</h3>
         <ul>
-          <li>your name, email, phone number, handle, channel link and profile image;</li>
           <li>
-            bank account and identity details needed for KYC and payouts (some
-            of these are collected and checked by our payment partner);
+            your name, email and profile picture from Google, your handle and your
+            YouTube channel (see the next section);
+          </li>
+          <li>the legal name and UPI ID you give us for payouts;</li>
+          <li>
+            any identity details needed for KYC (some of these are collected and
+            checked by our payment partner);
           </li>
           <li>your settings, such as alerts, text-to-speech, approval and banned words;</li>
           <li>tips received, fees, payouts and tax records.</li>
@@ -114,7 +118,8 @@ const SECTIONS: LegalSection[] = [
           We use this information only to link your channel to your Freetip page,
           so fans can tip you and your alerts can show on your stream. It is not
           used for advertising, not sold, and not shared, except with the services
-          listed above that run the site or where the law requires it. Nobody at
+          that run the site (listed under “Who we share it with”) or where the
+          law requires it. Nobody at
           Freetip reads this data except to keep the service secure, to help you
           with your consent, or where the law requires it.
         </p>
@@ -209,7 +214,7 @@ const SECTIONS: LegalSection[] = [
           {PROCESSORS.map((p) => (
             <li key={p.name}>
               <strong>{p.name}</strong>, for {p.role}
-              {p.status === "planned" ? " (from launch)" : ""};
+              {p.status === "planned" ? " (when we switch it on)" : ""};
             </li>
           ))}
           <li>the creator you tip, as described above;</li>
@@ -219,8 +224,10 @@ const SECTIONS: LegalSection[] = [
           </li>
         </ul>
         <p>
-          These services may only use your data to do their job for us. Your
-          data is stored in <Fill k="dataRegion" />. If any of it is processed
+          These services may only use your data to do their job for us. If{" "}
+          {SITE_NAME} is ever sold or merged with another company, your data may
+          pass to the new owner, who must keep to this policy. Your data is
+          stored in <Fill k="dataRegion" />. If any of it is processed
           outside India, it will be only in countries the Government of India
           allows.
         </p>
@@ -295,8 +302,8 @@ const SECTIONS: LegalSection[] = [
       <p>
         Data is encrypted in transit (HTTPS) and at rest with our database
         provider. Access is limited to people who need it to run {SITE_NAME}.
-        Payments are handled by our payment partner, so card and UPI credentials
-        never reach our servers. If a breach affects your data, we will tell you and
+        Payments are handled by our payment partner under the PCI-DSS card security
+        standard, so card and UPI credentials never reach our servers. If a breach affects your data, we will tell you and
         the Data Protection Board of India as the law requires.
       </p>
     ),
