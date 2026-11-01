@@ -63,3 +63,17 @@ export const getTipSounds = cache(async (handle: string): Promise<TipSound[]> =>
     return [];
   }
 });
+
+// The accent colour (migration 0026), read apart so the tip page still loads
+// before the migration is run.
+export const getCreatorAccent = cache(async (handle: string): Promise<string | null> => {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const rows = await db<{ accent: string | null }[]>`select accent from users where handle = ${handle}`;
+    return rows[0]?.accent ?? null;
+  } catch (err) {
+    console.error("Tip page: could not read the accent colour.", err);
+    return null;
+  }
+});

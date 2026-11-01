@@ -1,7 +1,8 @@
 import { getDb } from "@/lib/db";
-import { setCreatorStatus, rejectCreatorOnboarding } from "@/app/actions/admin";
+import { setCreatorStatus, rejectCreatorOnboarding, resetCreatorAccent } from "@/app/actions/admin";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { requireOwner } from "@/lib/owner-auth";
+import { DEFAULT_ACCENT, safeAccent } from "@/lib/accent";
 
 type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
@@ -47,6 +48,17 @@ export default async function AdminCreatorsPage() {
         limit 500
       `
     : [];
+
+  // Page colours (migration 0026), read apart so this page loads before it is run.
+  const accents = new Map<number, string>();
+  if (db && creators.length) {
+    try {
+      const rows = await db<{ id: number; accent: string | null }[]>`select id, accent from users where accent is not null`;
+      for (const r of rows) accents.set(r.id, safeAccent(r.accent));
+    } catch (err) {
+      console.error("Admin creators: could not read the accent colours.", err);
+    }
+  }
 
   if (!creators.length) {
     return (
@@ -105,6 +117,18 @@ export default async function AdminCreatorsPage() {
                   {/* Handle */}
                   <td className="numeric px-4 py-3 text-text">
                     {c.handle ?? <span className="text-muted">not set</span>}
+                    {accents.has(c.id) && accents.get(c.id) !== DEFAULT_ACCENT && (
+                      <form action={resetCreatorAccent.bind(null, c.id)} className="mt-1 flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="inline-block size-3 rounded-full border border-control"
+                          style={{ backgroundColor: accents.get(c.id) }}
+                        />
+                        <button type="submit" className="text-xs text-muted underline-offset-2 hover:text-text hover:underline">
+                          Reset colour
+                        </button>
+                      </form>
+                    )}
                   </td>
 
                   {/* Status */}

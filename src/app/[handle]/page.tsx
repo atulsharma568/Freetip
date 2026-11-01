@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCreator, getTipSounds } from "./creator";
+import { getCreator, getCreatorAccent, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
+import { accentStyle } from "@/lib/accent";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -61,8 +62,11 @@ export default async function CreatorPage({ params }: Props) {
   // The voice is offered only when the site switch and the creator both have it on.
   const voiceMinPaise = ttsAvailable() && creator.tts_enabled ? creator.tts_min_paise : null;
 
+  const themeStyle = accentStyle(await getCreatorAccent(handle));
+
   return (
     <PageShell>
+      <div className="contents" style={themeStyle}>
       <TipForm
         sounds={sounds}
         voiceMinPaise={voiceMinPaise}
@@ -76,6 +80,7 @@ export default async function CreatorPage({ params }: Props) {
         bio={creator.bio}
         previewMode={creator.creator_status !== "active"}
       />
+      </div>
     </PageShell>
   );
 }

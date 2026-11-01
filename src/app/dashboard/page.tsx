@@ -20,6 +20,7 @@ import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { ttsAvailable } from "@/lib/tts";
+import { safeAccent } from "@/lib/accent";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -79,6 +80,17 @@ export default async function DashboardPage() {
       bannedWords = found?.banned_words ?? "";
     } catch (err) {
       console.error("Dashboard: could not read the banned words.", err);
+    }
+  }
+
+  // The accent colour (migration 0026), read apart so the dashboard loads before it is run.
+  let accent: string | null = null;
+  if (db && user) {
+    try {
+      const [found] = await db<{ accent: string | null }[]>`select accent from users where id = ${user.id}`;
+      accent = found?.accent ?? null;
+    } catch (err) {
+      console.error("Dashboard: could not read the accent colour.", err);
     }
   }
 
@@ -289,6 +301,7 @@ export default async function DashboardPage() {
             alertMode={user.alert_mode}
             bio={user.bio ?? ""}
             bannedWords={bannedWords}
+            accent={safeAccent(accent)}
             ttsAvailable={ttsAvailable()}
           />
         </div>

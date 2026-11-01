@@ -8,6 +8,8 @@ import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
+import { presetHex } from "@/lib/accent";
+import { accentFromPicture } from "@/lib/accent-server";
 
 // Handles that map to existing app routes or would cause confusion.
 // Next.js static routes already take precedence over /[handle], but we block
@@ -146,6 +148,9 @@ export async function saveSettings(
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
   const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
   const rawBanned = String(form.get("banned_words") ?? "");
+  // A preset id, "auto" (take it from the picture), "keep" (leave the stored
+  // colour as it is) or nothing (an old form): only the first two change it.
+  const accentChoice = String(form.get("accent") ?? "keep");
 
   if (rawBanned.length > MAX_BANNED_LIST_CHARS) {
     return { status: "error", message: "Banned words list is too long" };
@@ -153,6 +158,9 @@ export async function saveSettings(
   // Stored one per line, cleaned: what the creator sees after saving is what is used.
   const bannedWords = parseBannedWords(rawBanned).join("\n");
 
+  if (accentChoice !== "keep" && accentChoice !== "auto" && !presetHex(accentChoice)) {
+    return { status: "error", message: "Choose a colour from the list" };
+  }
   if (!ALERT_MODES.includes(alertMode)) {
     return { status: "error", message: "Choose how alerts should play" };
   }
@@ -196,6 +204,27 @@ export async function saveSettings(
   } catch (err) {
     console.error("Settings: could not save the banned words.", err);
     return { status: "error", message: "Settings saved, but the banned words could not be saved — try again shortly" };
+  }
+
+  // The colour is last and apart (migration 0026), so every other setting saves
+  // even before it has been run.
+  if (accentChoice !== "keep") {
+    let accent: string | null;
+    if (accentChoice === "auto") {
+      const [row] = await db<{ picture_url: string | null }[]>`select picture_url from users where google_id = ${googleId}`;
+      accent = await accentFromPicture(row?.picture_url ?? null);
+      if (!accent) {
+        return { status: "error", message: "Settings saved, but your picture has no clear colour. Pick one from the list instead" };
+      }
+    } else {
+      accent = presetHex(accentChoice);
+    }
+    try {
+      await db`update users set accent = ${accent} where google_id = ${googleId}`;
+    } catch (err) {
+      console.error("Settings: could not save the accent colour.", err);
+      return { status: "error", message: "Settings saved, but the colour could not be saved. Try again shortly" };
+    }
   }
 
   return { status: "ok" };

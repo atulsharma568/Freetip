@@ -6,6 +6,7 @@ import { TickLoader } from "@/components/ui/TickLoader";
 import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
 import type { AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
+import { ACCENT_PRESETS, inkFor } from "@/lib/accent";
 
 const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
   { value: "instant", label: "Play everything at once", hint: "Name, amount and message show as soon as the tip lands." },
@@ -28,13 +29,23 @@ interface Props {
   alertMode: AlertMode;
   bio: string;
   bannedWords: string;
+  // The stored accent colour, already checked (the default lime when none is set).
+  accent: string;
   // The site-wide voice switch (owner). When off, the voice controls are replaced
   // by a note, and the saved values are kept as they are.
   ttsAvailable: boolean;
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, ttsAvailable }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
+
+  // A stored colour that is not a preset came from "Auto"; it keeps its own swatch.
+  const storedPreset = ACCENT_PRESETS.find((p) => p.hex === accent);
+  const [accentChoice, setAccentChoice] = useState(storedPreset ? storedPreset.id : "keep");
+  const accentOptions = [
+    ...ACCENT_PRESETS.map((p) => ({ id: p.id, label: p.label, hex: p.hex })),
+    ...(storedPreset ? [] : [{ id: "keep", label: "From your picture", hex: accent }]),
+  ];
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [tts, setTts] = useState(ttsEnabled);
@@ -92,6 +103,52 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
         />
         <p className="text-xs text-muted">Shown on your public tip page.</p>
       </div>
+
+      {/* Page colour */}
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium uppercase tracking-widest text-muted">Page colour</legend>
+        <div role="radiogroup" aria-label="Page colour" className="flex flex-wrap gap-2">
+          {accentOptions.map((o) => {
+            const on = accentChoice === o.id;
+            return (
+              <label key={o.id} className="cursor-pointer" title={o.label}>
+                <input
+                  type="radio"
+                  name="accent"
+                  value={o.id}
+                  checked={on}
+                  onChange={() => setAccentChoice(o.id)}
+                  className="peer sr-only"
+                />
+                <span
+                  aria-hidden="true"
+                  className="flex size-11 items-center justify-center rounded-full border-2 border-transparent text-base font-semibold ring-offset-2 ring-offset-surface transition-[transform,box-shadow] peer-focus-visible:ring-2 peer-focus-visible:ring-text active:scale-[0.95]"
+                  style={{ backgroundColor: o.hex, color: inkFor(o.hex), boxShadow: on ? "0 0 0 2px var(--color-text)" : undefined }}
+                >
+                  {on ? "✓" : ""}
+                </span>
+                <span className="sr-only">{o.label}</span>
+              </label>
+            );
+          })}
+          <label className="cursor-pointer" title="Pick a colour from your profile picture">
+            <input
+              type="radio"
+              name="accent"
+              value="auto"
+              checked={accentChoice === "auto"}
+              onChange={() => setAccentChoice("auto")}
+              className="peer sr-only"
+            />
+            <span
+              className="flex h-11 items-center rounded-full border border-control px-4 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text"
+            >
+              Auto from my picture
+            </span>
+          </label>
+        </div>
+        <p className="text-xs text-muted">Colours your public tip page. Save to apply.</p>
+      </fieldset>
 
       {/* Min tip */}
       <div className="space-y-2">

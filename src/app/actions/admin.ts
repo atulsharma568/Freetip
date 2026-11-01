@@ -44,6 +44,17 @@ export async function setCreatorStatus(
   revalidatePath("/admin/creators");
 }
 
+// Puts a creator's tip-page colour back to the default lime (the owner's takedown
+// for a colour that clashes with the site or looks like someone else's brand).
+export async function resetCreatorAccent(creatorId: number): Promise<void> {
+  await requireOwner();
+  if (!Number.isSafeInteger(creatorId) || creatorId < 1) return;
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db`update users set accent = null where id = ${creatorId}`;
+  revalidatePath("/admin/creators");
+}
+
 export async function rejectCreatorOnboarding(creatorId: number): Promise<void> {
   await requireOwner();
 
