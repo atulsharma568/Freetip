@@ -1,3 +1,5 @@
+import { TONE_BORDER, TONE_MARK, TONE_TEXT } from "./tones";
+
 export function MetricCard({
   label,
   value,
@@ -13,10 +15,8 @@ export function MetricCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-5 ${
-        accent
-          ? "border-accent/30 bg-surface"
-          : "border-control bg-surface"
+      className={`rounded-surface border p-5 ${
+        accent ? "border-accent/30 bg-surface" : "border-control bg-surface"
       }`}
     >
       <p className="text-sm text-muted">{label}</p>
@@ -28,7 +28,7 @@ export function MetricCard({
         {value}
       </p>
       {sub && <p className="mt-1 font-mono text-sm text-muted tabular-nums">{sub}</p>}
-      {note && <p className="mt-2 text-xs text-muted/70">{note}</p>}
+      {note && <p className="mt-2 text-xs text-muted">{note}</p>}
     </div>
   );
 }
@@ -41,20 +41,13 @@ export function ExceptionCard({
   disputes: number;
 }) {
   const total = exceptions + disputes;
-  const hasIssues = total > 0;
+  const tone = total > 0 ? "bad" : "neutral";
 
   return (
-    <div
-      className={`rounded-2xl border p-5 ${
-        hasIssues ? "border-red-500/40 bg-surface" : "border-control bg-surface"
-      }`}
-    >
+    <div className={`rounded-surface border bg-surface p-5 ${TONE_BORDER[tone]}`}>
       <p className="text-sm text-muted">Exceptions</p>
-      <p
-        className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${
-          hasIssues ? "text-red-400" : "text-text"
-        }`}
-      >
+      <p className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${total > 0 ? TONE_TEXT.bad : "text-text"}`}>
+        {total > 0 && <span aria-hidden="true">{TONE_MARK.bad} </span>}
         {total}
       </p>
       {(exceptions > 0 || disputes > 0) && (
@@ -64,9 +57,7 @@ export function ExceptionCard({
           {disputes > 0 && `${disputes} dispute${disputes !== 1 ? "s" : ""}`}
         </p>
       )}
-      {total === 0 && (
-        <p className="mt-1 text-xs text-muted/70">No open issues</p>
-      )}
+      {total === 0 && <p className="mt-1 text-xs text-muted">No open issues</p>}
     </div>
   );
 }

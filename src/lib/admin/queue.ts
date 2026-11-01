@@ -1,0 +1,87 @@
+import type { LedgerDb } from "../accrual";
+import { CLOSED_EMAIL_DOMAIN } from "../account-close";
+import { load, toWhole, type Loaded } from "./result";
+
+// What is waiting for the owner. Each count is read on its own, so a table that
+// does not exist yet (a migration not run) shows as "could not read" for that one
+// line and never as zero.
+
+export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators";
+
+export interface QueueItem {
+  key: QueueKey;
+  label: string;
+  href: string;
+  count: Loaded<number>;
+}
+
+const closed = `%${CLOSED_EMAIL_DOMAIN}`;
+
+async function count(db: LedgerDb, which: QueueKey): Promise<number> {
+  switch (which) {
+    case "pendingCreators": {
+      const [r] = await db<{ n: string }[]>`
+        select count(*)::text as n from users
+         where creator_status = 'pending' and email not like ${closed}
+      `;
+      return toWhole(r.n);
+    }
+    case "awaitingCreators": {
+      const [r] = await db<{ n: string }[]>`
+        select count(*)::text as n from users
+         where (creator_status = 'pending' or onboarding_state = 'submitted') and email not like ${closed}
+      `;
+      return toWhole(r.n);
+    }
+    case "submittedSetups": {
+      const [r] = await db<{ n: string }[]>`
+        select count(*)::text as n from users
+         where onboarding_state = 'submitted' and email not like ${closed}
+      `;
+      return toWhole(r.n);
+    }
+    case "newMessages": {
+      const [r] = await db<{ n: string }[]>`select count(*)::text as n from contact_messages where status = 'new'`;
+      return toWhole(r.n);
+    }
+    case "handleRequests": {
+      const [r] = await db<{ n: string }[]>`select count(*)::text as n from handle_requests where status = 'pending'`;
+      return toWhole(r.n);
+    }
+  }
+}
+
+const ITEMS: { key: QueueKey; label: string; href: string }[] = [
+  { key: "pendingCreators", label: "Creators waiting for approval", href: "/admin/creators?tab=pending" },
+  { key: "submittedSetups", label: "Payout setups submitted", href: "/admin/creators?tab=submitted" },
+  { key: "newMessages", label: "New contact messages", href: "/admin/messages?status=new" },
+  { key: "handleRequests", label: "Handle change requests", href: "/admin/handle-requests" },
+];
+
+export interface Queue {
+  items: QueueItem[];
+  // Creators who need approval or a payout-setup decision (each counted once).
+  awaitingCreators: Loaded<number>;
+}
+
+export async function getQueue(db: LedgerDb): Promise<Queue> {
+  const [items, awaitingCreators] = await Promise.all([
+    Promise.all(ITEMS.map(async (item) => ({ ...item, count: await load(item.label, () => count(db, item.key)) }))),
+    load("creators awaiting action", () => count(db, "awaitingCreators")),
+  ]);
+  return { items, awaitingCreators };
+}
+
+// The sidebar badges: nav href -> how many are waiting. A count that could not be
+// read gets no badge.
+export function badgesFrom(queue: Queue): Record<string, number> {
+  const n = (key: QueueKey) => {
+    const q = queue.items.find((i) => i.key === key);
+    return q && q.count.ok ? q.count.data : 0;
+  };
+  return {
+    "/admin/creators": queue.awaitingCreators.ok ? queue.awaitingCreators.data : 0,
+    "/admin/messages": n("newMessages"),
+    "/admin/handle-requests": n("handleRequests"),
+  };
+}

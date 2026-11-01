@@ -2,13 +2,13 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { PageShell } from "@/components/PageShell";
 import { SITE_NAME } from "@/lib/site";
 import {
   MAX_SOUNDS_PER_CREATOR,
   MAX_SOUND_BYTES_PER_CREATOR,
 } from "@/lib/sounds";
 import { DashboardNav } from "../DashboardNav";
+import { DashboardShell } from "../parts/DashboardShell";
 import { SoundsManager, type SoundRow } from "./SoundsManager";
 
 export const metadata: Metadata = {
@@ -23,8 +23,10 @@ export default async function SoundsPage() {
 
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
-  const [user] = await db<{ id: number; handle: string | null; default_sound_id: number | null }[]>`
-    select id, handle, default_sound_id from users where google_id = ${googleId}
+  const [user] = await db<
+    { id: number; handle: string | null; default_sound_id: number | null; creator_status: string }[]
+  >`
+    select id, handle, default_sound_id, creator_status from users where google_id = ${googleId}
   `;
   // Sounds belong to a tip page, so there is nothing to manage until there is a link.
   if (!user?.handle) redirect("/dashboard");
@@ -62,11 +64,11 @@ export default async function SoundsPage() {
   const usedBytes = rows.reduce((sum, r) => sum + r.size_bytes, 0);
 
   return (
-    <PageShell>
-      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-16">
+    <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="sounds" />
-          <h1 className="display text-[clamp(2rem,8vw,3rem)]">Sounds</h1>
+          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Sounds</h1>
           <p className="text-pretty text-base text-muted">
             Upload short clips for your stream. Fans can pick one on your tip page, and it plays
             with their alert. Set a minimum tip for each, and choose one that plays when a fan
@@ -84,6 +86,6 @@ export default async function SoundsPage() {
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
         />
       </div>
-    </PageShell>
+    </DashboardShell>
   );
 }

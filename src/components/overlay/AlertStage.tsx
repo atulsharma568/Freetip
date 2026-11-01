@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { tipTierLevel } from "@/lib/tip-tier";
+import { wordTimings } from "./speech-words";
+import { STAGE_CSS, useStageSize } from "./stage";
 
 export interface OverlayAlert {
   id: number;
@@ -12,6 +15,9 @@ export interface OverlayAlert {
   speech?: boolean;
   // The creator's alert sound (live overlay only): played before the voice.
   sound?: { url: string; volume: number; ms: number } | null;
+  // A made-up alert from the dashboard's test button: the card wears a TEST badge so
+  // it is never mistaken for a real tip.
+  test?: boolean;
 }
 
 // An alert in the queue, with its speech already downloaded so the voice starts
@@ -119,14 +125,13 @@ function rupees(paise: number) {
 // Live: pass `token` and it polls /api/overlay/<token>.
 // Preview: pass `samples` and it replays them. Neither touches the database.
 //
-// Sizes come from one unit, --u = 1% of the stage width, set from the stage's
-// own measured size. That makes the same markup right at 1920x1080, 2560x1440
-// and 1080x1920 (and in the dashboard preview box) without viewport or
-// container units, which older OBS browsers may not support. A stage taller
-// than it is wide switches to the stacked vertical layout.
+// Sizes come from one unit, --u = 1% of the stage width (see stage.ts), so the same
+// markup is right at 1920x1080, 2560x1440 and 1080x1920 (and in the dashboard
+// preview box). A stage taller than it is wide switches to the stacked vertical
+// layout. The card is the landing page's alert: a full lime field with ink text, the
+// amount in mono, and it grows with the tip (tip-tier.ts thresholds).
 export function AlertStage({ token, samples }: { token?: string; samples?: OverlayAlert[] }) {
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 1920, h: 1080 });
+  const { ref: stageRef, w: stageW, portrait } = useStageSize();
   const [current, setCurrent] = useState<QueuedAlert | null>(null);
   const [invalid, setInvalid] = useState(false);
   const queue = useRef<QueuedAlert[]>([]);
@@ -159,21 +164,14 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
     };
   }, [token]);
 
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const measure = () => setSize({ w: el.clientWidth || 1920, h: el.clientHeight || 1080 });
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   // Source of alerts.
   useEffect(() => {
     if (samples) {
       const push = () => {
-        queue.current.push({ ...samples[seen.current % samples.length], id: seen.current });
+        const sample = samples[seen.current % samples.length];
+        // No voice in a preview: pretend one, so the word highlight can be seen.
+        const speechMs = sample.message ? sample.message.split(/\s+/).length * 380 : undefined;
+        queue.current.push({ ...sample, id: seen.current, speechMs });
         seen.current += 1;
       };
       push();
@@ -221,6 +219,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
                 name: "Test alert",
                 amountPaise: 4900,
                 message: "This is a test from your dashboard.",
+                test: true,
               });
             }
           }
@@ -293,62 +292,116 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
     return () => clearInterval(t);
   }, [current, token]);
 
-  const portrait = size.h > size.w;
-
   return (
     <div
       ref={stageRef}
       className={`ov-stage${portrait ? " ov-portrait" : ""}`}
-      style={{ "--u": `${size.w / 100}px` } as React.CSSProperties}
+      style={{ "--u": `${stageW / 100}px` } as React.CSSProperties}
     >
-      <style>{CSS}</style>
+      <style>{STAGE_CSS + CSS}</style>
       {invalid && (
         <p className="ov-invalid">This overlay link is no longer valid. Create a new one in your dashboard.</p>
       )}
-      {current && (
-        <div
-          key={`${current.id}-${current.kind}`}
-          className="ov-card"
-          style={{ "--dur": `${showMs(current)}ms` } as React.CSSProperties}
-          role="status"
-        >
-          <p className="ov-line">
-            <span className="ov-name">{current.name}</span>
-            {current.kind === "alert" && (
-              <span className="ov-amount">₹{rupees(current.amountPaise)}</span>
-            )}
-          </p>
-          {current.message && <p className="ov-message">{current.message}</p>}
-        </div>
+      {current && <Card key={`${current.id}-${current.kind}`} alert={current} />}
+    </div>
+  );
+}
+
+function Card({ alert }: { alert: QueuedAlert }) {
+  const isAlert = alert.kind === "alert";
+  const amount = rupees(alert.amountPaise);
+  const level = tipTierLevel(alert.amountPaise / 100);
+  // The sound plays first and the voice follows it, so the words start after it.
+  const leadMs = alert.clip && alert.sound ? alert.sound.ms : 0;
+  const timings = alert.message && alert.speechMs ? wordTimings(alert.message, alert.speechMs, leadMs) : null;
+  const name = alert.name || "Anonymous";
+
+  return (
+    <div
+      className={`ov-card ov-t${level}`}
+      style={
+        {
+          "--dur": `${showMs(alert)}ms`,
+          // Long amounts shrink a little so they never wrap or overflow the card.
+          "--fit": Math.min(1, 7 / (amount.length + 1)),
+        } as React.CSSProperties
+      }
+      data-test={alert.test ? "true" : undefined}
+      role="status"
+    >
+      <p className="ov-top">
+        <span className="ov-name">
+          {name}
+          {!alert.test && <span className="ov-verb">{isAlert ? " tipped" : " says"}</span>}
+        </span>
+        {alert.test && <span className="ov-test">TEST</span>}
+      </p>
+      {isAlert && <p className="ov-amount ov-mono">₹{amount}</p>}
+      {alert.message && (
+        <p className="ov-message">
+          {timings
+            ? timings.map((t, i) => (
+                <span key={i}>
+                  {i > 0 && " "}
+                  <span
+                    className="ov-w"
+                    style={{ "--ws": `${t.startMs}ms`, "--wd": `${t.durMs}ms` } as React.CSSProperties}
+                  >
+                    {t.word}
+                  </span>
+                </span>
+              ))
+            : alert.message}
+        </p>
       )}
     </div>
   );
 }
 
+// Sizes are in --u. --s grows the landscape card with the tip, --sp the portrait one
+// (portrait is narrower, so it grows less). Motion is a wipe from the top edge in and
+// out, like the landing page's alert; reduced motion gets a plain fade. The lit word
+// is an ink pill with accent text that switches on and off with no fade.
 const CSS = `
-.ov-stage { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: var(--font-bricolage), system-ui, sans-serif; }
 .ov-card {
-  position: absolute; left: 50%; bottom: calc(var(--u) * 6);
-  width: calc(var(--u) * 36); padding: calc(var(--u) * 1.6) calc(var(--u) * 2);
-  background: #12130e; color: #f2f3ec; border-left: calc(var(--u) * 0.45) solid var(--ov-accent, #bfe84a);
-  border-radius: calc(var(--u) * 1); overflow-wrap: anywhere;
-  transform: translateX(-50%);
-  animation: ov-in 450ms cubic-bezier(.2,.8,.2,1) both, ov-out 400ms ease-in calc(var(--dur) - 400ms) forwards;
+  --s: 1; --sp: 1; --fit: 1;
+  position: absolute; left: 50%; bottom: calc(var(--u) * 6); transform: translateX(-50%);
+  box-sizing: border-box; width: calc(var(--u) * 30 * var(--s)); max-width: 96%;
+  padding: calc(var(--u) * 1.8 * var(--s)) calc(var(--u) * 2.2 * var(--s));
+  background: var(--ov-lime); color: var(--ov-on-lime);
+  border-radius: calc(var(--u) * 1.04); overflow-wrap: anywhere;
+  animation: ov-wipe-in 600ms cubic-bezier(.16,1,.3,1) both, ov-wipe-out 450ms cubic-bezier(.7,0,.84,0) calc(var(--dur) - 450ms) forwards;
 }
-.ov-line { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: calc(var(--u) * 1.5); }
-.ov-name { font-size: calc(var(--u) * 1.8); font-weight: 600; }
-.ov-amount { font-size: calc(var(--u) * 3.2); font-weight: 700; color: var(--ov-accent, #bfe84a); white-space: nowrap; }
-.ov-message { margin: calc(var(--u) * 0.8) 0 0; font-size: calc(var(--u) * 1.8); line-height: 1.3; color: #c9cbbd; }
-.ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4) calc(var(--u) * 5); border-left-width: calc(var(--u) * 1.2); border-radius: calc(var(--u) * 3); }
-.ov-portrait .ov-name { font-size: calc(var(--u) * 5.2); }
-.ov-portrait .ov-amount { font-size: calc(var(--u) * 9); }
-.ov-portrait .ov-message { font-size: calc(var(--u) * 5); margin-top: calc(var(--u) * 2.4); }
-.ov-invalid { position: absolute; inset: auto 0 0 0; margin: 0; padding: 12px; font-size: 14px; color: #f2f3ec; background: #12130e; }
-@keyframes ov-in { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes ov-out { to { opacity: 0; transform: translate(-50%, 20px); } }
+.ov-t1 { --s: 1.12; --sp: 1.05; }
+.ov-t2 { --s: 1.25; --sp: 1.1; }
+.ov-t3 { --s: 1.4; --sp: 1.16; }
+.ov-top { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 1.8); font-weight: 600; line-height: 1.2; }
+.ov-verb { font-weight: 500; }
+.ov-test {
+  margin-left: auto; padding: calc(var(--u) * 0.25) calc(var(--u) * 0.9); border-radius: 9999px;
+  background: var(--ov-on-lime); color: var(--ov-lime);
+  font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: calc(var(--u) * 1.2); font-weight: 600; letter-spacing: 0.12em;
+}
+.ov-amount { margin: calc(var(--u) * 0.6) 0 0; font-size: calc(var(--u) * 5.4 * var(--s) * var(--fit)); font-weight: 600; line-height: 1; letter-spacing: -0.025em; white-space: nowrap; }
+.ov-message { margin: calc(var(--u) * 1.3) 0 0; font-size: calc(var(--u) * 1.9); font-weight: 500; line-height: 1.35; word-spacing: 0.25em; }
+.ov-w { display: inline-block; margin: 0 calc(var(--u) * -0.35); padding: calc(var(--u) * 0.08) calc(var(--u) * 0.35); border-radius: 9999px; animation: ov-word var(--wd) linear var(--ws) 1; }
+.ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4.5 * var(--sp)) calc(var(--u) * 5.5); border-radius: calc(var(--u) * 2.2); }
+.ov-portrait .ov-top { font-size: calc(var(--u) * 4.6); gap: calc(var(--u) * 2); }
+.ov-portrait .ov-test { font-size: calc(var(--u) * 3); padding: calc(var(--u) * 0.6) calc(var(--u) * 2.2); }
+.ov-portrait .ov-amount { margin-top: calc(var(--u) * 1.4); font-size: calc(var(--u) * 13 * var(--sp) * var(--fit)); }
+.ov-portrait .ov-message { margin-top: calc(var(--u) * 3); font-size: calc(var(--u) * 5); }
+.ov-portrait .ov-w { margin: 0 calc(var(--u) * -0.8); padding: calc(var(--u) * 0.2) calc(var(--u) * 0.8); }
+.ov-invalid {
+  position: absolute; inset: auto 0 0 0; margin: 0; padding: calc(var(--u) * 1.2) calc(var(--u) * 2);
+  font-size: calc(var(--u) * 1.7); font-weight: 500; line-height: 1.3; color: var(--ov-chalk); background: var(--ov-night);
+}
+.ov-portrait .ov-invalid { font-size: calc(var(--u) * 4.4); padding: calc(var(--u) * 3) calc(var(--u) * 5); }
+@keyframes ov-wipe-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes ov-wipe-out { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+@keyframes ov-word { from, to { background: var(--ov-on-lime); color: var(--ov-lime); } }
 @media (prefers-reduced-motion: reduce) {
   .ov-card { animation: ov-fade 200ms both, ov-fade-out 200ms linear calc(var(--dur) - 200ms) forwards; }
-  @keyframes ov-fade { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes ov-fade-out { to { opacity: 0; } }
 }
+@keyframes ov-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ov-fade-out { to { opacity: 0; } }
 `;

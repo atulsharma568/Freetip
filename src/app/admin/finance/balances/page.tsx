@@ -1,3 +1,4 @@
+import { fmtIST } from "@/lib/admin/format";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { getCreatorBalances, type BalancesSummary, type CreatorBalanceRow } from "@/lib/admin/balance-queries";
@@ -10,18 +11,12 @@ import { CouldNotRead, DefinitionNote, FinanceNotSetUp } from "../../_components
 export const dynamic = "force-dynamic";
 
 function fmt(date: Date | null): string {
-  if (!date) return "—";
-  return date.toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return fmtIST(date, "date");
 }
 
 // A negative balance keeps its minus sign and its colour; it is never rounded up.
 function Signed({ minor }: { minor: number }) {
-  return <span className={minor < 0 ? "text-red-400" : undefined}>{formatINR(minor)}</span>;
+  return <span className={minor < 0 ? "text-red-300" : undefined}>{formatINR(minor)}</span>;
 }
 
 export default async function CreatorBalancesPage() {
@@ -70,11 +65,7 @@ function Body({ summary }: { summary: BalancesSummary }) {
     <>
       <p className="text-xs text-muted">
         Data as of{" "}
-        {summary.fetchedAt.toLocaleString("en-IN", {
-          timeZone: "Asia/Kolkata",
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}{" "}
+        {fmtIST(summary.fetchedAt)}{" "}
         IST
       </p>
 
@@ -94,21 +85,21 @@ function Body({ summary }: { summary: BalancesSummary }) {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-control">
+      <div className="overflow-x-auto rounded-surface border border-control">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-control bg-surface/60">
-              <th className="px-4 py-3 text-left font-medium text-muted">Creator</th>
-              <th className="px-4 py-3 text-right font-medium text-muted">Balance</th>
-              <th className="px-4 py-3 text-right font-medium text-muted">Held</th>
-              <th className="px-4 py-3 text-right font-medium text-muted">Available</th>
-              <th className="px-4 py-3 text-right font-medium text-muted">Next release</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
+            <tr className="border-b border-control bg-raised">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Creator</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Balance</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Held</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Available</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Next release</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-control">
+          <tbody className="divide-y divide-control bg-surface">
             {rows.map((r) => (
-              <tr key={r.creatorId} className="transition-colors hover:bg-surface/40">
+              <tr key={r.creatorId} className="transition-colors hover:bg-raised">
                 <td className="px-4 py-3">
                   <p className="font-medium text-text">{r.name ?? "—"}</p>
                   {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { GoalBar } from "@/components/overlay/GoalBar";
+import { overlayVars } from "@/components/overlay/vars";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
 import { getOverlayAccent } from "@/lib/overlay-accent";
 
@@ -21,7 +22,7 @@ export default async function GoalOverlayPage({ params }: Props) {
   return (
     <>
       <style>{`html, body { background: transparent !important; overflow: hidden; }`}</style>
-      <div style={{ position: "fixed", inset: 0, "--ov-accent": accent } as React.CSSProperties}>
+      <div style={overlayVars(accent)}>
         <GoalBar token={token} />
       </div>
     </>

@@ -1,13 +1,20 @@
 import { dailyBars, formatRupees, shortDay } from "@/lib/earnings";
 import type { DayRow } from "./queries";
+import { Tile } from "./parts/Tile";
+import { EmptyState } from "./parts/EmptyState";
+import { CopyButton } from "./parts/CopyButton";
+import { pillOutline } from "./parts/styles";
 
 const W = 300;
 const H = 100;
 
+// Heights of the sample bars shown before any tip has landed.
+const SAMPLE_BARS = [18, 34, 26, 52, 40, 72, 58];
+
 // Gross tips per India day, one series, so no legend or second axis. The bars
 // are drawn on the server; each has a native tooltip, and the table below the
 // chart carries the same numbers as text.
-export function DailyChart({ days }: { days: DayRow[] }) {
+export function DailyChart({ days, shareUrl }: { days: DayRow[]; shareUrl: string }) {
   const total = days.reduce((n, d) => n + d.count, 0);
   const peak = Math.max(...days.map((d) => d.grossPaise), 0);
   const bars = dailyBars(days, W, H);
@@ -15,23 +22,23 @@ export function DailyChart({ days }: { days: DayRow[] }) {
   const active = days.filter((d) => d.count > 0).reverse();
 
   return (
-    <section aria-labelledby="daily-heading" className="space-y-4">
-      <h2
-        id="daily-heading"
-        className="text-sm font-medium uppercase tracking-widest text-muted"
-      >
-        Tips per day, last {days.length} days
-      </h2>
-
+    <Tile id="daily" title={`Tips per day, last ${days.length} days`}>
       {total === 0 ? (
-        <p className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 text-muted">
-          No tips in the last {days.length} days. The chart fills in once fans have paid.
-        </p>
+        <EmptyState
+          sample={
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block h-28 w-full rounded-field bg-ground">
+              {SAMPLE_BARS.map((h, i) => (
+                <rect key={i} x={12 + i * 41} y={H - h} width={26} height={h} rx="2" className="fill-control" />
+              ))}
+            </svg>
+          }
+          title={`No tips in the last ${days.length} days.`}
+          body="The chart fills in once fans have paid. The bars above are a sample."
+          cta={<CopyButton value={shareUrl} label="Share your link" className={pillOutline} />}
+        />
       ) : (
-        <div className="space-y-2 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5">
-          <p className="numeric text-sm text-muted">
-            Busiest day {formatRupees(peak)}
-          </p>
+        <div className="space-y-2">
+          <p className="numeric text-sm text-muted">Busiest day {formatRupees(peak)}</p>
           <svg
             viewBox={`0 0 ${W} ${H}`}
             preserveAspectRatio="none"
@@ -61,7 +68,7 @@ export function DailyChart({ days }: { days: DayRow[] }) {
       )}
 
       {total > 0 && (
-        <details className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5">
+        <details className="rounded-field border border-line/60 p-4">
           <summary className="cursor-pointer text-sm text-text">Show as a table</summary>
           <table className="mt-4 w-full text-left text-sm">
             <caption className="sr-only">Tips per day, newest first, days with tips only</caption>
@@ -84,6 +91,6 @@ export function DailyChart({ days }: { days: DayRow[] }) {
           </table>
         </details>
       )}
-    </section>
+    </Tile>
   );
 }

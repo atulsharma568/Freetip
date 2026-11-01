@@ -1,76 +1,114 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { getAuditPage, getLastFeatureChange } from "@/lib/admin/audit-queries";
 import { getCreatorDetail } from "@/lib/admin/creator-detail";
-import { formatINR } from "@/lib/admin/result";
+import { CLOSED_EMAIL_DOMAIN } from "@/lib/account-close";
+import { fmtIST } from "@/lib/admin/format";
+import { formatINR, load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
 import { setCreatorFeatures } from "@/app/actions/admin";
-import { FEATURES } from "@/lib/plans";
-import { CouldNotRead, FinanceNotSetUp } from "../../_components/Notices";
+import { CouldNotRead, DatabaseNotSetUp } from "../../_components/Notices";
+import { CreatorActions } from "../../_components/CreatorActions";
+import { PageHeader } from "../../_components/PageHeader";
+import { FeaturesForm } from "./FeaturesForm";
 
 export const dynamic = "force-dynamic";
-
-const when = (d: Date) =>
-  d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
 
 export default async function CreatorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireOwner();
   const { id } = await params;
   if (!/^\d{1,12}$/.test(id)) notFound();
+  const creatorId = Number(id);
   const db = adminDb();
-  if (!db) return <FinanceNotSetUp />;
-  const result = await getCreatorDetail(db, Number(id));
-  if (!result.ok) return <CouldNotRead detail={result.error} />;
+  if (!db) return <DatabaseNotSetUp />;
+  const result = await getCreatorDetail(db, creatorId);
+  if (!result.ok) return <CouldNotRead message="Could not read this creator." detail={result.error} />;
   const c = result.data;
   if (!c) notFound();
 
-  // Paid features (migration 0035), read apart so this page loads before it is run.
-  let granted: string[] | null = [];
-  try {
-    const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${Number(id)}`;
-    granted = f?.paid_features ?? [];
-  } catch (err) {
-    console.error("Admin creator: could not read the paid features (migration 0035 run?).", err);
-    granted = null;
-  }
-  const save = setCreatorFeatures.bind(null, Number(id));
-  const groups = [...new Set(FEATURES.map((f) => f.group))];
+  // Each of these is read apart so one missing migration only affects its own box.
+  const [featuresRead, lastChange, audit] = await Promise.all([
+    load("the paid features", async () => {
+      const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
+      return f?.paid_features ?? [];
+    }),
+    getLastFeatureChange(db, creatorId),
+    getAuditPage(db, { creatorId }, 5),
+  ]);
+
+  const closed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
+  const status = c.creatorStatus as "pending" | "active" | "suspended";
+  const enc = encodeURIComponent;
 
   const rows: [string, string][] = [
     ["Email", c.email],
     ["Handle", c.handle ?? "not set"],
     ["Previous handle", c.previousHandle ? `${c.previousHandle} (changed once, stays reserved)` : "—"],
-    ["Status", c.creatorStatus],
-    ["Payout setup", c.onboardingState.replace("_", " ")],
     ["Legal name", c.legalName ?? "—"],
     ["UPI ID", c.upiVpa ?? "—"],
     ["YouTube channel", c.ytChannelName ?? "—"],
-    ["Joined", when(c.createdAt)],
+    ["Joined", fmtIST(c.createdAt)],
     ["Captured tips", `${c.capturedCount} (${formatINR(c.capturedMinor)} gross)`],
   ];
 
+  const linkClass =
+    "inline-flex min-h-9 items-center rounded-full border border-control px-4 text-xs text-muted transition-colors hover:border-text/40 hover:text-text";
+
   return (
     <div className="space-y-8">
-      <div className="space-y-1">
-        <Link href="/admin/creators" className="text-sm text-muted hover:text-text">
-          ← Creators
-        </Link>
-        <h1 className="text-xl font-semibold text-text">{c.name ?? c.email}</h1>
-        <p className="text-xs text-muted">
-          Gross is what fans paid, from the tips table. What the creator is owed is on{" "}
-          <Link href="/admin/finance/balances" className="underline">
-            Balances
+      <PageHeader
+        eyebrow="Creator"
+        title={c.name ?? c.email}
+        back={{ href: "/admin/creators", label: "Creators" }}
+        note={
+          <>
+            Gross is what fans paid, from the tips table. What the creator is owed is on{" "}
+            <Link href="/admin/finance/balances" className="underline">
+              Balances
+            </Link>
+            .
+          </>
+        }
+      />
+
+      <section aria-label="Status and actions" className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={closed ? "closed" : c.creatorStatus} />
+          <StatusBadge status={c.onboardingState} />
+          <span className="text-xs text-muted">payout setup</span>
+        </div>
+        <CreatorActions
+          id={c.id}
+          handle={c.handle}
+          creatorStatus={status}
+          onboardingState={c.onboardingState}
+          closed={closed}
+        />
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Link href={`/admin/audit?creator=${c.id}`} className={linkClass}>
+            Audit history
           </Link>
-          . Actions (approve, suspend, close) stay on the creators list.
-        </p>
-      </div>
+          {c.handle && (
+            <Link href={`/admin/finance/payments?q=${enc(c.handle)}`} className={linkClass}>
+              Payments this month
+            </Link>
+          )}
+          {!closed && (
+            <Link href={`/admin/messages?q=${enc(c.email)}`} className={linkClass}>
+              Messages from this email
+            </Link>
+          )}
+        </div>
+      </section>
 
       <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
             <dt className="text-muted">{k}</dt>
-            <dd className="text-text break-all">{v}</dd>
+            <dd className="break-all text-text">{v}</dd>
           </div>
         ))}
       </dl>
@@ -78,70 +116,47 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
       <section className="space-y-3">
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-text">Paid features</h2>
-          <p className="text-xs text-muted">
-            Everything is off until you tick it here, for this creator only. Creators never see a plan or a price;
-            a feature that is off is simply not shown to them. Planned features that are not built yet are listed
-            so you can see what is coming, but cannot be switched on.
+          <p className="max-w-2xl text-xs text-muted">
+            Everything is off until you tick it here, for this creator only. Creators never see a plan or a price; a
+            feature that is off is simply not shown to them. Planned features are listed so you can see what is coming,
+            but cannot be switched on.
           </p>
         </div>
-        {granted === null ? (
-          <p role="alert" className="rounded-2xl border border-control bg-surface px-4 py-3 text-sm text-text">
-            Could not read the switches. Run migration 0035 in Neon.
-          </p>
+        {!featuresRead.ok ? (
+          <CouldNotRead message="Could not read the switches. Run migration 0035 in Neon." detail={featuresRead.error} />
         ) : (
-          <form action={save} className="space-y-4">
-            {groups.map((group) => (
-              <fieldset key={group} className="space-y-2 rounded-2xl border border-control p-4">
-                <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{group}</legend>
-                {FEATURES.filter((f) => f.group === group).map((f) => {
-                  const on = granted.includes(f.key);
-                  return (
-                    <label key={f.key} className={`flex items-start gap-3 text-sm ${f.built ? "" : "opacity-60"}`}>
-                      <input
-                        type="checkbox"
-                        name="feature"
-                        value={f.key}
-                        defaultChecked={f.built && on}
-                        disabled={!f.built}
-                        className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
-                      />
-                      <span>
-                        <span className="text-text">{f.label}</span>
-                        {f.needsTimestamps && <span className="text-muted"> (needs Stream timestamps)</span>}
-                        <span className="block text-xs text-muted">{f.description}</span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </fieldset>
+          <FeaturesForm
+            key={featuresRead.data.join(",")}
+            action={setCreatorFeatures.bind(null, c.id)}
+            granted={featuresRead.data}
+            lastChanged={
+              !lastChange.ok ? "(could not read the audit history)" : lastChange.data ? fmtIST(lastChange.data.at) : null
+            }
+          />
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-text">Latest audit events</h2>
+          <Link href={`/admin/audit?creator=${c.id}`} className="text-xs text-muted underline hover:text-text">
+            See all
+          </Link>
+        </div>
+        {!audit.ok ? (
+          <CouldNotRead message="Could not read the audit history." detail={audit.error} />
+        ) : audit.data.rows.length === 0 ? (
+          <p className="text-sm text-muted">Nothing recorded for this creator yet.</p>
+        ) : (
+          <ul className="divide-y divide-control rounded-surface border border-control bg-surface text-sm">
+            {audit.data.rows.map((e) => (
+              <li key={e.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
+                <span className="numeric text-text">{e.action}</span>
+                <span className="text-muted">{e.reason ?? ""}</span>
+                <span className="text-muted">{fmtIST(e.at)}</span>
+              </li>
             ))}
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                name="intent"
-                value="save"
-                className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-ink"
-              >
-                Save
-              </button>
-              <button
-                type="submit"
-                name="intent"
-                value="all"
-                className="rounded-xl border border-control px-4 py-2 text-sm text-text hover:border-muted"
-              >
-                Turn on everything that exists
-              </button>
-              <button
-                type="submit"
-                name="intent"
-                value="none"
-                className="rounded-xl border border-control px-4 py-2 text-sm text-text hover:border-muted"
-              >
-                Turn all off
-              </button>
-            </div>
-          </form>
+          </ul>
         )}
       </section>
 
@@ -150,14 +165,14 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
         {c.recentTips.length === 0 ? (
           <AdminEmptyState title="No tips yet" description="Tips to this creator appear here." />
         ) : (
-          <ul className="divide-y divide-control rounded-2xl border border-control text-sm">
+          <ul className="divide-y divide-control rounded-surface border border-control bg-surface text-sm">
             {c.recentTips.map((t) => (
               <li key={t.reference} className="flex flex-wrap justify-between gap-2 px-4 py-2">
                 <span className="numeric text-muted">{t.reference}</span>
                 <span className="text-text">{t.fanName ?? "Anonymous"}</span>
                 <span className="numeric text-text">{formatINR(t.grossMinor)}</span>
-                <span className="text-muted">{t.status}</span>
-                <span className="text-muted">{when(t.at)}</span>
+                <StatusBadge status={t.status} />
+                <span className="text-muted">{fmtIST(t.at)}</span>
               </li>
             ))}
           </ul>
@@ -169,12 +184,12 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
         {c.payouts.length === 0 ? (
           <p className="text-sm text-muted">None. The site does not send payouts yet.</p>
         ) : (
-          <ul className="divide-y divide-control rounded-2xl border border-control text-sm">
+          <ul className="divide-y divide-control rounded-surface border border-control bg-surface text-sm">
             {c.payouts.map((p) => (
               <li key={p.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
                 <span className="numeric text-text">{formatINR(p.amountMinor)}</span>
-                <span className="text-muted">{p.status}</span>
-                <span className="text-muted">{when(p.createdAt)}</span>
+                <StatusBadge status={p.status} />
+                <span className="text-muted">{fmtIST(p.createdAt)}</span>
               </li>
             ))}
           </ul>

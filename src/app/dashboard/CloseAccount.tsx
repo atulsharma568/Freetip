@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { closeMyAccount } from "@/app/actions/creator";
 import { CLOSE_ACCOUNT_IDLE } from "@/lib/creator-state";
+import { Msg } from "./parts/Msg";
 
 // The last tile on the dashboard. Closing is permanent, so it is behind a button
 // and then a typed word, and it uses outline buttons only (lime is for the main
@@ -15,10 +16,10 @@ export function CloseAccount() {
   const ready = confirm.trim().toUpperCase() === "CLOSE";
 
   return (
-    <section aria-labelledby="close-account-heading" className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6">
-      <h2 id="close-account-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
+    <section id="close-account" data-tile aria-labelledby="close-account-heading" className="scroll-mt-20 rounded-surface border border-line/60 bg-surface p-6 md:p-8">
+      <h3 id="close-account-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
         Close your account
-      </h2>
+      </h3>
       {!open ? (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">
@@ -55,11 +56,7 @@ export function CloseAccount() {
               className="h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text transition-[border-color] focus:border-accent"
             />
           </div>
-          {state.status === "error" && (
-            <p role="alert" className="text-sm text-text">
-              {state.message}
-            </p>
-          )}
+          <Msg kind={state.status === "error" ? "error" : undefined} text={state.status === "error" ? state.message : undefined} />
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"

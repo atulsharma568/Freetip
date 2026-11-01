@@ -1,3 +1,4 @@
+import { fmtIST } from "@/lib/admin/format";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -13,12 +14,7 @@ import { SyncBooksForm } from "./SyncBooksForm";
 export const dynamic = "force-dynamic";
 
 function fmtTs(date: Date | null, never = "Never"): string {
-  if (!date) return never;
-  return date.toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return date ? fmtIST(date) : never;
 }
 
 function Heading({ children }: { children: React.ReactNode }) {
@@ -141,18 +137,18 @@ function UnpostableBlock({ unpostable }: { unpostable: Loaded<UnpostableCapture[
         fills it in from Razorpay when live keys are set and the tip is then posted. A real mismatch
         needs a person: check the payment in the Razorpay dashboard and decide what to do.
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-control">
+      <div className="overflow-x-auto rounded-surface border border-control">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-control bg-surface/60">
-              <th className="px-4 py-3 text-left font-medium text-muted">Razorpay payment</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Tip</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Problem</th>
+            <tr className="border-b border-control bg-raised">
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Razorpay payment</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Tip</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Problem</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-control">
+          <tbody className="divide-y divide-control bg-surface">
             {unpostable.data.map((u) => (
-              <tr key={u.paymentRef} className="hover:bg-surface/40 transition-colors">
+              <tr key={u.paymentRef} className="hover:bg-raised transition-colors">
                 <td className="px-4 py-3 font-mono text-xs text-text">{u.paymentRef}</td>
                 <td className="px-4 py-3 font-mono text-xs text-muted">#{u.tipId}</td>
                 <td className="px-4 py-3 text-sm text-text">{UNPOSTABLE_WORDS[u.reason]}</td>
@@ -203,32 +199,32 @@ function RunsBlock({ summary }: { summary: Loaded<ReconciliationSummary> }) {
       </div>
 
       {!hasIssues ? (
-        <div className="rounded-2xl border border-accent/20 bg-surface/60 p-6">
+        <div className="rounded-surface border border-accent/20 bg-raised p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">All clear</p>
           <p className="mt-2 text-muted">No open exceptions or partial matches.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-control">
+        <div className="overflow-x-auto rounded-surface border border-control">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-control bg-surface/60">
-                <th className="px-4 py-3 text-left font-medium text-muted">State</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Internal ref</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Provider ref</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Expected</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Observed</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Variance</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Reason</th>
+              <tr className="border-b border-control bg-raised">
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">State</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Internal ref</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Provider ref</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Expected</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Observed</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Variance</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Reason</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-control">
+            <tbody className="divide-y divide-control bg-surface">
               {s.recentItems.map((item) => {
                 const variance =
                   item.expectedMinor != null && item.observedMinor != null
                     ? item.observedMinor - item.expectedMinor
                     : null;
                 return (
-                  <tr key={item.itemId} className="hover:bg-surface/40 transition-colors">
+                  <tr key={item.itemId} className="hover:bg-raised transition-colors">
                     <td className="px-4 py-3">
                       <StatusBadge status={item.matchState} />
                     </td>
@@ -241,7 +237,7 @@ function RunsBlock({ summary }: { summary: Loaded<ReconciliationSummary> }) {
                       {item.observedMinor != null ? formatINR(item.observedMinor) : "—"}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right font-mono tabular-nums ${variance != null && variance !== 0 ? "text-red-400" : "text-muted"}`}
+                      className={`px-4 py-3 text-right font-mono tabular-nums ${variance != null && variance !== 0 ? "text-red-300" : "text-muted"}`}
                     >
                       {variance != null
                         ? `${variance >= 0 ? "+" : "-"}${formatINR(Math.abs(variance))}`

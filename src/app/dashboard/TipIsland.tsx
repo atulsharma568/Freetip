@@ -105,7 +105,7 @@ export function TipIsland({ initialLastId }: { initialLastId: number }) {
           onFocus={() => setHeld(true)}
           onBlur={() => setHeld(false)}
           tabIndex={0}
-          className="tip-island pointer-events-auto w-full max-w-sm rounded-[var(--radius-surface)] border border-accent/40 bg-surface p-4 shadow-[0_12px_40px_-12px_rgb(0_0_0/0.7)] outline-none focus-visible:border-accent"
+          className="tip-island pointer-events-auto w-full max-w-sm rounded-[var(--radius-surface)] border border-control bg-raised p-4 outline-none focus-visible:border-accent"
         >
           <div className="flex items-center gap-3">
             <span

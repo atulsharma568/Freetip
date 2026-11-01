@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
+import { TONE_MARK, TONE_TEXT } from "@/components/admin/tones";
 import { COULD_NOT_READ } from "@/lib/admin/result";
 
 // The state every finance page shows when there is no database to read.
@@ -12,13 +13,26 @@ export function FinanceNotSetUp() {
   );
 }
 
-// A read that failed, which is not the same as "no data": nothing is guessed or
-// shown as zero in its place.
-export function CouldNotRead({ detail }: { detail?: string }) {
+// A page that needs the database, when there is none.
+export function DatabaseNotSetUp() {
   return (
-    <div role="alert" className="rounded-2xl border border-red-500/40 bg-surface p-5">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-400">Could not read</p>
-      <p className="mt-2 text-sm text-text">{COULD_NOT_READ}</p>
+    <AdminEmptyState
+      title="The database is not set up"
+      description="DATABASE_URL is not set on this server, so there is nothing to read."
+    />
+  );
+}
+
+// A read that failed, which is not the same as "no data": nothing is guessed or
+// shown as zero in its place. `message` says what to check (default: migration
+// 0023, for the money pages); `detail` is the database's own error.
+export function CouldNotRead({ detail, message }: { detail?: string; message?: string }) {
+  return (
+    <div role="alert" className="rounded-surface border border-red-400/50 bg-surface p-5">
+      <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${TONE_TEXT.bad}`}>
+        <span aria-hidden="true">{TONE_MARK.bad} </span>Could not read
+      </p>
+      <p className="mt-2 text-sm text-text">{message ?? COULD_NOT_READ}</p>
       {detail && <p className="mt-2 break-words font-mono text-xs text-muted">{detail}</p>}
     </div>
   );

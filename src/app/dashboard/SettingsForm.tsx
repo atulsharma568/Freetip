@@ -1,14 +1,17 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
+import { RollText } from "@/components/motion/RollText";
 import { saveSettings } from "@/app/actions/creator";
 import { SETTINGS_IDLE } from "@/lib/creator-state";
 import type { AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { ACCENT_PRESETS, inkFor } from "@/lib/accent";
+import { ChipRadio, OptionRadio, Range, SelectField, Toggle } from "./parts/Controls";
+import { Msg } from "./parts/Msg";
+import { field, peerRing, pillPrimary, smallLabel } from "./parts/styles";
 
 const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
   { value: "instant", label: "Play everything at once", hint: "Name, amount and message show as soon as the tip lands." },
@@ -44,7 +47,7 @@ function Group({ title, hint, children, first }: { title: string; hint: string; 
   return (
     <section className={`space-y-6 ${first ? "" : "border-t border-control pt-8"}`}>
       <div className="space-y-1">
-        <h3 className="font-display text-lg font-semibold text-text">{title}</h3>
+        <h4 className="text-lg font-semibold text-text">{title}</h4>
         <p className="text-sm text-muted">{hint}</p>
       </div>
       {children}
@@ -83,7 +86,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       {/* Display name */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="creator-display-name" className="text-sm font-medium uppercase tracking-widest text-muted">
+          <label htmlFor="creator-display-name" className={smallLabel}>
             Display name
           </label>
           <span className="text-xs text-muted">{displayName.length}/{DISPLAY_NAME_MAX}</span>
@@ -96,7 +99,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Your streamer name"
-          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
+          className={field}
         />
         <p className="text-xs text-muted">Shown on your tip page. Defaults to your Google name.</p>
       </div>
@@ -104,7 +107,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       {/* Bio */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="creator-bio" className="text-sm font-medium uppercase tracking-widest text-muted">
+          <label htmlFor="creator-bio" className={smallLabel}>
             Bio
           </label>
           <span className="text-xs text-muted">{bio.length}/{BIO_MAX}</span>
@@ -124,7 +127,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
 
       {/* Page colour */}
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium uppercase tracking-widest text-muted">Page colour</legend>
+        <legend className={smallLabel}>Page colour</legend>
         <div role="radiogroup" aria-label="Page colour" className="flex flex-wrap gap-2">
           {accentOptions.map((o) => {
             const on = accentChoice === o.id;
@@ -140,8 +143,10 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
                 />
                 <span
                   aria-hidden="true"
-                  className="flex size-11 items-center justify-center rounded-full border-2 border-transparent text-base font-semibold ring-offset-2 ring-offset-surface transition-[transform,box-shadow] peer-focus-visible:ring-2 peer-focus-visible:ring-text active:scale-[0.95]"
-                  style={{ backgroundColor: o.hex, color: inkFor(o.hex), boxShadow: on ? "0 0 0 2px var(--color-text)" : undefined }}
+                  className={`flex size-11 items-center justify-center rounded-full border-2 text-base font-semibold transition-transform active:scale-[0.95] ${
+                    on ? "border-text" : "border-transparent"
+                  } ${peerRing}`}
+                  style={{ backgroundColor: o.hex, color: inkFor(o.hex) }}
                 >
                   {on ? "✓" : ""}
                 </span>
@@ -159,7 +164,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
               className="peer sr-only"
             />
             <span
-              className="flex h-11 items-center rounded-full border border-control px-4 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text"
+              className={`flex h-11 items-center rounded-full border border-control px-4 text-sm text-text transition-colors peer-checked:border-accent peer-checked:bg-accent peer-checked:font-semibold peer-checked:text-ink ${peerRing}`}
             >
               Auto from my picture
             </span>
@@ -173,7 +178,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       <Group title="Tips and messages" hint="What fans can send, and what is kept off your stream.">
       {/* Min tip: fixed for everyone */}
       <div className="space-y-1">
-        <p className="text-sm font-medium uppercase tracking-widest text-muted">Minimum tip</p>
+        <p className={smallLabel}>Minimum tip</p>
         <p className="text-base text-text">₹{MIN_TIP_PAISE / 100}</p>
         <p className="text-xs text-muted">The same for every creator on Freetip.</p>
       </div>
@@ -181,23 +186,24 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       {/* Message limit */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="msg-chars" className="text-sm font-medium uppercase tracking-widest text-muted">
+          <label htmlFor="msg-chars" className={smallLabel}>
             Longest message
           </label>
           <span id="msg-chars-value" className="text-sm text-text">{chars} chars</span>
         </div>
-        <input
+        <Range
           id="msg-chars"
           name="message_max_chars"
-          type="range"
           min={10}
           max={500}
           step={10}
           value={chars}
-          onChange={(e) => setChars(Number(e.target.value))}
-          aria-valuetext={`${chars} characters`}
+          onChange={(v) => {
+            setChars(v);
+            setIsDirty(true);
+          }}
+          unit="characters"
           aria-describedby="msg-chars-value"
-          className="w-full accent-accent"
         />
         <div className="flex justify-between text-xs text-muted">
           <span>10</span>
@@ -212,7 +218,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       {/* Banned words */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label htmlFor="banned-words" className="text-sm font-medium uppercase tracking-widest text-muted">
+          <label htmlFor="banned-words" className={smallLabel}>
             Banned words
           </label>
           <span className="text-xs text-muted">{banned.length}/{MAX_BANNED_LIST_CHARS}</span>
@@ -238,30 +244,22 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
       <Group title="On stream" hint="How alerts show up and whether messages are read aloud.">
       {/* Alert mode */}
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium uppercase tracking-widest text-muted">
+        <legend className={smallLabel}>
           Stream alerts
         </legend>
-        {ALERT_OPTIONS.map((o) => (
-          <label key={o.value} className="flex cursor-pointer items-start gap-3">
-            <input
-              type="radio"
-              name="alert_mode"
-              value={o.value}
-              defaultChecked={o.value === alertMode}
-              className="mt-1 accent-accent"
-            />
-            <span className="text-sm text-text">
+        <div className="space-y-2">
+          {ALERT_OPTIONS.map((o) => (
+            <OptionRadio key={o.value} name="alert_mode" value={o.value} defaultChecked={o.value === alertMode} hint={o.hint}>
               {o.label}
-              <span className="block text-xs text-muted">{o.hint}</span>
-            </span>
-          </label>
-        ))}
+            </OptionRadio>
+          ))}
+        </div>
       </fieldset>
 
       {/* TTS */}
       {!ttsAvailable ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-widest text-muted">Voice for messages</p>
+          <p className={smallLabel}>Voice for messages</p>
           <p className="text-sm text-muted">
             Reading a fan&apos;s message aloud is coming soon. Your sounds work in the meantime, and your
             voice settings will be kept.
@@ -273,62 +271,57 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Switch id="tts-toggle" checked={tts} onChange={setTts} />
-            <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
-            <label htmlFor="tts-toggle" className="cursor-pointer select-none text-sm text-text">
-              Text-to-speech
-            </label>
-          </div>
+          <Toggle
+            id="tts-toggle"
+            checked={tts}
+            onChange={(v) => {
+              setTts(v);
+              setIsDirty(true);
+            }}
+          >
+            Text-to-speech
+          </Toggle>
+          <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
           <fieldset className="space-y-2">
             <legend className="text-sm text-text">Voice</legend>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(["female", "male"] as const).map((g) => (
-                <label key={g} className="cursor-pointer">
-                  <input type="radio" name="tts_voice" value={g} checked={gender === g} onChange={() => setGender(g)} className="peer sr-only" />
-                  <span className="flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
-                    {g === "female" ? "Female" : "Male"}
-                  </span>
-                </label>
+                <ChipRadio key={g} name="tts_voice" value={g} checked={gender === g} onChange={() => setGender(g)}>
+                  {g === "female" ? "Female" : "Male"}
+                </ChipRadio>
               ))}
             </div>
             <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
           </fieldset>
           {tts && (
-            <>
-              <div className="flex items-center gap-3 pl-10">
-                <Switch id="approve-toggle" checked={approve} onChange={setApprove} />
-                <label htmlFor="approve-toggle" className="cursor-pointer select-none text-sm text-text">
-                  Approve before play
-                  <span className="ml-2 text-muted text-xs">(recommended)</span>
-                </label>
-              </div>
-              <div className="space-y-2 pl-10">
+            <div className="space-y-4 border-l border-line pl-4">
+              <Toggle
+                id="approve-toggle"
+                checked={approve}
+                onChange={(v) => {
+                  setApprove(v);
+                  setIsDirty(true);
+                }}
+                hint="Recommended"
+              >
+                Approve before play
+              </Toggle>
+              <div className="space-y-2">
                 <label htmlFor="tts-min" className="block text-sm text-text">
                   Read aloud from
                 </label>
-                <div className="relative">
-                  <select
-                    id="tts-min"
-                    value={ttsMin}
-                    onChange={(e) => setTtsMin(Number(e.target.value))}
-                    className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent transition-[border-color] appearance-none"
-                  >
-                    {MIN_TIP_OPTIONS.map((v) => (
-                      <option key={v} value={v}>
-                        ₹{v} and above
-                      </option>
-                    ))}
-                  </select>
-                  <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
-                    ↓
-                  </span>
-                </div>
+                <SelectField id="tts-min" value={ttsMin} onChange={(e) => setTtsMin(Number(e.target.value))}>
+                  {MIN_TIP_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      ₹{v} and above
+                    </option>
+                  ))}
+                </SelectField>
                 <p className="text-xs text-muted">
                   Fans can choose to have their message read aloud once their tip reaches this amount. A tip uses either a sound or the voice, not both. Only the message is read, never the name.
                 </p>
               </div>
-            </>
+            </div>
           )}
           {/* Always submit these so they aren't silently reset when TTS is off */}
           <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
@@ -338,30 +331,32 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
 
       </Group>
 
-      {/* Always-present live region so screen readers announce changes reliably */}
-      <p aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm">
-        {state.status === "error" && (
-          <span className="text-red-400">{state.message}</span>
-        )}
-        {state.status === "ok" && !pending && !isDirty && (
-          <span className="text-text">Settings saved.</span>
-        )}
-      </p>
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-12 items-center gap-3 rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-opacity duration-200 disabled:opacity-40"
+      {/* The bar sticks to the bottom of the screen while there is something unsaved. */}
+      <div
+        className={
+          isDirty
+            ? "sticky bottom-4 z-20 space-y-2 rounded-surface border border-control bg-raised p-3"
+            : "space-y-2"
+        }
       >
-        {pending ? (
-          <>
-            <TickLoader count={8} duration={0.7} className="text-ink" />
-            Saving…
-          </>
-        ) : (
-          "Save settings"
-        )}
-      </button>
+        <Msg
+          kind={state.status === "error" ? "error" : state.status === "ok" && !pending && !isDirty ? "ok" : undefined}
+          text={state.status === "error" ? state.message : "Settings saved."}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={pending} className={pillPrimary}>
+            {pending ? (
+              <>
+                <TickLoader count={8} duration={0.7} className="text-ink" />
+                Saving…
+              </>
+            ) : (
+              <RollText>Save settings</RollText>
+            )}
+          </button>
+          {isDirty && !pending && <span className="text-sm text-text">You have unsaved changes.</span>}
+        </div>
+      </div>
     </form>
   );
 }

@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { TONE_MARK, TONE_TEXT, buttonClass } from "@/components/admin/tones";
+import { TickLoader } from "@/components/ui/TickLoader";
 import { syncBooksNow, type SyncReport, type SyncState } from "@/app/actions/admin";
+import { fmtIST } from "@/lib/admin/format";
 import { formatINR } from "@/lib/admin/result";
 
 const IDLE: SyncState = { status: "idle" };
@@ -27,13 +30,6 @@ const PROBLEM_WORDS = {
   not_marked_captured: "The site saved the order but never marked it captured under this payment.",
 } as const;
 
-function when(iso: string): string {
-  return new Date(iso).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export function SyncBooksForm() {
   const [state, action, pending] = useActionState(syncBooksNow, IDLE);
@@ -43,13 +39,26 @@ export function SyncBooksForm() {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-11 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink disabled:opacity-40"
+        className={buttonClass("primary", "md")}
       >
-        {pending ? "Syncing…" : "Sync with Razorpay and post missing"}
+        {pending ? (
+          <>
+            <TickLoader count={8} duration={0.8} />
+            Syncing…
+          </>
+        ) : (
+          "Sync with Razorpay and post missing"
+        )}
       </button>
 
       <div aria-live="polite">
-        {state.status === "error" && <p className="text-sm text-red-400">{state.message}</p>}
+        {state.status === "error" && (
+          <p className={`text-sm ${TONE_TEXT.bad}`}>
+            <span aria-hidden="true">{TONE_MARK.bad} </span>
+            <span className="sr-only">Error: </span>
+            {state.message}
+          </p>
+        )}
         {state.status === "done" && <Report report={state.report} />}
       </div>
     </form>
@@ -60,7 +69,7 @@ function Report({ report }: { report: SyncReport }) {
   const { check, sweep } = report;
   const skipped = sweep ? Object.entries(sweep.skipped) : [];
   return (
-    <div className="space-y-4 rounded-xl border border-control bg-ground p-4 text-sm text-text">
+    <div className="space-y-4 rounded-surface border border-control bg-ground p-4 text-sm text-text">
       <div className="space-y-1">
         <p className="font-semibold">Razorpay check</p>
         {check.ran ? (
@@ -76,7 +85,8 @@ function Report({ report }: { report: SyncReport }) {
                 : ""}
             </p>
             {check.truncated && (
-              <p className="text-xs text-amber-400">
+              <p className={`text-xs ${TONE_TEXT.warn}`}>
+                <span aria-hidden="true">{TONE_MARK.warn} </span>
                 There were more payments than one check reads, so only the most recent were checked.
               </p>
             )}
@@ -90,19 +100,19 @@ function Report({ report }: { report: SyncReport }) {
       </div>
 
       {check.ran && check.problems.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-control">
+        <div className="overflow-x-auto rounded-surface border border-control">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-control bg-surface/60">
-                <th className="px-4 py-3 text-left font-medium text-muted">Payment</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Order</th>
-                <th className="px-4 py-3 text-right font-medium text-muted">Amount</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Method</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Paid</th>
-                <th className="px-4 py-3 text-left font-medium text-muted">Problem</th>
+              <tr className="border-b border-control bg-raised">
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Payment</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Order</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Amount</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Method</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Paid</th>
+                <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Problem</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-control">
+            <tbody className="divide-y divide-control bg-surface">
               {check.problems.map((p) => (
                 <tr key={p.paymentId}>
                   <td className="px-4 py-3 font-mono text-xs text-text">{p.paymentId}</td>
@@ -111,7 +121,7 @@ function Report({ report }: { report: SyncReport }) {
                     {formatINR(p.amountPaise)}
                   </td>
                   <td className="px-4 py-3 text-muted">{p.method ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted">{when(p.createdAt)}</td>
+                  <td className="px-4 py-3 text-muted">{fmtIST(p.createdAt)}</td>
                   <td className="px-4 py-3 text-sm text-text">{PROBLEM_WORDS[p.kind]}</td>
                 </tr>
               ))}
@@ -140,7 +150,8 @@ function Report({ report }: { report: SyncReport }) {
               </ul>
             )}
             {sweep.failed > 0 && (
-              <p className="text-xs text-red-400">
+              <p className={`text-xs ${TONE_TEXT.bad}`}>
+                <span aria-hidden="true">{TONE_MARK.bad} </span>
                 {sweep.failed} could not be posted. The server log says why; press the button again once
                 it is fixed.
               </p>
@@ -153,7 +164,9 @@ function Report({ report }: { report: SyncReport }) {
             )}
           </>
         ) : (
-          <p className="text-red-400">Could not post. Has migration 0023 been run?</p>
+          <p className={TONE_TEXT.bad}>
+            <span aria-hidden="true">{TONE_MARK.bad} </span>Could not post. Has migration 0023 been run?
+          </p>
         )}
       </div>
     </div>

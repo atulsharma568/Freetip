@@ -6,6 +6,7 @@ import { HandleField } from "@/components/ui/HandleField";
 import { requestMyHandleChange } from "@/app/actions/creator";
 import { HANDLE_IDLE } from "@/lib/creator-state";
 import { SITE_HOST } from "@/lib/site";
+import { Msg } from "./parts/Msg";
 
 export type HandleRequestView = { status: "pending" | "rejected"; requested: string; note: string | null } | null;
 
@@ -107,11 +108,9 @@ export function RenameHandle({
           className="h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text transition-[border-color] focus:border-accent"
         />
       </div>
-      {state.status === "error" && (
-        <p id="rename-error" role="alert" className="text-sm text-text">
-          {state.message}
-        </p>
-      )}
+      <div id="rename-error">
+        <Msg kind={state.status === "error" ? "error" : undefined} text={state.status === "error" ? state.message : undefined} />
+      </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"

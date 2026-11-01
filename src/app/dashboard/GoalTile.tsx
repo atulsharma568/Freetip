@@ -3,6 +3,10 @@
 import { useActionState, useId, useState, useTransition } from "react";
 import { removeGoal, saveGoal, type GoalResult } from "@/app/actions/goal";
 import { GOAL_TIMEZONES, GOAL_TITLE_MAX, MAX_GOALS, REPEAT_LABEL, type GoalRepeat } from "@/lib/goal";
+import { RollText } from "@/components/motion/RollText";
+import { SelectField, Toggle } from "./parts/Controls";
+import { Msg } from "./parts/Msg";
+import { field as fieldClass, pillOutline, pillPrimary } from "./parts/styles";
 
 export interface GoalView {
   id: number;
@@ -26,9 +30,6 @@ export interface GoalHistoryRow {
   timezone: string;
 }
 
-const fieldClass =
-  "w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted focus:border-accent";
-
 // A finished period, named on the clock it was cut on ("Mon 3 Nov", "Nov 2026").
 function periodName(row: GoalHistoryRow): string {
   const d = new Date(row.periodStart);
@@ -44,25 +45,44 @@ function periodName(row: GoalHistoryRow): string {
   return row.repeat === "weekly" ? `Week of ${label}` : label;
 }
 
+function goalPercent(goal: GoalView): number {
+  const total = goal.targetRupees + goal.carryRupees;
+  if (total <= 0) return 0;
+  return Math.min(100, Math.round((goal.raisedRupees / total) * 100));
+}
+
 function GoalForm({ goal }: { goal?: GoalView }) {
   const uid = useId();
   const [state, action, pending] = useActionState<GoalResult | null, FormData>(saveGoal, null);
   const [removed, setRemoved] = useState<GoalResult | null>(null);
   const [removing, startRemove] = useTransition();
   const [repeat, setRepeat] = useState<GoalRepeat>(goal?.repeat ?? "never");
+  const [carry, setCarry] = useState(goal?.carryOver ?? false);
   const shown = removed ?? state;
   const id = (name: string) => `${uid}-${name}`;
 
   return (
     <div className="space-y-3">
       {goal && repeat === goal.repeat && goal.repeat !== "never" && (
-        <p className="numeric text-sm text-text">
-          {REPEAT_LABEL[goal.repeat]}: ₹{goal.raisedRupees.toLocaleString("en-IN")} of ₹
-          {(goal.targetRupees + goal.carryRupees).toLocaleString("en-IN")}
-          {goal.carryRupees > 0 && (
-            <span className="text-muted"> (includes ₹{goal.carryRupees.toLocaleString("en-IN")} carried over)</span>
-          )}
-        </p>
+        <div className="space-y-2">
+          <p className="numeric text-sm text-text">
+            {REPEAT_LABEL[goal.repeat]}: ₹{goal.raisedRupees.toLocaleString("en-IN")} of ₹
+            {(goal.targetRupees + goal.carryRupees).toLocaleString("en-IN")}
+            {goal.carryRupees > 0 && (
+              <span className="text-muted"> (includes ₹{goal.carryRupees.toLocaleString("en-IN")} carried over)</span>
+            )}
+          </p>
+          <div
+            role="progressbar"
+            aria-label={`${goal.title} progress`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={goalPercent(goal)}
+            className="h-2 overflow-hidden rounded-full bg-control"
+          >
+            <div className="h-full rounded-full bg-accent" style={{ width: `${goalPercent(goal)}%` }} />
+          </div>
+        </div>
       )}
       <form action={(f) => { setRemoved(null); action(f); }} className="space-y-3">
         {goal && <input type="hidden" name="goal_id" value={goal.id} />}
@@ -96,78 +116,56 @@ function GoalForm({ goal }: { goal?: GoalView }) {
         </div>
         <div className="space-y-2">
           <label htmlFor={id("repeat")} className="text-xs text-muted">Repeats</label>
-          <select
+          <SelectField
             id={id("repeat")}
             name="goal_repeat"
             value={repeat}
             onChange={(e) => setRepeat(e.target.value as GoalRepeat)}
-            className={fieldClass}
           >
             <option value="never">Does not repeat</option>
             <option value="daily">Every day</option>
             <option value="weekly">Every week (Monday)</option>
             <option value="monthly">Every month</option>
-          </select>
+          </SelectField>
         </div>
         {repeat !== "never" && (
           <>
             <div className="space-y-2">
               <label htmlFor={id("zone")} className="text-xs text-muted">Resets at midnight in</label>
-              <select
-                id={id("zone")}
-                name="goal_timezone"
-                defaultValue={goal?.timezone ?? "Asia/Kolkata"}
-                className={fieldClass}
-              >
+              <SelectField id={id("zone")} name="goal_timezone" defaultValue={goal?.timezone ?? "Asia/Kolkata"}>
                 {GOAL_TIMEZONES.map((z) => (
                   <option key={z.id} value={z.id}>{z.label}</option>
                 ))}
-              </select>
+              </SelectField>
             </div>
-            <label className="flex items-start gap-3 text-sm text-text">
-              <input
-                type="checkbox"
-                name="goal_carry"
-                defaultChecked={goal?.carryOver ?? false}
-                className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
-              />
-              <span>
-                Carry over what is missed
-                <span className="block text-xs text-muted">
-                  If you fall short, the shortfall is added to the next period&rsquo;s target (never more than one extra target).
-                </span>
-              </span>
-            </label>
+            <Toggle
+              id={id("carry")}
+              name="goal_carry"
+              checked={carry}
+              onChange={setCarry}
+              hint="If you fall short, the shortfall is added to the next period’s target (never more than one extra target)."
+            >
+              Carry over what is missed
+            </Toggle>
           </>
         )}
         <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex h-11 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink disabled:opacity-40"
-          >
-            {pending ? "Saving…" : goal ? "Save goal" : "Add goal"}
+          <button type="submit" disabled={pending} className={`${pillPrimary} h-11`}>
+            <RollText>{pending ? "Saving…" : goal ? "Save goal" : "Add goal"}</RollText>
           </button>
           {goal && (
             <button
               type="button"
               disabled={removing}
               onClick={() => startRemove(async () => setRemoved(await removeGoal(goal.id)))}
-              className="h-11 rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent disabled:opacity-40"
+              className={pillOutline}
             >
               Remove goal
             </button>
           )}
         </div>
       </form>
-      {shown && (
-        <p
-          role={shown.status === "error" ? "alert" : "status"}
-          className={`text-sm ${shown.status === "error" ? "text-red-400" : "text-muted"}`}
-        >
-          {shown.message}
-        </p>
-      )}
+      <Msg kind={shown ? (shown.status === "error" ? "error" : "info") : undefined} text={shown?.message} />
     </div>
   );
 }
@@ -198,11 +196,11 @@ export function GoalTile({ goals, history }: { goals: GoalView[]; history: GoalH
           <p className="text-xs text-muted">Past periods</p>
           <ul className="space-y-1 text-sm">
             {history.map((h) => (
-              <li key={`${h.title}-${h.repeat}-${h.periodStart}`} className="flex justify-between gap-3">
-                <span className="text-muted">
+              <li key={`${h.title}-${h.repeat}-${h.periodStart}`} className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+                <span className="min-w-0 break-words text-muted">
                   {h.title} · {periodName(h)}
                 </span>
-                <span className="numeric text-text">
+                <span className="numeric min-w-0 break-words text-text">
                   ₹{h.raisedRupees.toLocaleString("en-IN")} / ₹{h.targetRupees.toLocaleString("en-IN")} {h.hit ? "✓ reached" : "missed"}
                 </span>
               </li>

@@ -1,17 +1,25 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { tipThanksLine, type AlertMode } from "@/lib/alerts";
-import Image from "next/image";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { ArrowRight } from "@phosphor-icons/react";
+import type { AlertMode } from "@/lib/alerts";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { Odometer, spinReels } from "@/components/ui/Odometer";
+import { Magnetic } from "@/components/motion/Magnetic";
+import { RollText } from "@/components/motion/RollText";
 import { createTipOrder } from "@/app/actions/tip";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { tipTier } from "@/lib/tip-tier";
+import { AlertCard } from "@/components/tip/AlertCard";
+import { CreatorPanel } from "@/components/tip/CreatorPanel";
+import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
+import { FieldNote } from "@/components/tip/FieldNote";
+import { SuccessScreen } from "@/components/tip/SuccessScreen";
+import { rupeeText } from "@/components/tip/format";
 import type { TipSound } from "./creator";
+
+export type { Extra };
 
 // Razorpay checkout is loaded via a <script> tag at payment time.
 declare global {
@@ -57,159 +65,28 @@ function buildPresets(minPaise: number): number[] {
   return [min, ...steps].slice(0, 5);
 }
 
-const noopSubscribe = () => () => {};
-const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
+const MAX_RUPEES = 100000;
 
-const CONFETTI_PIECES = 40;
-const CONFETTI_COLOURS = ["bg-accent", "bg-accent", "bg-accent", "bg-text", "bg-muted"];
-
-const rupeeText = (rupees: number) =>
-  rupees.toLocaleString("en-IN", { maximumFractionDigits: 2 });
-
-// The alert as it will look on the streamer's screen (same dark card, lime edge,
-// name, amount and message as the OBS overlay). Decorative: the form fields say
-// the same things in words, so it is hidden from screen readers.
-function AlertCard({
-  name,
-  amountRupees,
-  message,
-  className = "",
-}: {
-  name: string;
-  amountRupees: number;
-  message: string;
-  className?: string;
-}) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`rounded-[var(--radius-field)] border-l-4 border-accent bg-ground px-5 py-4 text-left ${className}`}
-    >
-      <p className="flex items-baseline justify-between gap-4">
-        <span className="min-w-0 truncate text-base font-semibold text-text">{name}</span>
-        <span className="amount-numeral numeric shrink-0 text-2xl font-semibold text-accent" key={amountRupees}>
-          ₹{rupeeText(amountRupees)}
-        </span>
-      </p>
-      <p className={`mt-2 break-words text-sm leading-snug ${message ? "text-muted" : "text-control"}`}>
-        {message || "Your message shows up here."}
-      </p>
-    </div>
-  );
+// "Remember my name on this device": only the name, only on this device, only
+// when the fan ticks it. Storage can be blocked, so every call is guarded.
+const NAME_KEY = "freetip.fan-name";
+function readName(): string {
+  try {
+    return window.localStorage.getItem(NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+function writeName(name: string) {
+  try {
+    if (name) window.localStorage.setItem(NAME_KEY, name);
+    else window.localStorage.removeItem(NAME_KEY);
+  } catch {
+    // Storage is blocked: the name just isn't remembered.
+  }
 }
 
-// One clip at a time, so previews never stack up.
-let previewing: HTMLAudioElement | null = null;
-function playPreview(url: string) {
-  previewing?.pause();
-  const audio = new Audio(url);
-  previewing = audio;
-  audio.play().catch(() => {});
-}
-
-// What the alert adds besides the card: nothing extra (the creator's own default
-// sound plays, if they set one), one of their sounds, or the message read aloud.
-// It is one choice, so a tip never has both a sound and a voice. A sound or the
-// voice above the tip amount is locked and says what it takes to unlock it. The
-// server checks the pick again.
-export type Extra = { kind: "default" } | { kind: "sound"; id: number } | { kind: "voice" };
-
-function ExtraPicker({
-  sounds,
-  voiceMinPaise,
-  hasMessage,
-  selected,
-  amountPaise,
-  onSelect,
-}: {
-  sounds: TipSound[];
-  voiceMinPaise: number | null;
-  hasMessage: boolean;
-  selected: Extra;
-  amountPaise: number;
-  onSelect: (extra: Extra) => void;
-}) {
-  const tile =
-    "flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-field)] border px-3 py-2 text-left text-sm transition-[border-color,background-color] duration-150";
-  const state = (on: boolean, locked: boolean) =>
-    `${tile} ${on ? "border-accent bg-accent/10 text-text" : "border-control text-text hover:border-muted"} ${
-      locked ? "cursor-not-allowed opacity-50" : ""
-    }`;
-  const voiceLocked = voiceMinPaise !== null && amountPaise < voiceMinPaise;
-  return (
-    <div className="space-y-2">
-      <p className="text-sm text-muted">
-        {voiceMinPaise !== null && sounds.length > 0
-          ? "Add a sound or your voice"
-          : voiceMinPaise !== null
-            ? "Add your voice"
-            : "Alert sound"}{" "}
-        <span className="text-control">(optional, pick one)</span>
-      </p>
-      <div role="radiogroup" aria-label="Alert sound or voice" className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          role="radio"
-          aria-checked={selected.kind === "default"}
-          onClick={() => onSelect({ kind: "default" })}
-          className={state(selected.kind === "default", false)}
-        >
-          <span aria-hidden="true">✦</span>
-          <span className="min-w-0 flex-1 truncate">Streamer&apos;s default</span>
-        </button>
-        {voiceMinPaise !== null && (
-          <button
-            type="button"
-            role="radio"
-            aria-checked={selected.kind === "voice"}
-            disabled={voiceLocked}
-            onClick={() => onSelect({ kind: "voice" })}
-            className={state(selected.kind === "voice", voiceLocked)}
-          >
-            <span aria-hidden="true">🗣</span>
-            <span className="min-w-0 flex-1 truncate">Read my message aloud</span>
-            <span className="numeric shrink-0 text-xs text-muted">₹{Math.ceil(voiceMinPaise / 100)}+</span>
-          </button>
-        )}
-        {sounds.map((s) => {
-          const locked = amountPaise < s.minPaise;
-          const on = selected.kind === "sound" && selected.id === s.id;
-          return (
-            <div key={s.id} className="flex gap-1">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={on}
-                disabled={locked}
-                onClick={() => onSelect({ kind: "sound", id: s.id })}
-                className={state(on, locked)}
-              >
-                <span aria-hidden="true">{s.emoji || "◉"}</span>
-                <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                <span className="numeric shrink-0 text-xs text-muted">
-                  {s.minPaise ? `₹${Math.ceil(s.minPaise / 100)}+` : "any"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => playPreview(s.url)}
-                aria-label={`Preview ${s.name}`}
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-control text-sm text-text transition-[transform,border-color] hover:border-muted active:scale-[0.95]"
-              >
-                ▶
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      {selected.kind === "voice" && !hasMessage && (
-        <p role="alert" className="text-sm text-red-400">
-          Write a message above for the voice to read.
-        </p>
-      )}
-    </div>
-  );
-}
+const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
 function StepHeading({ n, title }: { n: number; title: string }) {
   return (
@@ -218,175 +95,6 @@ function StepHeading({ n, title }: { n: number; title: string }) {
       <span aria-hidden="true" className="numeric text-xs text-control">
         0{n} / 03
       </span>
-    </div>
-  );
-}
-
-// After a tip: the alert the fan built slides in and flies off to the stream while the amount's reels
-// spin and a burst of lime confetti rises from the amount, then the fan can
-// send another tip or pass the creator's page on. Motion (confetti included)
-// is skipped under reduced motion; the words are always there.
-function SuccessScreen({
-  amountPaise,
-  displayName,
-  handle,
-  anonymous,
-  alertName,
-  alertMessage,
-  alertMode,
-  reference,
-  onAgain,
-}: {
-  amountPaise: number;
-  displayName: string;
-  handle: string;
-  anonymous: boolean;
-  alertName: string;
-  alertMessage: string;
-  alertMode: AlertMode;
-  reference: string;
-  onAgain: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [notice, setNotice] = useState("");
-  const shareable = useSyncExternalStore(noopSubscribe, canShare, () => false);
-  const rupees = amountPaise / 100;
-  const whole = Number.isInteger(rupees);
-
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const tl = gsap.timeline();
-        tl.fromTo(
-          ".success-note",
-          { y: 48, opacity: 0, rotate: -8, scale: 0.85 },
-          { y: 0, opacity: 1, rotate: -3, scale: 1, duration: 0.45, ease: "power3.out" },
-        )
-          .to(
-            ".success-note",
-            { x: 180, y: -140, rotate: 16, opacity: 0, duration: 0.7, ease: "power2.in" },
-            0.75,
-          )
-          .from(".success-line", { y: 14, opacity: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 0.9);
-        const reels = gsap.utils.toArray<HTMLElement>("[data-reel]");
-        if (reels.length) spinReels(gsap, reels).forEach((spin) => tl.add(spin, 0.3));
-        // Confetti: each piece shoots up and out, then drifts down turning and
-        // fading. They start hidden (opacity 0 in the markup).
-        const pieces = gsap.utils.toArray<HTMLElement>(".confetti-piece");
-        const burst = gsap.timeline({ delay: 1.05 });
-        pieces.forEach((piece) => {
-          const x = gsap.utils.random(-150, 150);
-          const rise = gsap.utils.random(70, 190);
-          const spin = gsap.utils.random(-540, 540);
-          burst
-            .set(piece, { opacity: 1, x: 0, y: 0, rotate: 0, scale: gsap.utils.random(0.7, 1.2) }, 0)
-            .to(piece, { x, y: -rise, rotate: spin / 2, duration: 0.55, ease: "power2.out" }, 0)
-            .to(
-              piece,
-              {
-                x: x * 1.15,
-                y: gsap.utils.random(120, 260),
-                rotate: spin,
-                opacity: 0,
-                duration: gsap.utils.random(0.9, 1.4),
-                ease: "power1.in",
-              },
-              0.55,
-            );
-        });
-      });
-    },
-    { scope: ref },
-  );
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/${handle}`);
-      setNotice("Link copied");
-    } catch {
-      setNotice("Could not copy the link.");
-    }
-  }
-
-  async function shareLink() {
-    try {
-      await navigator.share({
-        title: `Tip ${displayName}`,
-        url: `${window.location.origin}/${handle}`,
-      });
-    } catch {
-      // The sheet was closed: nothing to report.
-    }
-  }
-
-  const control =
-    "inline-flex h-12 items-center rounded-full border border-control px-6 text-sm font-semibold text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.97]";
-
-  return (
-    <div
-      ref={ref}
-      className="mx-auto flex w-full max-w-sm flex-col items-center space-y-8 overflow-x-clip px-6 py-20 text-center"
-    >
-      <div className="relative flex min-h-24 w-full items-center justify-center" aria-hidden="true">
-        <AlertCard
-          name={alertName}
-          amountRupees={rupees}
-          message={alertMessage}
-          className="success-note w-full border border-line/60 border-l-4 border-l-accent"
-        />
-      </div>
-      <div role="status" className="relative space-y-2">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-10 m-0! size-0"
-        >
-          {Array.from({ length: CONFETTI_PIECES }, (_, i) => (
-            <span
-              key={i}
-              className={`confetti-piece absolute left-0 top-0 opacity-0 ${CONFETTI_COLOURS[i % CONFETTI_COLOURS.length]} ${
-                i % 3 === 0 ? "h-2 w-2 rounded-full" : i % 3 === 1 ? "h-1 w-3 rounded-[1px]" : "h-2.5 w-1 rounded-[1px]"
-              }`}
-            />
-          ))}
-        </div>
-        <p className="sr-only">
-          ₹{rupeeText(rupees)} sent to {displayName}.
-        </p>
-        <p className="success-line text-[clamp(3.5rem,14vw,5rem)] font-semibold leading-none text-accent">
-          {whole ? (
-            <Odometer value={rupees} />
-          ) : (
-            <span aria-hidden="true" className="numeric">
-              ₹{rupeeText(rupees)}
-            </span>
-          )}
-        </p>
-        <p className="success-line text-xl font-semibold text-text">Sent to {displayName}!</p>
-        <p className="success-line text-sm text-muted">
-          {tipThanksLine(anonymous, alertMessage, alertMode)}
-        </p>
-      </div>
-      <div className="success-line flex flex-wrap justify-center gap-2">
-        <button type="button" onClick={onAgain} className={control}>
-          Send another tip
-        </button>
-        {shareable ? (
-          <button type="button" onClick={shareLink} className={control}>
-            Share {displayName}&apos;s page
-          </button>
-        ) : (
-          <button type="button" onClick={copyLink} className={control}>
-            Copy their link
-          </button>
-        )}
-      </div>
-      <p aria-live="polite" className="min-h-5 text-sm text-accent">
-        {notice}
-      </p>
-      {reference && (
-        <p className="success-line numeric text-xs text-muted">Reference {reference}</p>
-      )}
     </div>
   );
 }
@@ -426,43 +134,52 @@ export function TipForm({
   previewMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const refocusAmount = useRef(false);
+  const sayTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const presets = buildPresets(minTipPaise);
   const minRupees = Math.ceil(minTipPaise / 100);
 
   const [selected, setSelected] = useState<number | "custom">(presets[0]);
   const [custom, setCustom] = useState("");
   const [tipName, setTipName] = useState("");
+  const [remember, setRemember] = useState(false);
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [extra, setExtra] = useState<Extra>({ kind: "default" });
+  // A short, debounced sentence for screen readers when the amount changes.
+  const [announce, setAnnounce] = useState("");
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   // Set when the fan closes the payment window without paying.
   const [closed, setClosed] = useState(false);
   const [paidAmount, setPaidAmount] = useState(0);
-  // What the fan sent, kept for the success screen (the form is cleared for "send another").
-  const [sent, setSent] = useState({ name: "Anonymous", message: "", reference: "" });
+  // What the fan sent, kept for the success screen (the form is cleared for "tip again").
+  const [sent, setSent] = useState({ message: "", reference: "" });
 
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(".tip-section", {
-          y: 20,
-          opacity: 0,
-          duration: 0.45,
-          stagger: 0.08,
-          ease: "power2.out",
-          clearProps: "all",
-        });
-      });
-    },
-    { scope: containerRef },
-  );
+  // A remembered name comes back on this device. It can only be read after the
+  // page is on the client, so it is filled in once the page has loaded.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const stored = readName().slice(0, 50);
+      if (!stored) return;
+      setTipName((current) => current || stored);
+      setRemember(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const amountRupees =
-    selected === "custom" ? parseFloat(custom) || 0 : selected;
+  useEffect(() => () => clearTimeout(sayTimer.current), []);
+
+  // After "Tip again", keyboard focus goes back to the chosen amount.
+  useEffect(() => {
+    if (phase === "idle" && refocusAmount.current) {
+      refocusAmount.current = false;
+      containerRef.current?.querySelector<HTMLInputElement>('input[name="amount"]:checked')?.focus();
+    }
+  }, [phase]);
+
+  const amountRupees = selected === "custom" ? parseInt(custom, 10) || 0 : selected;
   const amountPaise = Math.round(amountRupees * 100);
   // A bigger tip allows a longer message. The server applies the same rule.
   const messageLimit = messageLimitFor(messageMaxChars, amountPaise);
@@ -485,6 +202,36 @@ export function TipForm({
     amountPaise >= minTipPaise &&
     !extraBlocked &&
     (phase === "idle" || phase === "error");
+
+  function say(rupees: number) {
+    clearTimeout(sayTimer.current);
+    sayTimer.current = setTimeout(() => {
+      setAnnounce(rupees > 0 ? `Tip amount ${rupeeText(rupees)} rupees. ${tipTier(rupees)}.` : "");
+    }, 500);
+  }
+
+  function pickPreset(preset: number | "custom") {
+    setSelected(preset);
+    say(preset === "custom" ? parseInt(custom, 10) || 0 : preset);
+  }
+
+  // Whole rupees only: digits in, nothing else (no e, minus, point or comma).
+  function changeCustom(raw: string) {
+    let digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 6);
+    if (Number(digits) > MAX_RUPEES) digits = String(MAX_RUPEES);
+    setCustom(digits);
+    say(parseInt(digits, 10) || 0);
+  }
+
+  function changeName(value: string) {
+    setTipName(value);
+    if (remember) writeName(value.trim());
+  }
+
+  function changeRemember(on: boolean) {
+    setRemember(on);
+    writeName(on ? tipName.trim() : "");
+  }
 
   async function handlePay() {
     if (!canPay) return;
@@ -537,7 +284,6 @@ export function TipForm({
         handler: () => {
           setPaidAmount(result.amountPaise);
           setSent({
-            name: alertName,
             message: message.trim(),
             reference: result.razorpayOrderId,
           });
@@ -566,15 +312,16 @@ export function TipForm({
         displayName={displayName}
         handle={handle}
         anonymous={anonymous}
-        alertName={sent.name}
         alertMessage={sent.message}
         alertMode={alertMode}
         reference={sent.reference}
         onAgain={() => {
+          refocusAmount.current = true;
           setClosed(false);
           setPhase("idle");
           setMessage("");
-          setTipName("");
+          // A remembered name stays for the next tip.
+          if (!remember) setTipName("");
           setAnonymous(false);
           setExtra({ kind: "default" });
           setPaidAmount(0);
@@ -585,13 +332,23 @@ export function TipForm({
 
   const sectionLabel = "text-sm font-medium uppercase tracking-widest text-muted";
   const chip =
-    "numeric h-11 rounded-full px-5 text-sm font-semibold transition-[transform,background-color,border-color,color] duration-150 active:scale-[0.97]";
+    "flex h-12 cursor-pointer items-center justify-center rounded-full border border-control px-5 text-sm transition-[transform,background-color,border-color,color] duration-150 hover:border-muted active:scale-[0.97] peer-checked:border-accent peer-checked:bg-accent peer-checked:font-semibold peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent";
+  const digitCount = String(Math.trunc(amountRupees)).length;
+  const customBelowMin = selected === "custom" && custom !== "" && amountPaise < minTipPaise;
+
+  const preview = (
+    <>
+      <p className={sectionLabel}>Preview on stream</p>
+      <AlertCard name={alertName} amountRupees={amountRupees} message={message.trim()} />
+      <p className="text-xs text-muted">Your message may appear on stream.</p>
+    </>
+  );
 
   return (
-    <div ref={containerRef} className="mx-auto w-full max-w-5xl px-6 py-12">
-      {/* Preview banner for the creator, or coming-soon for everyone else */}
+    <div ref={containerRef} className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
+      {/* Preview banner for the creator */}
       {previewMode && (
-        <div className="tip-section mb-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4 space-y-1">
+        <div className="enter mb-8 space-y-1 rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4">
           <p className="text-sm font-semibold text-text">Preview — your page isn&apos;t live yet.</p>
           <p className="text-sm text-muted">This is exactly what fans will see once you go live.</p>
         </div>
@@ -600,69 +357,46 @@ export function TipForm({
       <div className="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-14">
         {/* Left on wide screens (sticky), above the form on phones */}
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">
-          <section className="tip-section order-1 space-y-5" aria-label="Creator">
-            <div className="flex items-center gap-4">
-              {pictureUrl && (
-                <Image
-                  src={pictureUrl}
-                  alt={`${displayName}'s profile photo`}
-                  loading="eager"
-                  width={72}
-                  height={72}
-                  className="shrink-0 rounded-full"
-                />
-              )}
-              <p className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-muted">
-                <span aria-hidden="true" className="live-dot" />
-                {previewMode ? "Preview" : "Tips open"}
-              </p>
-            </div>
-            <div className="min-w-0 space-y-2">
-              <h1 className="display text-[clamp(2rem,6vw,3rem)] break-words">{displayName}</h1>
-              {ytChannelName && ytChannelUrl && (
-                <a
-                  href={ytChannelUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block truncate text-sm text-muted transition-colors hover:text-text"
-                >
-                  {ytChannelName}
-                </a>
-              )}
-              {bio && <p className="text-pretty text-base text-muted">{bio}</p>}
-            </div>
-            <ul className="space-y-1 text-sm text-muted">
-              <li>UPI and cards</li>
-              <li>No account or email needed</li>
-              <li>Your alert shows on their stream</li>
-            </ul>
-          </section>
-
-          <section className="tip-section order-3 space-y-3 lg:order-none" aria-label="Alert preview">
-            <p className={sectionLabel}>Preview on stream</p>
-            <AlertCard
-              name={alertName}
-              amountRupees={amountRupees}
-              message={message.trim()}
-              className="border border-line/60 border-l-4 border-l-accent"
+          <div className="enter" style={step(0)}>
+            <CreatorPanel
+              handle={handle}
+              displayName={displayName}
+              pictureUrl={pictureUrl}
+              ytChannelName={ytChannelName}
+              ytChannelUrl={ytChannelUrl}
+              bio={bio}
+              previewMode={previewMode}
             />
-            <p className="text-xs text-muted">Your message may appear on stream.</p>
+          </div>
+
+          <section
+            className="enter hidden space-y-3 lg:block"
+            style={step(2)}
+            aria-label="Alert preview"
+          >
+            {preview}
           </section>
         </div>
 
         {/* The tip */}
-        <div className="tip-section order-2 space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 sm:p-8 lg:order-none">
+        <div
+          className="enter space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 sm:p-8"
+          style={step(1)}
+        >
+          <p role="status" className="sr-only">
+            {announce}
+          </p>
+
           {/* 01 Amount */}
-          <fieldset className="space-y-3">
-            <legend className="sr-only">Amount</legend>
+          <div className="space-y-3">
             <StepHeading n={1} title="Amount" />
             <p
               key={amountRupees}
               aria-hidden="true"
               className={`amount-numeral numeric font-semibold leading-none text-accent ${
-                String(Math.trunc(amountRupees)).length >= 5
+                digitCount >= 5
                   ? "text-[clamp(2.75rem,12vw,3.5rem)]"
-                  : String(Math.trunc(amountRupees)).length === 4
+                  : digitCount === 4
                     ? "text-[clamp(3.25rem,14vw,4.25rem)]"
                     : "text-[clamp(4rem,17vw,5.5rem)]"
               }`}
@@ -670,51 +404,67 @@ export function TipForm({
               ₹{rupeeText(amountRupees)}
             </p>
             <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
-            <div className="flex flex-wrap gap-2">
-              {presets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setSelected(preset)}
-                  aria-pressed={selected === preset}
-                  className={`${chip} ${
-                    selected === preset ? "bg-accent text-ink" : "border border-control text-text hover:border-muted"
-                  }`}
-                >
-                  ₹{preset}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setSelected("custom")}
-                aria-pressed={selected === "custom"}
-                className={`${chip} font-sans ${
-                  selected === "custom" ? "bg-accent text-ink" : "border border-control text-text hover:border-muted"
-                }`}
-              >
-                Custom
-              </button>
-            </div>
+            <fieldset>
+              <legend className="sr-only">Choose an amount in rupees</legend>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((preset) => (
+                  <label key={preset} className="relative">
+                    <input
+                      type="radio"
+                      name="amount"
+                      value={preset}
+                      checked={selected === preset}
+                      onChange={() => pickPreset(preset)}
+                      className="peer sr-only"
+                    />
+                    <span className={`numeric ${chip}`}>₹{preset}</span>
+                  </label>
+                ))}
+                <label className="relative">
+                  <input
+                    type="radio"
+                    name="amount"
+                    value="custom"
+                    checked={selected === "custom"}
+                    onChange={() => pickPreset("custom")}
+                    className="peer sr-only"
+                  />
+                  <span className={chip}>Custom</span>
+                </label>
+              </div>
+            </fieldset>
             {selected === "custom" && (
               <div className="relative flex items-center">
                 <span aria-hidden="true" className="numeric pointer-events-none absolute left-4 text-muted">
                   ₹
                 </span>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={minRupees}
-                  max={100000}
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
+                  onChange={(e) => changeCustom(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
+                  }}
                   placeholder="Enter amount"
                   aria-label="Custom tip amount in rupees"
-                  className="numeric w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
+                  aria-describedby="tip-min"
+                  aria-invalid={customBelowMin || undefined}
+                  className="numeric h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text transition-[border-color] placeholder:text-muted focus:border-accent"
                 />
               </div>
             )}
-            <p className="text-xs text-muted">Minimum ₹{minRupees}</p>
-          </fieldset>
+            <p id="tip-min" className="text-xs text-muted">
+              Minimum ₹{minRupees}
+            </p>
+          </div>
+
+          {/* The alert as it will look, between the amount and the note on phones */}
+          <section className="space-y-3 lg:hidden" aria-label="Alert preview">
+            {preview}
+          </section>
 
           {/* 02 Your note */}
           <div className="space-y-4">
@@ -734,11 +484,20 @@ export function TipForm({
                 type="text"
                 maxLength={50}
                 value={tipName}
-                onChange={(e) => setTipName(e.target.value)}
+                onChange={(e) => changeName(e.target.value)}
                 placeholder={anonymous ? "Hidden" : "Riya, Kabir…"}
                 disabled={anonymous}
-                className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color,opacity] duration-200 focus:border-accent disabled:opacity-40"
+                autoComplete="off"
+                className="h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text transition-[border-color,opacity] duration-200 placeholder:text-muted focus:border-accent disabled:opacity-40"
               />
+              {!anonymous && (
+                <div className="flex items-center gap-3 pt-1">
+                  <Switch id="remember-name" checked={remember} onChange={changeRemember} />
+                  <label htmlFor="remember-name" className="cursor-pointer select-none text-sm text-muted">
+                    Remember my name on this device
+                  </label>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <label htmlFor="tip-message" className="text-sm text-muted">
@@ -751,19 +510,19 @@ export function TipForm({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Great stream today!"
-                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
+                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text transition-[border-color] placeholder:text-muted focus:border-accent"
               />
               <p aria-live={nearLimit ? "polite" : "off"} className="text-right text-xs text-muted">
                 {message.length}/{messageLimit}
                 {moreChars && ` · tip ₹${moreChars.rupees} or more for ${moreChars.limit}`}
               </p>
               {messageTooLong && (
-                <p role="alert" className="text-sm text-red-400">
+                <FieldNote>
                   Your message is {message.length - messageLimit} characters too long for this tip.
                   {moreChars
                     ? ` Shorten it, or tip ₹${moreChars.rupees} or more for ${moreChars.limit} characters.`
                     : " Please shorten it."}
-                </p>
+                </FieldNote>
               )}
             </div>
             {(sounds.length > 0 || voiceMinPaise !== null) && (
@@ -777,16 +536,16 @@ export function TipForm({
               />
             )}
             {soundTooPricey && chosenSound && (
-              <p role="alert" className="text-sm text-red-400">
+              <FieldNote>
                 Tip at least ₹{Math.ceil(chosenSound.minPaise / 100)} to play {chosenSound.name}, or pick another
                 sound.
-              </p>
+              </FieldNote>
             )}
             {voiceTooPricey && voiceMinPaise !== null && (
-              <p role="alert" className="text-sm text-red-400">
+              <FieldNote>
                 Tip at least ₹{Math.ceil(voiceMinPaise / 100)} to have your message read aloud, or pick something
                 else.
-              </p>
+              </FieldNote>
             )}
           </div>
 
@@ -805,32 +564,33 @@ export function TipForm({
               </p>
             )}
 
-            {phase === "error" && (
-              <p role="alert" className="text-sm text-red-400">
-                {errorMsg}
-              </p>
-            )}
+            {phase === "error" && <FieldNote>{errorMsg}</FieldNote>}
 
             <div>
-              <button
-                type="button"
-                onClick={handlePay}
-                disabled={previewMode || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
-                className="beam w-full h-14 rounded-full bg-accent text-base font-semibold text-ink transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center justify-center gap-3"
-              >
-                {phase === "creating" ? (
-                  <>
-                    <TickLoader count={10} duration={0.8} className="text-ink" />
-                    Opening payment…
-                  </>
-                ) : phase === "checkout" ? (
-                  "Complete payment in the popup"
-                ) : previewMode ? (
-                  "Tip (preview only)"
-                ) : (
-                  `Tip ₹${amountRupees || "—"} →`
-                )}
-              </button>
+              <Magnetic className="w-full" strength={0.1}>
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={previewMode || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
+                  className="beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-[opacity,transform] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {phase === "creating" ? (
+                    <>
+                      <TickLoader count={10} duration={0.8} className="text-ink" />
+                      Opening payment…
+                    </>
+                  ) : phase === "checkout" ? (
+                    "Complete payment in the popup"
+                  ) : previewMode ? (
+                    "Tip (preview only)"
+                  ) : (
+                    <>
+                      <RollText>{`Tip ₹${amountRupees || "—"}`}</RollText>
+                      <ArrowRight weight="bold" aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+              </Magnetic>
               {!previewMode && amountPaise > 0 && amountPaise < minTipPaise && (
                 <p className="mt-2 text-center text-xs text-muted">Minimum tip is ₹{minRupees}</p>
               )}

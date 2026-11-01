@@ -12,6 +12,13 @@ import {
   soundPathPrefix,
 } from "@/lib/sounds";
 import { addSound, deleteSound, setDefaultSound, updateSound } from "@/app/actions/sounds";
+import { RollText } from "@/components/motion/RollText";
+import { Tile } from "../parts/Tile";
+import { Msg } from "../parts/Msg";
+import { ConfirmAction } from "../parts/ConfirmAction";
+import { Range, Toggle } from "../parts/Controls";
+import { EmptyState } from "../parts/EmptyState";
+import { peerRing, pillOutline, pillPrimary } from "../parts/styles";
 
 export interface SoundRow {
   id: number;
@@ -45,9 +52,8 @@ const mb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
 const field =
-  "h-11 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none";
-const smallButton =
-  "inline-flex h-10 items-center rounded-full border border-control px-4 text-sm font-medium text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50";
+  "h-11 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent";
+const smallButton = pillOutline;
 
 // One audio element at a time, so previews never stack up.
 let previewing: HTMLAudioElement | null = null;
@@ -141,13 +147,12 @@ export function SoundsManager({
   return (
     <div className="space-y-6">
       {!uploadsReady && (
-        <p role="alert" className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 text-sm text-muted">
+        <p role="alert" className="rounded-surface border border-line/60 bg-surface p-5 text-sm text-muted">
           Sound uploads are not switched on yet. They need a storage setting that the site owner adds.
         </p>
       )}
 
-      <div className="space-y-3 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6">
-        <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Add sounds</h2>
+      <Tile id="add-sounds" level={2} title="Add sounds">
         <p className="text-sm text-muted">
           MP3, WAV, OGG or M4A, up to 30 seconds and 8 MB each. You can pick several at once. A file that
           is damaged or in an odd format is repaired for you; one that cannot be read is turned down with
@@ -161,40 +166,65 @@ export function SoundsManager({
           accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac"
           disabled={!uploadsReady || busy || full}
           onChange={(e) => handleFiles(e.target.files)}
-          className="sr-only"
+          className="peer sr-only"
         />
         <label
           htmlFor="sound-files"
-          className={`inline-flex h-12 cursor-pointer items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-transform duration-150 active:scale-[0.97] ${
+          className={`${pillPrimary} cursor-pointer ${peerRing} ${
             !uploadsReady || busy || full ? "pointer-events-none opacity-50" : ""
           }`}
         >
-          {busy ? "Working…" : "Choose files"}
+          <RollText>{busy ? "Working…" : "Choose files"}</RollText>
         </label>
         <p className="numeric text-xs text-muted">
           {sounds.length} of {maxSounds} sounds · {mb(usedBytes)} of {mb(maxBytes)} MB used
         </p>
-        {progress.length > 0 && (
-          <ul aria-live="polite" className="space-y-1 text-sm">
-            {progress.map((p) => (
-              <li key={p.key} className={p.state === "failed" ? "text-red-400" : p.state === "done" ? "text-accent" : "text-muted"}>
-                <span className="font-medium">{p.file}</span>: {p.text}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <div aria-live="polite" className="empty:hidden">
+          {progress.length > 0 && (
+            <ul className="space-y-1.5 text-sm">
+              {progress.map((p) => (
+                <li key={p.key} className="flex min-w-0 flex-wrap items-center gap-2 text-text">
+                  {p.state === "failed" && (
+                    <span className="shrink-0 rounded-full bg-text px-2 py-0.5 text-xs font-semibold text-ground">Problem</span>
+                  )}
+                  {p.state === "done" && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-accent" />}
+                  <span className="min-w-0 break-words">
+                    <span className="font-medium">{p.file}</span>
+                    <span className={p.state === "working" ? "text-muted" : ""}>: {p.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Tile>
 
-      {error && (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      )}
+      <Msg kind={error ? "error" : undefined} text={error} />
 
       {sounds.length === 0 ? (
-        <p className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 text-muted">
-          No sounds yet. Add a few and fans will see them on your tip page.
-        </p>
+        <Tile id="your-sounds" level={2} title="Your sounds">
+          <EmptyState
+            sample={
+              <div className="flex items-center gap-3 rounded-field border border-line/60 bg-ground px-4 py-3 text-sm">
+                <span className="text-xl">🔊</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-text">Airhorn</span>
+                <span className="numeric shrink-0 text-muted">from ₹50</span>
+              </div>
+            }
+            title="No sounds yet."
+            body="Fans pick a sound on your tip page and it plays with their alert. The one above is a sample."
+            cta={
+              <button
+                type="button"
+                disabled={!uploadsReady || busy}
+                onClick={() => input.current?.click()}
+                className={pillOutline}
+              >
+                Add your first sound
+              </button>
+            }
+          />
+        </Tile>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -264,7 +294,6 @@ function SoundItem({
   }
 
   async function remove() {
-    if (!window.confirm(`Delete "${sound.name}"? Fans can no longer pick it.`)) return;
     setWorking(true);
     const res = await deleteSound(sound.id);
     setWorking(false);
@@ -308,29 +337,20 @@ function SoundItem({
             className={`${field} numeric w-full`}
           />
         </label>
-        <label className="space-y-1">
-          <span className="flex justify-between text-xs uppercase tracking-widest text-muted">
+        <div className="space-y-1">
+          <label htmlFor={`volume-${sound.id}`} className="flex justify-between text-xs uppercase tracking-widest text-muted">
             <span>Volume</span>
             <span className="numeric">{volume}%</span>
-          </span>
-          <input
-            type="range"
-            min={10}
-            max={100}
-            step={5}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="h-11 w-full accent-accent"
-          />
-        </label>
+          </label>
+          <Range id={`volume-${sound.id}`} min={10} max={100} step={5} value={volume} onChange={setVolume} unit="percent" />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-text">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="size-4 accent-accent" />
+          <Toggle id={`enabled-${sound.id}`} checked={enabled} onChange={setEnabled}>
             Fans can pick it
-          </label>
+          </Toggle>
           <span className="numeric text-xs text-muted">{seconds(sound.durationMs)}</span>
           {isDefault ? (
             <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink">Default</span>
@@ -346,16 +366,19 @@ function SoundItem({
               Save
             </button>
           )}
-          <button type="button" disabled={working} onClick={remove} className={smallButton}>
+          <ConfirmAction
+            prompt={`Delete "${sound.name}"? Fans can no longer pick it.`}
+            confirmLabel="Yes, delete it"
+            keepLabel="Keep it"
+            onConfirm={remove}
+            disabled={working}
+            className={smallButton}
+          >
             Delete
-          </button>
+          </ConfirmAction>
         </div>
       </div>
-      {message && (
-        <p role="alert" className="text-sm text-red-400">
-          {message}
-        </p>
-      )}
+      <Msg kind={message ? "error" : undefined} text={message} />
     </li>
   );
 }

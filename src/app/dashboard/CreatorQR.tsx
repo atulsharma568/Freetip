@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { CopyButton } from "./parts/CopyButton";
 
 interface Props {
   url: string;
@@ -43,15 +44,6 @@ export function CreatorQR({ url, handle }: Props) {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setNotice(""), 2200);
   }, []);
-
-  const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      flash("Link copied");
-    } catch {
-      flash("Could not copy. Select the link and copy it by hand.");
-    }
-  }, [url, flash]);
 
   const share = useCallback(async () => {
     try {
@@ -127,9 +119,7 @@ export function CreatorQR({ url, handle }: Props) {
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={copy} className={buttonClass}>
-          Copy link
-        </button>
+        <CopyButton value={url} label="Copy link" className={buttonClass} />
         {shareable && (
           <button type="button" onClick={share} className={buttonClass}>
             Share

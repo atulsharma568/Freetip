@@ -3,6 +3,10 @@
 import { useState, useTransition } from "react";
 import { testVoice, type VoiceTestResult } from "@/app/actions/voice-test";
 import { TEST_INPUT_MAX } from "@/lib/voice-test";
+import { RollText } from "@/components/motion/RollText";
+import { ChipRadio } from "./parts/Controls";
+import { Msg } from "./parts/Msg";
+import { pillPrimary } from "./parts/styles";
 
 export function VoiceTest({ maxChars }: { maxChars: number }) {
   const limit = Math.min(maxChars, TEST_INPUT_MAX);
@@ -44,25 +48,12 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
         />
       </div>
 
-      <fieldset className="flex items-center gap-2">
+      <fieldset className="flex flex-wrap items-center gap-2">
         <legend className="sr-only">Voice to test</legend>
         {(["female", "male"] as const).map((g) => (
-          <label
-            key={g}
-            className={`inline-flex h-10 cursor-pointer items-center rounded-full border px-4 text-sm ${
-              gender === g ? "border-accent text-text" : "border-control text-muted"
-            }`}
-          >
-            <input
-              type="radio"
-              name="voice-test-gender"
-              value={g}
-              checked={gender === g}
-              onChange={() => setGender(g)}
-              className="sr-only"
-            />
+          <ChipRadio key={g} name="voice-test-gender" value={g} checked={gender === g} onChange={() => setGender(g)}>
             {g === "female" ? "Female voice" : "Male voice"}
-          </label>
+          </ChipRadio>
         ))}
       </fieldset>
 
@@ -70,17 +61,13 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
         type="button"
         onClick={speak}
         disabled={pending || !text.trim()}
-        className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-opacity duration-200 disabled:opacity-40"
+        className={pillPrimary}
       >
-        {pending ? "Making the voice…" : "Test voice"}
+        <RollText>{pending ? "Making the voice…" : "Test voice"}</RollText>
       </button>
 
       <div aria-live="polite">
-        {result?.status === "error" && (
-          <p role="alert" className="text-sm text-red-400">
-            {result.message}
-          </p>
-        )}
+        <Msg kind={result?.status === "error" ? "error" : undefined} text={result?.status === "error" ? result.message : undefined} />
         {result?.status === "ok" && (
           <div className="space-y-3">
             {/* Browsers may refuse to start sound after a wait, so the player is

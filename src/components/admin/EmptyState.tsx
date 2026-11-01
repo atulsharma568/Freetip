@@ -6,7 +6,7 @@ export function AdminEmptyState({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-control bg-surface/60 p-6">
+    <div className="rounded-surface border border-dashed border-control bg-surface p-6">
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
         No records yet
       </p>

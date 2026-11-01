@@ -54,10 +54,15 @@ export function getPayments(
   db: LedgerDb,
   range: DateRange,
   limit = 200,
+  // Optional text: matches the public reference, the Razorpay payment or order id, or
+  // the creator's handle or name.
+  search = "",
 ): Promise<Loaded<PaymentList>> {
   return load("the payments list", async () => {
     const from = range.from.toISOString();
     const to = range.to.toISOString();
+    const q = search.trim().slice(0, 100);
+    const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
     const found = await db<{
       order_id: string;
@@ -136,6 +141,12 @@ export function getPayments(
         ) d on true
        where o.created_at >= ${from}::timestamptz
          and o.created_at <  ${to}::timestamptz
+         and (${q} = ''
+              or o.public_reference ilike ${like}
+              or coalesce(pa.provider_payment_ref, '') ilike ${like}
+              or coalesce(pa.provider_order_ref, '') ilike ${like}
+              or coalesce(u.handle, '') ilike ${like}
+              or coalesce(u.name, '') ilike ${like})
        order by o.created_at desc, o.id desc
        limit ${limit + 1}
     `;

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { PageShell } from "@/components/PageShell";
 import { SITE_NAME } from "@/lib/site";
 import { planFeatures } from "@/lib/plans";
 import { secretBoxAvailable } from "@/lib/secret-box";
@@ -10,6 +9,11 @@ import { replayBufferNeeded } from "@/lib/ts-helper";
 import { youtubeConfigured } from "@/lib/youtube";
 import { DashboardNav } from "../DashboardNav";
 import { TimestampsManager } from "./TimestampsManager";
+import { DashboardShell } from "../parts/DashboardShell";
+import { Tile } from "../parts/Tile";
+import { Msg } from "../parts/Msg";
+import { EmptyState } from "../parts/EmptyState";
+import { pillOutline } from "../parts/styles";
 
 export const metadata: Metadata = {
   title: `Timestamps: ${SITE_NAME}`,
@@ -48,8 +52,10 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
 
-  const [user] = await db<{ id: string; handle: string | null; paid_features: string[] | null }[]>`
-    select id::text, handle, paid_features from users where google_id = ${googleId}
+  const [user] = await db<
+    { id: string; handle: string | null; paid_features: string[] | null; creator_status: string }[]
+  >`
+    select id::text, handle, paid_features, creator_status from users where google_id = ${googleId}
   `;
   if (!user?.handle) redirect("/dashboard");
   const features = planFeatures(user);
@@ -111,11 +117,11 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
   const available = youtubeConfigured() && secretBoxAvailable();
 
   return (
-    <PageShell>
-      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-16">
+    <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 pb-24 pt-4">
         <DashboardNav current="timestamps" />
         <div className="space-y-3">
-          <h1 className="display text-[clamp(2rem,8vw,3rem)]">Stream timestamps</h1>
+          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Stream timestamps</h1>
           <p className="text-muted">
             Viewers and mods type <span className="numeric text-text">!ts</span> in your live chat to save a
             moment. When the stream ends, one comment with every moment is posted on it from your channel, and
@@ -124,9 +130,7 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
         </div>
 
         {!migrated ? (
-          <p role="alert" className="text-sm text-red-400">
-            Not ready yet: run db/migrations/0032_stream_timestamps.sql in Neon.
-          </p>
+          <Msg kind="error" text="Not ready yet: run db/migrations/0032_stream_timestamps.sql in Neon." />
         ) : (
           <TimestampsManager
             available={available}
@@ -147,10 +151,26 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
         )}
 
         {migrated && (
-          <section className="space-y-4 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6">
-            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Recent streams</h2>
+          <Tile id="recent-streams" level={2} title="Recent streams">
             {streams.length === 0 ? (
-              <p className="text-sm text-muted">Nothing yet. Streams show up here after the first timestamp.</p>
+              <EmptyState
+                sample={
+                  <div className="flex items-start justify-between gap-4 rounded-field border border-line/60 bg-ground px-4 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate text-text">Friday night stream</p>
+                      <p className="text-xs text-muted">3 moments</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted">Posted</span>
+                  </div>
+                }
+                title="Nothing yet."
+                body="Streams show up here after the first timestamp. The one above is a sample."
+                cta={
+                  <a href="#ts-command" className={pillOutline}>
+                    Set up the chat command
+                  </a>
+                }
+              />
             ) : (
               <ul className="divide-y divide-line/60">
                 {streams.map((s) => (
@@ -194,9 +214,9 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
                 ))}
               </ul>
             )}
-          </section>
+          </Tile>
         )}
       </div>
-    </PageShell>
+    </DashboardShell>
   );
 }

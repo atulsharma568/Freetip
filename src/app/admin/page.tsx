@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { getFinanceSummary, formatINR } from "@/lib/admin/finance-queries";
 import { rangeAllTime } from "@/lib/admin/date-range";
+import { getQueue } from "@/lib/admin/queue";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
+import { TONE_MARK, TONE_TEXT } from "@/components/admin/tones";
 import { CouldNotRead } from "./_components/Notices";
+import { PageHeader } from "./_components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +26,17 @@ const sections = [
   {
     href: "/admin/audit",
     title: "Audit history",
-    description: "Append-only history for financial events and owner actions. Nothing writes to it yet.",
+    description: "Append-only history of owner actions: approvals, suspensions, feature switches, removals.",
+  },
+  {
+    href: "/admin/features",
+    title: "Paid features",
+    description: "Which creator has which paid feature switched on, with a count per feature.",
+  },
+  {
+    href: "/admin/health",
+    title: "Health",
+    description: "The scheduled jobs and a checklist of which server settings are set (never their values).",
   },
 ];
 
@@ -39,25 +52,53 @@ export default async function AdminOverviewPage() {
   await requireOwner();
 
   const db = adminDb();
-  const result = db ? await getFinanceSummary(db, rangeAllTime()) : null;
+  const [result, queue] = db ? await Promise.all([getFinanceSummary(db, rangeAllTime()), getQueue(db)]) : [null, null];
 
   return (
     <div className="space-y-8">
-      <div className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">Owner console</p>
-        <h1 className="display text-[clamp(2.5rem,7vw,5rem)] leading-[0.95]">Owner finance.</h1>
-        <p className="max-w-2xl text-lg leading-relaxed text-muted">
-          Figures count live Razorpay payments only; test-mode payments are not counted. Nothing here
-          moves money: creator payouts are not built yet.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Owner console"
+        title="Needs you today"
+        note="Figures count live Razorpay payments only; test-mode payments are not counted. Nothing here moves money: creator payouts are not built yet."
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <section aria-label="Waiting for you" className="space-y-3">
+        {queue ? (
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {queue.items.map((item) => (
+              <li key={item.key}>
+                <Link
+                  href={item.href}
+                  className="flex h-full flex-col justify-between gap-3 rounded-surface border border-control bg-surface p-5 transition-colors hover:border-accent/60"
+                >
+                  <span className="text-sm text-muted">{item.label}</span>
+                  {item.count.ok ? (
+                    <span
+                      className={`numeric text-3xl font-semibold ${item.count.data > 0 ? "text-accent" : "text-text"}`}
+                    >
+                      {item.count.data}
+                      <span className="sr-only"> waiting</span>
+                    </span>
+                  ) : (
+                    <span className={`text-sm ${TONE_TEXT.bad}`} title={item.count.error}>
+                      <span aria-hidden="true">{TONE_MARK.bad} </span>Could not read
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">The database is not set up, so nothing can be counted.</p>
+        )}
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sections.map((section) => (
           <Link
             key={section.href}
             href={section.href}
-            className="group rounded-2xl border border-control bg-surface p-5 transition-colors hover:border-accent/60"
+            className="group rounded-surface border border-control bg-surface p-5 transition-colors hover:border-accent/60"
           >
             <h2 className="text-xl font-semibold text-text group-hover:text-accent">
               {section.title}
@@ -67,7 +108,7 @@ export default async function AdminOverviewPage() {
         ))}
       </div>
 
-      <section className="rounded-2xl border border-control bg-surface p-6">
+      <section className="rounded-surface border border-control bg-surface p-6">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Current state</p>
         {result && !result.ok ? (
           <div className="mt-5">

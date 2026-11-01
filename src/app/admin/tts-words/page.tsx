@@ -1,94 +1,111 @@
 import Link from "next/link";
-import { getDb } from "@/lib/db";
-import { removeLearnedWord, reviewTtsWord } from "@/app/actions/admin";
+import { ActionForm } from "@/components/admin/ActionForm";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
+import { buttonClass } from "@/components/admin/tones";
+import { removeLearnedWord, reviewTtsWord } from "@/app/actions/admin";
+import { fmtIST } from "@/lib/admin/format";
+import { load } from "@/lib/admin/result";
+import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
+import { CouldNotRead, DatabaseNotSetUp } from "../_components/Notices";
+import { PageHeader } from "../_components/PageHeader";
 
-interface LearnedRow {
+export const dynamic = "force-dynamic";
+
+type LearnedRow = {
   word: string;
   devanagari: string;
-  created_at: string;
-}
+  created_at: Date;
+};
 
-interface WordRow {
+type WordRow = {
   word: string;
   seen: number;
-  last_seen: string;
-}
+  last_seen: Date;
+};
+
+const LIMIT = 300;
 
 // Words in Hindi-looking tip messages that the Hinglish converter does not know,
 // most common first. Add the Hindi ones to src/lib/hinglish-words.ts, then mark
 // them reviewed.
 export default async function AdminTtsWordsPage() {
   await requireOwner();
-  const db = getDb();
+  const db = adminDb();
 
-  let words: WordRow[] = [];
-  let learned: LearnedRow[] = [];
-  let missing = false;
-  if (db) {
-    try {
-      learned = await db<LearnedRow[]>`
-        select word, devanagari, created_at from tts_learned_words order by created_at desc limit 300
-      `;
-    } catch {
-      // Migration 0022 not run yet: no learned words to show.
-    }
-    try {
-      words = await db<WordRow[]>`
-        select word, seen, last_seen from tts_unknown_words
-        where not reviewed order by seen desc, last_seen desc limit 300
-      `;
-    } catch {
-      missing = true;
-    }
-  }
-
-  if (missing) {
-    return (
-      <AdminEmptyState
-        title="Voice words are not set up"
-        description="Run db/migrations/0021_tts_unknown_words.sql in Neon to start logging unknown words."
-      />
-    );
-  }
-  if (!words.length && !learned.length) {
-    return (
-      <AdminEmptyState
-        title="No new words"
-        description="Words the Hinglish converter does not know appear here once Hindi-looking tips are spoken."
-      />
-    );
-  }
+  const [learned, words] = db
+    ? await Promise.all([
+        load("the learned words", async () => {
+          const rows = await db<LearnedRow[]>`
+            select word, devanagari, created_at from tts_learned_words order by created_at desc limit ${LIMIT}
+          `;
+          const [c] = await db<{ n: string }[]>`select count(*)::text as n from tts_learned_words`;
+          return { rows, total: Number(c.n) };
+        }),
+        load("the unknown words", async () => {
+          const rows = await db<WordRow[]>`
+            select word, seen, last_seen from tts_unknown_words
+            where not reviewed order by seen desc, last_seen desc limit ${LIMIT}
+          `;
+          const [c] = await db<{ n: string }[]>`select count(*)::text as n from tts_unknown_words where not reviewed`;
+          return { rows, total: Number(c.n) };
+        }),
+      ])
+    : [null, null];
 
   return (
-    <div className="space-y-10">
-      {learned.length > 0 && (
-        <section className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-text">Learned by the voice</h2>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Voice words"
+        title="Words the voice does not know"
+        note="Hindi-looking words in tip messages that the Hinglish converter could not convert, most common first. Add the Hindi ones to the dictionary, then mark them reviewed; English words can be marked reviewed as they are."
+      />
+
+      {!words ? (
+        <DatabaseNotSetUp />
+      ) : !words.ok ? (
+        <CouldNotRead
+          message="Could not read the unknown words. Has db/migrations/0021_tts_unknown_words.sql been run in Neon?"
+          detail={words.error}
+        />
+      ) : words.data.rows.length === 0 ? (
+        <AdminEmptyState
+          title="No new words"
+          description="Words the Hinglish converter does not know appear here once Hindi-looking tips are spoken."
+        />
+      ) : (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <p className="text-sm text-muted">
-              {learned.length} word{learned.length !== 1 ? "s" : ""} added automatically (we proposed them, our
-              rules accepted them). They convert only inside Hindi sentences. Remove any that sound wrong.
+              Showing {words.data.rows.length} of {words.data.total} unknown word{words.data.total === 1 ? "" : "s"}.
             </p>
+            <Link href="/admin/tts-words/export" prefetch={false} className={buttonClass("quiet", "sm")}>
+              Download list
+            </Link>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-control">
+          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-control">
-                {learned.map((l) => (
-                  <tr key={l.word} className="bg-surface/30 hover:bg-surface/60">
-                    <td className="px-4 py-3 font-medium text-text">{l.word}</td>
-                    <td className="px-4 py-3 text-text">{l.devanagari}</td>
-                    <td className="numeric px-4 py-3 text-muted">{new Date(l.created_at).toLocaleDateString("en-IN")}</td>
+              <caption className="sr-only">Unknown words, most seen first</caption>
+              <thead className="sticky top-0 z-10 bg-raised">
+                <tr className="border-b border-control">
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Word</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Seen</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Last seen</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-control bg-surface">
+                {words.data.rows.map((w) => (
+                  <tr key={w.word} className="align-top hover:bg-raised">
+                    <td className="px-4 py-3 font-medium text-text">{w.word}</td>
+                    <td className="numeric px-4 py-3 text-muted">{w.seen}</td>
+                    <td className="numeric px-4 py-3 text-muted">{fmtIST(w.last_seen, "date")}</td>
                     <td className="px-4 py-3">
-                      <form action={removeLearnedWord.bind(null, l.word)}>
-                        <button
-                          type="submit"
-                          className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-400/20"
-                        >
-                          Remove
-                        </button>
-                      </form>
+                      <ActionForm
+                        action={reviewTtsWord.bind(null, w.word)}
+                        label="Mark reviewed"
+                        pendingLabel="Saving…"
+                      />
                     </td>
                   </tr>
                 ))}
@@ -97,58 +114,57 @@ export default async function AdminTtsWordsPage() {
           </div>
         </section>
       )}
-      {words.length > 0 && (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold text-text">Voice words</h1>
-          <p className="text-sm text-muted">
-            {words.length} unknown word{words.length !== 1 ? "s" : ""} in Hindi-looking tips. Add the Hindi ones to the
-            dictionary, then mark them reviewed. English words can be marked reviewed as they are.
-          </p>
-        </div>
-        <Link
-          href="/admin/tts-words/export"
-          prefetch={false}
-          className="rounded-lg border border-control px-3 py-2 text-sm text-muted hover:text-text"
-        >
-          Download list
-        </Link>
-      </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-control">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-control bg-surface/60">
-              <th className="px-4 py-3 text-left font-medium text-muted">Word</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Seen</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Last seen</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-control">
-            {words.map((w) => (
-              <tr key={w.word} className="bg-surface/30 hover:bg-surface/60">
-                <td className="px-4 py-3 font-medium text-text">{w.word}</td>
-                <td className="numeric px-4 py-3 text-muted">{w.seen}</td>
-                <td className="numeric px-4 py-3 text-muted">{new Date(w.last_seen).toLocaleDateString("en-IN")}</td>
-                <td className="px-4 py-3">
-                  <form action={reviewTtsWord.bind(null, w.word)}>
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-control px-3 py-1 text-xs font-medium text-muted hover:text-text"
-                    >
-                      Mark reviewed
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-      )}
+      {learned &&
+        (!learned.ok ? (
+          <p className="text-sm text-muted">
+            Learned words could not be read. Voice auto-learning is parked, so migration 0022 may simply not have been
+            run. <span className="break-words font-mono text-xs">{learned.error}</span>
+          </p>
+        ) : (
+          learned.data.rows.length > 0 && (
+            <section className="space-y-3">
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-text">Learned by the voice</h2>
+                <p className="text-sm text-muted">
+                  Showing {learned.data.rows.length} of {learned.data.total} word{learned.data.total === 1 ? "" : "s"}{" "}
+                  added automatically (a language model proposed them, our rules accepted them). They convert only inside Hindi
+                  sentences. Remove any that sound wrong.
+                </p>
+              </div>
+              <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">Words the voice learned by itself</caption>
+                  <thead className="sticky top-0 z-10 bg-raised">
+                    <tr className="border-b border-control">
+                      <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Word</th>
+                      <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Hindi</th>
+                      <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Learned</th>
+                      <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-control bg-surface">
+                    {learned.data.rows.map((l) => (
+                      <tr key={l.word} className="align-top hover:bg-raised">
+                        <td className="px-4 py-3 font-medium text-text">{l.word}</td>
+                        <td className="px-4 py-3 text-text">{l.devanagari}</td>
+                        <td className="numeric px-4 py-3 text-muted">{fmtIST(l.created_at, "date")}</td>
+                        <td className="px-4 py-3">
+                          <ActionForm
+                            action={removeLearnedWord.bind(null, l.word)}
+                            label="Remove"
+                            pendingLabel="Removing…"
+                            tone="danger"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )
+        ))}
     </div>
   );
 }

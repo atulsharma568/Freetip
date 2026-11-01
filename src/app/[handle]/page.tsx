@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getCreator, getCreatorAccent, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
@@ -8,7 +7,8 @@ import { accentStyle } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
-import { SITE_NAME, SITE_HOST } from "@/lib/site";
+import { NotReady } from "./NotReady";
+import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { ttsAvailable } from "@/lib/tts";
 
@@ -53,7 +53,7 @@ export default async function CreatorPage({ params }: Props) {
 
   if (creator.creator_status !== "active" && !isOwnPage) {
     return (
-      <PageShell>
+      <PageShell slim>
         <NotReady handle={handle} name={creator.name} />
       </PageShell>
     );
@@ -67,7 +67,7 @@ export default async function CreatorPage({ params }: Props) {
   const themeStyle = accentStyle(await getCreatorAccent(handle));
 
   return (
-    <PageShell>
+    <PageShell slim>
       <div className="contents" style={themeStyle}>
       <TipForm
         sounds={sounds}
@@ -85,26 +85,5 @@ export default async function CreatorPage({ params }: Props) {
       />
       </div>
     </PageShell>
-  );
-}
-
-function NotReady({ handle, name }: { handle: string; name: string | null }) {
-  const displayName = name ?? handle;
-  return (
-    <div className="mx-auto w-full max-w-lg px-6 py-20 space-y-6">
-      <p className="numeric text-sm text-muted">
-        {SITE_HOST}/{handle}
-      </p>
-      <h1 className="display text-[clamp(2rem,8vw,3.5rem)]">Not live yet.</h1>
-      <p className="text-pretty text-lg text-muted">
-        {displayName}&apos;s tip page is being set up — check back soon.
-      </p>
-      <Link
-        href="/"
-        className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-transform duration-150 ease-out active:scale-[0.97]"
-      >
-        Back to home
-      </Link>
-    </div>
   );
 }

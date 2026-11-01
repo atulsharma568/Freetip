@@ -16,6 +16,12 @@ import {
   sendDiscordTest,
   type TsResult,
 } from "@/app/actions/timestamps";
+import { Tile } from "../parts/Tile";
+import { Msg as StatusLine } from "../parts/Msg";
+import { ConfirmAction } from "../parts/ConfirmAction";
+import { CopyField } from "../parts/CopyField";
+import { OptionRadio, Toggle } from "../parts/Controls";
+import { field, pillOutline, pillPrimary } from "../parts/styles";
 
 const DELAYS = [
   { value: 22, label: "Low delay", note: "Chat and stream almost in step" },
@@ -23,20 +29,12 @@ const DELAYS = [
   { value: 58, label: "High delay", note: "Long delay, for example to stop stream sniping" },
 ] as const;
 
-const tile = "space-y-4 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6";
-const heading = "text-sm font-medium uppercase tracking-widest text-muted";
-const primary =
-  "inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-ink transition-opacity duration-200 disabled:opacity-40";
-const outline =
-  "inline-flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-accent disabled:opacity-40";
+const primary = pillPrimary;
+const outline = pillOutline;
 
+// A result from an action, in the always-present status line.
 function Msg({ result }: { result: TsResult | null }) {
-  if (!result) return null;
-  return (
-    <p role={result.status === "error" ? "alert" : "status"} className={`text-sm ${result.status === "error" ? "text-red-400" : "text-muted"}`}>
-      {result.message}
-    </p>
-  );
+  return <StatusLine kind={result ? (result.status === "error" ? "error" : "info") : undefined} text={result?.message} />;
 }
 
 export function TimestampsManager(props: {
@@ -57,7 +55,6 @@ export function TimestampsManager(props: {
   bufferSeconds: number;
 }) {
   const [command, setCommand] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [linkResult, setLinkResult] = useState<TsResult | null>(null);
   const [delay, setDelay] = useState<number>(props.delay);
   const [delayResult, setDelayResult] = useState<TsResult | null>(null);
@@ -70,52 +67,33 @@ export function TimestampsManager(props: {
   const [isPublic, setIsPublic] = useState(props.extras.isPublic);
   const [publicResult, setPublicResult] = useState<TsResult | null>(null);
   const [editorLink, setEditorLink] = useState<string | null>(null);
-  const [editorCopied, setEditorCopied] = useState(false);
   const [editorResult, setEditorResult] = useState<TsResult | null>(null);
   const [helperToken, setHelperToken] = useState<string | null>(null);
-  const [helperCopied, setHelperCopied] = useState(false);
   const [helperResult, setHelperResult] = useState<TsResult | null>(null);
   const [pending, start] = useTransition();
 
   const run = (fn: () => Promise<TsResult>, then: (r: TsResult) => void) => start(async () => then(await fn()));
 
   function makeCommand() {
-    if (props.hasLink && !command && !window.confirm("Your current command will stop working. Make a new one?")) return;
-    setCopied(false);
     run(generateTimestampLink, (r) => {
       setLinkResult(r);
       if (r.status === "ok" && r.command) setCommand(r.command);
     });
   }
 
-  async function copy() {
-    if (!command) return;
-    try {
-      await navigator.clipboard.writeText(command);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       {props.notice && (
-        <p role={props.notice.ok ? "status" : "alert"} className={`text-sm ${props.notice.ok ? "text-text" : "text-red-400"}`}>
-          {props.notice.text}
-        </p>
+        <StatusLine kind={props.notice.ok ? "ok" : "error"} text={props.notice.text} />
       )}
 
-      <section className={tile}>
-        <h2 className={heading}>1. Connect YouTube</h2>
+      <Tile id="ts-youtube" level={2} title="1. Connect YouTube">
         <p className="text-sm text-muted">
           This lets Freetip post the timestamps comment from your own channel when the stream ends. It asks
           Google for one extra permission, only for that, and you can take it back here at any time.
         </p>
         {props.reconnectNeeded && (
-          <p role="alert" className="text-sm text-red-400">
-            Google ended the connection. Connect again so comments can be posted.
-          </p>
+          <StatusLine kind="error" text="Google ended the connection. Connect again so comments can be posted." />
         )}
         {props.youtubeConnected ? (
           <div className="space-y-3">
@@ -139,33 +117,21 @@ export function TimestampsManager(props: {
         ) : (
           <p className="text-sm text-muted">Not switched on for the site yet.</p>
         )}
-      </section>
+      </Tile>
 
-      <section className={tile}>
-        <h2 className={heading}>2. Add the command to your chat bot</h2>
+      <Tile id="ts-command" level={2} title="2. Add the command to your chat bot">
         <p className="text-sm text-muted">
           You need Nightbot (or a bot like StreamElements or Fossabot) in your YouTube chat. Paste the command
           below into your chat once. Set the command&apos;s user level to Moderator if you do not want everyone
           saving moments.
         </p>
         {command ? (
-          <div className="space-y-2">
-            <label htmlFor="ts-command" className="text-xs text-muted">
-              Your command. It is shown once, so copy it now. It holds your private address, so do not show it on stream.
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="ts-command"
-                readOnly
-                value={command}
-                onFocus={(e) => e.currentTarget.select()}
-                className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
-              />
-              <button type="button" onClick={copy} className={`${outline} h-12 shrink-0`}>
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-          </div>
+          <CopyField
+            id="ts-command-value"
+            value={command}
+            label="Your command. It is shown once, so copy it now."
+            note="It holds your private address, so do not show it on stream."
+          />
         ) : (
           <p className="text-sm text-muted">
             {props.hasLink
@@ -173,17 +139,24 @@ export function TimestampsManager(props: {
               : "Make your private command, then paste it into your live chat."}
           </p>
         )}
-        <button type="button" className={primary} disabled={pending} onClick={makeCommand}>
+        <ConfirmAction
+          ask={props.hasLink && !command}
+          prompt="Your current command will stop working. Make a new one?"
+          confirmLabel="Yes, make a new command"
+          keepLabel="Keep my command"
+          onConfirm={makeCommand}
+          disabled={pending}
+          className={primary}
+        >
           {props.hasLink || command ? "Make a new command" : "Make my command"}
-        </button>
+        </ConfirmAction>
         <Msg result={linkResult} />
         <p className="text-xs text-muted">
           After that, anyone allowed can type <span className="numeric">!ts</span> or <span className="numeric">!ts Nice shot</span> in chat.
         </p>
-      </section>
+      </Tile>
 
-      <section className={tile}>
-        <h2 className={heading}>3. Delay</h2>
+      <Tile id="ts-delay" level={2} title="3. Delay">
         <p className="text-sm text-muted">
           Viewers see the stream a few seconds late, so a moment is taken this many seconds back. Pick the one
           that matches your stream&apos;s latency setting.
@@ -191,28 +164,28 @@ export function TimestampsManager(props: {
         <fieldset className="space-y-2">
           <legend className="sr-only">Delay in seconds</legend>
           {DELAYS.map((d) => (
-            <label
+            <OptionRadio
               key={d.value}
-              className={`flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-field)] border px-4 py-3 text-sm ${
-                delay === d.value ? "border-accent text-text" : "border-control text-muted"
-              }`}
+              name="ts-delay"
+              value={d.value}
+              checked={delay === d.value}
+              onChange={() => setDelay(d.value)}
+              hint={d.note}
             >
-              <span>
-                {d.label} <span className="text-xs text-muted">({d.note})</span>
+              <span className="flex items-baseline justify-between gap-3">
+                {d.label}
+                <span className="numeric font-normal">{d.value}s</span>
               </span>
-              <span className="numeric">{d.value}s</span>
-              <input type="radio" name="ts-delay" className="sr-only" checked={delay === d.value} onChange={() => setDelay(d.value)} />
-            </label>
+            </OptionRadio>
           ))}
         </fieldset>
         <button type="button" className={outline} disabled={pending || delay === props.delay} onClick={() => run(() => saveTimestampDelay(delay), setDelayResult)}>
           Save delay
         </button>
         <Msg result={delayResult} />
-      </section>
+      </Tile>
 
-      <section className={tile}>
-        <h2 className={heading}>Send moments to Discord (optional)</h2>
+      <Tile id="ts-discord" level={2} title="Send moments to Discord (optional)">
         <p className="text-sm text-muted">
           Each saved moment is posted to a Discord channel with the stream title, who saved it, what they wrote,
           the time, and a link that opens your stream at that second. It is a link to the moment, not a video file.
@@ -233,7 +206,7 @@ export function TimestampsManager(props: {
             value={webhook}
             onChange={(e) => setWebhook(e.target.value)}
             placeholder="https://discord.com/api/webhooks/…"
-            className="h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text placeholder:text-muted focus:border-accent"
+            className={field}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -257,26 +230,22 @@ export function TimestampsManager(props: {
           )}
         </div>
         <Msg result={discordResult} />
-      </section>
+      </Tile>
 
       {!props.extras.ready ? (
-        <p role="alert" className="text-sm text-red-400">
-          More options are coming: run db/migrations/0033_timestamp_extras.sql in Neon.
-        </p>
+        <StatusLine kind="error" text="More options are coming: run db/migrations/0033_timestamp_extras.sql in Neon." />
       ) : (
         <>
           {props.tipPlan && (
-            <section className={tile}>
-              <h2 className={heading}>Mark big tips and goals automatically</h2>
+            <Tile id="ts-tips" level={2} title="Mark big tips and goals automatically">
               <p className="text-sm text-muted">
                 When a big tip&apos;s alert plays on your stream, or a goal bar is completed, Freetip adds a
                 moment by itself, so those moments are never missed. It shows only the amount or the goal&apos;s
                 title, never a fan&apos;s name. Needs YouTube connected (above).
               </p>
-              <label className="flex items-center gap-3 text-sm text-text">
-                <input type="checkbox" checked={tipOn} onChange={(e) => setTipOn(e.target.checked)} className="h-5 w-5 accent-[var(--color-accent)]" />
+              <Toggle id="ts-tip-on" checked={tipOn} onChange={setTipOn}>
                 Add moments for big tips and completed goals
-              </label>
+              </Toggle>
               {tipOn && (
                 <div className="space-y-2">
                   <label htmlFor="ts-tip-min" className="text-xs text-muted">
@@ -287,7 +256,7 @@ export function TimestampsManager(props: {
                     inputMode="numeric"
                     value={tipMin}
                     onChange={(e) => setTipMin(e.target.value.replace(/\D/g, "").slice(0, 7))}
-                    className="numeric h-12 w-40 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
+                    className={`${field} numeric w-40`}
                   />
                 </div>
               )}
@@ -300,82 +269,53 @@ export function TimestampsManager(props: {
                 Save
               </button>
               <Msg result={tipResult} />
-            </section>
+            </Tile>
           )}
 
           {props.highlightsPlan && (
-            <section className={tile}>
-              <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Public highlights pages</h2>
+            <Tile id="ts-public" level={2} title="Public highlights pages">
               <p className="text-sm text-muted">
                 Give each stream a public page of its moments. Every time is a link that opens the video at
                 that second, with a button to tip you. It shows times and what was typed, never a viewer&apos;s
                 name. The link for each stream appears under Recent streams.
               </p>
-              <label className="flex items-center gap-3 text-sm text-text">
-                <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="h-5 w-5 accent-[var(--color-accent)]" />
+              <Toggle id="ts-public-on" checked={isPublic} onChange={setIsPublic}>
                 Make highlights pages public
-              </label>
+              </Toggle>
               <button type="button" className={outline} disabled={pending} onClick={() => run(() => saveHighlightsPublic(isPublic), setPublicResult)}>
                 Save
               </button>
               <Msg result={publicResult} />
-            </section>
+            </Tile>
           )}
 
           {props.editorPlan && (
-            <section className={tile}>
-              <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Link for your video editor</h2>
+            <Tile id="ts-editor" level={2} title="Link for your video editor">
               <p className="text-sm text-muted">
                 A private page that lists every moment, the most-marked first, with a CSV download and the
                 moments ready to paste as YouTube chapters. Your editor needs no account. Anyone with the link
                 can see it, so send it only to them.
               </p>
               {editorLink && (
-                <div className="space-y-2">
-                  <label htmlFor="ts-editor-link" className="text-xs text-muted">
-                    Your editor link. It is shown once, so copy it now.
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="ts-editor-link"
-                      readOnly
-                      value={editorLink}
-                      onFocus={(e) => e.currentTarget.select()}
-                      className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
-                    />
-                    <button
-                      type="button"
-                      className={`${outline} h-12 shrink-0`}
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(editorLink);
-                          setEditorCopied(true);
-                        } catch {
-                          setEditorCopied(false);
-                        }
-                      }}
-                    >
-                      {editorCopied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                </div>
+                <CopyField id="ts-editor-link" value={editorLink} label="Your editor link. It is shown once, so copy it now." />
               )}
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={primary}
+                <ConfirmAction
+                  ask={props.extras.hasEditorLink && !editorLink}
+                  prompt="The current link will stop working. Make a new one?"
+                  confirmLabel="Yes, make a new link"
+                  keepLabel="Keep the link"
                   disabled={pending}
-                  onClick={() => {
-                    if (props.extras.hasEditorLink && !editorLink && !window.confirm("The current link will stop working. Make a new one?")) return;
-                    setEditorCopied(false);
+                  className={primary}
+                  onConfirm={() =>
                     run(generateEditorLink, (r) => {
                       setEditorResult(r);
                       if (r.status === "ok" && r.command) setEditorLink(r.command);
-                    });
-                  }}
+                    })
+                  }
                 >
                   {props.extras.hasEditorLink || editorLink ? "Make a new link" : "Make an editor link"}
-                </button>
+                </ConfirmAction>
                 {(props.extras.hasEditorLink || editorLink) && (
                   <button
                     type="button"
@@ -388,12 +328,11 @@ export function TimestampsManager(props: {
                 )}
               </div>
               <Msg result={editorResult} />
-            </section>
+            </Tile>
           )}
 
           {props.clipPlan && (
-            <section className={tile}>
-              <h2 className={heading}>Video clips from your own recording</h2>
+            <Tile id="ts-clips" level={2} title="Video clips from your own recording">
               <p className="text-sm text-muted">
                 YouTube gives nobody a way to cut a clip out of a stream, so this uses the recording OBS makes
                 on your own PC. A small helper program runs next to OBS. For each moment saved here it waits
@@ -402,9 +341,7 @@ export function TimestampsManager(props: {
                 tells the helper which moments were saved.
               </p>
               {!props.helper.ready ? (
-                <p role="alert" className="text-sm text-red-400">
-                  Not ready yet: run db/migrations/0034_clip_helper.sql in Neon.
-                </p>
+                <StatusLine kind="error" text="Not ready yet: run db/migrations/0034_clip_helper.sql in Neon." />
               ) : (
                 <>
                   <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
@@ -432,58 +369,35 @@ export function TimestampsManager(props: {
                     <li>Discord only takes small files, so clips are squeezed to about 10 MB.</li>
                   </ul>
                   {props.helper.hasToken && (
-                    <p role="status" className="text-sm text-muted">
-                      {props.helper.seenSecondsAgo !== null && props.helper.seenSecondsAgo < 90
-                        ? "The helper is running."
-                        : "The helper has not been seen in the last minute and a half."}
-                    </p>
+                    <StatusLine
+                      kind="info"
+                      text={
+                        props.helper.seenSecondsAgo !== null && props.helper.seenSecondsAgo < 90
+                          ? "The helper is running."
+                          : "The helper has not been seen in the last minute and a half."
+                      }
+                    />
                   )}
                   {helperToken && (
-                    <div className="space-y-2">
-                      <label htmlFor="ts-helper-token" className="text-xs text-muted">
-                        Your helper token. It is shown once, so copy it now.
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          id="ts-helper-token"
-                          readOnly
-                          value={helperToken}
-                          onFocus={(e) => e.currentTarget.select()}
-                          className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
-                        />
-                        <button
-                          type="button"
-                          className={`${outline} h-12 shrink-0`}
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(helperToken);
-                              setHelperCopied(true);
-                            } catch {
-                              setHelperCopied(false);
-                            }
-                          }}
-                        >
-                          {helperCopied ? "Copied" : "Copy"}
-                        </button>
-                      </div>
-                    </div>
+                    <CopyField id="ts-helper-token" value={helperToken} label="Your helper token. It is shown once, so copy it now." />
                   )}
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={primary}
+                    <ConfirmAction
+                      ask={props.helper.hasToken && !helperToken}
+                      prompt="The helper using the current token will stop. Make a new token?"
+                      confirmLabel="Yes, make a new token"
+                      keepLabel="Keep the token"
                       disabled={pending}
-                      onClick={() => {
-                        if (props.helper.hasToken && !helperToken && !window.confirm("The helper using the current token will stop. Make a new token?")) return;
-                        setHelperCopied(false);
+                      className={primary}
+                      onConfirm={() =>
                         run(generateHelperToken, (r) => {
                           setHelperResult(r);
                           if (r.status === "ok" && r.command) setHelperToken(r.command);
-                        });
-                      }}
+                        })
+                      }
                     >
                       {props.helper.hasToken || helperToken ? "Make a new token" : "Make a helper token"}
-                    </button>
+                    </ConfirmAction>
                     {(props.helper.hasToken || helperToken) && (
                       <button
                         type="button"
@@ -498,7 +412,7 @@ export function TimestampsManager(props: {
                   <Msg result={helperResult} />
                 </>
               )}
-            </section>
+            </Tile>
           )}
         </>
       )}

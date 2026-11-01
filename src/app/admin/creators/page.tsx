@@ -1,263 +1,236 @@
 import Link from "next/link";
-import { getDb } from "@/lib/db";
-import { setCreatorStatus, rejectCreatorOnboarding, resetCreatorAccent, adminCloseCreator } from "@/app/actions/admin";
-import { BLOCKER_MESSAGE, CLOSED_EMAIL_DOMAIN, type CloseBlocker } from "@/lib/account-close";
+import { ActionForm } from "@/components/admin/ActionForm";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
-import { requireOwner } from "@/lib/owner-auth";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { buttonClass, FIELD_CLASS } from "@/components/admin/tones";
+import { resetCreatorAccent } from "@/app/actions/admin";
 import { DEFAULT_ACCENT, safeAccent } from "@/lib/accent";
+import {
+  CREATOR_TABS,
+  getCreatorList,
+  parseCreatorTab,
+  type CreatorTab,
+} from "@/lib/admin/creator-list";
+import { fmtIST } from "@/lib/admin/format";
+import { load } from "@/lib/admin/result";
+import { adminDb } from "@/lib/admin/server-db";
+import { requireOwner } from "@/lib/owner-auth";
+import { CouldNotRead, DatabaseNotSetUp } from "../_components/Notices";
+import { CreatorActions } from "../_components/CreatorActions";
+import { PageHeader, Pager } from "../_components/PageHeader";
 
-type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
+export const dynamic = "force-dynamic";
 
-interface CreatorRow {
-  id: number;
-  name: string | null;
-  email: string;
-  handle: string | null;
-  creator_status: "pending" | "active" | "suspended";
-  onboarding_state: OnboardingState;
-  upi_vpa: string | null;
-  yt_channel_name: string | null;
-  yt_channel_url: string | null;
-  min_tip_paise: number;
-  message_max_chars: number;
-  created_at: string;
-}
+type Params = { q?: string; tab?: string; page?: string };
 
-const STATUS_STYLES = {
-  pending: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
-  active: "bg-accent/10 text-accent border-accent/20",
-  suspended: "bg-red-400/10 text-red-400 border-red-400/20",
-};
-
-const ONBOARDING_STYLES: Record<string, string> = {
-  not_started: "bg-surface text-muted border-control",
-  submitted: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
-  active: "bg-accent/10 text-accent border-accent/20",
-  rejected: "bg-red-400/10 text-red-400 border-red-400/20",
-};
-
-export default async function AdminCreatorsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ blocked?: string; q?: string }>;
-}) {
+export default async function AdminCreatorsPage({ searchParams }: { searchParams: Promise<Params> }) {
   await requireOwner();
-  const { blocked, q: rawQ } = await searchParams;
-  const q = (rawQ ?? "").trim().slice(0, 100);
-  const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
-  const blockedReason = blocked && blocked in BLOCKER_MESSAGE ? (blocked as CloseBlocker) : null;
-  const db = getDb();
+  const params = await searchParams;
+  const q = (params.q ?? "").trim().slice(0, 100);
+  const tab = parseCreatorTab(params.tab, q !== "");
+  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
-  const creators: CreatorRow[] = db
-    ? await db<CreatorRow[]>`
-        select id, name, email, handle, creator_status, onboarding_state, upi_vpa,
-               yt_channel_name, yt_channel_url,
-               min_tip_paise, message_max_chars, created_at
-        from users
-        where ${q === ""}::boolean or name ilike ${like} or email ilike ${like} or handle ilike ${like}
-              or yt_channel_name ilike ${like} or upi_vpa ilike ${like}
-        order by created_at desc
-        limit 500
-      `
-    : [];
+  const header = (
+    <PageHeader
+      eyebrow="Creators"
+      title="Who is on Freetip"
+      note="Approve new creators, decide payout setups, suspend or close accounts. Open a creator for their paid features, tips, messages and history."
+    />
+  );
 
-  // Page colours (migration 0026), read apart so this page loads before it is run.
-  const accents = new Map<number, string>();
-  if (db && creators.length) {
-    try {
-      const rows = await db<{ id: number; accent: string | null }[]>`select id, accent from users where accent is not null`;
-      for (const r of rows) accents.set(r.id, safeAccent(r.accent));
-    } catch (err) {
-      console.error("Admin creators: could not read the accent colours.", err);
-    }
-  }
-
-  if (!creators.length && !q) {
+  const db = adminDb();
+  if (!db) {
     return (
-      <AdminEmptyState
-        title="No creators yet"
-        description="Creators appear here once they sign in with Google. You can approve or suspend them from this page."
-      />
+      <div className="space-y-8">
+        {header}
+        <DatabaseNotSetUp />
+      </div>
     );
   }
 
+  const result = await getCreatorList(db, { q, tab, page });
+  if (!result.ok) {
+    return (
+      <div className="space-y-8">
+        {header}
+        <CouldNotRead message="Could not read the creators list." detail={result.error} />
+      </div>
+    );
+  }
+  const list = result.data;
+
+  // Page colours (migration 0026), read apart so this page still loads before it is run.
+  const accentsRead = list.rows.length
+    ? await load("the page colours", async () => {
+        const rows = await db<{ id: string; accent: string | null }[]>`
+          select id::text, accent from users where accent is not null and id = any(${list.rows.map((r) => r.id)}::bigint[])
+        `;
+        return new Map(rows.map((r) => [Number(r.id), safeAccent(r.accent)] as const));
+      })
+    : null;
+  const accents = accentsRead?.ok ? accentsRead.data : new Map<number, string>();
+
+  const hrefFor = (next: { tab?: CreatorTab; page?: number }) => {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    sp.set("tab", next.tab ?? tab);
+    if ((next.page ?? 1) > 1) sp.set("page", String(next.page));
+    return `/admin/creators?${sp.toString()}`;
+  };
+
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-text">Creators</h1>
-        <p className="text-sm text-muted">
-          {creators.length} account{creators.length !== 1 ? "s" : ""}
-        </p>
-      </div>
+      {header}
 
-      <form action="/admin/creators" className="flex gap-2">
+      <nav aria-label="Creator lists" className="flex flex-wrap gap-2">
+        {CREATOR_TABS.map((t) => {
+          const active = t.key === tab;
+          return (
+            <Link
+              key={t.key}
+              href={hrefFor({ tab: t.key })}
+              aria-current={active ? "page" : undefined}
+              className={`inline-flex min-h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors ${
+                active ? "bg-accent text-ink" : "border border-control text-muted hover:border-text/40 hover:text-text"
+              }`}
+            >
+              {t.label}
+              <span className="numeric text-xs">{list.counts[t.key]}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <form action="/admin/creators" className="flex flex-wrap gap-2">
+        <input type="hidden" name="tab" value={tab} />
         <input
           type="search"
           name="q"
           defaultValue={q}
           placeholder="Search name, email, handle, channel or UPI ID"
           aria-label="Search creators"
-          className="h-10 w-full max-w-md rounded-xl border border-control bg-surface px-3 text-sm text-text"
+          className={`${FIELD_CLASS} w-full max-w-md`}
         />
-        <button type="submit" className="rounded-xl border border-control px-4 text-sm text-text hover:border-muted">
+        <button type="submit" className={buttonClass("quiet", "md")}>
           Search
         </button>
+        {q && (
+          <Link href="/admin/creators" className="inline-flex min-h-11 items-center px-2 text-sm text-muted hover:text-text">
+            Clear
+          </Link>
+        )}
       </form>
-      {q && !creators.length && <p className="text-sm text-muted">No creator matches &ldquo;{q}&rdquo;.</p>}
 
-      {blockedReason && (
-        <p role="alert" className="rounded-2xl border border-control bg-surface px-4 py-3 text-sm text-text">
-          Not closed: {BLOCKER_MESSAGE[blockedReason]}
-        </p>
+      {!accentsRead?.ok && accentsRead && (
+        <CouldNotRead message="Could not read the page colours, so Reset colour is not shown. Has migration 0026 been run?" detail={accentsRead.error} />
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-control">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-control bg-surface/60">
-              <th className="px-4 py-3 text-left font-medium text-muted">Creator</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Handle</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Payout</th>
-              <th className="px-4 py-3 text-left font-medium text-muted">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-control">
-            {creators.map((c) => {
-              const approve = setCreatorStatus.bind(null, c.id, "active");
-              const suspend = setCreatorStatus.bind(null, c.id, "suspended");
-              const reset = setCreatorStatus.bind(null, c.id, "pending");
-              const reject = rejectCreatorOnboarding.bind(null, c.id);
-              const close = adminCloseCreator.bind(null, c.id);
-              const isClosed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
-
-              return (
-                <tr key={c.id} className="bg-surface/30 hover:bg-surface/60 transition-colors">
-                  {/* Creator */}
-                  <td className="px-4 py-3">
-                    <Link href={`/admin/creators/${c.id}`} className="font-medium text-text hover:underline">
-                      {c.name ?? "—"}
-                    </Link>
-                    <p className="text-xs text-muted truncate max-w-[180px]">{c.email}</p>
-                    {c.yt_channel_name && (
-                      <a
-                        href={c.yt_channel_url ?? "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-muted hover:text-text transition-colors truncate block max-w-[180px]"
-                      >
-                        {c.yt_channel_name}
-                      </a>
-                    )}
-                  </td>
-
-                  {/* Handle */}
-                  <td className="numeric px-4 py-3 text-text">
-                    {c.handle ?? <span className="text-muted">not set</span>}
-                    {accents.has(c.id) && accents.get(c.id) !== DEFAULT_ACCENT && (
-                      <form action={resetCreatorAccent.bind(null, c.id)} className="mt-1 flex items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block size-3 rounded-full border border-control"
-                          style={{ backgroundColor: accents.get(c.id) }}
-                        />
-                        <button type="submit" className="text-xs text-muted underline-offset-2 hover:text-text hover:underline">
-                          Reset colour
-                        </button>
-                      </form>
-                    )}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[c.creator_status]}`}>
-                      {c.creator_status}
-                    </span>
-                  </td>
-
-                  {/* Payout */}
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${ONBOARDING_STYLES[c.onboarding_state]}`}>
-                      {c.onboarding_state.replace("_", " ")}
-                    </span>
-                    {c.upi_vpa && (
-                      <p className="numeric mt-1 text-xs text-muted truncate max-w-[160px]">
-                        {c.upi_vpa}
-                      </p>
-                    )}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-4 py-3">
-                    {isClosed ? (
-                      <span className="text-xs text-muted">Closed, kept for the records</span>
-                    ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {c.creator_status !== "active" && (
-                        <form action={approve}>
-                          <button
-                            type="submit"
-                            className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
-                          >
-                            Approve
-                          </button>
-                        </form>
-                      )}
-                      {c.creator_status === "active" && (
-                        <form action={suspend}>
-                          <button
-                            type="submit"
-                            className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-400/20"
-                          >
-                            Suspend
-                          </button>
-                        </form>
-                      )}
-                      {c.creator_status === "suspended" && (
-                        <form action={reset}>
-                          <button
-                            type="submit"
-                            className="rounded-lg border border-control px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-text/30 hover:text-text"
-                          >
-                            Reset to pending
-                          </button>
-                        </form>
-                      )}
-                      {c.creator_status === "pending" && c.onboarding_state === "submitted" && (
-                        <form action={reject}>
-                          <button
-                            type="submit"
-                            className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-400/20"
-                          >
-                            Reject
-                          </button>
-                        </form>
-                      )}
-                      <details className="text-xs">
-                        <summary className="cursor-pointer rounded-lg border border-control px-3 py-1 font-medium text-muted transition-colors hover:text-text">
-                          Close account
-                        </summary>
-                        <form action={close} className="mt-2 space-y-2">
-                          <p className="max-w-[220px] text-muted">
-                            Permanent. Removes their profile and sounds; money records stay.
-                          </p>
-                          <button
-                            type="submit"
-                            className="rounded-lg border border-control px-3 py-1 font-medium text-text transition-colors hover:border-muted"
-                          >
-                            Confirm close
-                          </button>
-                        </form>
-                      </details>
-                    </div>
-                    )}
-                  </td>
+      {list.total === 0 ? (
+        q || list.counts.all > 0 ? (
+          <p className="text-sm text-muted">
+            {q ? `No creator in this list matches “${q}”.` : "Nobody is in this list. That is the good outcome for Awaiting action."}
+          </p>
+        ) : (
+          <AdminEmptyState
+            title="No creators yet"
+            description="Creators appear here once they sign in with Google. You can approve or suspend them from this page."
+          />
+        )
+      ) : (
+        <div className="space-y-3">
+          <Pager
+            page={list.page}
+            pageSize={list.pageSize}
+            total={list.total}
+            shown={list.rows.length}
+            noun="creator"
+            hrefFor={(p) => hrefFor({ page: p })}
+          />
+          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+            <table className="w-full text-sm">
+              <caption className="sr-only">
+                Creators, newest first: account, handle, status, payout setup and actions
+              </caption>
+              <thead className="sticky top-0 z-10 bg-raised">
+                <tr className="border-b border-control">
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Creator</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Handle</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Payout setup</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Actions</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-control bg-surface">
+                {list.rows.map((c) => (
+                  <tr key={c.id} className="align-top transition-colors hover:bg-raised">
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/creators/${c.id}`} className="font-medium text-text hover:underline">
+                        {c.name ?? "—"}
+                      </Link>
+                      <p title={c.email} className="max-w-[200px] truncate text-xs text-muted">
+                        {c.email}
+                      </p>
+                      {c.ytChannelName && (
+                        <a
+                          href={c.ytChannelUrl ?? "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={c.ytChannelName}
+                          className="block max-w-[200px] truncate text-xs text-muted transition-colors hover:text-text"
+                        >
+                          {c.ytChannelName}
+                        </a>
+                      )}
+                      <p className="mt-1 text-xs text-muted">Joined {fmtIST(c.createdAt, "date")}</p>
+                    </td>
+
+                    <td className="numeric px-4 py-3 text-text">
+                      {c.handle ?? <span className="text-muted">not set</span>}
+                      {accents.has(c.id) && accents.get(c.id) !== DEFAULT_ACCENT && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block size-3 shrink-0 rounded-full border border-control"
+                            style={{ backgroundColor: accents.get(c.id) }}
+                          />
+                          <ActionForm
+                            action={resetCreatorAccent.bind(null, c.id)}
+                            label="Reset colour"
+                            pendingLabel="Resetting…"
+                          />
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <StatusBadge status={c.closed ? "closed" : c.creatorStatus} />
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <StatusBadge status={c.onboardingState} />
+                      {c.upiVpa && (
+                        <p title={c.upiVpa} className="numeric mt-1 max-w-[160px] truncate text-xs text-muted">
+                          {c.upiVpa}
+                        </p>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <CreatorActions
+                        id={c.id}
+                        handle={c.handle}
+                        creatorStatus={c.creatorStatus}
+                        onboardingState={c.onboardingState}
+                        closed={c.closed}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { HandleField } from "@/components/ui/HandleField";
 import { setHandle } from "@/app/actions/creator";
 import { HANDLE_IDLE } from "@/lib/creator-state";
 import { SITE_NAME } from "@/lib/site";
+import { RollText } from "@/components/motion/RollText";
+import { Msg } from "./parts/Msg";
 
 export function HandleSetup() {
   const [state, action, pending] = useActionState(setHandle, HANDLE_IDLE);
@@ -40,11 +42,9 @@ export function HandleSetup() {
           <p className="px-2 text-xs text-muted">
             3–20 letters, numbers or underscores. You can ask to change it once later.
           </p>
-          {state.status === "error" && (
-            <p id="handle-error" role="alert" className="px-2 text-sm text-red-400">
-              {state.message}
-            </p>
-          )}
+          <div id="handle-error" className="px-2">
+            <Msg kind={state.status === "error" ? "error" : undefined} text={state.status === "error" ? state.message : undefined} />
+          </div>
         </div>
 
         <button
@@ -58,7 +58,7 @@ export function HandleSetup() {
               Claiming…
             </>
           ) : (
-            "Claim handle →"
+            <RollText>Claim handle →</RollText>
           )}
         </button>
       </form>

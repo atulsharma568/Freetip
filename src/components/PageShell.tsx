@@ -3,10 +3,24 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/logo/Logo";
+import { SlimFooter } from "@/components/tip/SlimFooter";
 
 // Frame for pages other than home: the wordmark home, a way back, the page,
-// and the full footer.
-export function PageShell({ children }: { children: ReactNode }) {
+// and the full footer. `slim` is for a creator's pages (tip page, highlights):
+// no header and a one-line "Powered by" footer that keeps the legal links.
+// `headerEnd` replaces the "Back to home" link (null leaves the right side empty) and
+// `footer` replaces the footer; the creator dashboard uses both.
+export function PageShell({
+  children,
+  slim = false,
+  headerEnd,
+  footer,
+}: {
+  children: ReactNode;
+  slim?: boolean;
+  headerEnd?: ReactNode;
+  footer?: ReactNode;
+}) {
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -15,21 +29,27 @@ export function PageShell({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
-      <header className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
-        <Link href="/" aria-label={`${SITE_NAME} home`} className="-mx-1 block px-1 text-text">
-          <Logo interactive className="h-9 w-auto" />
-        </Link>
-        <Link
-          href="/"
-          className="-mr-3 inline-flex h-11 items-center px-3 text-sm text-muted transition-colors duration-200 hover:text-text"
-        >
-          Back to home
-        </Link>
-      </header>
+      {!slim && (
+        <header className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
+          <Link href="/" aria-label={`${SITE_NAME} home`} className="-mx-1 block px-1 text-text">
+            <Logo interactive className="h-9 w-auto" />
+          </Link>
+          {headerEnd !== undefined ? (
+            headerEnd
+          ) : (
+            <Link
+              href="/"
+              className="-mr-3 inline-flex h-11 items-center px-3 text-sm text-muted transition-colors duration-200 hover:text-text"
+            >
+              Back to home
+            </Link>
+          )}
+        </header>
+      )}
       <main id="main" className="flex flex-1 flex-col">
         {children}
       </main>
-      <Footer />
+      {footer !== undefined ? footer : slim ? <SlimFooter /> : <Footer />}
     </div>
   );
 }

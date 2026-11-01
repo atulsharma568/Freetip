@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { PageShell } from "@/components/PageShell";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_HOST, SITE_NAME } from "@/lib/site";
 import { FEES } from "@/lib/legal";
 import {
   EXPORT_MAX_ROWS,
@@ -16,6 +15,10 @@ import {
 } from "@/lib/earnings";
 import { DashboardNav } from "../DashboardNav";
 import { loadTips } from "../queries";
+import { DashboardShell } from "../parts/DashboardShell";
+import { EmptyState, SampleAlert } from "../parts/EmptyState";
+import { CopyButton } from "../parts/CopyButton";
+import { pillOutline } from "../parts/styles";
 
 export const metadata: Metadata = {
   title: `Tips: ${SITE_NAME}`,
@@ -47,8 +50,8 @@ export default async function TipsPage({
 
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
-  const [user] = await db<{ id: number; handle: string | null }[]>`
-    select id, handle from users where google_id = ${googleId}
+  const [user] = await db<{ id: number; handle: string | null; creator_status: string }[]>`
+    select id, handle, creator_status from users where google_id = ${googleId}
   `;
   // Nothing to list until the creator has a link.
   if (!user?.handle) redirect("/dashboard");
@@ -57,11 +60,11 @@ export default async function TipsPage({
   const { tips, hasMore } = await loadTips(user.id, query);
 
   return (
-    <PageShell>
-      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 py-16">
+    <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="tips" />
-          <h1 className="display text-[clamp(2rem,8vw,3rem)]">Tips</h1>
+          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Tips</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter tips">
@@ -83,13 +86,26 @@ export default async function TipsPage({
         </div>
 
         {tips.length === 0 ? (
-          <p className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 text-muted">
-            {query.page > 1
-              ? "No more tips here."
-              : query.range === "all" && !query.messageOnly
-                ? "No tips yet. They show up here once a fan has paid."
-                : "No tips match this filter."}
-          </p>
+          query.page === 1 && query.range === "all" && !query.messageOnly ? (
+            <div className="rounded-surface border border-line/60 bg-surface p-6 md:p-8">
+              <EmptyState
+                sample={<SampleAlert name="Riya" amount={250} message="Great stream today!" />}
+                title="No tips yet."
+                body="Each paid tip is listed here with the fan's name, the amount and the message. The one above is a sample."
+                cta={
+                  <CopyButton
+                    value={`https://${SITE_HOST}/${user.handle}`}
+                    label="Share your link"
+                    className={pillOutline}
+                  />
+                }
+              />
+            </div>
+          ) : (
+            <p className="rounded-surface border border-line/60 bg-surface p-6 text-muted">
+              {query.page > 1 ? "No more tips here." : "No tips match this filter."}
+            </p>
+          )
         ) : (
           <ul className="space-y-3">
             {tips.map((t) => (
@@ -168,7 +184,7 @@ export default async function TipsPage({
           charge taken off).
         </p>
       </div>
-    </PageShell>
+    </DashboardShell>
   );
 }
 

@@ -4,7 +4,9 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { submitPayoutDetails } from "@/app/actions/creator";
+import { RollText } from "@/components/motion/RollText";
 import { PAYOUT_IDLE } from "@/lib/creator-state";
+import { Msg } from "./parts/Msg";
 
 type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
@@ -32,12 +34,14 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
 
   if (submitted || initialState === "submitted") {
     return (
-      <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
-        <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+      <section id="payout" data-tile aria-labelledby="payout-heading" className="scroll-mt-20 space-y-3 rounded-surface border border-line/60 bg-surface p-6 md:p-8">
+        <h3 id="payout-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
           Payout setup
-        </h2>
+        </h3>
         <div className="flex items-start gap-3">
-          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-yellow-400" aria-hidden="true" />
+          <span className="mt-0.5 shrink-0 rounded-full border border-control px-2.5 py-0.5 text-xs font-medium text-text">
+            In review
+          </span>
           <div className="space-y-1">
             <p className="text-base font-medium text-text">Under review</p>
             <p className="text-sm text-muted">
@@ -59,24 +63,25 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
             Contact us.
           </Link>
         </p>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-5">
+    <section id="payout" data-tile aria-labelledby="payout-heading" className="scroll-mt-20 space-y-5 rounded-surface border border-line/60 bg-surface p-6 md:p-8">
       <div className="space-y-1">
-        <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
+        <h3 id="payout-heading" className="text-sm font-medium uppercase tracking-widest text-muted">
           Set up payouts
-        </h2>
+        </h3>
         <p className="text-sm text-muted">
           Enter your details so tips reach you. We&apos;ll review and activate your page.
         </p>
       </div>
 
       {initialState === "rejected" && (
-        <div className="rounded-[var(--radius-field)] border border-red-400/30 bg-red-400/5 px-4 py-3">
-          <p className="text-sm text-red-400">
+        <div className="flex flex-wrap items-start gap-2 rounded-[var(--radius-field)] border border-control px-4 py-3">
+          <span className="shrink-0 rounded-full bg-text px-2 py-0.5 text-xs font-semibold text-ground">Rejected</span>
+          <p className="min-w-0 flex-1 text-sm text-text">
             Your previous submission was rejected. Please check your details and try again, or{" "}
             <Link href="/contact" className="underline">contact support</Link>.
           </p>
@@ -139,11 +144,7 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
           </p>
         </div>
 
-        {formState.status === "error" && (
-          <p role="alert" className="text-sm text-red-400">
-            {formState.message}
-          </p>
-        )}
+        <Msg kind={formState.status === "error" ? "error" : undefined} text={formState.status === "error" ? formState.message : undefined} />
 
         <button
           type="submit"
@@ -156,10 +157,10 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
               Submitting…
             </>
           ) : (
-            "Submit for review →"
+            <RollText>Submit for review →</RollText>
           )}
         </button>
       </form>
-    </div>
+    </section>
   );
 }

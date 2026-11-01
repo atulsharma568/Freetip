@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { getSessionFeatures } from "@/lib/creator-features";
+import { SlidingNav } from "./parts/SlidingNav";
 
 const LINKS = [
   { key: "overview", href: "/dashboard", label: "Overview" },
@@ -13,22 +13,5 @@ const LINKS = [
 export async function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" | "timestamps" }) {
   const features = await getSessionFeatures();
   const links = LINKS.filter((l) => l.key !== "timestamps" || features.timestamps);
-  return (
-    <nav aria-label="Dashboard" className="flex gap-2">
-      {links.map((l) => (
-        <Link
-          key={l.key}
-          href={l.href}
-          aria-current={l.key === current ? "page" : undefined}
-          className={`inline-flex h-11 items-center rounded-full px-5 text-sm font-medium transition-colors duration-200 ${
-            l.key === current
-              ? "bg-accent text-ink"
-              : "border border-control text-text hover:border-accent"
-          }`}
-        >
-          {l.label}
-        </Link>
-      ))}
-    </nav>
-  );
+  return <SlidingNav items={links.map((l) => ({ ...l }))} current={current} label="Dashboard" />;
 }

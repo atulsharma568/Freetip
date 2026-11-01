@@ -1,3 +1,4 @@
+import { fmtIST } from "@/lib/admin/format";
 import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -12,13 +13,7 @@ import { CouldNotRead, DefinitionNote, FinanceNotSetUp } from "../../_components
 export const dynamic = "force-dynamic";
 
 function fmtDate(date: Date | null): string {
-  if (!date) return "—";
-  return date.toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return fmtIST(date, "date");
 }
 
 export default async function SettlementsPage({
@@ -76,24 +71,24 @@ export default async function SettlementsPage({
 
 function SettlementTable({ rows }: { rows: SettlementRow[] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-control">
+    <div className="overflow-x-auto rounded-surface border border-control">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-control bg-surface/60">
-            <th className="px-4 py-3 text-left font-medium text-muted">Settlement ID</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Payments</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Gross</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Provider fees</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Taxes</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Net received</th>
-            <th className="px-4 py-3 text-left font-medium text-muted">Status</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Settled</th>
-            <th className="px-4 py-3 text-right font-medium text-muted">Expected</th>
+          <tr className="border-b border-control bg-raised">
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Settlement ID</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Payments</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Gross</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Provider fees</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Taxes</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Net received</th>
+            <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Settled</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Expected</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-control">
+        <tbody className="divide-y divide-control bg-surface">
           {rows.map((r) => (
-            <tr key={r.settlementId} className="hover:bg-surface/40 transition-colors">
+            <tr key={r.settlementId} className="hover:bg-raised transition-colors">
               <td className="px-4 py-3 font-mono text-xs text-muted">
                 {r.providerRef}
               </td>
@@ -125,7 +120,7 @@ function SettlementTable({ rows }: { rows: SettlementRow[] }) {
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t border-control bg-surface/60">
+          <tr className="border-t border-control bg-raised">
             <td className="px-4 py-3 text-sm font-medium text-muted">
               {rows.length} batch{rows.length !== 1 ? "es" : ""}
             </td>

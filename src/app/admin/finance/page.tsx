@@ -1,3 +1,4 @@
+import { fmtIST } from "@/lib/admin/format";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
@@ -67,11 +68,7 @@ function FinanceBody({ summary }: { summary: FinanceSummary }) {
     <>
       <p className="text-xs text-muted">
         Data as of{" "}
-        {summary.fetchedAt.toLocaleString("en-IN", {
-          timeZone: "Asia/Kolkata",
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}{" "}
+        {fmtIST(summary.fetchedAt)}{" "}
         IST
       </p>
       <TestModeLine count={summary.testModeTipCount} />
