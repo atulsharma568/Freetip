@@ -107,7 +107,7 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
             onChange={(e) => setLegalName(e.target.value)}
             placeholder="Your full legal name"
             autoComplete="name"
-            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
           />
           <p className="text-xs text-muted">
             As it appears on your PAN or Aadhaar. Used for payout records only.
@@ -132,7 +132,7 @@ export function PayoutOnboarding({ state: initialState, initialLegalName, initia
             onChange={(e) => setUpiVpa(e.target.value.toLowerCase())}
             placeholder="yourname@upi"
             autoComplete="off"
-            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 font-mono text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+            className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 font-mono text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
           />
           <p className="text-xs text-muted">
             Tips will be paid out to this UPI ID. You can find it in your UPI app.

@@ -39,7 +39,7 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
           rows={3}
           placeholder="Type a message to hear it read aloud"
           onChange={(e) => setText(e.target.value)}
-          className="w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none"
+          className="w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted focus:border-accent"
         />
       </div>
 

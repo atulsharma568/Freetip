@@ -37,6 +37,20 @@ interface Props {
   ttsAvailable: boolean;
 }
 
+// One titled group of controls; the groups are headed and divided, but all
+// still save together with one button.
+function Group({ title, hint, children, first }: { title: string; hint: string; children: React.ReactNode; first?: boolean }) {
+  return (
+    <section className={`space-y-6 ${first ? "" : "border-t border-control pt-8"}`}>
+      <div className="space-y-1">
+        <h3 className="font-display text-lg font-semibold text-text">{title}</h3>
+        <p className="text-sm text-muted">{hint}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
@@ -60,9 +74,10 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
   return (
     <form
       action={(formData) => { setIsDirty(false); action(formData); }}
-      className="space-y-6"
+      className="space-y-8"
       onChange={() => setIsDirty(true)}
     >
+      <Group first title="Your page" hint="How your tip page looks to fans.">
       {/* Display name */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -79,7 +94,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Your streamer name"
-          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
         />
         <p className="text-xs text-muted">Shown on your tip page. Defaults to your Google name.</p>
       </div>
@@ -100,7 +115,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Indian gaming streamer, live every night at 9 PM"
-          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
         />
         <p className="text-xs text-muted">Shown on your public tip page.</p>
       </div>
@@ -151,6 +166,9 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
         <p className="text-xs text-muted">Colours your public tip page. Save to apply.</p>
       </fieldset>
 
+      </Group>
+
+      <Group title="Tips and messages" hint="What fans can send, and what is kept off your stream.">
       {/* Min tip */}
       <div className="space-y-2">
         <label htmlFor="min-tip" className="text-sm font-medium uppercase tracking-widest text-muted">
@@ -161,7 +179,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           id="min-tip"
           name="min_tip"
           defaultValue={Math.round(minTipPaise / 100)}
-          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent focus:outline-none transition-[border-color] appearance-none"
+          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent transition-[border-color] appearance-none"
         >
           {MIN_TIP_OPTIONS.map((v) => (
             <option key={v} value={v}>
@@ -222,7 +240,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           value={banned}
           onChange={(e) => setBanned(e.target.value)}
           aria-describedby="banned-words-hint"
-          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+          className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
         />
         <p id="banned-words-hint" className="text-xs text-muted">
           One word or phrase per line, or separated by commas. A tip with one in the name or message is
@@ -231,6 +249,9 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
         </p>
       </div>
 
+      </Group>
+
+      <Group title="On stream" hint="How alerts show up and whether messages are read aloud.">
       {/* Alert mode */}
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium uppercase tracking-widest text-muted">
@@ -292,7 +313,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
                     id="tts-min"
                     value={ttsMin}
                     onChange={(e) => setTtsMin(Number(e.target.value))}
-                    className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent focus:outline-none transition-[border-color] appearance-none"
+                    className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent transition-[border-color] appearance-none"
                   >
                     {MIN_TIP_OPTIONS.map((v) => (
                       <option key={v} value={v}>
@@ -315,6 +336,8 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           <input type="hidden" name="tts_min" value={ttsMin} />
         </div>
       )}
+
+      </Group>
 
       {/* Always-present live region so screen readers announce changes reliably */}
       <p aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm">

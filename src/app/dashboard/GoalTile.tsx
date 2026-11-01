@@ -27,7 +27,7 @@ export interface GoalHistoryRow {
 }
 
 const fieldClass =
-  "w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none";
+  "w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted focus:border-accent";
 
 // A finished period, named on the clock it was cut on ("Mon 3 Nov", "Nov 2026").
 function periodName(row: GoalHistoryRow): string {

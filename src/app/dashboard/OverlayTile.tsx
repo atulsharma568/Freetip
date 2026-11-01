@@ -55,7 +55,7 @@ export function OverlayTile({ hasLink }: { hasLink: boolean }) {
               readOnly
               value={url}
               onFocus={(e) => e.currentTarget.select()}
-              className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent focus:outline-none"
+              className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
             />
             <button
               type="button"
