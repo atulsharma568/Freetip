@@ -53,7 +53,10 @@ test.describe("cleanup before speech", () => {
     expect(cleanForSpeech("thanks ❤️❤️❤️", 300)).toBe("thanks heart");
     expect(cleanForSpeech("🔥😂🙏👍", 300)).toBe("fire laughing thank you");
     expect(cleanForSpeech("👍🏽 nice", 300)).toBe("thumbs up nice");
-    expect(cleanForSpeech("भाई मस्त 🔥", 300)).toBe("भाई मस्त आग");
+    expect(cleanForSpeech("भाई मस्त 🔥", 300)).toBe("भाई मस्त आग लगा दी");
+    // Hinglish gets the playful Hindi names too
+    expect(cleanForSpeech("bhai mast stream 😂", 300)).toBe("bhai mast stream हँसता हुआ चेहरा");
+    expect(cleanForSpeech("bhai mast stream ❤️ 🍭", 300)).toBe("bhai mast stream गुलाबी दिल चूसने की मिठाई");
   });
 
   test("shortens floods", () => {

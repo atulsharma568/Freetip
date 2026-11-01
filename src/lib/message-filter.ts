@@ -12,6 +12,9 @@
 // look-alike digits and symbols, repeated letters, spaced-out letters), so a
 // banned "fuck" also catches "f u c k" and "fuuuck" but not "class" or "peacock".
 
+import { EMOJI_NAMES } from "@/lib/emoji-names";
+import { isHinglish } from "@/lib/hinglish";
+
 const LEET: Record<string, string> = {
   "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i",
 };
@@ -108,42 +111,19 @@ const EMOJI_CLUSTER = new RegExp(
   `\\p{Extended_Pictographic}${MARKS}(?:\\u200d\\p{Extended_Pictographic}${MARKS})*`,
   "gu",
 );
-const DEVANAGARI = /[ऀ-ॿ]/;
 
-// What the voice says for the common emoji: [English, Hindi]. Anything not listed
-// is skipped, as before. Only the first symbol of a joined sequence is looked up.
-const EMOJI_NAMES: Record<string, [string, string]> = {
-  "😀": ["smile", "मुस्कान"], "😃": ["smile", "मुस्कान"], "😄": ["smile", "मुस्कान"], "😁": ["grin", "मुस्कान"],
-  "😊": ["smile", "मुस्कान"], "🙂": ["smile", "मुस्कान"], "😆": ["laughing", "हँसी"], "😂": ["laughing", "हँसी"],
-  "🤣": ["laughing", "हँसी"], "😅": ["nervous laugh", "हँसी"], "😍": ["heart eyes", "दिल वाली आँखें"],
-  "🥰": ["love", "प्यार"], "😘": ["kiss", "किस"], "😎": ["cool", "कूल"], "🤩": ["wow", "वाह"],
-  "😮": ["wow", "वाह"], "😲": ["wow", "वाह"], "🤯": ["mind blown", "दिमाग उड़ गया"], "😢": ["crying", "रोना"],
-  "😭": ["crying", "रोना"], "😡": ["angry", "गुस्सा"], "🤬": ["angry", "गुस्सा"], "😴": ["sleepy", "नींद"],
-  "🤔": ["thinking", "सोच"], "🙏": ["thank you", "धन्यवाद"], "👍": ["thumbs up", "बढ़िया"], "👎": ["thumbs down", "थम्स डाउन"],
-  "👏": ["clap", "तालियाँ"], "🙌": ["hooray", "वाह"], "💪": ["strong", "ताकत"], "👌": ["perfect", "बढ़िया"],
-  "✌": ["peace", "शांति"], "🤝": ["deal", "हाथ मिलाओ"], "👋": ["wave", "हाय"], "❤": ["heart", "दिल"],
-  "💖": ["heart", "दिल"], "💕": ["heart", "दिल"], "💗": ["heart", "दिल"], "💙": ["heart", "दिल"],
-  "💚": ["heart", "दिल"], "💛": ["heart", "दिल"], "💜": ["heart", "दिल"], "🧡": ["heart", "दिल"],
-  "🖤": ["black heart", "काला दिल"], "💔": ["broken heart", "टूटा दिल"], "🔥": ["fire", "आग"], "💯": ["hundred", "सौ"],
-  "⭐": ["star", "तारा"], "🌟": ["star", "तारा"], "✨": ["sparkles", "चमक"], "🎉": ["party", "पार्टी"],
-  "🎊": ["party", "पार्टी"], "🎂": ["cake", "केक"], "🎁": ["gift", "तोहफा"], "🏆": ["trophy", "ट्रॉफी"],
-  "👑": ["crown", "ताज"], "💰": ["money", "पैसे"], "💸": ["money", "पैसे"], "🎮": ["gaming", "गेमिंग"],
-  "🎧": ["headphones", "हेडफ़ोन"], "🎵": ["music", "संगीत"], "🎶": ["music", "संगीत"], "🚀": ["rocket", "रॉकेट"],
-  "👀": ["eyes", "आँखें"], "💀": ["skull", "खोपड़ी"], "🤡": ["clown", "जोकर"], "😈": ["devil", "शैतान"],
-  "🐐": ["goat", "बकरी"], "☕": ["coffee", "कॉफ़ी"], "🍕": ["pizza", "पिज़्ज़ा"], "🍺": ["beer", "बियर"],
-};
 // Naming every emoji of a long run would hold up the stream.
 const MAX_SPOKEN_EMOJI = 3;
 
-// Swaps the common emoji for their spoken name (Hindi when the message has
-// Devanagari), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
+// Swaps the common emoji for their spoken name (the playful Hindi one when the
+// message is Hindi or Hinglish), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
 function nameEmoji(message: string): string {
-  const hindi = DEVANAGARI.test(message);
+  const hindi = /[ऀ-ॿ]/.test(message) || isHinglish(message);
   let spoken = 0;
   let last = "";
   return message.replace(EMOJI_CLUSTER, (cluster) => {
     const base = Array.from(cluster)[0];
-    const names = EMOJI_NAMES[base];
+    const names = EMOJI_NAMES.get(base);
     if (!names) return " ";
     const name = hindi ? names[1] : names[0];
     if (name === last) return " ";
