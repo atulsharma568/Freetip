@@ -81,8 +81,8 @@ test.describe("clean title and user", () => {
     expect(Array.from(out)).toHaveLength(60);
     expect(out.endsWith("…")).toBe(true);
   });
-  test("drops a title with a blocked word, built in or the creator's own", () => {
-    expect(cleanTitle("what a madarchod")).toBe("");
+  test("drops a title with a word the creator banned, and only that", () => {
+    expect(cleanTitle("what a madarchod")).toBe("what a madarchod");
     expect(cleanTitle("total noob play", ["noob"])).toBe("");
     expect(cleanTitle("class act")).toBe("class act");
   });

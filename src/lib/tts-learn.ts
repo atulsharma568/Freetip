@@ -4,10 +4,9 @@
 // A language model proposes; this file decides. A word is learned only when the model says it
 // is ordinary Hindi, sure, not offensive and not also an English word, AND our own
 // checks agree: a plain Roman word of 4 to 20 letters, a pure Devanagari answer, and
-// nothing on the profanity lists in either script.
+// no rude root (RUDE_ROOT), so the dictionary never learns rude words.
 
 import { z } from "zod";
-import { findBlockedWord } from "./message-filter";
 
 export const LEARN_MIN_SEEN = 3; // a word must have turned up this many times
 export const LEARN_MAX_PER_RUN = 40;
@@ -49,9 +48,7 @@ export function decide(asked: ReadonlySet<string>, v: Verdict): Decision | null 
     v.offensive ||
     !ROMAN_WORD.test(word) ||
     !DEVANAGARI_WORD.test(dev) ||
-    RUDE_ROOT.test(word) ||
-    findBlockedWord(word) ||
-    findBlockedWord(dev)
+    RUDE_ROOT.test(word)
   ) {
     return { outcome: "rejected" };
   }

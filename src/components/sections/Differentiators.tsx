@@ -31,7 +31,7 @@ const SAFETY_STEPS = [
   {
     number: "02",
     title: "Word screening",
-    text: "Profanity and banned-word checks happen before speech.",
+    text: "Your banned words are checked before speech.",
   },
   {
     number: "03",
@@ -179,7 +179,7 @@ export function Differentiators() {
               Nothing speaks before you approve it.
             </h3>
             <p className="mt-4 max-w-[34ch] text-pretty text-lg text-muted">
-              Messages stay within a limit, get screened for profanity and
+              Messages stay within a limit, are checked against your
               banned words, then wait for your approval before playback.
             </p>
           </div>

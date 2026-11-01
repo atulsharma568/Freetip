@@ -151,7 +151,7 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>
             <strong>Before you pay:</strong> every name and message is checked
-            against our profanity filter and the creator’s banned words. If one
+            against the creator’s banned words. If one
             is blocked, the tip stops before payment, so you are never charged for
             it. You can change the words and try again.
           </li>

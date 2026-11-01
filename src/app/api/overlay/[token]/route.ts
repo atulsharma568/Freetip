@@ -131,8 +131,7 @@ export async function GET(
     console.error("Overlay: could not look up the voice choice.", err);
   }
 
-  // The creator's banned words (migration 0016); without them only the built-in
-  // list applies. A tip that got through before a word was added is still held
+  // The creator's banned words (migration 0016); without them nothing is blocked. A tip that got through before a word was added is still held
   // back here: its message is dropped from the alert and a blocked name shows as
   // Anonymous.
   let bannedWords: string[] = [];

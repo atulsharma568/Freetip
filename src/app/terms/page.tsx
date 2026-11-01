@@ -207,8 +207,8 @@ const SECTIONS: LegalSection[] = [
           else’s. A fan may leave the name blank to tip anonymously.
         </p>
         <p>
-          Messages are checked against a length limit, a profanity filter and
-          the creator’s banned words before they can play, and the creator can
+          Messages are checked against a length limit and
+          the creator’s own banned words before they can play, and the creator can
           choose to approve each one first. Screening is automatic and can miss
           things. The person who wrote a message is responsible for it.
         </p>

@@ -3,25 +3,23 @@ import { cleanForSpeech, findBlockedWord, parseBannedWords } from "../src/lib/me
 import { shouldSpeak, type SpeechSettings, type SpeechTip } from "../src/lib/tts-rules";
 
 test.describe("word filter", () => {
-  test("catches built-in English and Hindi abuse", () => {
-    expect(findBlockedWord("you are a bitch")).not.toBeNull();
-    expect(findBlockedWord("tu chutiya hai")).not.toBeNull();
-    expect(findBlockedWord("तू हरामी है")).not.toBeNull();
-    expect(findBlockedWord("what the fucking hell")).not.toBeNull();
+  test("blocks nothing of its own: no list, no block", () => {
+    for (const rude of ["you are a bitch", "tu chutiya hai", "तू हरामी है", "what the fucking hell"]) {
+      expect(findBlockedWord(rude), rude).toBeNull();
+      expect(findBlockedWord(rude, []), rude).toBeNull();
+    }
   });
 
-  test("catches disguises", () => {
-    expect(findBlockedWord("f u c k")).not.toBeNull();
-    expect(findBlockedWord("f.u.c.k this")).not.toBeNull();
-    expect(findBlockedWord("fuuuuck")).not.toBeNull();
-    expect(findBlockedWord("sh!t")).not.toBeNull();
-    expect(findBlockedWord("b1tch")).not.toBeNull();
-    expect(findBlockedWord("BITCH")).not.toBeNull();
+  test("catches disguises of a word the creator listed", () => {
+    const list = ["fuck", "shit", "bitch"];
+    for (const t of ["f u c k", "f.u.c.k this", "fuuuuck", "sh!t", "b1tch", "BITCH"]) {
+      expect(findBlockedWord(t, list), t).not.toBeNull();
+    }
   });
 
   test("leaves innocent words alone", () => {
     for (const ok of ["class", "Scunthorpe", "peacock", "assistant", "Niger is a country", "great stream bhai", "100!!!", "shitake mushrooms"]) {
-      expect(findBlockedWord(ok), ok).toBeNull();
+      expect(findBlockedWord(ok, ["fuck", "ass", "cunt", "shit", "nigger"]), ok).toBeNull();
     }
   });
 
@@ -82,9 +80,10 @@ test.describe("voice and the filter", () => {
   const settings: SpeechSettings = { ttsEnabled: true, approveBeforePlay: false, ttsMinPaise: 100 };
   const tip = (message: string): SpeechTip => ({ message, messageStatus: "approved", amountPaise: 10000, requested: true });
 
-  test("never reads a message with a blocked word", () => {
+  test("never reads a message with a word the creator banned", () => {
     expect(shouldSpeak(settings, tip("nice one"), 150)).toBe(true);
-    expect(shouldSpeak(settings, tip("you bitch"), 150)).toBe(false);
+    expect(shouldSpeak(settings, tip("you bitch"), 150)).toBe(true);
+    expect(shouldSpeak({ ...settings, bannedWords: ["bitch"] }, tip("you bitch"), 150)).toBe(false);
     expect(shouldSpeak({ ...settings, bannedWords: ["nice"] }, tip("nice one"), 150)).toBe(false);
   });
 });

@@ -13,14 +13,15 @@ test.describe("test voice button rules", () => {
   });
 
   test("nothing typed, or something that is not text, is refused", () => {
-    for (const bad of ["", "   ", "🔥🔥🔥", "https://example.com", 42, null, undefined, {}]) {
+    for (const bad of ["", "   ", "🧩🧩🧩", "https://example.com", 42, null, undefined, {}]) {
       expect(prepareTestText(bad, 100, []).ok, String(bad)).toBe(false);
     }
   });
 
-  test("a blocked word is refused, the built-in list and the creator's own", () => {
-    expect(prepareTestText("you are a bitch", 100, [])).toMatchObject({ ok: false });
-    expect(prepareTestText("b i t c h", 100, [])).toMatchObject({ ok: false });
+  test("a word the creator banned is refused; with no list nothing is", () => {
+    expect(prepareTestText("you are a bitch", 100, ["bitch"])).toMatchObject({ ok: false });
+    expect(prepareTestText("b i t c h", 100, ["bitch"])).toMatchObject({ ok: false });
+    expect(prepareTestText("you are a bitch", 100, [])).toMatchObject({ ok: true });
     expect(prepareTestText("this has the word pineapple", 100, ["pineapple"])).toMatchObject({ ok: false });
     expect(prepareTestText("this has the word pineapple", 100, [])).toMatchObject({ ok: true });
   });
@@ -28,7 +29,7 @@ test.describe("test voice button rules", () => {
   test("the text is cleaned and cut like a real message", () => {
     expect(prepareTestText("great 🔥 stream https://spam.example soooooo good", 100, [])).toEqual({
       ok: true,
-      text: "great stream soo good",
+      text: "great fire stream soo good",
     });
     const long = "a".repeat(10) + " " + "word ".repeat(200);
     const cut = prepareTestText(long, 50, []);

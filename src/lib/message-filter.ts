@@ -4,27 +4,13 @@
 // Two jobs:
 //   - cleanForSpeech: tidy a fan's message so the voice reads it sensibly
 //     (no links, emoji, symbol noise or letter floods).
-//   - findBlockedWord: refuse a message or name that holds a word from our
-//     built-in profanity list or the creator's own banned words.
+//   - findBlockedWord: refuse a message or name that holds one of the creator's
+//     own banned words. We keep no list of our own: what is blocked is the
+//     creator's choice.
 //
 // Words are matched as whole words after the text is normalised (case, accents,
-// look-alike digits and symbols, repeated letters, spaced-out letters), so
-// "f u c k" and "fuuuck" are caught but "class" and "peacock" are not.
-
-// Built-in list: common English and Roman-script Hindi abuse, plus a few in
-// Devanagari. Whole words only, so keep entries unambiguous. The creator's own
-// list covers anything else. Stored as written; normalised once below.
-const PROFANITY = [
-  // English
-  "fuck", "fucker", "motherfucker", "fucking", "shit", "bitch", "bastard", "asshole",
-  "dickhead", "cunt", "whore", "slut", "pussy", "nigger", "nigga", "faggot", "retard",
-  // Roman Hindi
-  "madarchod", "maderchod", "behenchod", "bhenchod", "benchod", "bhosdike", "bhosdi",
-  "bhosda", "chutiya", "chutiye", "chutia", "gandu", "gaandu", "gand", "gaand", "harami",
-  "haramzada", "haramkhor", "randi", "raand", "lund", "loda", "lauda", "bhadwa", "bhadwe",
-  // Devanagari
-  "मादरचोद", "बहनचोद", "भोसड़ीके", "चूतिया", "चुतिया", "गांडू", "हरामी", "हरामखोर", "रंडी",
-];
+// look-alike digits and symbols, repeated letters, spaced-out letters), so a
+// banned "fuck" also catches "f u c k" and "fuuuck" but not "class" or "peacock".
 
 const LEET: Record<string, string> = {
   "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i",
@@ -66,14 +52,13 @@ export function normalizeForMatch(text: string): string {
   return tokensOf(text).join(" ");
 }
 
-const BUILT_IN = PROFANITY.map(normalizeForMatch);
-
 function hits(haystack: string, word: string): boolean {
   if (!word) return false;
   return SUFFIXES.some((end) => haystack.includes(` ${word}${end} `));
 }
 
-// The first blocked word found, or null. `custom` is the creator's list. A word
+// The first blocked word found, or null. `custom` is the creator's list; with
+// none, nothing is blocked. A word
 // stretched out ("fuuuuck") is also caught, but only when it holds a run of three
 // or more of the same letter, so a real word with a double letter is not squashed
 // into another ("Niger" is not a slur).
@@ -87,7 +72,7 @@ export function findBlockedWord(text: string | null | undefined, custom: readonl
     .filter((t) => /(\p{L})\1\1/u.test(t))
     .map(squashRepeats)
     .join(" ")} `;
-  for (const word of [...BUILT_IN, ...custom.map(normalizeForMatch)]) {
+  for (const word of custom.map(normalizeForMatch)) {
     if (hits(plain, word) || hits(stretched, squashRepeats(word))) return word;
   }
   return null;

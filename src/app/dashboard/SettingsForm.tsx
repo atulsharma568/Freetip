@@ -229,8 +229,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
         />
         <p id="banned-words-hint" className="text-xs text-muted">
           One word or phrase per line, or separated by commas. A tip with one in the name or message is
-          turned away before payment, and never shown or read on stream. Common abuse in English and Hindi is
-          always blocked.
+          turned away before payment, and never shown or read on stream. Only the words you list are blocked.
         </p>
       </div>
 

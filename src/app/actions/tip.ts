@@ -127,7 +127,7 @@ export async function createTipOrder(
     };
   }
 
-  // Our profanity list plus the creator's own banned words, on the message and on
+  // The creator's own banned words (we keep no list of our own), on the message and on
   // the name (both appear on the stream). Checked before payment so a fan never
   // pays for words that would not be shown. The creator's list (migration 0016) is
   // looked up apart so a missing column only drops that list, never the tip.

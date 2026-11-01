@@ -64,7 +64,7 @@ export const youtubeMomentLink = (videoId: string, seconds: number) =>
 
 // What a viewer typed after !ts, made safe to show in a comment or in Discord: no links,
 // no @mentions, no custom-emoji codes, no control characters, one line, at most 60
-// characters. Empty if it holds a blocked word (the built-in list plus the creator's).
+// characters. Empty if it holds a blocked word (the creator's banned words).
 export function cleanTitle(raw: string | null | undefined, banned: readonly string[] = []): string {
   if (!raw) return "";
   let text = raw
