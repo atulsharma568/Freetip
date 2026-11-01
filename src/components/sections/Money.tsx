@@ -1,27 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
-import { FEES, feeBreakdown } from "@/lib/legal";
+import { FEES } from "@/lib/legal";
 import { RevealHeading } from "@/components/motion/RevealHeading";
 import { RevealWords } from "@/components/motion/RevealWords";
 
-// Worked example (lib/legal.ts): our flat processing charge is paid by the
-// creator out of the payout, on top of our 5%. Fans always pay exactly the
-// tip. The visitor can try a few tip sizes.
-const AMOUNTS = [50, 100, 500, 1000];
-
 export function Money() {
   const root = useRef<HTMLElement>(null);
-  const [amount, setAmount] = useState(100);
-  const example = feeBreakdown(amount);
-  const rows = [
-    { label: "Fan tips", value: example.tip },
-    { label: `Our fee (${FEES.platformPercent}%)`, value: example.platform },
-    { label: `Processing charge (${FEES.gatewayPercent}%)`, value: example.gateway },
-  ];
 
   useGSAP(
     () => {
@@ -51,13 +39,6 @@ export function Money() {
         gsap.set(fee, { opacity: 0 });
         tl.to(fee, { opacity: 1, duration: 0.2, ease: "none" }, 0.35);
         spins.forEach((spin) => tl.add(spin, 0.35));
-        // Then the worked example adds up, one line at a time.
-        tl.fromTo(
-          q("[data-line]"),
-          { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 0.5, ease: "expo.out", stagger: 0.12 },
-          0.9,
-        );
       });
     },
     { scope: root },
@@ -107,49 +88,9 @@ export function Money() {
           </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">Our fee</h3>
           <RevealWords className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
-            {`We take ${FEES.platformPercent}% of every tip. A flat ${FEES.gatewayPercent}% processing charge comes out of the payout too; fans pay exactly the tip.`}
+            {`We take ${FEES.platformPercent}% of every tip, plus a minimal processing fee. Fans pay exactly the tip.`}
           </RevealWords>
-          <fieldset className="mt-8">
-            <legend className="text-sm text-muted">Try a tip</legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {AMOUNTS.map((value) => (
-                <label key={value} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="fee-amount"
-                    value={value}
-                    checked={amount === value}
-                    onChange={() => setAmount(value)}
-                    className="peer sr-only"
-                  />
-                  <span className="numeric inline-flex h-11 min-w-[4.5rem] items-center justify-center rounded-full border border-control px-4 text-sm font-semibold text-text transition-[background-color,border-color,color,transform] duration-150 hover:border-muted active:scale-[0.97] peer-checked:border-accent peer-checked:bg-accent peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
-                    ₹{value.toLocaleString("en-IN")}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <dl className="mt-6 border-t border-line pt-4 text-base" aria-live="polite">
-            {rows.map((row) => (
-              <div key={row.label} data-line className="flex justify-between gap-4 py-1.5">
-                <dt className="text-muted">{row.label}</dt>
-                <dd key={amount} className="amount-numeral numeric whitespace-nowrap">
-                  {row.value}
-                </dd>
-              </div>
-            ))}
-            <div
-              data-line
-              className="mt-2 flex justify-between gap-4 border-t border-dashed border-line pt-3 text-lg font-semibold"
-            >
-              <dt>You get</dt>
-              <dd key={amount} className="amount-numeral numeric whitespace-nowrap text-accent">
-                {example.keep}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-4 text-sm text-muted">
-            Example on a ₹{amount.toLocaleString("en-IN")} UPI or card tip.{" "}
+          <p className="mt-8 text-sm text-muted">
             <Link href="/pricing" className="link-line text-text">
               See full pricing
             </Link>

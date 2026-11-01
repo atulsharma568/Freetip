@@ -154,11 +154,9 @@ const SECTIONS: LegalSection[] = [
             There is no sign-up fee and no monthly fee.
           </li>
           <li>
-            <strong>Processing charge:</strong> We also charge a flat{" "}
-            {FEES.gatewayPercent}% of each tip for processing it. It is
-            deducted from the creator’s payout, on top of our fee. On a{" "}
-            {FEES.example.tip} tip the creator receives {FEES.example.keep}. See{" "}
-            <Link href="/pricing">pricing</Link>.
+            <strong>Processing fee:</strong> We also charge a minimal fee for
+            processing each tip. It is deducted from the creator’s payout, on
+            top of our fee. See <Link href="/pricing">pricing</Link>.
           </li>
           <li>
             <strong>Fans</strong> pay no fees to us.
@@ -192,7 +190,7 @@ const SECTIONS: LegalSection[] = [
         </ul>
         <p>
           We will give creators at least 30 days’ notice by email before we
-          raise our fee or our processing charge.
+          raise our fee or our processing fee.
         </p>
       </>
     ),
@@ -497,7 +495,7 @@ export default function TermsPage() {
         <p>
           The rules for using {SITE_NAME}, in plain language. The short version:
           tips are voluntary gifts, fans pay exactly what they choose, creators
-          pay our {FEES.platformPercent}% fee and the processing charge from their
+          pay our {FEES.platformPercent}% fee and the processing fee from their
           payout, and nobody may use {SITE_NAME} to abuse people or move money
           dishonestly.
         </p>

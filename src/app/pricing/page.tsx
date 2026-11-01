@@ -6,9 +6,9 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
-  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a flat ${FEES.gatewayPercent}% processing charge, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`,
+  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`,
   alternates: { canonical: "/pricing" },
-  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a flat ${FEES.gatewayPercent}% processing charge, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
+  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 
@@ -24,45 +24,21 @@ const SECTIONS: LegalSection[] = [
           text-to-speech, approval or QR code.
         </p>
         <p>
-          We also charge a flat {FEES.gatewayPercent}% processing charge on each
-          tip. It is deducted from the creator’s payout as well, on top of our{" "}
-          {FEES.platformPercent}%. Fans pay exactly the amount they choose;
-          nothing is added at checkout.
+          We also charge a minimal processing fee on each tip. It is deducted
+          from the creator’s payout as well. Fans pay exactly the amount they
+          choose; nothing is added at checkout.
         </p>
       </>
     ),
   },
   {
-    id: "example",
-    title: "What a creator receives",
+    id: "changes",
+    title: "If prices change",
     body: (
-      <>
-        <table>
-          <tbody>
-            <tr>
-              <th scope="row">Fan tips</th>
-              <td className="numeric text-right">{FEES.example.tip}</td>
-            </tr>
-            <tr>
-              <th scope="row">Our fee ({FEES.platformPercent}%)</th>
-              <td className="numeric text-right">{FEES.example.platform}</td>
-            </tr>
-            <tr>
-              <th scope="row">Processing charge ({FEES.gatewayPercent}%)</th>
-              <td className="numeric text-right">{FEES.example.gateway}</td>
-            </tr>
-            <tr>
-              <th scope="row">Creator receives</th>
-              <td className="numeric text-right font-semibold text-accent">
-                {FEES.example.keep}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p>
-          If our fee or the processing charge changes, we will tell creators at least 30 days before it applies, and update this page.
-        </p>
-      </>
+      <p>
+        If our fee or the processing fee changes, we will tell creators at least
+        30 days before it applies, and update this page.
+      </p>
     ),
   },
   {
@@ -97,8 +73,8 @@ export default function PricingPage() {
       intro={
         <p>
           Simple pricing, shown before you sign up and the same on every page:{" "}
-          {FEES.platformPercent}% of each tip, plus a flat {FEES.gatewayPercent}%
-          processing charge, both from the creator’s payout. Fans pay exactly the
+          {FEES.platformPercent}% of each tip, plus a minimal processing fee, both from
+          the creator’s payout. Fans pay exactly the
           amount they choose.
         </p>
       }

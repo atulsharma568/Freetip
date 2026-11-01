@@ -1,6 +1,6 @@
 # Competitor findings
 
-Last reviewed: 22 October 2026
+Last reviewed: 1 November 2026
 
 This document records the public, passive reverse-engineering pass of
 StreamTipz, SuperTips and HyperChat. It is product research, not proof of
@@ -109,6 +109,44 @@ The valuable pattern is the event lifecycle:
 Freetip should adopt the explicit status page, signed moderation actions,
 idempotent event handling and pre-aggregated reporting. Voice, media, sound,
 Hyperstore and multi-channel moderation should remain later work.
+
+## Stack observations (1 November 2026)
+
+A manual passive pass, because REA was not installed on this machine: public
+homepages and their JavaScript bundles only, searched for API calls, hosts and
+service names. No login, no private endpoints. These are what the public code
+references, not proof of server behavior.
+
+### SuperTips (supertips.store)
+
+- Next.js (Turbopack) on Firebase: Firestore (about 140 references), Realtime
+  Database in `asia-southeast1`, Firebase Auth and App Check. Firestore
+  `onSnapshot` listeners and WebSocket references suggest the OBS overlay
+  listens to Firestore directly.
+- Razorpay is named once and UPI twelve times; the checkout and webhook code is
+  not in the public bundles. Only `/api/users/me` is visible as an API path.
+- Core feature is paid featured messages on stream, plus YouTube live-chat
+  moderation and custom commands.
+
+### HyperChat (hyperchat.space)
+
+- Vite single-page app (4 MB bundle) on Supabase edge functions. Functions the
+  browser calls: `create-razorpay-order-unified`, `check-payment-status-unified`,
+  `upload-voice-message-direct`, `upload-donation-media`, `issue-upload-grant`,
+  `get-overlay-config`, `get-streamer-pricing`, `get-goal-progress`,
+  `get-leaderboard-data`, `get-pusher-config`, `list-hypersounds`,
+  `list-streamer-soundboard`, `get-discord-link`; `get-payout-status` exists.
+- Realtime alerts go through Pusher. The overlay URL carries a secret token
+  checked by an `obs_tokens` table and `validate_obs_token_secure`.
+- Sarvam does voice transcription and speech; ElevenLabs is referenced; Resend
+  sends email; Telegram and Discord handle moderation; Cashfree appears once.
+
+### Takeaways
+
+Both follow `tip, Razorpay order, verified status, moderation, realtime push,
+OBS overlay`, which Freetip already mirrors. Worth borrowing: short-lived upload
+grants (like our Blob uploads) and a server-checked secret in the OBS link.
+Neither publishes payout rules, so the payout design question is not answered.
 
 ## Freetip decisions
 
