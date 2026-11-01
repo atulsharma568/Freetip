@@ -13,9 +13,14 @@ export async function azureSynthesize(
   text: string,
   language: Prepared["language"],
 ): Promise<{ audio: Uint8Array; voice: string } | null> {
-  const key = process.env.AZURE_SPEECH_KEY;
-  const region = process.env.AZURE_SPEECH_REGION?.trim();
-  if (!key || !region || !/^[a-z0-9-]{3,40}$/.test(region)) return null;
+  const key = process.env.AZURE_SPEECH_KEY?.trim();
+  // Azure's portal shows "Central India"; the endpoint wants "centralindia".
+  const region = process.env.AZURE_SPEECH_REGION?.trim().toLowerCase().replace(/[\s_]+/g, "");
+  if (!key || !region) return null;
+  if (!/^[a-z0-9-]{3,40}$/.test(region)) {
+    console.error("TTS: AZURE_SPEECH_REGION is not a valid region code (use for example centralindia).");
+    return null;
+  }
   const voice = azureVoice(language);
   try {
     const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
@@ -31,7 +36,8 @@ export async function azureSynthesize(
     });
     if (!res.ok) {
       // 401 bad key, 429 over the free limit (20 requests a minute), 5xx outage.
-      console.error(`TTS: Azure answered ${res.status}.`);
+      const detail = (await res.text().catch(() => "")).slice(0, 200);
+      console.error(`TTS: Azure answered ${res.status} for region ${region}. ${detail}`);
       return null;
     }
     return { audio: new Uint8Array(await res.arrayBuffer()), voice };

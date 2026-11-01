@@ -17,6 +17,14 @@ const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
 const buttonClass =
   "inline-flex h-10 items-center rounded-full border border-control px-5 text-sm font-medium text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.97]";
 
+// The inline SVG has no xmlns, which a standalone SVG file or an <img> needs, so
+// serialise it as XML (that adds the namespace) rather than reading outerHTML.
+function svgMarkup(svg: SVGSVGElement): string {
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  return new XMLSerializer().serializeToString(copy);
+}
+
 function save(href: string, filename: string) {
   const a = document.createElement("a");
   a.href = href;
@@ -56,7 +64,7 @@ export function CreatorQR({ url, handle }: Props) {
   const downloadSvg = useCallback(() => {
     const svg = box.current?.querySelector("svg");
     if (!svg) return;
-    const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
+    const blob = new Blob([svgMarkup(svg)], { type: "image/svg+xml" });
     const href = URL.createObjectURL(blob);
     save(href, `${handle}-tip-qr.svg`);
     URL.revokeObjectURL(href);
@@ -66,7 +74,7 @@ export function CreatorQR({ url, handle }: Props) {
     const svg = box.current?.querySelector("svg");
     if (!svg) return;
     const source = URL.createObjectURL(
-      new Blob([svg.outerHTML], { type: "image/svg+xml" }),
+      new Blob([svgMarkup(svg)], { type: "image/svg+xml;charset=utf-8" }),
     );
     const image = new Image();
     image.onload = () => {
