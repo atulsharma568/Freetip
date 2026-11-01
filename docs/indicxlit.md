@@ -40,28 +40,48 @@ typed, so both CSV files are git-ignored and must never be committed.
 
 ## On Windows 11 (personal laptop first, then the PC)
 
-Same steps on both. Untested by we: the package is 2022-era and `fairseq` may
-refuse to build natively on Windows, so use WSL, which is a real Linux inside Windows.
+Same steps on both. Tested on the personal laptop on 2026-11-01 (the steps below
+include every problem hit there). We use WSL, a real Linux inside Windows, because
+`fairseq` may refuse to build natively on Windows.
 
-1. Open PowerShell as administrator, run `wsl --install -d Ubuntu`, restart when
-   asked, then open "Ubuntu" from the Start menu and choose a username and password.
-2. In Ubuntu:
+1. Open PowerShell as administrator, run `wsl --install -d Ubuntu`, and restart when
+   asked. If "Ubuntu" is not in the Start menu, search for it, look in Windows
+   Terminal's down-arrow list, or run `wsl -l -v` then `wsl -d Ubuntu` in PowerShell.
+   (`wsl --update` saying "already installed" only means WSL itself is there; if no
+   distribution is listed, run the install command again.) The first start asks you to
+   choose a Linux username and password.
+2. Get the repo into Ubuntu's **own disk** (`~`), never under `/mnt/c/...`: the Windows
+   drive cannot hold a proper Python environment.
+   - The repo is **private**, so `git clone` asks for a username and password. Make a
+     read-only token: GitHub > Settings > Developer settings > Fine-grained tokens >
+     Generate new token, only the Freetip repo, Contents: Read-only, short expiry.
+     Use the GitHub username as the username and the token as the password (nothing
+     shows as you paste). Never save the token in a file or paste it in chat.
+   - If you already cloned under `/mnt/c`, copy it instead: `cp -r /mnt/c/Users/<your
+     Windows name>/Freetip ~/Freetip`.
+3. In Ubuntu (Ubuntu's own Python can be too new, for example 3.14, so `uv` installs
+   Python 3.10 for us):
    ```
-   sudo apt update && sudo apt install -y git python3 python3-venv python3-pip build-essential
-   git clone https://github.com/atulsharma568/Freetip.git   # use the repo's real URL
-   cd Freetip
-   python3 -m venv .venv-indicxlit
+   sudo apt update && sudo apt install -y git build-essential curl
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   source ~/.local/bin/env
+   cd ~/Freetip
+   uv venv --python 3.10 .venv-indicxlit
    source .venv-indicxlit/bin/activate
-   pip install ai4bharat-transliteration
+   uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+   uv pip install ai4bharat-transliteration
    ```
-   If Ubuntu's Python is newer than 3.11 and the install fails, install Python 3.10
-   (`sudo add-apt-repository ppa:deadsnakes/ppa`, then `sudo apt install python3.10
-   python3.10-venv`) and create the venv with `python3.10 -m venv`.
-3. Put `voice-words.csv` (downloaded in Windows, usually in Downloads) into the folder:
+   The torch line is optional: it keeps the install small (the plain package pulls
+   several GB of NVIDIA GPU libraries that this CPU-only helper never uses). If it
+   errors, skip it and run only the last line.
+4. Put `voice-words.csv` (downloaded in Windows, usually in Downloads) into the folder:
    `cp /mnt/c/Users/<your Windows name>/Downloads/voice-words.csv .`
-4. `python3 scripts/indicxlit-candidates.py voice-words.csv`, then copy the result
+5. `python3 scripts/indicxlit-candidates.py voice-words.csv`, then copy the result
    back out: `cp indicxlit-review.csv /mnt/c/Users/<your Windows name>/Downloads/`.
-5. Open it in Excel, fill the last column, and send it back.
+6. Open it in Excel, fill the last column, and send it back.
 
-If the install ends with a numpy "size changed" error, run `pip install --upgrade numpy`.
-Next time, only steps 3 to 5 are needed (after `source .venv-indicxlit/bin/activate`).
+Problems seen: `error: externally-managed-environment` means the venv was not made
+properly (usually because the folder was on `/mnt/c`, or Python is too new); redo
+step 2 and 3. A numpy "size changed" error: `uv pip install --upgrade numpy`.
+Next time, only steps 4 to 6 are needed (after `source .venv-indicxlit/bin/activate`
+inside `~/Freetip`).
