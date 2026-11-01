@@ -111,9 +111,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "alertRules",
     label: "Alert rules by tip size",
-    group: "Planned, not built yet",
-    description: "Pick which media or sound plays depending on how big the tip is.",
-    built: false,
+    group: "Alert box",
+    description: "Pick which media or sound plays depending on how big the tip is (/dashboard/rules). Media rules also need Custom alert media.",
+    built: true,
   },
   {
     key: "regionalVoices",
