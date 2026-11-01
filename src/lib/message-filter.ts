@@ -12,7 +12,7 @@
 // look-alike digits and symbols, repeated letters, spaced-out letters), so a
 // banned "fuck" also catches "f u c k" and "fuuuck" but not "class" or "peacock".
 
-import { EMOJI_NAMES } from "@/lib/emoji-names";
+import { EMOJI_NAMES, SEQUENCE_NAMES } from "@/lib/emoji-names";
 import { CLDR_EMOJI_NAMES } from "@/lib/emoji-names-cldr";
 import { isHinglish } from "@/lib/hinglish";
 
@@ -119,12 +119,17 @@ const MAX_SPOKEN_EMOJI = 3;
 // Swaps an emoji for its spoken name (ours, else Unicode's official one) (the playful Hindi one when the
 // message is Hindi or Hinglish), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
 function nameEmoji(message: string): string {
-  const hindi = /[ऀ-ॿ]/.test(message) || isHinglish(message);
+  // An emoji-only message (no words at all) gets the playful Hindi names too: the
+  // audience is Indian and the voice reads them well.
+  const hindi =
+    /[ऀ-ॿ]/.test(message) || isHinglish(message) || !/\p{L}/u.test(message.replace(EMOJI_CLUSTER, " "));
   let spoken = 0;
   let last = "";
   return message.replace(EMOJI_CLUSTER, (cluster) => {
     const base = Array.from(cluster)[0];
-    const names = EMOJI_NAMES.get(base) ?? CLDR_EMOJI_NAMES[base];
+    // Joined sequences with their own name (😮‍💨) first, then the first symbol alone.
+    const key = cluster.replace(/[\u{fe0f}\u{1f3fb}-\u{1f3ff}]/gu, "");
+    const names = SEQUENCE_NAMES.get(key) ?? EMOJI_NAMES.get(base) ?? CLDR_EMOJI_NAMES[base];
     if (!names) return " ";
     const name = hindi ? names[1] : names[0];
     if (name === last) return " ";

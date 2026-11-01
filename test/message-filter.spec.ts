@@ -53,7 +53,7 @@ test.describe("cleanup before speech", () => {
   test("reads common emoji aloud by name", () => {
     expect(cleanForSpeech("great stream 🔥", 300)).toBe("great stream fire");
     expect(cleanForSpeech("thanks ❤️❤️❤️", 300)).toBe("thanks heart");
-    expect(cleanForSpeech("🔥😂🙏👍", 300)).toBe("fire laughing thank you");
+    expect(cleanForSpeech("wow 🔥😂🙏👍", 300)).toBe("wow fire laughing thank you");
     expect(cleanForSpeech("👍🏽 nice", 300)).toBe("thumbs up nice");
     expect(cleanForSpeech("भाई मस्त 🔥", 300)).toBe("भाई मस्त आग लगा दी");
     // Hinglish gets the playful Hindi names too
@@ -62,7 +62,7 @@ test.describe("cleanup before speech", () => {
   });
 
   test("every listed emoji is a real emoji with a name in both languages", () => {
-    expect(EMOJI_NAMES.size).toBeGreaterThan(300);
+    expect(EMOJI_NAMES.size).toBeGreaterThan(600);
     for (const [emoji, [en, hi]] of EMOJI_NAMES) {
       expect(/^\p{Extended_Pictographic}$/u.test(emoji), emoji).toBe(true);
       expect(/^[a-z ]+$/.test(en), en).toBe(true);
@@ -72,15 +72,23 @@ test.describe("cleanup before speech", () => {
     expect(cleanForSpeech("nice 🦁", 300)).toBe("nice lion");
   });
 
+  test("an emoji on its own gets the playful Hindi name", () => {
+    expect(cleanForSpeech("😂", 300)).toBe("हँसता हुआ चेहरा");
+    expect(cleanForSpeech("🍭❤️", 300)).toBe("चूसने की मिठाई गुलाबी दिल");
+    expect(cleanForSpeech("🤰", 300)).toBe("बधाई हो, घर में नन्हा मेहमान आ रहा है");
+    expect(cleanForSpeech("😮\u200d💨", 300)).toBe("लंबी साँस, चलो छोड़ो");
+    expect(cleanForSpeech("nice 😂", 300)).toBe("nice laughing");
+  });
+
   test("an emoji we have no playful name for is read by its official Unicode name", () => {
     for (const [emoji, [en, hi]] of Object.entries(CLDR_EMOJI_NAMES)) {
       expect(EMOJI_NAMES.has(emoji), emoji).toBe(false);
       expect(/^\p{Extended_Pictographic}$/u.test(emoji), emoji).toBe(true);
       expect(en.length > 0 && hi.length > 0, emoji).toBe(true);
     }
-    expect(Object.keys(CLDR_EMOJI_NAMES).length).toBeGreaterThan(900);
-    expect(cleanForSpeech("nice 🫠", 300)).toBe("nice melting face");
-    expect(cleanForSpeech("bhai mast 🫠", 300)).toBe("bhai mast पिघलता चेहरा");
+    expect(Object.keys(CLDR_EMOJI_NAMES).length).toBeGreaterThan(500);
+    expect(cleanForSpeech("nice 🫫", 300)).toBe("nice cracking face");
+    expect(cleanForSpeech("bhai mast 🫫", 300)).toBe("bhai mast दरकता चेहरा");
 
   });
 
