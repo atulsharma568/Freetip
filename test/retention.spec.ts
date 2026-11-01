@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { purgeOldTipText } from "../src/lib/retention";
+import { purgeHandledContactMessages, purgeOldTipText } from "../src/lib/retention";
 import { closeCreatorAccount } from "../src/lib/account-close";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
@@ -82,4 +82,25 @@ test("closing an account deletes the contact messages sent from its sign-in emai
     `select after_json from audit_events where action = 'account.closed'`,
   );
   expect(audit.rows[0].after_json.contact_messages_removed).toBe(1);
+});
+
+test("handled contact messages older than 12 months are deleted, new or unhandled ones stay", async () => {
+  const pg = await freshDatabase();
+  const add = (email: string, status: string, months: number) =>
+    pg.query(
+      `insert into contact_messages (name, email, topic, message, status, created_at)
+       values ('N', $1, 'general', 'a long enough message', $2, now() - make_interval(months => $3))`,
+      [email, status, months],
+    );
+  await add("old-handled@example.com", "handled", 13);
+  await add("old-new@example.com", "new", 24);
+  await add("recent-handled@example.com", "handled", 11);
+
+  expect(await purgeHandledContactMessages(asLedgerDb(pg))).toEqual({ deleted: 1 });
+  const left = await pg.query<{ email: string }>(`select email from contact_messages order by email`);
+  expect(left.rows.map((r) => r.email)).toEqual(["old-new@example.com", "recent-handled@example.com"]);
+  const audit = await pg.query(`select 1 from audit_events where action = 'contact.messages_purged'`);
+  expect(audit.rows).toHaveLength(1);
+
+  expect(await purgeHandledContactMessages(asLedgerDb(pg))).toEqual({ deleted: 0 });
 });

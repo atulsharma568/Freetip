@@ -81,7 +81,8 @@ const SECTIONS: LegalSection[] = [
             messages you send us, for example support requests or complaints.
             From the contact form we keep your name, your email, what the
             message is about, the payment reference if you add one, and the
-            message itself, only to read it and reply;
+            message itself, only to read it and reply. We delete a message 12
+            months after it was sent once we have dealt with it;
           </li>
           <li>
             basic technical data such as your IP address, browser and device,

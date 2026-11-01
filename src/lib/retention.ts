@@ -28,3 +28,29 @@ export async function purgeOldTipText(db: LedgerDb): Promise<{ cleared: number }
     return { cleared: rows.length };
   });
 }
+
+// Contact-form messages the owner has marked handled are deleted 12 months after they
+// were sent (owner, 2026-11-01). Unhandled ones are kept until someone deals with them.
+// The age counts from when the message arrived, as no handled-at time is stored.
+
+export const CONTACT_RETENTION_MONTHS = 12;
+
+export async function purgeHandledContactMessages(db: LedgerDb): Promise<{ deleted: number }> {
+  return db.begin(async (tx) => {
+    const rows = await tx<{ id: string }[]>`
+      delete from contact_messages
+       where status = 'handled'
+         and created_at < now() - make_interval(months => ${CONTACT_RETENTION_MONTHS})
+      returning id::text as id
+    `;
+    if (rows.length) {
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, after_json, reason)
+        values (null, 'system', 'contact.messages_purged', 'contact_messages',
+                ${{ deleted: rows.length, retention_months: CONTACT_RETENTION_MONTHS }}::jsonb,
+                'daily clean-up: handled contact messages older than the retention period')
+      `;
+    }
+    return { deleted: rows.length };
+  });
+}
