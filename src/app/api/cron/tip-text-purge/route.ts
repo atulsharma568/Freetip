@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/db";
-import { purgeHandledContactMessages, purgeOldTimestamps, purgeOldTipText } from "@/lib/retention";
+import { purgeHandledContactMessages, purgeOldFanProfiles, purgeOldTimestamps, purgeOldTipText } from "@/lib/retention";
 import type { LedgerDb } from "@/lib/accrual";
 
 // Daily clean-up, run by Vercel Cron (see vercel.json): blanks the name and message
@@ -32,7 +32,14 @@ export async function GET(request: Request) {
     } catch (err) {
       console.error("tip-text-purge: timestamps purge failed (migration 0032 run?)", err);
     }
-    return Response.json({ cleared, contactDeleted: deleted, timestampsDeleted });
+    // Apart as well: a missing migration 0038 only skips the 12-month fan profile purge.
+    let fansDeleted = 0;
+    try {
+      fansDeleted = (await purgeOldFanProfiles(ledgerDb)).deleted;
+    } catch (err) {
+      console.error("tip-text-purge: fan profile purge failed (migration 0038 run?)", err);
+    }
+    return Response.json({ cleared, contactDeleted: deleted, timestampsDeleted, fansDeleted });
   } catch (err) {
     console.error("tip-text-purge failed", err);
     return new Response("Failed", { status: 500 });

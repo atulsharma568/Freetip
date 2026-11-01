@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getDb } from "@/lib/db";
+import { hasFeature } from "@/lib/plans";
 
 export interface CreatorRow {
   google_id: string;
@@ -76,5 +77,21 @@ export const getCreatorAccent = cache(async (handle: string): Promise<string | n
   } catch (err) {
     console.error("Tip page: could not read the accent colour.", err);
     return null;
+  }
+});
+
+// Whether the tip page asks for a birthday: the creator has the birthday message switched on
+// and has written a greeting. Read apart (migrations 0035 and 0038) so the page still loads
+// before they are run.
+export const getBirthdayOffered = cache(async (handle: string): Promise<boolean> => {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    const [row] = await db<{ paid_features: string[] | null; birthday_message: string | null }[]>`
+      select paid_features, birthday_message from users where handle = ${handle} and creator_status = 'active'
+    `;
+    return !!row?.birthday_message?.trim() && hasFeature(row, "birthdayMessage");
+  } catch {
+    return false;
   }
 });

@@ -1,4 +1,5 @@
 import { postCaptureAccrual, type LedgerDb } from "./accrual";
+import { postFanXp } from "./fan-profiles";
 
 // What happens after the Razorpay webhook has captured a tip, each step on its own
 // so one failing never blocks the next or undoes the capture:
@@ -6,7 +7,9 @@ import { postCaptureAccrual, type LedgerDb } from "./accrual";
 //      posting can check it against the order;
 //   2. post the creator's share to the books (idempotent; the daily sweep covers a
 //      failure here);
-//   3. keep a minimal record of the event once its outcome is final (no payer
+//   3. count the tip towards the fan's profile (fan levels and fan list, only for
+//      creators who switched them on, only for a tip with a name);
+//   4. keep a minimal record of the event once its outcome is final (no payer
 //      details: email, phone and UPI ID stay with the payment partner, as the
 //      privacy page says).
 // It never throws. A migration that has not been run yet shows up as a logged
@@ -57,6 +60,15 @@ export async function afterCapture(
     }
   } catch (err) {
     console.error("Accrual failed, the daily sweep will retry", payment.id, err);
+  }
+
+  // Fan levels and the fan list (migration 0038). Its own step: a missing migration or a
+  // failure here changes nothing about the capture or the books. Not a ledger matter, so
+  // test-mode tips count too.
+  try {
+    await postFanXp(db, payment.id, process.env.WAITLIST_SALT);
+  } catch (err) {
+    console.error("Capture: could not count the tip for the fan profile (migration 0038 run?)", payment.id, err);
   }
 
   if (!eventId || !outcome) return;

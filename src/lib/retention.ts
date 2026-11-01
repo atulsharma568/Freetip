@@ -9,6 +9,22 @@ import type { LedgerDb } from "./accrual";
 export const TIP_TEXT_RETENTION_DAYS = 90;
 
 export async function purgeOldTipText(db: LedgerDb): Promise<{ cleared: number }> {
+  const result = await purgeOldTipTextRows(db);
+  // The birthday a fan typed with the tip goes with the name (migration 0038). Apart from the
+  // main statement so a missing column cannot stop the name and message being deleted.
+  try {
+    await db`
+      update tip_orders set birthday_md = null
+       where birthday_md is not null
+         and created_at < now() - make_interval(days => ${TIP_TEXT_RETENTION_DAYS})
+    `;
+  } catch {
+    /* migration 0038 not run: no birthdays to clear */
+  }
+  return result;
+}
+
+async function purgeOldTipTextRows(db: LedgerDb): Promise<{ cleared: number }> {
   return db.begin(async (tx) => {
     const rows = await tx<{ id: string }[]>`
       update tip_orders
@@ -81,6 +97,36 @@ export async function purgeOldTimestamps(db: LedgerDb): Promise<{ deleted: numbe
         values (null, 'system', 'timestamps.purged', 'stream_timestamps',
                 ${{ deleted: rows.length, retention_days: TIMESTAMP_RETENTION_DAYS }}::jsonb,
                 'daily clean-up: stream timestamps older than the retention period')
+      `;
+    }
+    return { deleted: rows.length };
+  });
+}
+
+// Fan profiles (fan levels and the fan list, migration 0038) are kept 12 months after the
+// fan's last tip, as the privacy policy says, then deleted with the tips counted for them.
+// A new tip moves last_at forward, so an active fan keeps their profile.
+export const FAN_PROFILE_RETENTION_MONTHS = 12;
+
+export async function purgeOldFanProfiles(db: LedgerDb): Promise<{ deleted: number }> {
+  return db.begin(async (tx) => {
+    await tx`
+      delete from fan_xp_events e
+       using fan_profiles p
+       where p.creator_id = e.creator_id and p.fan_key = e.fan_key
+         and p.last_at < now() - make_interval(months => ${FAN_PROFILE_RETENTION_MONTHS})
+    `;
+    const rows = await tx<{ fan_key: string }[]>`
+      delete from fan_profiles
+       where last_at < now() - make_interval(months => ${FAN_PROFILE_RETENTION_MONTHS})
+      returning fan_key
+    `;
+    if (rows.length) {
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, after_json, reason)
+        values (null, 'system', 'fans.purged', 'fan_profiles',
+                ${{ deleted: rows.length, retention_months: FAN_PROFILE_RETENTION_MONTHS }}::jsonb,
+                'daily clean-up: fan profiles with no tip for the retention period')
       `;
     }
     return { deleted: rows.length };

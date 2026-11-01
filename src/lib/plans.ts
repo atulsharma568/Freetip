@@ -32,7 +32,7 @@ export type FeatureKey =
 export type FeatureInfo = {
   key: FeatureKey;
   label: string;
-  group: "Stream timestamps" | "OBS overlays" | "Alert box" | "Planned, not built yet";
+  group: "Stream timestamps" | "OBS overlays" | "Alert box" | "Fans" | "Planned, not built yet";
   description: string;
   // false: listed in the admin page but cannot be switched on, because nothing exists yet.
   built: boolean;
@@ -139,23 +139,23 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "birthdayMessage",
     label: "Birthday message",
-    group: "Planned, not built yet",
-    description: "A creator-set message for a fan's birthday.",
-    built: false,
+    group: "Fans",
+    description: "A greeting on the alert when a fan who typed their birthday (day and month) tips on that day (/dashboard/fans).",
+    built: true,
   },
   {
     key: "fanLevels",
     label: "Fan levels (XP)",
-    group: "Planned, not built yet",
-    description: "Levels that fans earn by tipping.",
-    built: false,
+    group: "Fans",
+    description: "Fans who type a name earn 1 point per ₹1 and a level shown on the alert. Starts counting from the day it is switched on; keeps a name-only fan profile for 12 months.",
+    built: true,
   },
   {
     key: "fanCrm",
     label: "Fan list (CRM)",
-    group: "Planned, not built yet",
-    description: "A list of a creator's supporters with their totals.",
-    built: false,
+    group: "Fans",
+    description: "A private list of the creator's named supporters with totals, a note, CSV and delete (/dashboard/fans). Keeps a name-only fan profile for 12 months.",
+    built: true,
   },
   {
     key: "highlightedMessages",

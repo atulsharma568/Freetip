@@ -10,6 +10,8 @@ import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { checkPick } from "@/lib/sounds";
 import { checkVoicePick } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
+import { parseBirthday } from "@/lib/birthday";
+import { hasFeature } from "@/lib/plans";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
@@ -185,6 +187,23 @@ export async function createTipOrder(
     if (problem) return { status: "error", message: problem };
   }
 
+  // The fan's birthday, kept only when the creator offers the birthday message (switch on and a
+  // greeting written, checked here and not only on the page), the tip has a name and it is a
+  // real day. Otherwise it is dropped without telling the fan: never store what is not used.
+  let birthdayMd: string | null = null;
+  if (extras.birthday && !anonymous && fanName?.trim()) {
+    try {
+      const [row] = await db<{ paid_features: string[] | null; birthday_message: string | null }[]>`
+        select paid_features, birthday_message from users where id = ${creator.id}
+      `;
+      if (row?.birthday_message?.trim() && hasFeature(row, "birthdayMessage")) {
+        birthdayMd = parseBirthday(extras.birthday.month, extras.birthday.day);
+      }
+    } catch (err) {
+      console.error("Tip: could not check the birthday message (migration 0038 run?).", err);
+    }
+  }
+
   const publicReference = `tip_${randomBytes(8).toString("hex")}`;
 
   // Create Razorpay order.
@@ -243,7 +262,7 @@ export async function createTipOrder(
            ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
         returning id
       `;
-      const columns = tipExtraColumns({ soundId, voice });
+      const columns = tipExtraColumns({ soundId, voice, birthdayMd });
       if (Object.keys(columns).length > 0) {
         await tx`update tip_orders set ${tx(columns)} where id = ${orders[0].id}`;
       }

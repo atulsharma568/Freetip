@@ -1,4 +1,5 @@
 import type { LedgerDb } from "./accrual";
+import { eraseFans } from "./fan-profiles";
 import { open } from "./secret-box";
 import { createYouTubeClient } from "./youtube";
 
@@ -145,6 +146,13 @@ export async function closeCreatorAccount(
       /* column not there yet */
     }
     await eraseTimestampData(db, userId);
+    // Fan profiles, the birthdays on the creator's tips and their birthday greeting
+    // (migration 0038); nothing to erase before it is run.
+    try {
+      await eraseFans(db, userId);
+    } catch {
+      /* migration 0038 not run */
+    }
     // The creator's alert media files go with the account (the caller deletes the files).
     result.blobUrls.push(...(await eraseMedia(db, userId)));
   }

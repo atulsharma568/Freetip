@@ -7,11 +7,19 @@
 export type TipExtras = {
   soundId?: number | null;
   voice?: boolean;
+  // The fan's birthday as typed on the tip page (birthday message); only used when the
+  // creator offers it, the tip has a name, and it is a real day.
+  birthday?: { month: number; day: number } | null;
 };
 
 // The tip_orders columns the extras set. Pure, so the shape is easy to test.
-export function tipExtraColumns(e: { soundId: number | null; voice: boolean }): Record<string, number | boolean> {
-  const columns: Record<string, number | boolean> = {};
+export function tipExtraColumns(e: {
+  soundId: number | null;
+  voice: boolean;
+  birthdayMd?: string | null;
+}): Record<string, number | boolean | string> {
+  const columns: Record<string, number | boolean | string> = {};
+  if (e.birthdayMd) columns.birthday_md = e.birthdayMd;
   if (e.soundId !== null) columns.sound_id = e.soundId;
   if (e.voice) columns.tts_requested = true;
   return columns;

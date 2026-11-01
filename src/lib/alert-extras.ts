@@ -4,6 +4,8 @@ import { parseBannedWords } from "@/lib/message-filter";
 import { pickMedia, playable, type AlertMedia, type MediaCandidate } from "@/lib/media";
 import { resolveRule, type AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
+import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
+import { istMonthDay, resolveBirthday } from "@/lib/birthday";
 
 // Everything an alert carries besides the fan's name, amount and message: the sound,
 // the voice choice, the creator's banned words and (as the paid features ship) media,
@@ -30,9 +32,13 @@ export type AlertExtras = {
   // The card style and font the creator picked (overlay themes); null while the
   // feature is off or both choices are the defaults, which is the plain card.
   theme: OverlayStyle | null;
+  // The fan's level after this tip (fan levels); null while the feature is off, the fan has
+  // no profile (anonymous, or the tip was before the switch) or this is the message card.
+  level: FanLevel | null;
+  // The creator's birthday greeting for this tip (birthday message), already filled in
+  // with the fan's name; null unless the fan's birthday is today.
+  birthday: string | null;
   // Filled in by their features; null while that feature is off or not built.
-  level: null;
-  birthday: null;
   voiceNote: null;
   highlight: null;
 };
@@ -49,11 +55,15 @@ export type RawExtras = {
   rules?: readonly AlertRule[];
   // The creator's stored theme and font keys (overlay themes); unknown keys are the default.
   style?: { theme?: string | null; font?: string | null } | null;
+  // The fan's points now and what this tip added (fan levels).
+  fan?: { xp: number; tipXp: number } | null;
+  // The creator's greeting and the fan's birthday and name on this tip (birthday message).
+  birthdayInfo?: { template: string | null; tipBirthday: string | null; name: string | null } | null;
 };
 
 export function resolveAlertExtras(
   raw: RawExtras,
-  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number; amountPaise?: number },
+  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number; amountPaise?: number; todayMd?: string },
 ): AlertExtras {
   // The rule for this tip size, only on the alert card and only while the creator's
   // switch is on at play time.
@@ -82,8 +92,17 @@ export function resolveAlertExtras(
     media: mediaOn ? pickMedia(ruleFile ? [ruleFile] : (raw.media ?? []), ctx.tipId ?? 0) : null,
     // Both the alert card and the follow-up message card wear the creator's style.
     theme: ctx.features.overlayThemes ? resolveOverlayStyle(raw.style) : null,
-    level: null,
-    birthday: null,
+    level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
+    birthday:
+      ctx.kind === "alert" && ctx.features.birthdayMessage && raw.birthdayInfo
+        ? resolveBirthday({
+            template: raw.birthdayInfo.template,
+            tipBirthday: raw.birthdayInfo.tipBirthday,
+            todayMd: ctx.todayMd ?? istMonthDay(new Date()),
+            name: raw.birthdayInfo.name,
+            bannedWords: raw.bannedWords,
+          })
+        : null,
     voiceNote: null,
     highlight: null,
   };
@@ -209,8 +228,38 @@ export async function loadAlertExtras(
       })
     : null;
 
+  // The fan's points (migration 0038), read only when fan levels are on for the creator.
+  // The tip's own counted points tell whether it raised the level.
+  const fan =
+    o.kind === "alert" && features.fanLevels
+      ? await safely("the fan level", null as { xp: number; tipXp: number } | null, async () => {
+          const [found] = await db<{ xp: string; tip_xp: number }[]>`
+            select p.xp::text, e.xp as tip_xp
+            from fan_xp_events e
+            join fan_profiles p on p.creator_id = e.creator_id and p.fan_key = e.fan_key
+            where e.tip_order_id = ${o.tipId}
+          `;
+          return found ? { xp: Number(found.xp), tipXp: found.tip_xp } : null;
+        })
+      : null;
+
+  // The greeting and this tip's birthday (migration 0038), read only when the feature is on.
+  const birthdayInfo =
+    o.kind === "alert" && features.birthdayMessage
+      ? await safely("the birthday message", null as { template: string | null; tipBirthday: string | null; name: string | null } | null, async () => {
+          const [found] = await db<{ birthday_message: string | null; birthday_md: string | null; fan_name: string | null; anonymous: boolean | null }[]>`
+            select u.birthday_message, t.birthday_md, t.fan_name, t.anonymous
+            from tip_orders t join users u on u.id = t.creator_id
+            where t.id = ${o.tipId}
+          `;
+          return found
+            ? { template: found.birthday_message, tipBirthday: found.birthday_md, name: found.anonymous ? null : found.fan_name }
+            : null;
+        })
+      : null;
+
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, style },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, style, fan, birthdayInfo },
     { kind: o.kind, features, tipId: o.tipId, amountPaise },
   );
 }

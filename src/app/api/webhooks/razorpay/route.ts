@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import type { LedgerDb } from "@/lib/accrual";
 import { afterCapture } from "@/lib/capture-follow-up";
 import { postTipReversal } from "@/lib/reversal";
+import { reverseFanXp } from "@/lib/fan-profiles";
 
 // Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
 // Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
@@ -184,6 +185,15 @@ export async function POST(request: Request): Promise<Response> {
           const result = await postTipReversal(ledgerDb, paymentId, amount, kind);
           if (result.status === "skipped" && result.reason === "partial_amount") {
             console.error("Razorpay took back part of a payment; not posted, look at it by hand", paymentId, amount);
+          }
+          // The tip no longer counts for the fan's level (only a whole payment). Its own try:
+          // a missing migration 0038 must not make the ledger reversal look failed.
+          if (!(result.status === "skipped" && result.reason === "partial_amount")) {
+            try {
+              await reverseFanXp(ledgerDb, paymentId);
+            } catch (err) {
+              console.error("Could not take the tip back from the fan profile (migration 0038 run?)", paymentId, err);
+            }
           }
         } catch (err) {
           console.error("Could not record a reversal; Razorpay will retry", paymentId, err);

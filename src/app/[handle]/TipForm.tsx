@@ -99,6 +99,8 @@ function StepHeading({ n, title }: { n: number; title: string }) {
   );
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 type Phase = "idle" | "creating" | "checkout" | "success" | "error";
 
 interface Props {
@@ -117,6 +119,8 @@ interface Props {
   // How the creator plays alerts, so the success screen only promises what will happen.
   alertMode?: AlertMode;
   previewMode?: boolean;
+  // The creator has the birthday message on and a greeting written: ask for a birthday.
+  birthdayOffered?: boolean;
 }
 
 export function TipForm({
@@ -132,6 +136,7 @@ export function TipForm({
   voiceMinPaise,
   alertMode = "split",
   previewMode = false,
+  birthdayOffered = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const refocusAmount = useRef(false);
@@ -145,6 +150,9 @@ export function TipForm({
   const [remember, setRemember] = useState(false);
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  // Optional birthday (day and month only), asked only when the creator offers it.
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
   const [extra, setExtra] = useState<Extra>({ kind: "default" });
   // A short, debounced sentence for screen readers when the amount changes.
   const [announce, setAnnounce] = useState("");
@@ -247,7 +255,14 @@ export function TipForm({
         anonymous ? null : tipName.trim() || null,
         message.trim() || null,
         anonymous,
-        { soundId: extra.kind === "sound" ? extra.id : null, voice: extra.kind === "voice" },
+        {
+          soundId: extra.kind === "sound" ? extra.id : null,
+          voice: extra.kind === "voice",
+          birthday:
+            birthdayOffered && !anonymous && tipName.trim() && birthMonth && birthDay
+              ? { month: Number(birthMonth), day: Number(birthDay) }
+              : null,
+        },
       );
     } catch {
       setPhase("error");
@@ -322,6 +337,8 @@ export function TipForm({
           // A remembered name stays for the next tip.
           if (!remember) setTipName("");
           setAnonymous(false);
+          setBirthMonth("");
+          setBirthDay("");
           setExtra({ kind: "default" });
           setPaidAmount(0);
         }}
@@ -498,6 +515,44 @@ export function TipForm({
                 </div>
               )}
             </div>
+            {birthdayOffered && !anonymous && tipName.trim() && (
+              <fieldset className="space-y-2">
+                <legend className="text-sm text-muted">
+                  Birthday <span className="text-control">(optional)</span>
+                </legend>
+                <div className="flex gap-3">
+                  <select
+                    aria-label="Birthday month"
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(e.target.value)}
+                    className="h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text focus:border-accent"
+                  >
+                    <option value="">Month</option>
+                    {MONTHS.map((m, i) => (
+                      <option key={m} value={i + 1}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Birthday day"
+                    value={birthDay}
+                    onChange={(e) => setBirthDay(e.target.value)}
+                    className="h-12 w-28 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text focus:border-accent"
+                  >
+                    <option value="">Day</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-muted">
+                  Day and month only, never the year. If you tip on your birthday, {displayName} can greet you on stream.
+                </p>
+              </fieldset>
+            )}
             <div className="space-y-2">
               <label htmlFor="tip-message" className="text-sm text-muted">
                 Message <span className="text-control">(optional)</span>

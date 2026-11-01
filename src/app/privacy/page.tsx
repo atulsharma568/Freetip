@@ -61,6 +61,36 @@ const SECTIONS: LegalSection[] = [
             privacy policy.
           </li>
         </ul>
+        <h3>If you tip a creator who uses fan levels, a fan list or a birthday message</h3>
+        <p>
+          These are optional tools a creator can switch on for their own page.
+          Only if the creator has switched one on, and only when you type a name
+          (a tip left anonymous is never counted), we also keep a small fan
+          profile for that creator:
+        </p>
+        <ul>
+          <li>
+            the name you typed, a scrambled (hashed) code made from the creator
+            and that name so the same name is matched on later tips, the number
+            of tips, the total amount, the points (1 for every ₹1) and the level
+            they add up to, and the dates of your first and latest tip;
+          </li>
+          <li>
+            if you choose to give it, the day and month of your birthday, never
+            the year. It is optional, you type it yourself, and we do not check
+            it;
+          </li>
+          <li>
+            if the creator adds one, a private note of their own about you. We
+            do not read it and it is never shown to you or on the stream.
+          </li>
+        </ul>
+        <p>
+          A profile is only a name. We have no way to know who you really are,
+          so the same name typed by two people is counted as one fan, anyone can
+          type someone else&apos;s name, and a changed spelling starts a new
+          profile.
+        </p>
         <h3>If you are a creator</h3>
         <ul>
           <li>
@@ -240,6 +270,11 @@ const SECTIONS: LegalSection[] = [
             <td>Providing the service you asked for</td>
           </tr>
           <tr>
+            <td>Show a fan&apos;s level on the alert, give the creator a list of supporters, and greet a fan on their birthday (only for creators who switch these on)</td>
+            <td>Fan profile: name, tip counts and totals, points and level, optional birthday day and month, the creator&apos;s own note</td>
+            <td>Providing the service the creator and you asked for; your consent for the birthday, which you give by typing it</td>
+          </tr>
+          <tr>
             <td>Screen messages and handle reports</td>
             <td>Names, messages, reports</td>
             <td>Providing the service; legal duties as an intermediary</td>
@@ -274,6 +309,32 @@ const SECTIONS: LegalSection[] = [
         on a stream can be recorded by others, so don’t put personal details
         in a message.
       </p>
+    ),
+  },
+  {
+    id: "fan-profiles",
+    title: "Fan profiles: what a creator sees and a stream shows",
+    body: (
+      <>
+        <p>
+          If a creator has switched on fan levels, your level (for example
+          “Lv 3”) can appear on their alert next to your name, on a live stream.
+          If they have switched on the fan list, the creator can see, in their
+          private dashboard, each fan&apos;s name, number of tips, total amount,
+          level, dates and birthday day and month, and can search, sort, add a
+          note, download the list as a file, or delete a fan. If they have
+          switched on a birthday message and you gave your birthday, the creator&apos;s
+          greeting (with your name in it) can be shown on the alert on stream
+          when you tip on that day. It is never shown on any other day. The creator
+          is responsible for what they do with a list they download.
+        </p>
+        <p>
+          To ask us to delete your profile, or the birthday on it, write to our
+          Grievance Officer with the creator&apos;s handle and the name you used.
+          Because a name is all we have, we may ask you for a payment ID from one
+          of your tips to be sure the profile is yours.
+        </p>
+      </>
     ),
   },
   {
@@ -322,7 +383,21 @@ const SECTIONS: LegalSection[] = [
         <li>
           <strong>Tip names and messages:</strong> 90 days, so creators and we
           can deal with reports and disputes. After that the name and message
-          are deleted and only the payment record stays.
+          are deleted and only the payment record stays. The only exception is
+          a fan profile, below.
+        </li>
+        <li>
+          <strong>Fan profiles:</strong> only if a creator uses fan levels, the
+          fan list or the birthday message. A profile (name, totals, points,
+          level, optional birthday day and month, and the creator&apos;s note)
+          is kept for 12 months after your latest tip, then deleted
+          automatically. A new tip on a creator&apos;s page starts the 12 months
+          again. The creator can delete a fan&apos;s profile at any time, and
+          closing a creator account deletes all of that creator&apos;s profiles
+          straight away. If the creator switches these tools off, no new
+          profiles are made and the existing ones are still deleted after 12
+          months. The birthday day and month typed with a tip is deleted with
+          that tip&apos;s name after 90 days.
         </li>
         <li>
           <strong>Stream timestamps:</strong> if a creator uses them, the
@@ -363,7 +438,11 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         We set one essential cookie, which keeps you signed in after you sign in
-        with Google. It holds no tracking data and is needed to run the account.{" "}
+        with Google. It holds no tracking data and is needed to run the account.
+        On a tip page, if you tick “Remember my name on this device”, the name
+        you type is saved in your own browser (not on our servers) so the box is
+        filled next time; clear your browser&apos;s site data, or untick the box,
+        to remove it.{" "}
         {process.env.NEXT_PUBLIC_GA_ID
           ? "If you press Accept on the banner, we also load Google Analytics, which sets cookies and sends Google anonymised visit data (pages viewed, rough location, device type) so we can count visits. If you press No thanks, nothing from Google loads, and you can clear this choice in your browser’s site data. It never runs on the creator or owner areas or the stream alert. We don’t use advertising cookies, tracking pixels or cross-site tracking."
           : "We don’t use advertising or analytics cookies, tracking pixels or cross-site tracking. If we ever add a cookie that isn’t strictly needed to run the service, we will update this policy and ask for your consent first."}
