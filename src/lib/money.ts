@@ -9,6 +9,8 @@
 // line so a later change of rate never rewrites an old tip.
 export const RULE_VERSION = "2026-10-30.2";
 export const PLATFORM_BPS = 500; // 5%
+// The smallest tip, the same for every creator (owner, 2026-11-01).
+export const MIN_TIP_PAISE = 2000;
 export const PROCESSING_BPS = 275; // 2.75%, shown as Freetip's processing charge
 
 const cut = (paise: number, bps: number) => Math.floor((paise * bps + 5000) / 10000);

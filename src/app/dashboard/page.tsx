@@ -349,7 +349,6 @@ export default async function DashboardPage() {
           </div>
           <SettingsForm
             displayName={user.display_name ?? ""}
-            minTipPaise={user.min_tip_paise}
             messageMaxChars={user.message_max_chars}
             ttsEnabled={user.tts_enabled}
             ttsMinPaise={user.tts_min_paise}

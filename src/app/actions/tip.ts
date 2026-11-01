@@ -3,6 +3,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { MIN_TIP_PAISE } from "@/lib/money";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { checkPick } from "@/lib/sounds";
@@ -109,10 +110,10 @@ export async function createTipOrder(
     return { status: "error", message: "Creator not found or not accepting tips" };
   }
 
-  if (amountPaise < creator.min_tip_paise) {
+  if (amountPaise < MIN_TIP_PAISE) {
     return {
       status: "error",
-      message: `Minimum tip is ₹${Math.ceil(creator.min_tip_paise / 100)}`,
+      message: `Minimum tip is ₹${MIN_TIP_PAISE / 100}`,
     };
   }
   const messageLimit = messageLimitFor(creator.message_max_chars, amountPaise);

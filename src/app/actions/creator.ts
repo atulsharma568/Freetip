@@ -141,7 +141,6 @@ export async function saveSettings(
   if (!session?.user) redirect("/signin");
 
   const displayName = String(form.get("display_name") ?? "").trim().slice(0, 50) || null;
-  const minTipRupees = parseInt(String(form.get("min_tip") ?? "49"), 10);
   const maxChars = parseInt(String(form.get("message_max_chars") ?? "150"), 10);
   const ttsEnabled = form.get("tts_enabled") === "on";
   const ttsMinRupees = parseInt(String(form.get("tts_min") ?? "49"), 10);
@@ -166,9 +165,6 @@ export async function saveSettings(
   if (!ALERT_MODES.includes(alertMode)) {
     return { status: "error", message: "Choose how alerts should play" };
   }
-  if (!Number.isInteger(minTipRupees) || minTipRupees < 1 || minTipRupees > 1000) {
-    return { status: "error", message: "Min tip must be between ₹1 and ₹1,000" };
-  }
   if (!Number.isInteger(ttsMinRupees) || ttsMinRupees < 1 || ttsMinRupees > 1000) {
     return { status: "error", message: "Read-aloud amount must be between ₹1 and ₹1,000" };
   }
@@ -186,7 +182,6 @@ export async function saveSettings(
     await db`
       update users set
         display_name        = ${displayName},
-        min_tip_paise       = ${minTipRupees * 100},
         message_max_chars   = ${maxChars},
         tts_enabled         = ${ttsEnabled},
         tts_min_paise       = ${ttsMinRupees * 100},

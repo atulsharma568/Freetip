@@ -5,6 +5,7 @@ import { getCreator, getCreatorAccent, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
 import { accentStyle } from "@/lib/accent";
+import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
@@ -76,7 +77,7 @@ export default async function CreatorPage({ params }: Props) {
         pictureUrl={creator.picture_url}
         ytChannelName={creator.yt_channel_name}
         ytChannelUrl={creator.yt_channel_url}
-        minTipPaise={creator.min_tip_paise}
+        minTipPaise={MIN_TIP_PAISE}
         messageMaxChars={creator.message_max_chars}
         bio={creator.bio}
         alertMode={creator.alert_mode}

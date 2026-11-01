@@ -7,6 +7,7 @@ import { saveSettings } from "@/app/actions/creator";
 import { SETTINGS_IDLE } from "@/lib/creator-state";
 import type { AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
+import { MIN_TIP_PAISE } from "@/lib/money";
 import { ACCENT_PRESETS, inkFor } from "@/lib/accent";
 
 const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
@@ -15,14 +16,13 @@ const ALERT_OPTIONS: { value: AlertMode; label: string; hint: string }[] = [
   { value: "approve", label: "Everything after approval", hint: "Nothing shows until you approve the message." },
 ];
 
-const MIN_TIP_OPTIONS = [1, 10, 20, 49, 99, 199, 499];
+const MIN_TIP_OPTIONS = [20, 49, 99, 199, 499];
 
 const BIO_MAX = 160;
 const DISPLAY_NAME_MAX = 50;
 
 interface Props {
   displayName: string;
-  minTipPaise: number;
   messageMaxChars: number;
   ttsEnabled: boolean;
   ttsMinPaise: number;
@@ -52,7 +52,7 @@ function Group({ title, hint, children, first }: { title: string; hint: string; 
   );
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   // A stored colour that is not a preset came from "Auto"; it keeps its own swatch.
@@ -171,28 +171,11 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
       </Group>
 
       <Group title="Tips and messages" hint="What fans can send, and what is kept off your stream.">
-      {/* Min tip */}
-      <div className="space-y-2">
-        <label htmlFor="min-tip" className="text-sm font-medium uppercase tracking-widest text-muted">
-          Minimum tip
-        </label>
-        <div className="relative">
-        <select
-          id="min-tip"
-          name="min_tip"
-          defaultValue={Math.round(minTipPaise / 100)}
-          className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 pr-10 text-base text-text focus:border-accent transition-[border-color] appearance-none"
-        >
-          {MIN_TIP_OPTIONS.map((v) => (
-            <option key={v} value={v}>
-              ₹{v}
-            </option>
-          ))}
-        </select>
-        <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted">
-          ↓
-        </span>
-        </div>
+      {/* Min tip: fixed for everyone */}
+      <div className="space-y-1">
+        <p className="text-sm font-medium uppercase tracking-widest text-muted">Minimum tip</p>
+        <p className="text-base text-text">₹{MIN_TIP_PAISE / 100}</p>
+        <p className="text-xs text-muted">The same for every creator on Freetip.</p>
       </div>
 
       {/* Message limit */}
@@ -298,6 +281,20 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
               Text-to-speech
             </label>
           </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm text-text">Voice</legend>
+            <div className="flex gap-2">
+              {(["female", "male"] as const).map((g) => (
+                <label key={g} className="cursor-pointer">
+                  <input type="radio" name="tts_voice" value={g} checked={gender === g} onChange={() => setGender(g)} className="peer sr-only" />
+                  <span className="flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
+                    {g === "female" ? "Female" : "Male"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
+          </fieldset>
           {tts && (
             <>
               <div className="flex items-center gap-3 pl-10">
@@ -307,20 +304,6 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
                   <span className="ml-2 text-muted text-xs">(recommended)</span>
                 </label>
               </div>
-              <fieldset className="space-y-2 pl-10">
-                <legend className="text-sm text-text">Voice</legend>
-                <div className="flex gap-2">
-                  {(["female", "male"] as const).map((g) => (
-                    <label key={g} className="cursor-pointer">
-                      <input type="radio" name="tts_voice" value={g} checked={gender === g} onChange={() => setGender(g)} className="peer sr-only" />
-                      <span className="flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
-                        {g === "female" ? "Female" : "Male"}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
-              </fieldset>
               <div className="space-y-2 pl-10">
                 <label htmlFor="tts-min" className="block text-sm text-text">
                   Read aloud from
@@ -351,7 +334,6 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           {/* Always submit these so they aren't silently reset when TTS is off */}
           <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
           <input type="hidden" name="tts_min" value={ttsMin} />
-          {!tts && <input type="hidden" name="tts_voice" value={gender} />}
         </div>
       )}
 
