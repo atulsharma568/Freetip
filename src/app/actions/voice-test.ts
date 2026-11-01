@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { parseBannedWords } from "@/lib/message-filter";
@@ -29,6 +29,17 @@ export type VoiceTestResult =
   | { status: "error"; message: string };
 
 export async function testVoice(input: string): Promise<VoiceTestResult> {
+  try {
+    return await runTest(input);
+  } catch (err) {
+    // A redirect is not a failure; anything else is logged and shown as a message.
+    unstable_rethrow(err);
+    console.error("Voice test: unexpected failure.", err);
+    return { status: "error", message: "Could not run the test. Try again shortly." };
+  }
+}
+
+async function runTest(input: string): Promise<VoiceTestResult> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   const googleId = (session.user as { googleId?: string }).googleId;

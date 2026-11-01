@@ -26,6 +26,10 @@ import { ttsAvailable } from "@/lib/tts";
 import { safeAccent } from "@/lib/accent";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
+// The Test voice button runs as a server action on this route; Azure (6 s) and then
+// Polly can together outlast the default function time, which shows up as a failed call.
+export const maxDuration = 30;
+
 export const metadata: Metadata = {
   title: `Dashboard: ${SITE_NAME}`,
   robots: { index: false },
