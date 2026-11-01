@@ -37,7 +37,7 @@ This writes a dated CSV in the current directory. The CSV contains personal data
 
 ## Placeholders to replace
 
-Name `Freetip`, host `tipsite.in`, sample handle `aarav`, the sample creator, and the operator details in `src/lib/legal.ts`.
+Name `Freetip`, host `freetip.in`, sample handle `acepressure`, the sample creator, and the operator details in `src/lib/legal.ts`.
 
 ## What is represented on the landing page
 

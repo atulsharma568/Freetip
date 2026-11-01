@@ -29,7 +29,7 @@ const TONES = {
   },
 };
 
-// The "tipsite.in/yourname" handle input. While empty and unfocused it types
+// The "freetip.in/yourname" handle input. While empty and unfocused it types
 // out sample handles; once someone types, a link chip below builds their
 // link letter by letter. Each time `scanning` turns on (the form is being
 // sent), a light sweeps across the field once. Reduced motion shows a static

@@ -77,7 +77,7 @@ test("a creator with no money is emptied, keeps the handle and the records, and 
   );
   expect(audit.rows).toHaveLength(1);
   expect(audit.rows[0].action).toBe("account.closed");
-  expect(audit.rows[0].after_json).toEqual({ kept_payout_identity: false, sounds_removed: 1 });
+  expect(audit.rows[0].after_json).toEqual({ kept_payout_identity: false, sounds_removed: 1, contact_messages_removed: 0 });
   expect(JSON.stringify(audit.rows[0])).not.toContain("Real Name");
 });
 

@@ -10,7 +10,7 @@ const SAMPLES: OverlayAlert[] = [
   {
     id: 0,
     kind: "alert",
-    name: "Aarav",
+    name: "Kabir",
     amountPaise: 50000,
     message: "Loved the last clutch, please play the ranked match tomorrow too.",
   },

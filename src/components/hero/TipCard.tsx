@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/Switch";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { UplinkPanel } from "./UplinkPanel";
-import { INK_HEX, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
+import { INK_HEX, SAMPLE_CREATOR_NAME, SAMPLE_HANDLE, SAMPLE_TIP, SITE_HOST } from "@/lib/site";
 
 const AMOUNTS = [50, 100, 250, 500];
 const DEMO_NAME = SAMPLE_TIP.name;
@@ -305,7 +305,7 @@ export function TipCard({
             A
           </span>
           <div className="min-w-0">
-            <p className="font-semibold leading-tight">Aarav Plays</p>
+            <p className="font-semibold leading-tight">{SAMPLE_CREATOR_NAME}</p>
             <p className="numeric truncate text-sm text-muted">
               {SITE_HOST}/{SAMPLE_HANDLE}
             </p>
@@ -438,7 +438,7 @@ export function TipCard({
             />
             <p data-pop className="text-lg font-semibold">
               <span className="sr-only">₹{amount}. </span>
-              Tip sent to Aarav.
+              Tip sent to {SAMPLE_CREATOR_NAME}.
             </p>
             <p data-pop className="text-sm">
               Sample only. No money moved.

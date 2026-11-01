@@ -3,7 +3,7 @@ import type { LedgerDb } from "./accrual";
 // Closing a creator account. The users row cannot be deleted: tips, the ledger,
 // payouts and the audit log all point at it, and the law makes us keep those. So
 // the row is emptied in place. What identifies the person goes (name, email,
-// picture, YouTube channel, bio, sounds, OBS link, UPI and legal name unless money
+// picture, YouTube channel, bio, sounds, contact-form messages sent from the sign-in email, OBS link, UPI and legal name unless money
 // was ever posted for them, which makes those part of a payout record). The id,
 // the money records and the handle stay: the handle stays reserved so a stranger
 // cannot take over an old QR code or link.
@@ -39,8 +39,8 @@ export async function closeCreatorAccount(
   actor: { role: "creator" | "owner"; userId: number | null },
 ): Promise<CloseResult> {
   const result = await db.begin(async (tx): Promise<CloseResult> => {
-    const users = await tx<{ google_id: string }[]>`
-      select google_id from users where id = ${userId} for update
+    const users = await tx<{ google_id: string; email: string | null }[]>`
+      select google_id, email from users where id = ${userId} for update
     `;
     if (!users.length) return { status: "not_found" };
     if (isClosedGoogleId(users[0].google_id)) return { status: "already_closed" };
@@ -83,6 +83,14 @@ export async function closeCreatorAccount(
       delete from creator_sounds where creator_id = ${userId} returning blob_url
     `;
 
+    // Messages the creator sent us through the contact form, found by the sign-in
+    // email (a message sent from a different address cannot be tied to the account).
+    const contact = users[0].email
+      ? await tx<{ id: string }[]>`
+          delete from contact_messages where lower(email) = lower(${users[0].email}) returning id::text as id
+        `
+      : [];
+
     const [money] = await tx<{ any: boolean }[]>`
       select exists (select 1 from ledger_entries where creator_id = ${userId}) as any
     `;
@@ -114,7 +122,7 @@ export async function closeCreatorAccount(
     await tx`
       insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
       values (${actor.userId}, ${actor.role}, 'account.closed', 'user', ${String(userId)},
-              ${{ kept_payout_identity: keepPayoutIdentity, sounds_removed: sounds.length }}::jsonb,
+              ${{ kept_payout_identity: keepPayoutIdentity, sounds_removed: sounds.length, contact_messages_removed: contact.length }}::jsonb,
               ${actor.role === "owner" ? "closed by the owner on the creator's request" : "closed by the creator"})
     `;
 

@@ -13,7 +13,7 @@ This file does not change the app, configuration, package files, or live copy.
 
 ## Translation and usage note
 
-Use short, spoken Hindi in Devanagari and conversational Hinglish in Roman script, with an Indian streamer/gamer voice rather than formal textbook Hindi. Keep **Freetip, UPI, OBS, link, handle, stream, tip, card, email, QR, text-to-speech, creator, approval, Razorpay, YouTube**, URLs, sample names, amounts, and message limits in English/Latin script when that is the clearest UI treatment. `Freetip` and `tipsite.in` are still placeholders; do not treat either as a finalized brand or domain. Do not translate a handle or URL.
+Use short, spoken Hindi in Devanagari and conversational Hinglish in Roman script, with an Indian streamer/gamer voice rather than formal textbook Hindi. Keep **Freetip, UPI, OBS, link, handle, stream, tip, card, email, QR, text-to-speech, creator, approval, Razorpay, YouTube**, URLs, sample names, amounts, and message limits in English/Latin script when that is the clearest UI treatment. `Freetip` and `freetip.in` are the live name and domain. Do not translate a handle or URL.
 
 The source copy is an audit of what is currently visible; it is not a claim that every demonstrated flow is live. Keep the sample labels exactly meaningful: `Sample page. No payment is taken.`, `Sample alert. Nothing is sent to a stream.`, `Sample only. No money moved.`, and `Non-scannable sample QR` are **`[DEMO]`** labels. The waitlist success and validation states are **`[LIVE]`**; the sign-in closed state is also live behavior, but it explicitly says that nothing was sent. Product payment, OBS, QR, filtering, approval, and TTS copy outside the waitlist remains **`[PLANNED]`**.
 
@@ -61,8 +61,8 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[PLANNED]` `Claim your handle`<br>Source: `src/components/hero/Hero.tsx` | `अपना handle claim करें` | `Apna handle claim karein` |
 | `See how it works`<br>Source: `src/components/hero/Hero.tsx` | `यह कैसे काम करता है देखें` | `Yeh kaise kaam karta hai dekhein` |
 | `[DEMO]` `Sample page. No payment is taken.`<br>Source: `src/components/hero/TipCard.tsx` | `Sample page। कोई payment नहीं लिया जाता।` | `Sample page. Koi payment nahi liya jaata.` |
-| `[DEMO]` `Aarav Plays`<br>Source: `src/components/hero/TipCard.tsx` | `Aarav Plays` | `Aarav Plays` |
-| `[DEMO]` `tipsite.in/aarav`<br>Source: `src/components/hero/TipCard.tsx`, values from `src/lib/site.ts` | `tipsite.in/aarav` | `tipsite.in/aarav` |
+| `[DEMO]` `AcePressure`<br>Source: `src/components/hero/TipCard.tsx` | `AcePressure` | `AcePressure` |
+| `[DEMO]` `freetip.in/acepressure`<br>Source: `src/components/hero/TipCard.tsx`, values from `src/lib/site.ts` | `freetip.in/acepressure` | `freetip.in/acepressure` |
 | `[DEMO]` `Amount`<br>Source: `src/components/hero/TipCard.tsx` | `रकम` | `Rakam` |
 | `[DEMO]` `₹50`<br>Source: `src/components/hero/TipCard.tsx` | `₹50` | `₹50` |
 | `[DEMO]` `₹100`<br>Source: `src/components/hero/TipCard.tsx` | `₹100` | `₹100` |
@@ -88,7 +88,7 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[DEMO]` `{name} tipped` (current samples include `Anonymous tipped`, `Kabir tipped`, and later `Riya tipped`)<br>Source: `src/components/hero/AlertFan.tsx`, value from `src/lib/site.ts` | `{name} ने tip दिया` | `{name} ne tip diya` |
 | `[DEMO]` `Love the stream`<br>Source: `src/components/hero/Hero.tsx` | `Stream बहुत बढ़िया है` | `Stream bahut badhiya hai` |
 | `[DEMO]` `GG!`<br>Source: `src/components/hero/Hero.tsx` | `GG!` | `GG!` |
-| `[DEMO]` `Tip sent to Aarav.`<br>Source: `src/components/hero/TipCard.tsx` | `Aarav को tip भेज दी गई।` | `Aarav ko tip bhej di gayi.` |
+| `[DEMO]` `Tip sent to AcePressure.`<br>Source: `src/components/hero/TipCard.tsx` | `AcePressure को tip भेज दी गई।` | `AcePressure ko tip bhej di gayi.` |
 | `[DEMO]` `Sample only. No money moved.`<br>Source: `src/components/hero/TipCard.tsx` | `सिर्फ़ sample। कोई पैसा नहीं गया।` | `Sirf sample. Koi paisa nahi gaya.` |
 | `[DEMO]` `Tip again`<br>Source: `src/components/hero/TipCard.tsx` | `फिर से tip दें` | `Phir se tip dein` |
 
@@ -98,7 +98,7 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 |---|---|---|
 | `[PLANNED]` `How it works`<br>Source: `src/components/sections/Steps.tsx` | `यह कैसे काम करता है` | `Yeh kaise kaam karta hai` |
 | `[PLANNED]` `Claim`<br>Source: `src/components/sections/Steps.tsx` | `Handle लें` | `Handle lein` |
-| `[PLANNED]` `Pick a handle. Your page lives at tipsite.in/yourname.`<br>Source: `src/components/sections/Steps.tsx`, `src/lib/site.ts` | `एक handle चुनें। आपका page tipsite.in/yourname पर होगा।` | `Ek handle chunein. Aapka page tipsite.in/yourname par hoga.` |
+| `[PLANNED]` `Pick a handle. Your page lives at freetip.in/yourname.`<br>Source: `src/components/sections/Steps.tsx`, `src/lib/site.ts` | `एक handle चुनें। आपका page freetip.in/yourname पर होगा।` | `Ek handle chunein. Aapka page freetip.in/yourname par hoga.` |
 | `[PLANNED]` `Share`<br>Source: `src/components/sections/Steps.tsx` | `Share करें` | `Share karein` |
 | `[PLANNED]` `Put the link in your video descriptions, pinned comments and community posts.`<br>Source: `src/components/sections/Steps.tsx` | `Link को अपने video descriptions, pinned comments और community posts में डालें।` | `Link ko apne video descriptions, pinned comments aur community posts mein daalein.` |
 | `[PLANNED]` `Go live`<br>Source: `src/components/sections/Steps.tsx` | `Live जाएँ` | `Live jaayen` |
@@ -228,7 +228,7 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | Current English (exact) and source file | Natural Hindi (Devanagari) | Natural Hinglish (Roman) |
 |---|---|---|
 | `[LIVE]` `yourname` (placeholder and empty-field sample)<br>Source: `src/components/ui/HandleField.tsx` | `yourname` | `yourname` |
-| `[LIVE]` `tipsite.in/` plus a typed handle; empty sample `tipsite.in/yourname`<br>Source: `src/components/ui/HandleField.tsx`, `src/lib/site.ts` | `tipsite.in/` + typed handle; sample `tipsite.in/yourname` | `tipsite.in/` + typed handle; sample `tipsite.in/yourname` |
+| `[LIVE]` `freetip.in/` plus a typed handle; empty sample `freetip.in/yourname`<br>Source: `src/components/ui/HandleField.tsx`, `src/lib/site.ts` | `freetip.in/` + typed handle; sample `freetip.in/yourname` | `freetip.in/` + typed handle; sample `freetip.in/yourname` |
 | `[LIVE]` Animated empty-field samples: `yourname`, `gamingwithriya`, `kabirplays`, `desi_speedrun`, `meera_live`<br>Source: `src/components/ui/HandleField.tsx` | Handles जस के तस रखें: `yourname`, `gamingwithriya`, `kabirplays`, `desi_speedrun`, `meera_live` | Handles ko jaisa hai waisa rakhein: `yourname`, `gamingwithriya`, `kabirplays`, `desi_speedrun`, `meera_live` |
 | `[LIVE]` `Valid handle format`<br>Source: `src/components/ui/HandleField.tsx` | `Handle format मान्य है` | `Handle format maanya hai` |
 | `[LIVE]` `3 to 20 letters, numbers or _`<br>Source: `src/components/ui/HandleField.tsx`, validation from `src/lib/waitlist.ts` | `3 से 20 letters, numbers या _` | `3 se 20 letters, numbers ya _` |
