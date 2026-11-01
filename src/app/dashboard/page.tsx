@@ -9,6 +9,7 @@ import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CloseAccount } from "./CloseAccount";
+import { RenameHandle } from "./RenameHandle";
 import { CreatorQR } from "./CreatorQR";
 import { GoalTile, type GoalHistoryRow, type GoalView } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
@@ -102,6 +103,18 @@ export default async function DashboardPage() {
       voiceGender = found?.tts_voice === "male" ? "male" : "female";
     } catch (err) {
       console.error("Dashboard: could not read the voice choice (migration 0029 run?).", err);
+    }
+  }
+
+  // Whether the one handle change is used (migration 0030), read apart so the
+  // dashboard loads before it is run.
+  let handleChanged = false;
+  if (db && user) {
+    try {
+      const found = await db<{ one: number }[]>`select 1 as one from handle_history where user_id = ${user.id}`;
+      handleChanged = found.length > 0;
+    } catch (err) {
+      console.error("Dashboard: could not read the handle history (migration 0030 run?).", err);
     }
   }
 
@@ -260,6 +273,9 @@ export default async function DashboardPage() {
             {SITE_HOST}/{user.handle}
           </Link>
           <StatusBadge status={user.creator_status} />
+          <div className="border-t border-line/60 pt-4">
+            <RenameHandle current={user.handle} used={handleChanged} />
+          </div>
         </div>
 
         {/* QR code */}

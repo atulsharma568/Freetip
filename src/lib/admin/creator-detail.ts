@@ -10,6 +10,8 @@ export interface CreatorDetail {
   name: string | null;
   email: string;
   handle: string | null;
+  // The handle given up in the one allowed change (migration 0030), if any.
+  previousHandle: string | null;
   creatorStatus: string;
   onboardingState: string;
   legalName: string | null;
@@ -66,11 +68,21 @@ export function getCreatorDetail(db: LedgerDb, id: number): Promise<Loaded<Creat
       order by created_at desc limit 20
     `;
 
+    // Apart so the page still loads before migration 0030 is run.
+    let previousHandle: string | null = null;
+    try {
+      const old = await db<{ old_handle: string }[]>`select old_handle from handle_history where user_id = ${id}`;
+      previousHandle = old[0]?.old_handle ?? null;
+    } catch {
+      /* table not there yet */
+    }
+
     return {
       id: toWhole(u.id),
       name: u.name,
       email: u.email,
       handle: u.handle,
+      previousHandle,
       creatorStatus: u.creator_status,
       onboardingState: u.onboarding_state,
       legalName: u.legal_name,

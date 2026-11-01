@@ -26,6 +26,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   const rows: [string, string][] = [
     ["Email", c.email],
     ["Handle", c.handle ?? "not set"],
+    ["Previous handle", c.previousHandle ? `${c.previousHandle} (changed once, stays reserved)` : "—"],
     ["Status", c.creatorStatus],
     ["Payout setup", c.onboardingState.replace("_", " ")],
     ["Legal name", c.legalName ?? "—"],

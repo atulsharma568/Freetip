@@ -65,8 +65,8 @@ A change is "done" when type check, lint and build pass. CI (`.github/workflows/
 
 ## 5. Database (Neon)
 
-- Open the Neon console > project > **SQL Editor**, paste the whole migration file, run. Migrations are safe to re-run. Files are in `db/migrations/` (0001 to 0029 so far), run in number order. Base schemas: `db/schema.sql` (waitlist), `db/schema-users.sql` (users).
-- Status as of 2026-11-01: all run through 0026 (0027 and 0028, the goal bar, were run 2026-11-01; 0029, the male or female voice, is new: run it BEFORE the deploy) except 0022 (parked) and 0025 (unused); verify with Neon's table list if unsure.
+- Open the Neon console > project > **SQL Editor**, paste the whole migration file, run. Migrations are safe to re-run. Files are in `db/migrations/` (0001 to 0030 so far), run in number order. Base schemas: `db/schema.sql` (waitlist), `db/schema-users.sql` (users).
+- Status as of 2026-11-01: all run through 0026 (0027 and 0028, the goal bar, were run 2026-11-01; 0029, the male or female voice, and 0030, the one-time handle change, are new: run both BEFORE the deploy; without 0030 claiming or changing a handle fails) except 0022 (parked) and 0025 (unused); verify with Neon's table list if unsure.
 - Connection string: Neon > Connection details > the **pooled** one (host contains `-pooler`). Goes in Vercel as `DATABASE_URL`.
 - Reset a leaked password: Neon > Roles > reset password, update `DATABASE_URL` in Vercel, redeploy.
 - Waitlist export (contains personal data; delete the file after use): in PowerShell `$env:DATABASE_URL="..."; npm run export:waitlist`.

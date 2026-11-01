@@ -18,8 +18,8 @@ export function HandleSetup() {
           Claim your link.
         </h1>
         <p className="text-pretty text-lg text-muted">
-          This becomes your public tip page on {SITE_NAME}. You can&apos;t
-          change it later, so choose carefully.
+          This becomes your public tip page on {SITE_NAME}. You can change it
+          once later, so choose carefully.
         </p>
       </div>
 
@@ -38,7 +38,7 @@ export function HandleSetup() {
             scanning={pending}
           />
           <p className="px-2 text-xs text-muted">
-            3–20 letters, numbers or underscores. You can&apos;t change this later.
+            3–20 letters, numbers or underscores. You can change it once later.
           </p>
           {state.status === "error" && (
             <p id="handle-error" role="alert" className="px-2 text-sm text-red-400">

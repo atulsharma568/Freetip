@@ -2,9 +2,10 @@
 
 import { createHash, randomBytes } from "crypto";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { getDb } from "@/lib/db";
-import { HANDLE_PATTERN } from "@/lib/waitlist";
+import { HANDLE_MESSAGE, checkHandle, claimHandle, renameHandle } from "@/lib/handle";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
@@ -14,19 +15,6 @@ import { CLOSE_ACCOUNT_IDLE } from "@/lib/creator-state";
 import { BLOCKER_MESSAGE, closeCreatorAccount } from "@/lib/account-close";
 import type { LedgerDb } from "@/lib/accrual";
 import { del } from "@vercel/blob";
-
-// Handles that map to existing app routes or would cause confusion.
-// Next.js static routes already take precedence over /[handle], but we block
-// these at claim time so the handle is never silently unreachable.
-const RESERVED = new Set([
-  "admin", "dashboard", "signin", "signup", "about", "contact",
-  "terms", "privacy", "refunds", "delivery", "pricing", "api",
-  "sitemap", "robots", "favicon", "icon", "opengraph",
-  "tipsite", "www", "support", "help", "me", "creator", "creators",
-  "null", "undefined", "anonymous", "system", "user", "users",
-  "settings", "login", "logout", "payments", "billing", "webhook",
-  "faq", "static", "security", "official", "staff",
-]);
 
 export type HandleState =
   | { status: "idle" }
@@ -41,14 +29,45 @@ export async function setHandle(
   const session = await auth();
   if (!session?.user) redirect("/signin");
 
-  const handle = String(form.get("handle") ?? "").toLowerCase().trim();
+  const check = checkHandle(String(form.get("handle") ?? ""));
+  if (!check.ok) return { status: "error", message: check.message };
 
-  if (!HANDLE_PATTERN.test(handle)) {
-    return { status: "error", message: "3 to 20 letters, numbers or _" };
+  const db = getDb();
+  if (!db) return { status: "error", message: "Database unavailable — try again shortly" };
+
+  const googleId = (session.user as { googleId?: string }).googleId;
+  if (!googleId) redirect("/signin");
+
+  let result;
+  try {
+    result = await claimHandle(db as unknown as LedgerDb, googleId, check.handle);
+  } catch (err: unknown) {
+    // Two claims for one name at once: the unique index on users.handle decides.
+    if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
+      return { status: "error", message: HANDLE_MESSAGE.taken };
+    }
+    console.error("Claim handle failed.", err);
+    return { status: "error", message: "Something went wrong — try again shortly" };
   }
 
-  if (RESERVED.has(handle)) {
-    return { status: "error", message: "That handle is reserved — try another" };
+  if (result.status !== "ok") return { status: "error", message: HANDLE_MESSAGE[result.status] };
+  redirect("/dashboard");
+}
+
+// A creator may change their handle once, ever (see lib/handle.ts). The old link
+// stops working at once and the old handle stays reserved for them.
+export async function renameMyHandle(
+  _prev: HandleState,
+  form: FormData,
+): Promise<HandleState> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+
+  const check = checkHandle(String(form.get("handle") ?? ""));
+  if (!check.ok) return { status: "error", message: check.message };
+
+  if (String(form.get("confirm") ?? "") !== check.handle) {
+    return { status: "error", message: "Type the new handle again to confirm" };
   }
 
   const db = getDb();
@@ -57,22 +76,20 @@ export async function setHandle(
   const googleId = (session.user as { googleId?: string }).googleId;
   if (!googleId) redirect("/signin");
 
-  let rows: { handle: string }[];
+  let result;
   try {
-    rows = await db<{ handle: string }[]>`
-      update users set handle = ${handle}
-      where google_id = ${googleId} and handle is null
-      returning handle
-    `;
+    result = await renameHandle(db as unknown as LedgerDb, googleId, check.handle);
   } catch (err: unknown) {
     if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
-      return { status: "error", message: "That handle is taken — try another" };
+      return { status: "error", message: HANDLE_MESSAGE.taken };
     }
-    return { status: "error", message: "Something went wrong — try again shortly" };
+    console.error("Rename handle failed (migration 0030 run?).", err);
+    return { status: "error", message: "Could not change your handle — try again shortly" };
   }
 
-  if (!rows.length) return { status: "error", message: "Your handle is already set" };
-  redirect("/dashboard");
+  if (result.status !== "ok") return { status: "error", message: HANDLE_MESSAGE[result.status] };
+  revalidatePath("/dashboard");
+  return { status: "ok", handle: result.handle };
 }
 
 // ── Payout onboarding ────────────────────────────────────────────────────────

@@ -319,7 +319,7 @@ const SECTIONS: LegalSection[] = [
           <strong>Creator accounts:</strong> while the account is open. When you
           close it your profile is erased straight away, along with any
           contact-form messages sent from your sign-in email, except records we
-          must keep by law and your reserved handle.
+          must keep by law and your reserved handle (and your old handle, if you changed it once).
         </li>
         <li>
           <strong>Security logs:</strong> at least one year, as the law requires,
