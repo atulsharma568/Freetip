@@ -174,4 +174,10 @@ async function eraseTimestampData(db: LedgerDb, userId: number): Promise<void> {
   } catch {
     /* migration 0033 not run */
   }
+  // Phase 3 (migration 0034): the clip helper's token stops working.
+  try {
+    await db`update users set ts_helper_token_hash = null, ts_helper_seen_at = null where id = ${userId}`;
+  } catch {
+    /* migration 0034 not run */
+  }
 }

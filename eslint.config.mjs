@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     // Third-party agent skills installed by agent-skills/install.sh.
+    // The OBS clip helper is its own small app with its own dependencies and tests.
+    "tools/**",
   ]),
 ]);
 

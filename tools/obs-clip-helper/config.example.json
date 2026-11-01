@@ -1,0 +1,10 @@
+{
+  "freetipUrl": "https://freetip.in",
+  "helperToken": "paste the token from the Timestamps page in Freetip",
+  "discordWebhook": "https://discord.com/api/webhooks/123456789012345678/paste-your-own-webhook-here",
+  "obs": { "url": "ws://127.0.0.1:4455", "password": "" },
+  "sources": ["chat", "tip", "goal"],
+  "maxUploadMb": 10,
+  "secondsBefore": 20,
+  "secondsAfter": 10
+}

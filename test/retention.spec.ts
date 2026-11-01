@@ -142,7 +142,8 @@ test("closing an account erases its stream timestamps and the YouTube and Discor
   const id = await creator(pg);
   await pg.query(
     `update users set ts_token_hash = 'h', yt_refresh_token_enc = 'v1.x.y.z', discord_webhook_enc = 'v1.a.b.c',
-                      ts_editor_token_hash = 'e', ts_public = true, ts_tip_min_paise = 50000 where id = $1`,
+                      ts_editor_token_hash = 'e', ts_public = true, ts_tip_min_paise = 50000,
+                      ts_helper_token_hash = 'k', ts_helper_seen_at = now() where id = $1`,
     [id],
   );
   await pg.query(`insert into timestamp_streams (video_id, creator_id) values ('abcDEF12345', $1)`, [id]);
@@ -153,12 +154,14 @@ test("closing an account erases its stream timestamps and the YouTube and Discor
   expect((await pg.query(`select 1 from stream_timestamps`)).rows).toHaveLength(0);
   expect((await pg.query(`select 1 from timestamp_streams`)).rows).toHaveLength(0);
   const u = await pg.query<Record<string, unknown>>(
-    `select ts_token_hash, yt_refresh_token_enc, discord_webhook_enc, ts_editor_token_hash, ts_public, ts_tip_min_paise
+    `select ts_token_hash, yt_refresh_token_enc, discord_webhook_enc, ts_editor_token_hash, ts_public, ts_tip_min_paise,
+            ts_helper_token_hash, ts_helper_seen_at
        from users where id = $1`,
     [id],
   );
   expect(u.rows[0]).toEqual({
     ts_token_hash: null, yt_refresh_token_enc: null, discord_webhook_enc: null,
     ts_editor_token_hash: null, ts_public: false, ts_tip_min_paise: null,
+    ts_helper_token_hash: null, ts_helper_seen_at: null,
   });
 });

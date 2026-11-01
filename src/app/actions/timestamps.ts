@@ -199,6 +199,38 @@ export async function generateEditorLink(): Promise<TsResult> {
   }
 }
 
+// The helper's own secret, for the program on the creator's PC. Shown once; making a new
+// one stops the old helper at once. The result's `command` holds the token to paste into
+// the helper's config file.
+export async function generateHelperToken(): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    const token = randomBytes(32).toString("base64url");
+    await who.db`update users set ts_helper_token_hash = ${hashToken(token)} where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return { status: "ok", message: "Your helper token is ready. Copy it now: it is not shown again.", command: token };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not make the helper token (migration 0034 run?).", err);
+    return FAILED;
+  }
+}
+
+export async function removeHelperToken(): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    await who.db`update users set ts_helper_token_hash = null, ts_helper_seen_at = null where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return { status: "ok", message: "Helper token removed. The helper stops working." };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not remove the helper token.", err);
+    return FAILED;
+  }
+}
+
 export async function removeEditorLink(): Promise<TsResult> {
   try {
     const who = await creator();

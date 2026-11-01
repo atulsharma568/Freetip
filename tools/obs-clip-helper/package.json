@@ -1,0 +1,20 @@
+{
+  "name": "freetip-obs-clip-helper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cuts clips out of your own OBS recording for the moments saved by Freetip stream timestamps, and uploads them to your Discord.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  },
+  "devDependencies": {
+    "ws": "^8.18.0"
+  }
+}

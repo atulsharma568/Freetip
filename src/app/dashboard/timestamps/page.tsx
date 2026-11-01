@@ -6,6 +6,7 @@ import { PageShell } from "@/components/PageShell";
 import { SITE_NAME } from "@/lib/site";
 import { planFeatures } from "@/lib/plans";
 import { secretBoxAvailable } from "@/lib/secret-box";
+import { replayBufferNeeded } from "@/lib/ts-helper";
 import { youtubeConfigured } from "@/lib/youtube";
 import { DashboardNav } from "../DashboardNav";
 import { TimestampsManager } from "./TimestampsManager";
@@ -90,6 +91,20 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
     extras.ready = false;
   }
 
+  // Phase 3 columns (migration 0034), read apart so the page works before it is run.
+  let helper = { hasToken: false, seenSecondsAgo: null as number | null, ready: true };
+  try {
+    const [row] = await db<{ has_token: boolean; seen: number | null }[]>`
+      select ts_helper_token_hash is not null as has_token,
+             extract(epoch from (now() - ts_helper_seen_at))::int as seen
+        from users where id = ${user.id}
+    `;
+    helper = { hasToken: row.has_token, seenSecondsAgo: row.seen, ready: true };
+  } catch (err) {
+    console.error("Timestamps page: could not read the helper settings (migration 0034 run?).", err);
+    helper.ready = false;
+  }
+
   const yt = (await searchParams).yt;
   const notice = yt ? YT_MESSAGES[yt] : undefined;
   const available = youtubeConfigured() && secretBoxAvailable();
@@ -124,6 +139,9 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
             tipPlan={planFeatures(user.plan).tipMarks}
             highlightsPlan={planFeatures(user.plan).highlightsPage}
             editorPlan={planFeatures(user.plan).editorLink}
+            clipPlan={planFeatures(user.plan).clipHelper}
+            helper={helper}
+            bufferSeconds={replayBufferNeeded(state.delay)}
           />
         )}
 

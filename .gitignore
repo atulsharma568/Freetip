@@ -58,3 +58,6 @@ waitlist-*.csv
 /voice-words*.csv
 /indicxlit-review*.csv
 /.venv-indicxlit/
+
+# helper apps keep their own dependencies
+/tools/*/node_modules

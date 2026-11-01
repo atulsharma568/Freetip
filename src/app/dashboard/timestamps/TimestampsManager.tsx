@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import {
   disconnectYouTube,
   generateEditorLink,
+  generateHelperToken,
   generateTimestampLink,
   removeDiscordWebhook,
   removeEditorLink,
+  removeHelperToken,
   saveDiscordWebhook,
   saveHighlightsPublic,
   saveTimestampDelay,
@@ -49,6 +51,10 @@ export function TimestampsManager(props: {
   tipPlan: boolean;
   highlightsPlan: boolean;
   editorPlan: boolean;
+  clipPlan: boolean;
+  helper: { hasToken: boolean; seenSecondsAgo: number | null; ready: boolean };
+  // Replay buffer seconds OBS needs at the saved delay; the page adds to it when the delay changes.
+  bufferSeconds: number;
 }) {
   const [command, setCommand] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -66,6 +72,9 @@ export function TimestampsManager(props: {
   const [editorLink, setEditorLink] = useState<string | null>(null);
   const [editorCopied, setEditorCopied] = useState(false);
   const [editorResult, setEditorResult] = useState<TsResult | null>(null);
+  const [helperToken, setHelperToken] = useState<string | null>(null);
+  const [helperCopied, setHelperCopied] = useState(false);
+  const [helperResult, setHelperResult] = useState<TsResult | null>(null);
   const [pending, start] = useTransition();
 
   const run = (fn: () => Promise<TsResult>, then: (r: TsResult) => void) => start(async () => then(await fn()));
@@ -379,6 +388,116 @@ export function TimestampsManager(props: {
                 )}
               </div>
               <Msg result={editorResult} />
+            </section>
+          )}
+
+          {props.clipPlan && (
+            <section className={tile}>
+              <h2 className={heading}>Video clips from your own recording</h2>
+              <p className="text-sm text-muted">
+                YouTube gives nobody a way to cut a clip out of a stream, so this uses the recording OBS makes
+                on your own PC. A small helper program runs next to OBS. For each moment saved here it waits
+                10 seconds, saves OBS&apos;s replay buffer, cuts the 30 seconds around the moment and uploads
+                that clip to your Discord. The video and your Discord address stay on your PC: Freetip only
+                tells the helper which moments were saved.
+              </p>
+              {!props.helper.ready ? (
+                <p role="alert" className="text-sm text-red-400">
+                  Not ready yet: run db/migrations/0034_clip_helper.sql in Neon.
+                </p>
+              ) : (
+                <>
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+                    <li>
+                      In OBS, turn on the replay buffer (Settings, Output) and set it to at least{" "}
+                      <span className="numeric text-text">{props.bufferSeconds + (delay - props.delay)} seconds</span>{" "}
+                      for your delay setting.
+                    </li>
+                    <li>
+                      In OBS, Tools, WebSocket Server Settings: turn the server on. OBS 28 or newer has it built in.
+                    </li>
+                    <li>
+                      Download the helper, put the token below and a Discord webhook address into its config file,
+                      and start it. Steps are in the{" "}
+                      <a
+                        href="https://github.com/atulsharma568/Freetip/tree/main/tools/obs-clip-helper"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text underline-offset-4 hover:underline"
+                      >
+                        helper&apos;s instructions
+                      </a>
+                      .
+                    </li>
+                    <li>Discord only takes small files, so clips are squeezed to about 10 MB.</li>
+                  </ul>
+                  {props.helper.hasToken && (
+                    <p role="status" className="text-sm text-muted">
+                      {props.helper.seenSecondsAgo !== null && props.helper.seenSecondsAgo < 90
+                        ? "The helper is running."
+                        : "The helper has not been seen in the last minute and a half."}
+                    </p>
+                  )}
+                  {helperToken && (
+                    <div className="space-y-2">
+                      <label htmlFor="ts-helper-token" className="text-xs text-muted">
+                        Your helper token. It is shown once, so copy it now.
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          id="ts-helper-token"
+                          readOnly
+                          value={helperToken}
+                          onFocus={(e) => e.currentTarget.select()}
+                          className="numeric h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-sm text-text focus:border-accent"
+                        />
+                        <button
+                          type="button"
+                          className={`${outline} h-12 shrink-0`}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(helperToken);
+                              setHelperCopied(true);
+                            } catch {
+                              setHelperCopied(false);
+                            }
+                          }}
+                        >
+                          {helperCopied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={primary}
+                      disabled={pending}
+                      onClick={() => {
+                        if (props.helper.hasToken && !helperToken && !window.confirm("The helper using the current token will stop. Make a new token?")) return;
+                        setHelperCopied(false);
+                        run(generateHelperToken, (r) => {
+                          setHelperResult(r);
+                          if (r.status === "ok" && r.command) setHelperToken(r.command);
+                        });
+                      }}
+                    >
+                      {props.helper.hasToken || helperToken ? "Make a new token" : "Make a helper token"}
+                    </button>
+                    {(props.helper.hasToken || helperToken) && (
+                      <button
+                        type="button"
+                        className={outline}
+                        disabled={pending}
+                        onClick={() => run(removeHelperToken, (r) => { setHelperResult(r); if (r.status === "ok") { setHelperToken(null); window.location.reload(); } })}
+                      >
+                        Remove the token
+                      </button>
+                    )}
+                  </div>
+                  <Msg result={helperResult} />
+                </>
+              )}
             </section>
           )}
         </>
