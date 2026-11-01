@@ -28,9 +28,9 @@ export type VoiceTestResult =
     }
   | { status: "error"; message: string };
 
-export async function testVoice(input: string): Promise<VoiceTestResult> {
+export async function testVoice(input: string, gender: "female" | "male" = "female"): Promise<VoiceTestResult> {
   try {
-    return await runTest(input);
+    return await runTest(input, gender === "male" ? "male" : "female");
   } catch (err) {
     // A redirect is not a failure; anything else is logged and shown as a message.
     unstable_rethrow(err);
@@ -39,7 +39,7 @@ export async function testVoice(input: string): Promise<VoiceTestResult> {
   }
 }
 
-async function runTest(input: string): Promise<VoiceTestResult> {
+async function runTest(input: string, gender: "female" | "male"): Promise<VoiceTestResult> {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   const googleId = (session.user as { googleId?: string }).googleId;
@@ -91,7 +91,7 @@ async function runTest(input: string): Promise<VoiceTestResult> {
 
   let result: Awaited<ReturnType<typeof synthesizeDetailed>>;
   try {
-    result = await synthesizeDetailed(prepared.text, user.id, { testRun: true });
+    result = await synthesizeDetailed(prepared.text, user.id, { testRun: true, gender });
   } catch (err) {
     console.error("Voice test: synthesis threw.", err);
     return { status: "error", message: "The voice did not answer. Try again shortly." };

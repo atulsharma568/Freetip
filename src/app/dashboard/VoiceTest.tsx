@@ -7,6 +7,7 @@ import { TEST_INPUT_MAX } from "@/lib/voice-test";
 export function VoiceTest({ maxChars }: { maxChars: number }) {
   const limit = Math.min(maxChars, TEST_INPUT_MAX);
   const [text, setText] = useState<string>("");
+  const [gender, setGender] = useState<"female" | "male">("female");
   const [result, setResult] = useState<VoiceTestResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -14,7 +15,7 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
     setResult(null);
     startTransition(async () => {
       try {
-        setResult(await testVoice(text));
+        setResult(await testVoice(text, gender));
       } catch {
         setResult({ status: "error", message: "Could not run the test. Reload the page and try again." });
       }
@@ -42,6 +43,28 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
           className="w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted focus:border-accent"
         />
       </div>
+
+      <fieldset className="flex items-center gap-2">
+        <legend className="sr-only">Voice to test</legend>
+        {(["female", "male"] as const).map((g) => (
+          <label
+            key={g}
+            className={`inline-flex h-10 cursor-pointer items-center rounded-full border px-4 text-sm ${
+              gender === g ? "border-accent text-text" : "border-control text-muted"
+            }`}
+          >
+            <input
+              type="radio"
+              name="voice-test-gender"
+              value={g}
+              checked={gender === g}
+              onChange={() => setGender(g)}
+              className="sr-only"
+            />
+            {g === "female" ? "Female voice" : "Male voice"}
+          </label>
+        ))}
+      </fieldset>
 
       <button
         type="button"

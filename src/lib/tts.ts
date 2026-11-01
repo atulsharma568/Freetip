@@ -117,11 +117,12 @@ export type SynthesisResult =
   | { ok: false; reason: "off" | "cap" | "failed" };
 
 // `testRun` holds a creator's own tests to half their daily characters, so trying
-// the voice never leaves their real alerts silent.
+// the voice never leaves their real alerts silent. `gender` lets the test button
+// play either voice without changing the creator's saved choice.
 export async function synthesizeDetailed(
   message: string,
   creatorId: number,
-  options: { testRun?: boolean } = {},
+  options: { testRun?: boolean; gender?: VoiceGender } = {},
 ): Promise<SynthesisResult> {
   if (!ttsAvailable()) return { ok: false, reason: "off" };
   await loadLearnedWords();
@@ -133,7 +134,7 @@ export async function synthesizeDetailed(
   // served an old clip. (A clip that fell back to Polly is cached under Azure's key
   // too; it is still a fine clip for that text.)
   const azure = azureConfigured();
-  const gender = db ? await creatorGender(db, creatorId) : "female";
+  const gender = options.gender ?? (db ? await creatorGender(db, creatorId) : "female");
   const voice = azure ? azureVoice(language, process.env, gender) : "Kajal";
   const hash = azure ? cacheKey("azure", voice, text) : cacheKey("polly", "kajal", text);
   if (db) {
