@@ -149,8 +149,63 @@ export function playable(m: { enabled: boolean; review_state: ReviewState }): bo
   return m.enabled && m.review_state === "approved";
 }
 
-// The state a new upload starts in: held for the owner when it is the creator's
-// first, live straight away after that.
-export function initialReviewState(priorUploads: number): ReviewState {
-  return priorUploads === 0 ? "new" : "approved";
+// The state a new upload starts in: held for the owner until the creator has one
+// approved file, live straight away after that. Counting approved files (not all
+// uploads) keeps a second upload from skipping the check while the first still waits.
+export function initialReviewState(approvedCount: number): ReviewState {
+  return approvedCount === 0 ? "new" : "approved";
+}
+
+// What the overlay needs to show one file.
+export type AlertMedia = {
+  url: string;
+  kind: MediaKind;
+  placement: MediaPlacement;
+  // A WebM's length (the browser measured it); null for pictures.
+  durationMs: number | null;
+};
+
+export type MediaCandidate = {
+  id: number;
+  kind: MediaKind;
+  blob_url: string;
+  placement: MediaPlacement;
+  duration_ms: number | null;
+  enabled: boolean;
+  review_state: ReviewState;
+};
+
+// Which file plays for a tip: one of the creator's playable files, chosen by the
+// tip's id so the same tip always gets the same file (a replay does not change it)
+// and a creator with several files sees them rotate. Alert rules by tip size (the
+// next feature) will let the creator choose instead.
+export function pickMedia(files: readonly MediaCandidate[], tipId: number): AlertMedia | null {
+  const live = files.filter(playable).sort((a, b) => a.id - b.id);
+  if (!live.length) return null;
+  const m = live[Math.abs(Math.trunc(tipId)) % live.length];
+  return { url: m.blob_url, kind: m.kind, placement: m.placement, durationMs: m.duration_ms };
+}
+
+const EXTENSIONS: Record<string, string> = {
+  "image/gif": "gif",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "video/webm": "webm",
+};
+
+// The stored file name: a slug of the name plus the extension of what the file really is.
+export function mediaFileName(name: string, mime: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
+  return `${slug || "media"}.${EXTENSIONS[mime] ?? "bin"}`;
+}
+
+// A client's claimed length or size, kept only when it is a sane whole number in range.
+export function cleanDimension(raw: unknown, max: number): number | null {
+  const n = typeof raw === "number" ? Math.round(raw) : NaN;
+  return Number.isFinite(n) && n >= 1 && n <= max ? n : null;
 }

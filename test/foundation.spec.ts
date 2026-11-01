@@ -47,7 +47,7 @@ test.describe("feature needs and the server gate", () => {
   });
 
   test("a feature that is not built is never on, even if stored", () => {
-    expect(hasFeature({ paid_features: ["customAlertMedia"] }, "customAlertMedia")).toBe(false);
+    expect(hasFeature({ paid_features: ["alertRules"] }, "alertRules")).toBe(false);
   });
 });
 
@@ -158,7 +158,7 @@ test.describe("media rules", () => {
     expect(isOwnBlobUrl("not a url", p)).toBe(false);
   });
 
-  test("the first upload is held for the owner; later ones go live; only approved, enabled files play", () => {
+  test("files are held for the owner until one is approved; only approved, enabled files play", () => {
     expect(initialReviewState(0)).toBe("new");
     expect(initialReviewState(1)).toBe("approved");
     expect(playable({ enabled: true, review_state: "approved" })).toBe(true);

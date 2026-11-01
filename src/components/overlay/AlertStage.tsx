@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { tipTierLevel } from "@/lib/tip-tier";
+import { MEDIA_WEBM_MAX_MS, type AlertMedia } from "@/lib/media";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
@@ -15,6 +16,8 @@ export interface OverlayAlert {
   speech?: boolean;
   // The creator's alert sound (live overlay only): played before the voice.
   sound?: { url: string; volume: number; ms: number } | null;
+  // The creator's GIF, image or WebM for this alert (live overlay only).
+  media?: AlertMedia | null;
   // A made-up alert from the dashboard's test button: the card wears a TEST badge so
   // it is never mistaken for a real tip.
   test?: boolean;
@@ -39,7 +42,10 @@ function showMs(a: QueuedAlert) {
   const byLength = BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
   // The sound plays first and the voice follows it, so the card stays for both.
   const soundMs = a.clip && a.sound ? a.sound.ms : 0;
-  return a.speechMs ? Math.max(byLength, soundMs + a.speechMs + SPEECH_TAIL_MS) : Math.max(byLength, soundMs + SPEECH_TAIL_MS);
+  // A WebM plays through (up to its hard cap) before the card leaves.
+  const mediaMs = a.media?.kind === "webm" && a.media.durationMs ? Math.min(a.media.durationMs, MEDIA_WEBM_MAX_MS) + 500 : 0;
+  const base = a.speechMs ? Math.max(byLength, soundMs + a.speechMs + SPEECH_TAIL_MS) : Math.max(byLength, soundMs + SPEECH_TAIL_MS);
+  return Math.max(base, mediaMs);
 }
 
 // Downloads the speech for an alert. Any failure (speech off, engine down, slow
@@ -89,6 +95,47 @@ function loadClip(sound: { url: string; volume: number }): HTMLAudioElement | un
     return clip;
   } catch {
     return undefined;
+  }
+}
+
+// Loads the creator's file ahead of the card, so it shows with the card instead of
+// popping in late. Any failure (a missing file, a slow network, a format the browser
+// cannot play) returns false and the alert plays as the plain card.
+async function preloadMedia(media: AlertMedia): Promise<boolean> {
+  const TIMEOUT_MS = 6000;
+  try {
+    if (media.kind === "webm") {
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      return await new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => resolve(false), TIMEOUT_MS);
+        const done = (ok: boolean) => {
+          clearTimeout(timer);
+          resolve(ok);
+        };
+        video.addEventListener("canplaythrough", () => done(true), { once: true });
+        video.addEventListener("error", () => done(false), { once: true });
+        video.src = media.url;
+        video.load();
+      });
+    }
+    const img = new Image();
+    img.src = media.url;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        img.decode(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("slow")), TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -227,6 +274,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         if (body.alert) {
           const alert: QueuedAlert = body.alert;
           if (alert.sound) alert.clip = loadClip(alert.sound);
+          if (alert.media && !(await preloadMedia(alert.media))) alert.media = null;
           if (alert.speech) {
             const speech = await loadSpeech(token, alert.id);
             if (speech) {
@@ -302,12 +350,58 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       {invalid && (
         <p className="ov-invalid">This overlay link is no longer valid. Create a new one in your dashboard.</p>
       )}
-      {current && <Card key={`${current.id}-${current.kind}`} alert={current} />}
+      {current && <Scene key={`${current.id}-${current.kind}`} alert={current} />}
     </div>
   );
 }
 
-function Card({ alert }: { alert: QueuedAlert }) {
+// The card, with the creator's file where they placed it: above the card, behind its
+// text or filling the stage behind it. No file means the plain card.
+function Scene({ alert }: { alert: QueuedAlert }) {
+  const media = alert.media;
+  if (!media) return <Card alert={alert} />;
+  if (media.placement === "fullscreen") {
+    return (
+      <>
+        <MediaLayer media={media} durMs={showMs(alert)} />
+        <Card alert={alert} />
+      </>
+    );
+  }
+  if (media.placement === "above") {
+    const level = tipTierLevel(alert.amountPaise / 100);
+    return (
+      <div className={`ov-stack ov-t${level}`}>
+        <MediaLayer media={media} durMs={showMs(alert)} />
+        <Card alert={alert} />
+      </div>
+    );
+  }
+  return <Card alert={alert} behind={media} />;
+}
+
+// One file. It never makes sound (a tip uses a sound or the voice, and a clip's own
+// audio would fight both), a WebM stops at its hard cap whatever the file says, and a
+// file that fails to play just disappears and leaves the card.
+function MediaLayer({ media, durMs }: { media: AlertMedia; durMs: number }) {
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    if (media.kind !== "webm") return;
+    const t = setTimeout(() => setGone(true), MEDIA_WEBM_MAX_MS);
+    return () => clearTimeout(t);
+  }, [media]);
+  if (gone) return null;
+  const className = `ov-media ov-media-${media.placement}`;
+  const style = { "--dur": `${durMs}ms` } as React.CSSProperties;
+  return media.kind === "webm" ? (
+    <video className={className} style={style} src={media.url} autoPlay muted loop playsInline onError={() => setGone(true)} />
+  ) : (
+    // eslint-disable-next-line @next/next/no-img-element -- an OBS overlay, not a page: a plain element keeps the GIF animated and skips the image optimiser
+    <img className={className} style={style} src={media.url} alt="" onError={() => setGone(true)} />
+  );
+}
+
+function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
   const isAlert = alert.kind === "alert";
   const amount = rupees(alert.amountPaise);
   const level = tipTierLevel(alert.amountPaise / 100);
@@ -329,6 +423,7 @@ function Card({ alert }: { alert: QueuedAlert }) {
       data-test={alert.test ? "true" : undefined}
       role="status"
     >
+      {behind && <MediaLayer media={behind} durMs={showMs(alert)} />}
       <p className="ov-top">
         <span className="ov-name">
           {name}
@@ -391,6 +486,20 @@ const CSS = `
 .ov-portrait .ov-amount { margin-top: calc(var(--u) * 1.4); font-size: calc(var(--u) * 13 * var(--sp) * var(--fit)); }
 .ov-portrait .ov-message { margin-top: calc(var(--u) * 3); font-size: calc(var(--u) * 5); }
 .ov-portrait .ov-w { margin: 0 calc(var(--u) * -0.8); padding: calc(var(--u) * 0.2) calc(var(--u) * 0.8); }
+.ov-card > :not(.ov-media) { position: relative; z-index: 1; }
+.ov-media { --mo: 1; pointer-events: none; animation: ov-media-in 400ms ease both, ov-media-out 450ms ease calc(var(--dur) - 450ms) forwards; }
+.ov-media-behind { --mo: 0.3; position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.ov-media-fullscreen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ov-media-above { display: block; max-width: 100%; max-height: calc(var(--u) * 20); object-fit: contain; }
+.ov-stack {
+  position: absolute; left: 50%; bottom: calc(var(--u) * 6); transform: translateX(-50%);
+  box-sizing: border-box; width: calc(var(--u) * 30 * var(--s, 1)); max-width: 96%;
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.4);
+}
+.ov-stack .ov-card { position: relative; left: auto; bottom: auto; transform: none; width: 100%; max-width: none; }
+.ov-portrait .ov-stack { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); gap: calc(var(--u) * 3); }
+.ov-portrait .ov-stack .ov-card { width: 100%; }
+.ov-portrait .ov-media-above { max-height: calc(var(--u) * 45); }
 .ov-invalid {
   position: absolute; inset: auto 0 0 0; margin: 0; padding: calc(var(--u) * 1.2) calc(var(--u) * 2);
   font-size: calc(var(--u) * 1.7); font-weight: 500; line-height: 1.3; color: var(--ov-chalk); background: var(--ov-night);
@@ -398,6 +507,8 @@ const CSS = `
 .ov-portrait .ov-invalid { font-size: calc(var(--u) * 4.4); padding: calc(var(--u) * 3) calc(var(--u) * 5); }
 @keyframes ov-wipe-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes ov-wipe-out { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+@keyframes ov-media-in { from { opacity: 0; } to { opacity: var(--mo); } }
+@keyframes ov-media-out { from { opacity: var(--mo); } to { opacity: 0; } }
 @keyframes ov-word { from, to { background: var(--ov-on-lime); color: var(--ov-lime); } }
 @media (prefers-reduced-motion: reduce) {
   .ov-card { animation: ov-fade 200ms both, ov-fade-out 200ms linear calc(var(--dur) - 200ms) forwards; }

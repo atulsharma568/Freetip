@@ -5,7 +5,7 @@ import { createYouTubeClient } from "./youtube";
 // Closing a creator account. The users row cannot be deleted: tips, the ledger,
 // payouts and the audit log all point at it, and the law makes us keep those. So
 // the row is emptied in place. What identifies the person goes (name, email,
-// picture, YouTube channel, bio, sounds, saved stream timestamps and the YouTube and Discord connections, contact-form messages sent from the sign-in email, OBS link, UPI and legal name unless money
+// picture, YouTube channel, bio, sounds, alert media, saved stream timestamps and the YouTube and Discord connections, contact-form messages sent from the sign-in email, OBS link, UPI and legal name unless money
 // was ever posted for them, which makes those part of a payout record). The id,
 // the money records and the handle stay: the handle stays reserved so a stranger
 // cannot take over an old QR code or link.
@@ -145,8 +145,24 @@ export async function closeCreatorAccount(
       /* column not there yet */
     }
     await eraseTimestampData(db, userId);
+    // The creator's alert media files go with the account (the caller deletes the files).
+    result.blobUrls.push(...(await eraseMedia(db, userId)));
   }
   return result;
+}
+
+// Alert media (migration 0036): the rows go and their files are handed back to be deleted
+// (a file the owner already took down has none left). Apart from the main transaction so
+// closing works before the migration is run (nothing to erase then).
+async function eraseMedia(db: LedgerDb, userId: number): Promise<string[]> {
+  try {
+    const rows = await db<{ blob_url: string; review_state: string }[]>`
+      delete from creator_media where creator_id = ${userId} returning blob_url, review_state
+    `;
+    return rows.filter((r) => r.review_state !== "removed").map((r) => r.blob_url);
+  } catch {
+    return [];
+  }
 }
 
 // Stream timestamps (migration 0032): the saved moments carry viewers' names and words,

@@ -230,6 +230,96 @@ export async function setMessageHandled(
   return ok(handled ? "Marked handled." : "Marked as new.");
 }
 
+// Owner review of a creator's alert media (migration 0036). A creator's first upload
+// is held as 'new'; approving it lets it play (and lets their later uploads go live).
+// Both choices are written to the audit history against the creator.
+export async function adminApproveMedia(
+  mediaId: number,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(mediaId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+
+  try {
+    const approved = await db.begin(async (tx) => {
+      const rows = await tx<{ creator_id: string; name: string }[]>`
+        update creator_media set review_state = 'approved'
+        where id = ${mediaId} and review_state = 'new'
+        returning creator_id::text, name
+      `;
+      if (!rows[0]) return false;
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
+        values (null, 'owner', 'media.approved', 'user', ${rows[0].creator_id},
+                ${tx.json({ media_id: mediaId, name: rows[0].name })},
+                ${reasonOf(formData, "approved by the owner")})
+      `;
+      return true;
+    });
+    if (!approved) return fail("That file is no longer waiting for approval.");
+  } catch (err) {
+    console.error("Admin: could not approve media", err);
+    return fail(SAVE_FAILED);
+  }
+  revalidatePath("/admin/media");
+  revalidatePath("/admin/audit");
+  return ok("Approved. It plays on the creator's alerts now.");
+}
+
+// Takes a file down: its file is erased and the row stays as a "taken down" note the
+// creator can see and delete (it cannot be switched back on).
+export async function adminRemoveMedia(
+  mediaId: number,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(mediaId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+
+  let blobUrl: string | null = null;
+  try {
+    const removed = await db.begin(async (tx) => {
+      const rows = await tx<{ blob_url: string; creator_id: string; name: string; handle: string | null }[]>`
+        with gone as (
+          update creator_media set review_state = 'removed', enabled = false
+          where id = ${mediaId} and review_state <> 'removed'
+          returning blob_url, creator_id, name
+        )
+        select g.blob_url, g.creator_id::text, g.name, u.handle
+          from gone g join users u on u.id = g.creator_id
+      `;
+      if (!rows[0]) return false;
+      blobUrl = rows[0].blob_url;
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, reason)
+        values (null, 'owner', 'media.removed', 'user', ${rows[0].creator_id},
+                ${tx.json({ media_id: mediaId, name: rows[0].name, handle: rows[0].handle })},
+                ${reasonOf(formData, "removed by the owner")})
+      `;
+      return true;
+    });
+    if (!removed) return fail("That file is already taken down.");
+  } catch (err) {
+    console.error("Admin: could not remove media", err);
+    return fail(SAVE_FAILED);
+  }
+  if (blobUrl) {
+    try {
+      await del(blobUrl);
+    } catch (err) {
+      console.error("Could not delete media file", err);
+    }
+  }
+  revalidatePath("/admin/media");
+  revalidatePath("/admin/audit");
+  return ok("File taken down.");
+}
+
 // Owner removal of any creator's sound (for example one that breaks the rules).
 // Recorded against the creator, so it shows in their audit history.
 export async function adminDeleteSound(

@@ -119,7 +119,7 @@ export async function GET(
 
   const row = tips.find((r) => r.id === next.id)!;
 
-  // The sound, the voice choice and the banned words (src/lib/alert-extras.ts). A banned
+  // The sound, the media, the voice choice and the banned words (src/lib/alert-extras.ts). A banned
   // word added after the tip was paid still holds it back here: its message is dropped
   // from the alert and a blocked name shows as Anonymous.
   const extras = await loadAlertExtras(db as unknown as Sql, {
@@ -164,6 +164,7 @@ export async function GET(
         message: next.withMessage && !messageBlocked ? row.fan_message!.trim() : null,
         speech: speak,
         sound: extras.sound,
+        media: extras.media,
       },
       controls,
     },

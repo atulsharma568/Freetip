@@ -119,6 +119,69 @@ test.describe("OBS overlay routes", () => {
     await expect(page.getByRole("status")).toContainText("great stream");
     expect(await page.evaluate(() => (window as unknown as { __plays: number }).__plays)).toBe(0);
   });
+  // A 1x1 GIF: the smallest picture a browser will decode.
+  const PIXEL_GIF = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
+  const MEDIA_URL = "https://media.example.test/party.gif";
+
+  for (const placement of ["above", "behind", "fullscreen"] as const) {
+    test(`alert media shows ${placement}, never makes sound, and the card keeps its text`, async ({ page }) => {
+      let served = false;
+      await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+        route
+          .fulfill({
+            json: served
+              ? { alert: null }
+              : {
+                  alert: {
+                    ...SPEAKING_ALERT.alert,
+                    speech: false,
+                    media: { url: MEDIA_URL, kind: "gif", placement, durationMs: null },
+                  },
+                },
+          })
+          .then(() => {
+            served = true;
+          }),
+      );
+      await page.route(MEDIA_URL, (route) => route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL_GIF }));
+
+      await page.goto(`/overlay/${TOKEN}`);
+      await expect(page.getByRole("status")).toContainText("great stream");
+      const media = page.locator(`img.ov-media-${placement}`);
+      await expect(media).toHaveCount(1);
+      await expect(media).toHaveAttribute("src", MEDIA_URL);
+      // Behind sits inside the card; above sits in the stack with it; fullscreen is a sibling of the card.
+      await expect(page.locator(".ov-card img.ov-media")).toHaveCount(placement === "behind" ? 1 : 0);
+      await expect(page.locator(".ov-stack img.ov-media")).toHaveCount(placement === "above" ? 1 : 0);
+    });
+  }
+
+  test("a media file that cannot load is dropped and the plain card still plays", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({
+          json: served
+            ? { alert: null }
+            : {
+                alert: {
+                  ...SPEAKING_ALERT.alert,
+                  speech: false,
+                  media: { url: MEDIA_URL, kind: "gif", placement: "above", durationMs: null },
+                },
+              },
+        })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.route(MEDIA_URL, (route) => route.fulfill({ status: 404, body: "gone" }));
+
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect(page.getByRole("status")).toContainText("great stream");
+    await expect(page.locator(".ov-media")).toHaveCount(0);
+  });
+
   test("the overlay confirms an alert once its card is on screen", async ({ page }) => {
     let served = false;
     await page.route(`**/api/overlay/${TOKEN}`, (route) =>

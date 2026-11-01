@@ -15,6 +15,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/handle-requests", label: "Handle requests" },
       { href: "/admin/messages", label: "Messages" },
       { href: "/admin/sounds", label: "Sounds" },
+      { href: "/admin/media", label: "Alert media" },
       { href: "/admin/tts-words", label: "Voice words" },
     ],
   },

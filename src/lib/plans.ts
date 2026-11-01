@@ -32,7 +32,7 @@ export type FeatureKey =
 export type FeatureInfo = {
   key: FeatureKey;
   label: string;
-  group: "Stream timestamps" | "OBS overlays" | "Planned, not built yet";
+  group: "Stream timestamps" | "OBS overlays" | "Alert box" | "Planned, not built yet";
   description: string;
   // false: listed in the admin page but cannot be switched on, because nothing exists yet.
   built: boolean;
@@ -104,9 +104,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "customAlertMedia",
     label: "Custom alert media",
-    group: "Planned, not built yet",
-    description: "Upload GIFs, WebM videos and images that play in the OBS alert. Costs storage and needs moderation.",
-    built: false,
+    group: "Alert box",
+    description: "Upload GIFs, WebM videos and images that play in the OBS alert. A creator's first upload waits for the owner's approval (/admin/media).",
+    built: true,
   },
   {
     key: "alertRules",

@@ -1,6 +1,7 @@
 import type { PlanFeatures } from "@/lib/plans";
 import { NO_FEATURES, planFeatures } from "@/lib/plans";
 import { parseBannedWords } from "@/lib/message-filter";
+import { pickMedia, type AlertMedia, type MediaCandidate } from "@/lib/media";
 
 // Everything an alert carries besides the fan's name, amount and message: the sound,
 // the voice choice, the creator's banned words and (as the paid features ship) media,
@@ -21,8 +22,10 @@ export type AlertExtras = {
   voiceRequested: boolean;
   bannedWords: string[];
   sound: AlertSound | null;
+  // The creator's GIF, image or WebM for this alert (custom alert media); null while
+  // the feature is off, the creator has no playable file or this is the message card.
+  media: AlertMedia | null;
   // Filled in by their features; null while that feature is off or not built.
-  media: null;
   theme: null;
   level: null;
   birthday: null;
@@ -34,11 +37,13 @@ export type RawExtras = {
   voiceRequested: boolean;
   bannedWords: string[];
   sound: AlertSound | null;
+  // The creator's uploaded files (all of them; only playable ones are used).
+  media?: readonly MediaCandidate[];
 };
 
 export function resolveAlertExtras(
   raw: RawExtras,
-  ctx: { kind: "alert" | "message"; features: PlanFeatures },
+  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number },
 ): AlertExtras {
   return {
     voiceRequested: raw.voiceRequested,
@@ -46,7 +51,10 @@ export function resolveAlertExtras(
     // A voice tip has no sound at all, not even the default; only the alert card has
     // one, not the follow-up message card.
     sound: ctx.kind === "alert" && !raw.voiceRequested ? raw.sound : null,
-    media: null,
+    // A voice tip may still show media (only its sound is dropped). Only the alert
+    // card has media, and only while the creator's switch is on at play time.
+    media:
+      ctx.kind === "alert" && ctx.features.customAlertMedia ? pickMedia(raw.media ?? [], ctx.tipId ?? 0) : null,
     theme: null,
     level: null,
     birthday: null,
@@ -108,5 +116,32 @@ export async function loadAlertExtras(
     }),
   ]);
 
-  return resolveAlertExtras({ voiceRequested, bannedWords, sound }, { kind: o.kind, features });
+  // The creator's files (migration 0036), read only when the feature is on for them.
+  const media =
+    o.kind === "alert" && features.customAlertMedia
+      ? await safely("the alert media", [] as MediaCandidate[], async () => {
+          const rows = await db<
+            {
+              id: string;
+              kind: MediaCandidate["kind"];
+              blob_url: string;
+              placement: MediaCandidate["placement"];
+              duration_ms: number | null;
+              enabled: boolean;
+              review_state: MediaCandidate["review_state"];
+            }[]
+          >`
+            select id::text, kind, blob_url, placement, duration_ms, enabled, review_state
+            from creator_media
+            where creator_id = ${o.creatorId} and enabled and review_state = 'approved'
+            order by id
+          `;
+          return rows.map((r) => ({ ...r, id: Number(r.id) }));
+        })
+      : [];
+
+  return resolveAlertExtras(
+    { voiceRequested, bannedWords, sound, media },
+    { kind: o.kind, features, tipId: o.tipId },
+  );
 }
