@@ -17,7 +17,7 @@ Use short, spoken Hindi in Devanagari and conversational Hinglish in Roman scrip
 
 The source copy is an audit of what is currently visible; it is not a claim that every demonstrated flow is live. Keep the sample labels exactly meaningful: `Sample page. No payment is taken.`, `Sample alert. Nothing is sent to a stream.`, `Sample only. No money moved.`, and `Non-scannable sample QR` are **`[DEMO]`** labels. The waitlist success and validation states are **`[LIVE]`**; the sign-in closed state is also live behavior, but it explicitly says that nothing was sent. Product payment, OBS, QR, filtering, approval, and TTS copy outside the waitlist remains **`[PLANNED]`**.
 
-The money facts must not drift in translation: the platform fee is **5% of every tip**; **a flat 2.75% processing charge is on top of that 5% and is paid by the creator out of the payout**; on the worked example, **₹100 → ₹92.25**; and fans need **no account and no email**. Keep `₹100.00`, `−₹5.00`, `−₹2.75`, and `₹92.25` together and non-wrapping in UI.
+The money facts must not drift in translation: the platform fee is **5% of every tip**, **plus a minimal processing fee, both taken out of the creator's payout**; fans pay exactly the tip and need **no account and no email**. The public pages no longer state the processing rate or the ₹92.25 worked example (owner, 2026-11-01), so do not add the number back in translation.
 
 ## Current visible copy inventory
 
@@ -170,7 +170,7 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[PLANNED]` `Creator approval`<br>Source: `src/components/sections/Differentiators.tsx` | `Creator की approval` | `Creator ki approval` |
 | `[PLANNED]` `You decide what gets read out on your stream.`<br>Source: `src/components/sections/Differentiators.tsx` | `आप तय करते हैं कि आपकी stream पर क्या read out होगा।` | `Aap tay karte hain ki aapki stream par kya read out hoga.` |
 
-### Home — payments, fees, and worked example
+### Home — payments and fees
 
 | Current English (exact) and source file | Natural Hindi (Devanagari) | Natural Hinglish (Roman) |
 |---|---|---|
@@ -178,13 +178,8 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[PLANNED]` `Fans pay with the UPI app already on their phone.`<br>Source: `src/components/sections/Money.tsx` | `Fans अपने phone में मौजूद UPI app से pay करते हैं।` | `Fans apne phone mein maujood UPI app se pay karte hain.` |
 | `[PLANNED]` `Cards`<br>Source: `src/components/sections/Money.tsx` | `Cards` | `Cards` |
 | `[PLANNED]` `Fans can also pay by card, from the same page.`<br>Source: `src/components/sections/Money.tsx` | `Fans उसी page से card से भी pay कर सकते हैं।` | `Fans usi page se card se bhi pay kar sakte hain.` |
-| `[PLANNED]` `What it costs`<br>Source: `src/components/sections/Money.tsx` | `इसकी लागत` | `Iski laagat` |
-| `[PLANNED]` `We take 5% of every tip. A flat 2.75% processing charge comes out of the payout too; fans pay exactly the tip.`<br>Source: `src/components/sections/Money.tsx`, fee constants from `src/lib/legal.ts` | `हम हर tip का 5% लेते हैं। 2.75% का flat processing charge भी payout में से कटता है; fans सिर्फ़ tip की रकम pay करते हैं।` | `Hum har tip ka 5% lete hain. 2.75% ka flat processing charge bhi payout mein se katta hai; fans sirf tip ki rakam pay karte hain.` |
-| `[PLANNED]` `Fan tips` — `₹100.00`<br>Source: `src/components/sections/Money.tsx`, `src/lib/legal.ts` | `Fan की tip` — `₹100.00` | `Fan ki tip` — `₹100.00` |
-| `[PLANNED]` `Our fee (5%)` — `−₹5.00`<br>Source: `src/components/sections/Money.tsx`, `src/lib/legal.ts` | `हमारी fee (5%)` — `−₹5.00` | `Hamari fee (5%)` — `−₹5.00` |
-| `[PLANNED]` `Processing charge (2.75%)` — `−₹2.75`<br>Source: `src/components/sections/Money.tsx`, `src/lib/legal.ts` | `Processing charge (2.75%)` — `−₹2.75` | `Processing charge (2.75%)` — `−₹2.75` |
-| `[PLANNED]` `You get` — `₹92.25`<br>Source: `src/components/sections/Money.tsx`, `src/lib/legal.ts` | `आपको मिलता है` — `₹92.25` | `Aapko milta hai` — `₹92.25` |
-| `[PLANNED]` `Example on a ₹100 UPI or card tip.`<br>Source: `src/components/sections/Money.tsx` | `₹100 की UPI या card tip का example।` | `₹100 ki UPI ya card tip ka example.` |
+| `[PLANNED]` `Our fee`<br>Source: `src/components/sections/Money.tsx` | `हमारी fee` | `Hamari fee` |
+| `[PLANNED]` `We take 5% of every tip, plus a minimal processing fee. Fans pay exactly the tip.`<br>Source: `src/components/sections/Money.tsx` | `हम हर tip का 5% लेते हैं, साथ में एक minimal processing fee। Fans सिर्फ़ tip की रकम pay करते हैं।` | `Hum har tip ka 5% lete hain, saath mein ek minimal processing fee. Fans sirf tip ki rakam pay karte hain.` |
 
 ### Home — FAQ
 
@@ -196,9 +191,9 @@ Coverage note: `src/components/auth/AuthShell.tsx` is layout-only and adds no vi
 | `[PLANNED]` `Can fans pay by card?`<br>Source: `src/components/sections/Faq.tsx` | `क्या fans card से pay कर सकते हैं?` | `Kya fans card se pay kar sakte hain?` |
 | `[PLANNED]` `Yes. UPI and card sit in the same tip flow, so a fan who doesn't use UPI can still tip.`<br>Source: `src/components/sections/Faq.tsx` | `हाँ। UPI और card एक ही tip flow में हैं, इसलिए जो fan UPI इस्तेमाल नहीं करता वह भी tip दे सकता है।` | `Haan. UPI aur card ek hi tip flow mein hain, isliye jo fan UPI use nahi karta woh bhi tip de sakta hai.` |
 | `[PLANNED]` `What does it cost?`<br>Source: `src/components/sections/Faq.tsx` | `इसकी cost क्या है?` | `Iski cost kya hai?` |
-| `[PLANNED]` `We take 5% of every tip. A flat 2.75% processing charge also comes out of your payout. On a ₹100 tip you get ₹92.25. Fans pay exactly the amount they choose, with nothing added.`<br>Source: `src/components/sections/Faq.tsx`, fee constants from `src/lib/legal.ts` | `हम हर tip का 5% लेते हैं। 2.75% का flat processing charge भी आपके payout में से कटता है। ₹100 की tip पर आपको ₹92.25 मिलते हैं। Fans अपनी चुनी रकम ही pay करते हैं, कुछ extra नहीं जुड़ता।` | `Hum har tip ka 5% lete hain. 2.75% ka flat processing charge bhi aapke payout mein se katta hai. ₹100 ki tip par aapko ₹92.25 milte hain. Fans apni chuni rakam hi pay karte hain, kuch extra nahi judta.` |
+| `[PLANNED]` `We take 5% of every tip, plus a minimal processing fee, both out of your payout. Fans pay exactly the amount they choose, with nothing added.`<br>Source: `src/components/sections/Faq.tsx` | `हम हर tip का 5% लेते हैं, साथ में एक minimal processing fee, दोनों आपके payout में से कटते हैं। Fans अपनी चुनी रकम ही pay करते हैं, कुछ extra नहीं जुड़ता।` | `Hum har tip ka 5% lete hain, saath mein ek minimal processing fee, dono aapke payout mein se katte hain. Fans apni chuni rakam hi pay karte hain, kuch extra nahi judta.` |
 | `[PLANNED]` `How do I get paid?`<br>Source: `src/components/sections/Faq.tsx` | `मुझे payment कैसे मिलेगा?` | `Mujhe payment kaise milega?` |
-| `[PLANNED]` `Payouts go to your bank account in INR. Payout timing will be published at launch.`<br>Source: `src/components/sections/Faq.tsx` | `Payout आपके bank account में INR में जाते हैं। Payout timing launch पर बताई जाएगी।` | `Payout aapke bank account mein INR mein jaate hain. Payout timing launch par bataayi jaayegi.` |
+| `[PLANNED]` `Payouts go to the bank account or UPI ID you register, in INR, on a regular schedule. Each payout shows in your dashboard. A payout can be delayed by bank holidays, verification checks, or a hold while we look into fraud or a chargeback.`<br>Source: `src/components/sections/Faq.tsx` | `Payout आपके दिए हुए bank account या UPI ID में INR में, एक regular schedule पर जाते हैं। हर payout आपके dashboard में दिखता है। Bank holidays, verification checks, या fraud या chargeback की जाँच के दौरान hold की वजह से payout में देरी हो सकती है।` | `Payout aapke diye hue bank account ya UPI ID mein INR mein, ek regular schedule par jaate hain. Har payout aapke dashboard mein dikhta hai. Bank holidays, verification checks, ya fraud ya chargeback ki jaanch ke dauran hold ki wajah se payout mein der ho sakti hai.` |
 | `[PLANNED]` `How do tips show up on my stream?`<br>Source: `src/components/sections/Faq.tsx` | `Tips मेरी stream पर कैसे दिखेंगी?` | `Tips meri stream par kaise dikhegi?` |
 | `[PLANNED]` `You get an alert link to add to OBS as a browser source. Each tip then shows the fan's name, the amount and their message on stream.`<br>Source: `src/components/sections/Faq.tsx` | `आपको एक alert link मिलता है जिसे OBS में browser source की तरह जोड़ सकते हैं। फिर हर tip fan का नाम, रकम और message stream पर दिखाती है।` | `Aapko ek alert link milta hai jise OBS mein browser source ki tarah jod sakte hain. Phir har tip fan ka naam, amount aur message stream par dikhaati hai.` |
 | `[PLANNED]` `When does text-to-speech play?`<br>Source: `src/components/sections/Faq.tsx` | `text-to-speech कब चलता है?` | `Text-to-speech kab chalta hai?` |
