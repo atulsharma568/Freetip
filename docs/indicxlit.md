@@ -74,14 +74,23 @@ include every problem hit there). We use WSL, a real Linux inside Windows, becau
    The torch line is optional: it keeps the install small (the plain package pulls
    several GB of NVIDIA GPU libraries that this CPU-only helper never uses). If it
    errors, skip it and run only the last line.
-4. Put `voice-words.csv` (downloaded in Windows, usually in Downloads) into the folder:
+4. Check the install finished (inside `~/Freetip`, with the environment active, the
+   prompt starts with `(.venv-indicxlit)`):
+   `python3 -c "import ai4bharat.transliteration; print('ok')"` must print `ok`. If it
+   errors, redo step 3. Stopping the install half way (Ctrl+C) is safe: just run the
+   two `uv pip install` lines again. The first real run may also download the model
+   files, which takes a few minutes.
+5. Get the word list: it is not made by the install. Sign in as the owner, open
+   `/admin/tts-words` on the live site and download the export; it lands in Windows
+   Downloads as `voice-words.csv`. If the log is still empty (few tips so far) there
+   is nothing to do yet; stop and come back another day. Then copy it in:
    `cp /mnt/c/Users/<your Windows name>/Downloads/voice-words.csv .`
-5. `python3 scripts/indicxlit-candidates.py voice-words.csv`, then copy the result
+6. `python3 scripts/indicxlit-candidates.py voice-words.csv`, then copy the result
    back out: `cp indicxlit-review.csv /mnt/c/Users/<your Windows name>/Downloads/`.
-6. Open it in Excel, fill the last column, and send it back.
+7. Open it in Excel, fill the last column, and send it back.
 
 Problems seen: `error: externally-managed-environment` means the venv was not made
 properly (usually because the folder was on `/mnt/c`, or Python is too new); redo
 step 2 and 3. A numpy "size changed" error: `uv pip install --upgrade numpy`.
-Next time, only steps 4 to 6 are needed (after `source .venv-indicxlit/bin/activate`
+Next time, only steps 5 to 7 are needed (after `source .venv-indicxlit/bin/activate`
 inside `~/Freetip`).
