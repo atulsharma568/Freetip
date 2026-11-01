@@ -7,6 +7,7 @@ import { requireOwner } from "@/lib/owner-auth";
 import { getDb } from "@/lib/db";
 import type { LedgerDb, SweepResult } from "@/lib/accrual";
 import { syncBooks } from "@/lib/books-sync";
+import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
 
 type CreatorStatus = "pending" | "active" | "suspended";
@@ -224,4 +225,28 @@ export async function adminCloseCreator(creatorId: number): Promise<void> {
   }
   revalidatePath("/admin/creators");
   if (result.status === "blocked") redirect(`/admin/creators?blocked=${result.reason}`);
+}
+
+// Handle change requests (migration 0031). Approving renames at once; if the rename
+// cannot happen the request stays open and the page says why.
+export async function approveHandleChange(requestId: number): Promise<void> {
+  await requireOwner();
+  if (!Number.isSafeInteger(requestId) || requestId < 1) return;
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  const result = await approveHandleRequest(db as unknown as LedgerDb, requestId);
+  revalidatePath("/admin/handle-requests");
+  revalidatePath("/admin/creators");
+  if (result.status === "blocked") redirect(`/admin/handle-requests?blocked=${result.reason}`);
+}
+
+export async function rejectHandleChange(requestId: number, form: FormData): Promise<void> {
+  await requireOwner();
+  if (!Number.isSafeInteger(requestId) || requestId < 1) return;
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  await rejectHandleRequest(db as unknown as LedgerDb, requestId, String(form.get("note") ?? ""));
+  revalidatePath("/admin/handle-requests");
 }

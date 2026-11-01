@@ -59,7 +59,12 @@ export async function claimHandle(db: LedgerDb, googleId: string, handle: string
 // The one allowed change. The old handle goes to handle_history and an audit row is
 // written (no personal data). The unique index on handle_history.user_id makes
 // "once only" hold even if two requests run at once.
-export async function renameHandle(db: LedgerDb, googleId: string, handle: string): Promise<HandleResult> {
+export async function renameHandle(
+  db: LedgerDb,
+  googleId: string,
+  handle: string,
+  by: { role: "creator" | "owner"; reason: string } = { role: "creator", reason: "changed by the creator" },
+): Promise<HandleResult> {
   return db.begin(async (tx): Promise<HandleResult> => {
     await tx`select pg_advisory_xact_lock(hashtext('freetip.handle'))`;
     const users = await tx<{ id: string; handle: string | null; google_id: string }[]>`
@@ -80,8 +85,8 @@ export async function renameHandle(db: LedgerDb, googleId: string, handle: strin
     await tx`insert into handle_history (old_handle, user_id) values (${u.handle}, ${Number(u.id)})`;
     await tx`
       insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
-      values (${Number(u.id)}, 'creator', 'handle.renamed', 'user', ${u.id},
-              ${{ from: u.handle, to: handle }}::jsonb, 'changed by the creator')
+      values (${by.role === "creator" ? Number(u.id) : null}, ${by.role}, 'handle.renamed', 'user', ${u.id},
+              ${{ from: u.handle, to: handle }}::jsonb, ${by.reason})
     `;
     return { status: "ok", handle };
   });

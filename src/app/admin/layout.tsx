@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 const navigation = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/creators", label: "Creators" },
+  { href: "/admin/handle-requests", label: "Handle requests" },
   { href: "/admin/sounds", label: "Sounds" },
   { href: "/admin/tts-words", label: "Voice words" },
   { href: "/admin/finance", label: "Finance" },

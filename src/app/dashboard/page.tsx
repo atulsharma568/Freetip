@@ -9,7 +9,7 @@ import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CloseAccount } from "./CloseAccount";
-import { RenameHandle } from "./RenameHandle";
+import { RenameHandle, type HandleRequestView } from "./RenameHandle";
 import { CreatorQR } from "./CreatorQR";
 import { GoalTile, type GoalHistoryRow, type GoalView } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
@@ -115,6 +115,22 @@ export default async function DashboardPage() {
       handleChanged = found.length > 0;
     } catch (err) {
       console.error("Dashboard: could not read the handle history (migration 0030 run?).", err);
+    }
+  }
+
+  // The latest handle request (migration 0031), read apart so the dashboard loads before it is run.
+  let handleRequest: HandleRequestView = null;
+  if (db && user && !handleChanged) {
+    try {
+      const [found] = await db<{ status: "pending" | "approved" | "rejected"; requested_handle: string; decision_note: string | null }[]>`
+        select status, requested_handle, decision_note from handle_requests
+        where user_id = ${user.id} order by (status = 'pending') desc, created_at desc limit 1
+      `;
+      if (found && found.status !== "approved") {
+        handleRequest = { status: found.status, requested: found.requested_handle, note: found.decision_note };
+      }
+    } catch (err) {
+      console.error("Dashboard: could not read the handle request (migration 0031 run?).", err);
     }
   }
 
@@ -274,7 +290,7 @@ export default async function DashboardPage() {
           </Link>
           <StatusBadge status={user.creator_status} />
           <div className="border-t border-line/60 pt-4">
-            <RenameHandle current={user.handle} used={handleChanged} />
+            <RenameHandle current={user.handle} used={handleChanged} request={handleRequest} />
           </div>
         </div>
 

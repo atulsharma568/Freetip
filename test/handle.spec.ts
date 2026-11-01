@@ -115,3 +115,81 @@ test("the database itself refuses a second history row per creator and a repeate
   const b = await creator(pg, "two");
   await expect(pg.query(`insert into handle_history (old_handle, user_id) values ('gone1', $1)`, [b.id])).rejects.toThrow();
 });
+
+// ── Handle change requests ───────────────────────────────────────────────────
+import { approveHandleRequest, rejectHandleRequest, requestHandleChange } from "../src/lib/handle-requests";
+
+const statusOf = async (pg: PGlite, id: number) =>
+  (await pg.query<{ status: string }>(`select status from handle_requests where id = $1`, [id])).rows[0].status;
+
+test("a request changes nothing until approved, then renames once", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "oldname");
+  expect(await requestHandleChange(db, a.googleId, "newname")).toEqual({ status: "ok" });
+  expect(await handleOf(pg, a.id)).toBe("oldname");
+  expect((await pg.query(`select 1 from handle_history`)).rows).toHaveLength(0);
+
+  const id = Number((await pg.query<{ id: string }>(`select id::text from handle_requests`)).rows[0].id);
+  expect(await approveHandleRequest(db, id)).toEqual({ status: "approved", handle: "newname" });
+  expect(await handleOf(pg, a.id)).toBe("newname");
+  expect(await statusOf(pg, id)).toBe("approved");
+  const audit = await pg.query<{ actor_role: string }>(`select actor_role from audit_events where action = 'handle.renamed'`);
+  expect(audit.rows).toEqual([{ actor_role: "owner" }]);
+
+  // Approved means the one change is used.
+  expect(await requestHandleChange(db, a.googleId, "third")).toEqual({ status: "already_renamed" });
+  expect(await approveHandleRequest(db, id)).toEqual({ status: "gone" });
+});
+
+test("one open request at a time; a rejection leaves the one change unused", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "alpha");
+  expect(await requestHandleChange(db, a.googleId, "alpha2")).toEqual({ status: "ok" });
+  expect(await requestHandleChange(db, a.googleId, "alpha3")).toEqual({ status: "already_pending" });
+
+  const id = Number((await pg.query<{ id: string }>(`select id::text from handle_requests`)).rows[0].id);
+  expect(await rejectHandleRequest(db, id, "  too close to another brand ")).toEqual({ status: "rejected" });
+  expect(await handleOf(pg, a.id)).toBe("alpha");
+  const note = await pg.query<{ decision_note: string }>(`select decision_note from handle_requests where id = $1`, [id]);
+  expect(note.rows[0].decision_note).toBe("too close to another brand");
+
+  expect(await requestHandleChange(db, a.googleId, "alpha3")).toEqual({ status: "ok" });
+});
+
+test("requests for a used name, the same name, no handle or a closed account are refused", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "alpha");
+  await creator(pg, "bravo");
+  const none = await creator(pg);
+  expect(await requestHandleChange(db, a.googleId, "bravo")).toEqual({ status: "taken" });
+  expect(await requestHandleChange(db, a.googleId, "alpha")).toEqual({ status: "same" });
+  expect(await requestHandleChange(db, none.googleId, "something")).toEqual({ status: "no_handle" });
+  expect(await requestHandleChange(db, "nobody", "something")).toEqual({ status: "not_found" });
+  expect((await pg.query(`select 1 from handle_requests`)).rows).toHaveLength(0);
+});
+
+test("approval is blocked when the name was taken meanwhile, and the request stays open", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "alpha");
+  const b = await creator(pg);
+  await requestHandleChange(db, a.googleId, "wanted");
+  await claimHandle(db, b.googleId, "wanted");
+
+  const id = Number((await pg.query<{ id: string }>(`select id::text from handle_requests`)).rows[0].id);
+  expect(await approveHandleRequest(db, id)).toEqual({ status: "blocked", reason: "taken" });
+  expect(await handleOf(pg, a.id)).toBe("alpha");
+  expect(await statusOf(pg, id)).toBe("pending");
+});
+
+test("closing an account erases its handle requests", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "leaving");
+  await requestHandleChange(db, a.googleId, "leaving2");
+  await closeCreatorAccount(db, a.id, { role: "creator", userId: a.id });
+  expect((await pg.query(`select 1 from handle_requests`)).rows).toHaveLength(0);
+});

@@ -3,27 +3,41 @@
 import { useActionState, useState } from "react";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { HandleField } from "@/components/ui/HandleField";
-import { renameMyHandle } from "@/app/actions/creator";
+import { requestMyHandleChange } from "@/app/actions/creator";
 import { HANDLE_IDLE } from "@/lib/creator-state";
 import { SITE_HOST } from "@/lib/site";
 
-// A handle can be changed once, ever. It sits behind a button and a retyped name
-// because the old link and QR code stop working at once. Outline buttons only: lime
-// is for the main action on a screen.
-export function RenameHandle({ current, used }: { current: string; used: boolean }) {
+export type HandleRequestView = { status: "pending" | "rejected"; requested: string; note: string | null } | null;
+
+// A creator cannot change the handle directly: they send a request and the owner
+// decides. One change, ever; a rejected request does not use it up. Outline buttons
+// only: lime is for the main action on a screen.
+export function RenameHandle({
+  current,
+  used,
+  request,
+}: {
+  current: string;
+  used: boolean;
+  request: HandleRequestView;
+}) {
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [state, action, pending] = useActionState(renameMyHandle, HANDLE_IDLE);
+  const [state, action, pending] = useActionState(requestMyHandleChange, HANDLE_IDLE);
   const next = handle.toLowerCase().trim();
   const ready = next.length >= 3 && next !== current && confirm.toLowerCase().trim() === next;
 
-  if (used || state.status === "ok") {
+  if (used) {
+    return <p className="text-sm text-muted">You have already used your one handle change.</p>;
+  }
+
+  if (state.status === "ok" || request?.status === "pending") {
+    const asked = state.status === "ok" ? state.handle : request?.requested;
     return (
       <p className="text-sm text-muted">
-        {state.status === "ok"
-          ? `Done. Your tip page is now ${SITE_HOST}/${state.handle}. Print the new QR code.`
-          : "You have already used your one handle change."}
+        Your request to change your handle to <span className="numeric text-text">{asked}</span> is waiting for our
+        approval. Your link {SITE_HOST}/{current} keeps working until then.
       </p>
     );
   }
@@ -31,13 +45,21 @@ export function RenameHandle({ current, used }: { current: string; used: boolean
   if (!open) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted">You can change your handle once. After that it is fixed.</p>
+        {request?.status === "rejected" && (
+          <p role="status" className="text-sm text-text">
+            Your request for {request.requested} was not approved
+            {request.note ? `: ${request.note}` : "."} You can send another.
+          </p>
+        )}
+        <p className="text-sm text-muted">
+          You can ask to change your handle once. We approve each request, and after a change it is fixed.
+        </p>
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="inline-flex h-11 items-center rounded-full border border-control px-5 text-sm font-semibold text-text transition-[transform,border-color] hover:border-muted active:scale-[0.97]"
         >
-          Change my handle
+          Request a handle change
         </button>
       </div>
     );
@@ -46,10 +68,11 @@ export function RenameHandle({ current, used }: { current: string; used: boolean
   return (
     <form action={action} className="space-y-4">
       <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
-        <li>You can only do this once. You cannot change it back or change it again.</li>
+        <li>We review every request. Your current link keeps working until we approve it.</li>
+        <li>You get one change, ever. You cannot change it back or change it again.</li>
         <li>
-          Your old link {SITE_HOST}/{current} and old QR code stop working at once, and every link you shared
-          stops working too.
+          Once approved, your old link {SITE_HOST}/{current} and old QR code stop working at once, and every link
+          you shared stops working too.
         </li>
         <li>Nobody else can take your old handle.</li>
         <li>Your alert link and your tips are not affected.</li>
@@ -98,10 +121,10 @@ export function RenameHandle({ current, used }: { current: string; used: boolean
           {pending ? (
             <>
               <TickLoader count={8} duration={0.8} />
-              Changing…
+              Sending…
             </>
           ) : (
-            "Change my handle for good"
+            "Send request"
           )}
         </button>
         <button

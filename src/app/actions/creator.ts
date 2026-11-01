@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { getDb } from "@/lib/db";
-import { HANDLE_MESSAGE, checkHandle, claimHandle, renameHandle } from "@/lib/handle";
+import { HANDLE_MESSAGE, checkHandle, claimHandle } from "@/lib/handle";
+import { REQUEST_MESSAGE, requestHandleChange } from "@/lib/handle-requests";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
@@ -54,9 +55,9 @@ export async function setHandle(
   redirect("/dashboard");
 }
 
-// A creator may change their handle once, ever (see lib/handle.ts). The old link
-// stops working at once and the old handle stays reserved for them.
-export async function renameMyHandle(
+// A creator cannot rename themselves: they send a request and the owner decides in
+// /admin/handle-requests (see lib/handle-requests.ts). One change, ever, still holds.
+export async function requestMyHandleChange(
   _prev: HandleState,
   form: FormData,
 ): Promise<HandleState> {
@@ -66,10 +67,6 @@ export async function renameMyHandle(
   const check = checkHandle(String(form.get("handle") ?? ""));
   if (!check.ok) return { status: "error", message: check.message };
 
-  if (String(form.get("confirm") ?? "") !== check.handle) {
-    return { status: "error", message: "Type the new handle again to confirm" };
-  }
-
   const db = getDb();
   if (!db) return { status: "error", message: "Database unavailable — try again shortly" };
 
@@ -78,18 +75,18 @@ export async function renameMyHandle(
 
   let result;
   try {
-    result = await renameHandle(db as unknown as LedgerDb, googleId, check.handle);
+    result = await requestHandleChange(db as unknown as LedgerDb, googleId, check.handle);
   } catch (err: unknown) {
     if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
-      return { status: "error", message: HANDLE_MESSAGE.taken };
+      return { status: "error", message: REQUEST_MESSAGE.already_pending };
     }
-    console.error("Rename handle failed (migration 0030 run?).", err);
-    return { status: "error", message: "Could not change your handle — try again shortly" };
+    console.error("Handle request failed (migration 0031 run?).", err);
+    return { status: "error", message: "Could not send your request — try again shortly" };
   }
 
-  if (result.status !== "ok") return { status: "error", message: HANDLE_MESSAGE[result.status] };
+  if (result.status !== "ok") return { status: "error", message: REQUEST_MESSAGE[result.status] };
   revalidatePath("/dashboard");
-  return { status: "ok", handle: result.handle };
+  return { status: "ok", handle: check.handle };
 }
 
 // ── Payout onboarding ────────────────────────────────────────────────────────
