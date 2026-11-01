@@ -1,12 +1,10 @@
 // What the voice says for an emoji: [English, Hindi]. The Hindi names are the
 // playful ones (our own wording, in Devanagari), read when the message is Hindi or
-// Hinglish; the English ones are plain, for English messages. Any emoji not listed
-// is skipped. Only the first symbol of a joined sequence is looked up (variation
-// selectors are stripped by the caller). To add one, add a line here.
-//
-// Unicode's official Hindi names (CLDR, common/annotations/hi.xml, free to use)
-// exist for every emoji but are stiff, for example 😂 is "खुशी के आँसुओं वाला
-// चेहरा", so they are only a reference for a missing symbol.
+// Hinglish; the English ones are plain, for English messages. An emoji not listed
+// here falls back to its plain official Unicode name (emoji-names-cldr.ts); a
+// symbol with neither is skipped. Only the first symbol of a joined sequence is
+// looked up (variation selectors are stripped by the caller). To give an emoji a
+// playful name, add a line here: it overrides the official one.
 
 const GROUPS: [string[], string, string][] = [
   // Faces

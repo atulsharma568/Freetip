@@ -13,6 +13,7 @@
 // banned "fuck" also catches "f u c k" and "fuuuck" but not "class" or "peacock".
 
 import { EMOJI_NAMES } from "@/lib/emoji-names";
+import { CLDR_EMOJI_NAMES } from "@/lib/emoji-names-cldr";
 import { isHinglish } from "@/lib/hinglish";
 
 const LEET: Record<string, string> = {
@@ -115,7 +116,7 @@ const EMOJI_CLUSTER = new RegExp(
 // Naming every emoji of a long run would hold up the stream.
 const MAX_SPOKEN_EMOJI = 3;
 
-// Swaps the common emoji for their spoken name (the playful Hindi one when the
+// Swaps an emoji for its spoken name (ours, else Unicode's official one) (the playful Hindi one when the
 // message is Hindi or Hinglish), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
 function nameEmoji(message: string): string {
   const hindi = /[ऀ-ॿ]/.test(message) || isHinglish(message);
@@ -123,7 +124,7 @@ function nameEmoji(message: string): string {
   let last = "";
   return message.replace(EMOJI_CLUSTER, (cluster) => {
     const base = Array.from(cluster)[0];
-    const names = EMOJI_NAMES.get(base);
+    const names = EMOJI_NAMES.get(base) ?? CLDR_EMOJI_NAMES[base];
     if (!names) return " ";
     const name = hindi ? names[1] : names[0];
     if (name === last) return " ";

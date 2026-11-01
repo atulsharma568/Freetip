@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { EMOJI_NAMES } from "../src/lib/emoji-names";
+import { CLDR_EMOJI_NAMES } from "../src/lib/emoji-names-cldr";
 import { cleanForSpeech, findBlockedWord, parseBannedWords } from "../src/lib/message-filter";
 import { shouldSpeak, type SpeechSettings, type SpeechTip } from "../src/lib/tts-rules";
 
@@ -46,7 +47,7 @@ test.describe("word filter", () => {
 
 test.describe("cleanup before speech", () => {
   test("removes links, emails, emoji and symbol noise", () => {
-    expect(cleanForSpeech("hi https://x.com/a www.y.in me@a.com 🧩 **great** #stream", 300)).toBe("hi great stream");
+    expect(cleanForSpeech("hi https://x.com/a www.y.in me@a.com © **great** #stream", 300)).toBe("hi great stream");
   });
 
   test("reads common emoji aloud by name", () => {
@@ -71,6 +72,18 @@ test.describe("cleanup before speech", () => {
     expect(cleanForSpeech("nice 🦁", 300)).toBe("nice lion");
   });
 
+  test("an emoji we have no playful name for is read by its official Unicode name", () => {
+    for (const [emoji, [en, hi]] of Object.entries(CLDR_EMOJI_NAMES)) {
+      expect(EMOJI_NAMES.has(emoji), emoji).toBe(false);
+      expect(/^\p{Extended_Pictographic}$/u.test(emoji), emoji).toBe(true);
+      expect(en.length > 0 && hi.length > 0, emoji).toBe(true);
+    }
+    expect(Object.keys(CLDR_EMOJI_NAMES).length).toBeGreaterThan(900);
+    expect(cleanForSpeech("nice 🫠", 300)).toBe("nice melting face");
+    expect(cleanForSpeech("bhai mast 🫠", 300)).toBe("bhai mast पिघलता चेहरा");
+
+  });
+
   test("shortens floods", () => {
     expect(cleanForSpeech("sooooooo good!!!!!!", 300)).toBe("soo good!");
     expect(cleanForSpeech("wait......what", 300)).toBe("wait.what");
@@ -81,13 +94,13 @@ test.describe("cleanup before speech", () => {
   });
 
   test("returns null when nothing readable is left", () => {
-    expect(cleanForSpeech("🧩🧩 !!! ***", 300)).toBeNull();
+    expect(cleanForSpeech("©© !!! ***", 300)).toBeNull();
     expect(cleanForSpeech("https://x.com", 300)).toBeNull();
     expect(cleanForSpeech(null, 300)).toBeNull();
   });
 
   test("cuts to the limit after cleaning", () => {
-    expect(cleanForSpeech("🧩🧩🧩🧩 abcdef", 3)).toBe("abc");
+    expect(cleanForSpeech("©©©© abcdef", 3)).toBe("abc");
   });
 });
 

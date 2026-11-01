@@ -13,7 +13,7 @@ test.describe("test voice button rules", () => {
   });
 
   test("nothing typed, or something that is not text, is refused", () => {
-    for (const bad of ["", "   ", "🧩🧩🧩", "https://example.com", 42, null, undefined, {}]) {
+    for (const bad of ["", "   ", "©©©", "https://example.com", 42, null, undefined, {}]) {
       expect(prepareTestText(bad, 100, []).ok, String(bad)).toBe(false);
     }
   });
