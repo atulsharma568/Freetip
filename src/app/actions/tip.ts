@@ -12,6 +12,7 @@ import { checkVoicePick } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
 import { parseBirthday } from "@/lib/birthday";
 import { hasFeature } from "@/lib/plans";
+import { checkPinRequest, pinOffer } from "@/lib/pinned";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
@@ -204,6 +205,30 @@ export async function createTipOrder(
     }
   }
 
+  // A pinned message (paid highlighted messages). The fan asked for it, so a request that
+  // cannot be met is refused before payment, never silently dropped: nobody pays the
+  // minimum for a pin they will not get. Switch, minimum and message are checked here.
+  let pin = false;
+  if (extras.pin) {
+    let row: { paid_features: string[] | null; highlight_min_paise: number | null; highlight_seconds: number | null } | undefined;
+    try {
+      [row] = await db<NonNullable<typeof row>[]>`
+        select paid_features, highlight_min_paise, highlight_seconds from users where id = ${creator.id}
+      `;
+    } catch (err) {
+      console.error("Tip: could not check the pinned message offer (migration 0040 run?).", err);
+      return { status: "error", message: "Pinned messages are not available right now. Untick it to tip without one." };
+    }
+    const problem = checkPinRequest({
+      featureOn: hasFeature(row, "highlightedMessages"),
+      offer: pinOffer(row),
+      amountPaise,
+      message: fanMessage,
+    });
+    if (problem) return { status: "error", message: problem };
+    pin = true;
+  }
+
   const publicReference = `tip_${randomBytes(8).toString("hex")}`;
 
   // Create Razorpay order.
@@ -262,7 +287,7 @@ export async function createTipOrder(
            ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
         returning id
       `;
-      const columns = tipExtraColumns({ soundId, voice, birthdayMd });
+      const columns = tipExtraColumns({ soundId, voice, birthdayMd, pin });
       if (Object.keys(columns).length > 0) {
         await tx`update tip_orders set ${tx(columns)} where id = ${orders[0].id}`;
       }

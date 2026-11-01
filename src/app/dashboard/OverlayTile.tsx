@@ -5,6 +5,7 @@ import Link from "next/link";
 import ClickSpark, { type ClickSparkHandle } from "@/components/react-bits/ClickSpark";
 import { RollText } from "@/components/motion/RollText";
 import { generateOverlayLink } from "@/app/actions/creator";
+import { unpinNow } from "@/app/actions/pinned";
 import { replayLastAlert, sendTestAlert, skipAlert, type ControlResult } from "@/app/actions/overlay-controls";
 import { CopyField } from "./parts/CopyField";
 import { ConfirmAction } from "./parts/ConfirmAction";
@@ -13,7 +14,7 @@ import { pillOutline, pillPrimary } from "./parts/styles";
 
 const WARNING = "Anyone with this link can see your alerts: keep it off stream.";
 
-export function OverlayTile({ hasLink }: { hasLink: boolean }) {
+export function OverlayTile({ hasLink, canUnpin = false }: { hasLink: boolean; canUnpin?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -97,6 +98,7 @@ export function OverlayTile({ hasLink }: { hasLink: boolean }) {
                 { label: "Send test alert", action: sendTestAlert, celebrate: true },
                 { label: "Skip current alert", action: skipAlert, celebrate: false },
                 { label: "Replay last alert", action: replayLastAlert, celebrate: false },
+                ...(canUnpin ? [{ label: "Take down pinned message", action: unpinNow, celebrate: false }] : []),
               ].map((b) => (
                 <button
                   key={b.label}

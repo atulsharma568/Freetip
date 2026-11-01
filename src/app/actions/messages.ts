@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
+import type { LedgerDb } from "@/lib/accrual";
+import { pinApprovedTip } from "@/lib/pinned-db";
 
 // Its own file: a "use server" file that a server component imports is
 // evaluated on the server, and creator.ts exports plain constants.
@@ -20,7 +22,7 @@ export async function decideMessage(orderId: number, decision: "approved" | "rej
   const db = getDb();
   if (!db) return;
 
-  await db`
+  const decided = await db<{ id: number; creator_id: number }[]>`
     update tip_orders t
     set message_status = ${decision}, message_decided_at = now()
     from users u
@@ -29,6 +31,12 @@ export async function decideMessage(orderId: number, decision: "approved" | "rej
       and u.google_id = ${googleId}
       and t.message_status = 'pending'
       and t.status = 'captured'
+    returning t.id::int as id, t.creator_id::int as creator_id
   `;
+  // An approved message that the fan asked to have pinned starts its pinned time now.
+  // Its own step with its own try, so a missing migration 0040 never undoes the approval.
+  if (decision === "approved" && decided[0]) {
+    await pinApprovedTip(db as unknown as LedgerDb, decided[0].creator_id, decided[0].id);
+  }
   revalidatePath("/dashboard");
 }

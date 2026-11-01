@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { hasFeature } from "@/lib/plans";
+import { pinOffer, type PinOffer } from "@/lib/pinned";
 
 export interface CreatorRow {
   google_id: string;
@@ -93,5 +94,24 @@ export const getBirthdayOffered = cache(async (handle: string): Promise<boolean>
     return !!row?.birthday_message?.trim() && hasFeature(row, "birthdayMessage");
   } catch {
     return false;
+  }
+});
+
+// Whether the tip page offers a pinned message, and on what terms: the creator has the paid
+// highlighted messages switch on and has set a minimum tip. Read apart (migrations 0035 and
+// 0040) so the page still loads before they are run.
+export const getPinOffer = cache(async (handle: string): Promise<PinOffer | null> => {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const [row] = await db<
+      { paid_features: string[] | null; highlight_min_paise: number | null; highlight_seconds: number | null }[]
+    >`
+      select paid_features, highlight_min_paise, highlight_seconds
+      from users where handle = ${handle} and creator_status = 'active'
+    `;
+    return row && hasFeature(row, "highlightedMessages") ? pinOffer(row) : null;
+  } catch {
+    return null;
   }
 });

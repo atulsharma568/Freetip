@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBirthdayOffered, getCreator, getCreatorAccent, getTipSounds } from "./creator";
+import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
 import { accentStyle } from "@/lib/accent";
@@ -60,7 +60,11 @@ export default async function CreatorPage({ params }: Props) {
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
-  const [sounds, birthdayOffered] = await Promise.all([getTipSounds(handle), getBirthdayOffered(handle)]);
+  const [sounds, birthdayOffered, pinOffer] = await Promise.all([
+    getTipSounds(handle),
+    getBirthdayOffered(handle),
+    getPinOffer(handle),
+  ]);
   // The voice is offered only when the site switch and the creator both have it on.
   const voiceMinPaise = ttsAvailable() && creator.tts_enabled ? creator.tts_min_paise : null;
 
@@ -82,6 +86,7 @@ export default async function CreatorPage({ params }: Props) {
         bio={creator.bio}
         alertMode={creator.alert_mode}
         birthdayOffered={birthdayOffered}
+        pinOffer={pinOffer}
         previewMode={creator.creator_status !== "active"}
       />
       </div>

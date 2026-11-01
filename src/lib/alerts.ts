@@ -30,6 +30,9 @@ export interface TipRow {
   message_decided_at: Date | null;
   alert_shown_at: Date | null;
   message_shown_at: Date | null;
+  // The fan asked for this message to be pinned (paid highlighted messages). Only set by
+  // the overlay route while the creator's switch is on at play time.
+  highlight?: boolean;
 }
 
 export interface Pick {
@@ -46,13 +49,16 @@ export function pickNext(mode: AlertMode, rows: TipRow[], now: Date): Pick | nul
     const hasMessage = !!r.fan_message?.trim();
     const approved = r.message_status === "approved";
     const decided = r.message_status !== "pending";
+    // A pinned message always waits for the creator's yes, even in instant mode: that tip
+    // plays like split mode (name and amount now, the message once approved).
+    const rowMode: AlertMode = mode === "instant" && r.highlight ? "split" : mode;
 
     if (!r.alert_shown_at) {
-      if (mode === "instant") {
+      if (rowMode === "instant") {
         if (fresh(r.captured_at)) {
           return { id: r.id, kind: "alert", withMessage: hasMessage && r.message_status !== "rejected" };
         }
-      } else if (mode === "split") {
+      } else if (rowMode === "split") {
         if (fresh(r.captured_at)) {
           return { id: r.id, kind: "alert", withMessage: hasMessage && approved };
         }
@@ -73,8 +79,14 @@ export function pickNext(mode: AlertMode, rows: TipRow[], now: Date): Pick | nul
 // What the tip page's success screen may promise the fan. With no message the
 // tip plays at once in every mode; with one, the creator's mode decides when it
 // shows. Keep this in step with the rules above.
-export function tipThanksLine(anonymous: boolean, message: string, mode: AlertMode): string {
+export function tipThanksLine(anonymous: boolean, message: string, mode: AlertMode, pinned = false): string {
   const hasMessage = message.trim().length > 0;
+  // A pinned message always waits for the creator's yes, whatever their mode.
+  if (hasMessage && pinned) {
+    return mode === "approve"
+      ? "They'll see your tip and message once they approve it."
+      : "Your tip shows on stream now. Your message is pinned once they approve it.";
+  }
   if (!hasMessage) return anonymous ? "Your tip is on its way." : "They'll see your tip on stream.";
   if (mode === "approve") return "They'll see your tip and message once they approve it.";
   if (mode === "split") return "Your tip shows on stream now. Your message shows once they approve it.";

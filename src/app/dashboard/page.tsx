@@ -158,6 +158,7 @@ async function readExtraOverlays(db: Db, userId: number): Promise<{ path: string
     if (f.supportStreak) extras.push({ path: "/streak", label: "Support streak" });
     if (f.topSupporter) extras.push({ path: "/top", label: "Top supporter" });
     if (f.recentSupporters) extras.push({ path: "/recent", label: "Recent supporters" });
+    if (f.highlightedMessages) extras.push({ path: "/pinned", label: "Pinned message" });
   } catch (err) {
     console.error("Dashboard: could not read the paid features.", err);
   }
@@ -203,20 +204,41 @@ async function readGoals(db: Db, userId: number): Promise<{ goalViews: GoalView[
   }
 }
 
-// Messages waiting for approval (split and approve modes only).
+// Messages waiting for approval. Split and approve modes list every message; in instant mode
+// only a message the fan asked to pin waits (it never goes on the pinned card unapproved),
+// and only while the creator's pinned-message switch is on. The pin flag comes from migration
+// 0040, so the list falls back to the plain query when that column is missing.
 async function readPending(db: Db, userId: number, alertMode: AlertMode): Promise<PendingMessage[]> {
-  if (alertMode === "instant") return [];
-  return db<PendingMessage[]>`
-    select id::int as id, fan_name, fan_message, gross_amount_minor
-    from tip_orders
-    where creator_id = ${userId}
-      and status = 'captured'
-      and message_status = 'pending'
-      and btrim(coalesce(fan_message, '')) <> ''
-      and captured_at > now() - interval '7 days'
-    order by captured_at
-    limit 20
-  `;
+  try {
+    return await db<PendingMessage[]>`
+      select t.id::int as id, t.fan_name, t.fan_message, t.gross_amount_minor, t.highlight as pin
+      from tip_orders t
+      join users u on u.id = t.creator_id
+      where t.creator_id = ${userId}
+        and t.status = 'captured'
+        and t.message_status = 'pending'
+        and btrim(coalesce(t.fan_message, '')) <> ''
+        and t.captured_at > now() - interval '7 days'
+        and (${alertMode !== "instant"}
+             or (t.highlight and 'highlightedMessages' = any(u.paid_features)))
+      order by t.captured_at
+      limit 20
+    `;
+  } catch (err) {
+    console.error("Dashboard: could not read the pending messages with pins (migration 0040 run?).", err);
+    if (alertMode === "instant") return [];
+    return db<PendingMessage[]>`
+      select id::int as id, fan_name, fan_message, gross_amount_minor
+      from tip_orders
+      where creator_id = ${userId}
+        and status = 'captured'
+        and message_status = 'pending'
+        and btrim(coalesce(fan_message, '')) <> ''
+        and captured_at > now() - interval '7 days'
+      order by captured_at
+      limit 20
+    `;
+  }
 }
 
 // Newest captured tip, so the live island only announces tips that arrive
@@ -305,7 +327,7 @@ export default async function DashboardPage() {
   });
   const shareUrl = `https://${SITE_HOST}/${handle}`;
   const suspended = user.creator_status === "suspended";
-  const showQueue = user.alert_mode !== "instant";
+  const showQueue = user.alert_mode !== "instant" || pending.length > 0;
 
   // Handle set — three groups: what happened today, the stream, the account.
   return (
@@ -350,7 +372,7 @@ export default async function DashboardPage() {
               <div className="grid items-start gap-4 lg:grid-cols-2">
                 <div className="min-w-0 space-y-4">
                   <Tile id="alerts" title="Alerts on stream">
-                    <OverlayTile hasLink={user.has_overlay_link} />
+                    <OverlayTile hasLink={user.has_overlay_link} canUnpin={extras.some((e) => e.path === "/pinned")} />
                   </Tile>
                   {extras.length > 0 && (
                     <Tile id="overlays" title="More overlays">

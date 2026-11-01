@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
 import type { AlertMode } from "@/lib/alerts";
+import type { PinOffer } from "@/lib/pinned";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { Magnetic } from "@/components/motion/Magnetic";
@@ -121,6 +122,8 @@ interface Props {
   previewMode?: boolean;
   // The creator has the birthday message on and a greeting written: ask for a birthday.
   birthdayOffered?: boolean;
+  // The creator lets a big enough tip pin its message on stream (paid highlighted messages).
+  pinOffer?: PinOffer | null;
 }
 
 export function TipForm({
@@ -137,6 +140,7 @@ export function TipForm({
   alertMode = "split",
   previewMode = false,
   birthdayOffered = false,
+  pinOffer = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const refocusAmount = useRef(false);
@@ -154,6 +158,8 @@ export function TipForm({
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
   const [extra, setExtra] = useState<Extra>({ kind: "default" });
+  // Ask for the message to be pinned on stream (only when the creator offers it).
+  const [pin, setPin] = useState(false);
   // A short, debounced sentence for screen readers when the amount changes.
   const [announce, setAnnounce] = useState("");
 
@@ -163,7 +169,7 @@ export function TipForm({
   const [closed, setClosed] = useState(false);
   const [paidAmount, setPaidAmount] = useState(0);
   // What the fan sent, kept for the success screen (the form is cleared for "tip again").
-  const [sent, setSent] = useState({ message: "", reference: "" });
+  const [sent, setSent] = useState({ message: "", reference: "", pinned: false });
 
   // A remembered name comes back on this device. It can only be read after the
   // page is on the client, so it is filled in once the page has loaded.
@@ -203,7 +209,12 @@ export function TipForm({
   const soundTooPricey = !!chosenSound && amountPaise < chosenSound.minPaise;
   const voiceTooPricey = extra.kind === "voice" && voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceNeedsMessage = extra.kind === "voice" && !message.trim();
-  const extraBlocked = soundTooPricey || voiceTooPricey || voiceNeedsMessage || messageTooLong;
+  // A pin needs a big enough tip and a message; lowering the amount or clearing the message
+  // afterwards blocks the button until the fan fixes it or unticks the pin.
+  const pinTooPricey = pin && pinOffer !== null && amountPaise < pinOffer.minPaise;
+  const pinNeedsMessage = pin && !message.trim();
+  const extraBlocked =
+    soundTooPricey || voiceTooPricey || voiceNeedsMessage || messageTooLong || pinTooPricey || pinNeedsMessage;
   // After an error the fan can try again; only a request or the popup in flight blocks it.
   const canPay =
     !previewMode &&
@@ -258,6 +269,7 @@ export function TipForm({
         {
           soundId: extra.kind === "sound" ? extra.id : null,
           voice: extra.kind === "voice",
+          pin: pinOffer !== null && pin,
           birthday:
             birthdayOffered && !anonymous && tipName.trim() && birthMonth && birthDay
               ? { month: Number(birthMonth), day: Number(birthDay) }
@@ -300,6 +312,7 @@ export function TipForm({
           setSent({
             message: message.trim(),
             reference: result.razorpayOrderId,
+            pinned: pinOffer !== null && pin,
           });
           setPhase("success");
         },
@@ -328,6 +341,7 @@ export function TipForm({
         anonymous={anonymous}
         alertMessage={sent.message}
         alertMode={alertMode}
+        pinned={sent.pinned}
         reference={sent.reference}
         onAgain={() => {
           refocusAmount.current = true;
@@ -340,6 +354,7 @@ export function TipForm({
           setBirthMonth("");
           setBirthDay("");
           setExtra({ kind: "default" });
+          setPin(false);
           setPaidAmount(0);
         }}
       />
@@ -579,6 +594,27 @@ export function TipForm({
                 </FieldNote>
               )}
             </div>
+            {pinOffer && (
+              <div className="space-y-2 rounded-[var(--radius-field)] border border-line/60 p-4">
+                <div className="flex items-center gap-3">
+                  <Switch id="pin-toggle" checked={pin} onChange={setPin} />
+                  <label htmlFor="pin-toggle" className="cursor-pointer select-none text-sm text-text">
+                    Pin my message on stream for {pinOffer.seconds} seconds
+                  </label>
+                </div>
+                <p className="text-xs text-muted">
+                  For tips of ₹{Math.ceil(pinOffer.minPaise / 100)} or more, and there is no extra fee. {displayName} approves it
+                  first and can take it down at any time. Tips are final, so if it is not pinned or is taken down, the
+                  tip is not refunded.
+                </p>
+              </div>
+            )}
+            {pinTooPricey && pinOffer && (
+              <FieldNote>
+                Tip at least ₹{Math.ceil(pinOffer.minPaise / 100)} to pin your message, or untick the pin.
+              </FieldNote>
+            )}
+            {pinNeedsMessage && <FieldNote>Write a message to pin, or untick the pin.</FieldNote>}
             {(sounds.length > 0 || voiceMinPaise !== null) && (
               <ExtraPicker
                 sounds={sounds}

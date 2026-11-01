@@ -12,6 +12,8 @@ export interface PendingMessage {
   fan_name: string | null;
   fan_message: string;
   gross_amount_minor: string;
+  // The fan asked for this message to be pinned on stream (paid highlighted messages).
+  pin?: boolean;
 }
 
 // Messages waiting for the creator's decision. Only shown in split and approve
@@ -67,6 +69,12 @@ export function MessageQueue({ items }: { items: PendingMessage[] }) {
                   <span className="numeric shrink-0 text-accent">₹{Number(m.gross_amount_minor) / 100}</span>
                 </p>
                 <p className="break-words text-base text-text">{m.fan_message}</p>
+                {m.pin && (
+                  <p className="text-xs text-muted">
+                    The fan asked for this to be pinned on stream. It is pinned only if you approve it, and you can take it
+                    down any time.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"

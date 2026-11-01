@@ -9,9 +9,7 @@ import { ADMIN_IDLE, type AdminAction } from "@/lib/admin/action-state";
 import { FEATURES, type FeatureKey } from "@/lib/plans";
 
 // A feature that exists in the plan list but is held back by a decision, not by work.
-const BLOCKED: Partial<Record<FeatureKey, string>> = {
-  highlightedMessages: "Blocked: owner decision",
-};
+const BLOCKED: Partial<Record<FeatureKey, string>> = {};
 
 const GROUPS = [...new Set(FEATURES.map((f) => f.group))];
 const LABEL = new Map<string, string>(FEATURES.map((f) => [f.key, f.label]));

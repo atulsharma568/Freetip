@@ -186,7 +186,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         The tip still reaches the creator and stays final, even if its message is
-        held, rejected or removed for breaking these guidelines. Only payment
+        held, rejected or taken off the stream, by the creator at any time or by us
+        for breaking these guidelines. Only payment
         errors are put right, as set out in our{" "}
         <Link href="/refunds">refund and cancellation policy</Link>.
       </p>

@@ -25,6 +25,7 @@ export function SuccessScreen({
   anonymous,
   alertMessage,
   alertMode,
+  pinned = false,
   reference,
   onAgain,
 }: {
@@ -34,6 +35,8 @@ export function SuccessScreen({
   anonymous: boolean;
   alertMessage: string;
   alertMode: AlertMode;
+  // The fan asked for the message to be pinned: it waits for the creator's yes in every mode.
+  pinned?: boolean;
   reference: string;
   onAgain: () => void;
 }) {
@@ -157,7 +160,7 @@ export function SuccessScreen({
               Sent to {displayName}!
             </h1>
             <p data-pop className="max-w-[34ch] text-pretty text-base">
-              {tipThanksLine(anonymous, alertMessage, alertMode)}
+              {tipThanksLine(anonymous, alertMessage, alertMode, pinned)}
             </p>
             <div data-pop className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <button

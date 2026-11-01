@@ -10,6 +10,7 @@ import { loadAlertExtras, type Sql } from "@/lib/alert-extras";
 import { findBlockedWord } from "@/lib/message-filter";
 import { shouldSpeak } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
+import { hasFeature } from "@/lib/plans";
 
 // Polled by the OBS browser source every few seconds. Each call hands out at
 // most one alert and leases it for 60 seconds, so two open overlays don't
@@ -34,6 +35,7 @@ interface CandidateRow extends Omit<TipRow, "id"> {
   id: number | null;
   overlay_skip_at: Date | null;
   overlay_test_at: Date | null;
+  paid_features: string[] | null;
 }
 
 export async function GET(
@@ -56,7 +58,7 @@ export async function GET(
   const rows = await db<CandidateRow[]>`
     select u.id as creator_id, u.alert_mode,
            u.message_max_chars, u.tts_enabled, u.approve_before_play, u.tts_min_paise,
-           u.overlay_skip_at, u.overlay_test_at,
+           u.overlay_skip_at, u.overlay_test_at, u.paid_features,
            t.id::int as id, t.fan_name, t.fan_message, t.gross_amount_minor, t.message_status,
            t.captured_at, t.message_decided_at, t.alert_shown_at, t.message_shown_at
     from users u
@@ -90,6 +92,23 @@ export async function GET(
 
   const mode = rows[0].alert_mode;
   const tips = rows.filter((r): r is CandidateRow & { id: number } => r.id !== null);
+
+  // Tips whose fan asked to pin the message (migration 0040), read only while the creator's
+  // switch is on at play time. Those tips wait for approval even in instant mode.
+  if (tips.length && hasFeature(rows[0], "highlightedMessages")) {
+    try {
+      const pinned = await db<{ id: number }[]>`
+        select id::int as id from tip_orders
+        where creator_id = ${rows[0].creator_id} and highlight and status = 'captured'
+          and captured_at > now() - interval '1 day'
+      `;
+      const pinnedIds = new Set(pinned.map((p) => p.id));
+      for (const t of tips) t.highlight = pinnedIds.has(t.id);
+    } catch (err) {
+      console.error("Overlay: could not look up pinned messages (migration 0040 run?).", err);
+    }
+  }
+
   const next = pickNext(mode, tips, new Date());
   if (!next) return Response.json({ alert: null, controls }, { headers: NO_STORE });
 

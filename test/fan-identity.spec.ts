@@ -374,6 +374,6 @@ test.describe("switches", () => {
   test("the three features are built and can be switched on", () => {
     const f = planFeatures({ paid_features: ["fanLevels", "fanCrm", "birthdayMessage"] });
     expect(f.fanLevels && f.fanCrm && f.birthdayMessage).toBe(true);
-    expect(planFeatures({ paid_features: ["highlightedMessages"] }).highlightedMessages).toBe(false);
+    expect(planFeatures({ paid_features: ["voiceNotes"] }).voiceNotes).toBe(false);
   });
 });

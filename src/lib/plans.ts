@@ -160,9 +160,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "highlightedMessages",
     label: "Paid highlighted messages",
-    group: "Planned, not built yet",
-    description: "A fan pays extra to pin their message. Undecided, and must not appear on the site until the owner decides.",
-    built: false,
+    group: "Alert box",
+    description: "A fan who tips the creator's minimum can have their message pinned on stream for a set time (/dashboard/pinned, OBS link: alert link + /pinned). Always creator-approved first, even in instant mode, and the creator can take it down any time; the tip stays final. Never shown on the public site.",
+    built: true,
   },
 ];
 
