@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getSessionFeatures } from "@/lib/creator-features";
 import { secretBoxAvailable } from "@/lib/secret-box";
 import { SITE_URL } from "@/lib/url";
 import { youtubeConfigured } from "@/lib/youtube";
@@ -13,6 +14,7 @@ import { YT_COMMENT_SCOPE, YT_STATE_COOKIE, ytRedirectUri } from "@/lib/yt-conne
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.redirect(`${SITE_URL}/signin`);
+  if (!(await getSessionFeatures()).timestamps) return NextResponse.redirect(`${SITE_URL}/dashboard`);
   if (!youtubeConfigured() || !secretBoxAvailable()) {
     return NextResponse.redirect(`${SITE_URL}/dashboard/timestamps?yt=unavailable`);
   }

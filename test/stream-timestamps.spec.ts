@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { builtFeatureKeys } from "../src/lib/plans";
 import type { PGlite } from "@electric-sql/pglite";
 import { seal, open } from "../src/lib/secret-box";
 import { clearLiveCache, hashToken, markTipPlayed, MAX_MOMENTS_PER_STREAM, postDueComments, recordMoment, type Deps } from "../src/lib/stream-timestamps";
@@ -69,6 +70,7 @@ async function creator(pg: PGlite, over: { channel?: string; webhook?: boolean; 
       over.webhook ? seal(WEBHOOK, KEY) : null,
     ],
   );
+  await pg.query(`update users set paid_features = $1::text[] where id = $2`, [builtFeatureKeys(), r.rows[0].id]);
   return { id: Number(r.rows[0].id), token: TOKEN(seq) };
 }
 
@@ -157,11 +159,23 @@ test.describe("saving a moment from chat", () => {
   test("a blocked word is not saved as the title, but the moment still is", async () => {
     const pg = await freshDatabase();
     const c = await creator(pg);
+    // Only the creator's own list blocks words now (the built-in list was removed).
+    await pg.query(`update users set banned_words = 'madarchod' where id = $1`, [c.id]);
     const { yt, deps } = setup();
     yt.videos.set(VIDEO, video());
     expect(await say(pg, deps, c.token, "a", "you madarchod @everyone https://x.y")).toBe("Saved 12:34");
     const m = await pg.query<{ title: string | null }>(`select title from stream_timestamps`);
     expect(m.rows[0].title).toBeNull();
+  });
+
+  test("a creator it is not switched on for is told so and nothing is saved", async () => {
+    const pg = await freshDatabase();
+    const c = await creator(pg);
+    await pg.query(`update users set paid_features = '{}' where id = $1`, [c.id]);
+    const { yt, deps } = setup();
+    yt.videos.set(VIDEO, video());
+    expect(await say(pg, deps, c.token, "a", "nice play")).toBe("Timestamps are not on for this channel.");
+    expect((await pg.query(`select 1 from stream_timestamps`)).rows).toHaveLength(0);
   });
 
   test("stops at the per-stream limit", async () => {

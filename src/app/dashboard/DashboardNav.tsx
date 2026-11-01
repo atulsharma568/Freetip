@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSessionFeatures } from "@/lib/creator-features";
 
 const LINKS = [
   { key: "overview", href: "/dashboard", label: "Overview" },
@@ -8,11 +9,13 @@ const LINKS = [
 ] as const;
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
-// overview page, below the numbers.
-export function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" | "timestamps" }) {
+// overview page, below the numbers. Timestamps shows only for creators it is switched on for.
+export async function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" | "timestamps" }) {
+  const features = await getSessionFeatures();
+  const links = LINKS.filter((l) => l.key !== "timestamps" || features.timestamps);
   return (
     <nav aria-label="Dashboard" className="flex gap-2">
-      {LINKS.map((l) => (
+      {links.map((l) => (
         <Link
           key={l.key}
           href={l.href}

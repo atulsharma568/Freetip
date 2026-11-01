@@ -26,10 +26,10 @@ const load = cache(async (handle: string, videoId: string) => {
   if (!db) return null;
   try {
     const [creator] = await db<
-      { id: string; google_id: string; display_name: string | null; name: string | null; creator_status: string; plan: string | null; ts_public: boolean }[]
-    >`select id::text, google_id, display_name, name, creator_status, plan, ts_public from users where handle = ${handle}`;
+      { id: string; google_id: string; display_name: string | null; name: string | null; creator_status: string; paid_features: string[] | null; ts_public: boolean }[]
+    >`select id::text, google_id, display_name, name, creator_status, paid_features, ts_public from users where handle = ${handle}`;
     if (!creator || isClosedGoogleId(creator.google_id)) return null;
-    if (creator.creator_status !== "active" || !creator.ts_public || !planFeatures(creator.plan).highlightsPage) return null;
+    if (creator.creator_status !== "active" || !creator.ts_public || !planFeatures(creator).highlightsPage) return null;
     const stream = await loadStreamHighlights(db as unknown as LedgerDb, Number(creator.id), videoId);
     if (!stream || stream.groups.length === 0) return null;
     return { name: creator.display_name ?? creator.name ?? handle, stream };

@@ -9,6 +9,7 @@ import { isDiscordWebhookUrl, sendToDiscord, testPayload } from "@/lib/discord-w
 import { open, seal, secretBoxAvailable } from "@/lib/secret-box";
 import { hashToken } from "@/lib/stream-timestamps";
 import { MIN_TIP_PAISE } from "@/lib/money";
+import { planFeatures, type FeatureKey } from "@/lib/plans";
 import { parseDelay } from "@/lib/timestamps";
 import { SITE_URL } from "@/lib/url";
 import { createYouTubeClient } from "@/lib/youtube";
@@ -21,17 +22,24 @@ export type TsResult =
 
 const FAILED: TsResult = { status: "error", message: "Could not do that. Try again shortly." };
 
-async function creator() {
+// `feature` is the paid feature the button belongs to; null for the buttons that remove
+// something (a creator can always clean up after a feature is switched off).
+async function creator(feature: FeatureKey | null = "timestamps") {
   const session = await auth();
   if (!session?.user) redirect("/signin");
   const googleId = (session.user as { googleId?: string }).googleId;
   if (!googleId) redirect("/signin");
   const db = getDb();
   if (!db) return { ok: false as const, error: { status: "error", message: "Database unavailable. Try again shortly." } as TsResult };
-  const [row] = await db<{ id: string; handle: string | null; yt_refresh_token_enc: string | null; discord_webhook_enc: string | null }[]>`
-    select id::text, handle, yt_refresh_token_enc, discord_webhook_enc from users where google_id = ${googleId}
+  const [row] = await db<
+    { id: string; handle: string | null; yt_refresh_token_enc: string | null; discord_webhook_enc: string | null; paid_features: string[] | null }[]
+  >`
+    select id::text, handle, yt_refresh_token_enc, discord_webhook_enc, paid_features from users where google_id = ${googleId}
   `;
   if (!row?.handle) return { ok: false as const, error: { status: "error", message: "Claim your handle first." } as TsResult };
+  if (feature && !planFeatures(row)[feature]) {
+    return { ok: false as const, error: { status: "error", message: "This is not switched on for your account." } as TsResult };
+  }
   return { ok: true as const, db, row };
 }
 
@@ -111,7 +119,7 @@ export async function sendDiscordTest(): Promise<TsResult> {
 
 export async function removeDiscordWebhook(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator(null);
     if (!who.ok) return who.error;
     await who.db`update users set discord_webhook_enc = null where id = ${who.row.id}`;
     revalidatePath("/dashboard/timestamps");
@@ -126,7 +134,7 @@ export async function removeDiscordWebhook(): Promise<TsResult> {
 // Takes our copy of the YouTube permission away and tells Google to cancel it.
 export async function disconnectYouTube(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator(null);
     if (!who.ok) return who.error;
     const token = open(who.row.yt_refresh_token_enc);
     await who.db`
@@ -146,7 +154,7 @@ export async function disconnectYouTube(): Promise<TsResult> {
 // moment by themselves. Null turns them off. Never below the minimum tip.
 export async function saveTipMarks(minRupees: number | null): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator("tipMarks");
     if (!who.ok) return who.error;
     let paise: number | null = null;
     if (minRupees !== null) {
@@ -170,7 +178,7 @@ export async function saveTipMarks(minRupees: number | null): Promise<TsResult> 
 
 export async function saveHighlightsPublic(on: boolean): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator("highlightsPage");
     if (!who.ok) return who.error;
     await who.db`update users set ts_public = ${on === true} where id = ${who.row.id}`;
     revalidatePath("/dashboard/timestamps");
@@ -186,7 +194,7 @@ export async function saveHighlightsPublic(on: boolean): Promise<TsResult> {
 // the old one at once.
 export async function generateEditorLink(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator("editorLink");
     if (!who.ok) return who.error;
     const token = randomBytes(32).toString("base64url");
     await who.db`update users set ts_editor_token_hash = ${hashToken(token)} where id = ${who.row.id}`;
@@ -204,7 +212,7 @@ export async function generateEditorLink(): Promise<TsResult> {
 // the helper's config file.
 export async function generateHelperToken(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator("clipHelper");
     if (!who.ok) return who.error;
     const token = randomBytes(32).toString("base64url");
     await who.db`update users set ts_helper_token_hash = ${hashToken(token)} where id = ${who.row.id}`;
@@ -219,7 +227,7 @@ export async function generateHelperToken(): Promise<TsResult> {
 
 export async function removeHelperToken(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator(null);
     if (!who.ok) return who.error;
     await who.db`update users set ts_helper_token_hash = null, ts_helper_seen_at = null where id = ${who.row.id}`;
     revalidatePath("/dashboard/timestamps");
@@ -233,7 +241,7 @@ export async function removeHelperToken(): Promise<TsResult> {
 
 export async function removeEditorLink(): Promise<TsResult> {
   try {
-    const who = await creator();
+    const who = await creator(null);
     if (!who.ok) return who.error;
     await who.db`update users set ts_editor_token_hash = null where id = ${who.row.id}`;
     revalidatePath("/dashboard/timestamps");

@@ -48,7 +48,7 @@ type Row = Record<string, unknown>;
 type Creator = {
   id: string;
   creator_status: string;
-  plan: string | null;
+  paid_features: string[] | null;
   yt_channel_id: string | null;
   ts_delay_seconds: number;
   banned_words: string | null;
@@ -151,7 +151,7 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
   let creator: Creator | undefined;
   try {
     [creator] = await db<Creator[]>`
-      select id::text, creator_status, plan, yt_channel_id, ts_delay_seconds, banned_words,
+      select id::text, creator_status, paid_features, yt_channel_id, ts_delay_seconds, banned_words,
              yt_refresh_token_enc, discord_webhook_enc
         from users where ts_token_hash = ${tokenHash}
     `;
@@ -162,7 +162,7 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
   if (!creator || creator.creator_status === "suspended") {
     return "This timestamp command is not set up. Make a new one in Freetip.";
   }
-  if (!planFeatures(creator.plan).timestamps) return "Timestamps are not on for this channel.";
+  if (!planFeatures(creator).timestamps) return "Timestamps are not on for this channel.";
 
   const user = cleanUser(input.user);
   try {
@@ -223,12 +223,12 @@ type AutoMark = { creatorId: number; source: "tip" | "goal"; label: string; ref:
 export async function recordAutoMark(db: LedgerDb, deps: Deps, mark: AutoMark): Promise<AutoMarkResult> {
   try {
     const [creator] = await db<(Creator & { ts_tip_min_paise: number | null })[]>`
-      select id::text, creator_status, plan, yt_channel_id, ts_delay_seconds, banned_words,
+      select id::text, creator_status, paid_features, yt_channel_id, ts_delay_seconds, banned_words,
              yt_refresh_token_enc, discord_webhook_enc, ts_tip_min_paise
         from users where id = ${mark.creatorId}
     `;
     if (!creator || creator.creator_status === "suspended" || creator.ts_tip_min_paise === null) return "off";
-    if (!planFeatures(creator.plan).tipMarks) return "off";
+    if (!planFeatures(creator).tipMarks) return "off";
 
     const videoId = await liveVideoId(creator, deps);
     if (!videoId || !isVideoId(videoId)) return "not_live";

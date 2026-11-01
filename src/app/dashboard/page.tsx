@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
+import { planFeatures } from "@/lib/plans";
 import { PageShell } from "@/components/PageShell";
 import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
@@ -142,6 +143,21 @@ export default async function DashboardPage() {
       accent = found?.accent ?? null;
     } catch (err) {
       console.error("Dashboard: could not read the accent colour.", err);
+    }
+  }
+
+  // Which extra overlays are switched on for this creator (migration 0035), read apart
+  // so the dashboard loads before it is run.
+  const extras: { path: string; label: string }[] = [];
+  if (db && user) {
+    try {
+      const [found] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${user.id}`;
+      const f = planFeatures(found);
+      if (f.supportStreak) extras.push({ path: "/streak", label: "Support streak" });
+      if (f.topSupporter) extras.push({ path: "/top", label: "Top supporter" });
+      if (f.recentSupporters) extras.push({ path: "/recent", label: "Recent supporters" });
+    } catch (err) {
+      console.error("Dashboard: could not read the paid features.", err);
     }
   }
 
@@ -343,6 +359,24 @@ export default async function DashboardPage() {
           </h2>
           <OverlayTile hasLink={user.has_overlay_link} />
         </div>
+
+        {extras.length > 0 && (
+          <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
+            <h2 className="text-sm font-medium uppercase tracking-widest text-muted">More overlays</h2>
+            <p className="text-sm text-muted">
+              Add your alert link to OBS as another Browser source and put the ending below on it. Each one shows
+              nothing until there is something to show, and the page colour you picked is used.
+            </p>
+            <ul className="space-y-1 text-sm">
+              {extras.map((e) => (
+                <li key={e.path} className="flex justify-between gap-4">
+                  <span className="text-text">{e.label}</span>
+                  <span className="numeric text-muted">{e.path}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {ttsAvailable() && user.creator_status !== "suspended" && (
           <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">

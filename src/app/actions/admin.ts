@@ -9,6 +9,7 @@ import type { LedgerDb, SweepResult } from "@/lib/accrual";
 import { syncBooks } from "@/lib/books-sync";
 import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
+import { builtFeatureKeys, sanitizeFeatureKeys } from "@/lib/plans";
 
 type CreatorStatus = "pending" | "active" | "suspended";
 
@@ -60,6 +61,39 @@ export async function resetCreatorAccent(creatorId: number): Promise<void> {
   if (!db) throw new Error("Database unavailable");
   await db`update users set accent = null where id = ${creatorId}`;
   revalidatePath("/admin/creators");
+}
+
+// Turns paid features on or off for one creator (the owner's per-creator switches,
+// stored in users.paid_features). `intent` is "save" (the ticked boxes), "all" (every
+// feature that exists) or "none". Each change is written to the audit trail.
+export async function setCreatorFeatures(creatorId: number, formData: FormData): Promise<void> {
+  await requireOwner();
+  if (!Number.isSafeInteger(creatorId) || creatorId < 1) return;
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  const intent = formData.get("intent");
+  const keys =
+    intent === "all"
+      ? builtFeatureKeys()
+      : intent === "none"
+        ? []
+        : sanitizeFeatureKeys(formData.getAll("feature").filter((v): v is string => typeof v === "string"));
+
+  await db.begin(async (tx) => {
+    const [before] = await tx<{ paid_features: string[] }[]>`
+      select paid_features from users where id = ${creatorId} for update
+    `;
+    if (!before) return;
+    await tx`update users set paid_features = ${keys}::text[] where id = ${creatorId}`;
+    await tx`
+      insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
+      values (null, 'owner', 'creator.features_changed', 'user', ${String(creatorId)},
+              ${tx.json({ features: before.paid_features })}, ${tx.json({ features: keys })}, 'set by the owner')
+    `;
+  });
+  revalidatePath(`/admin/creators/${creatorId}`);
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function rejectCreatorOnboarding(creatorId: number): Promise<void> {

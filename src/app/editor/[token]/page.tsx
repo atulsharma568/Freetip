@@ -28,14 +28,14 @@ export default async function EditorPage({ params }: { params: Promise<{ token: 
   if (!db) notFound();
 
   const hash = createHash("sha256").update(token).digest("hex");
-  let creator: { id: string; name: string; plan: string | null } | undefined;
+  let creator: { id: string; name: string; paid_features: string[] | null } | undefined;
   let streams: Awaited<ReturnType<typeof loadRecentHighlights>> = [];
   try {
-    [creator] = await db<{ id: string; name: string; plan: string | null }[]>`
-      select id::text, coalesce(display_name, name, handle, 'the creator') as name, plan
+    [creator] = await db<{ id: string; name: string; paid_features: string[] | null }[]>`
+      select id::text, coalesce(display_name, name, handle, 'the creator') as name, paid_features
         from users where ts_editor_token_hash = ${hash} and creator_status <> 'suspended'
     `;
-    if (creator && planFeatures(creator.plan).editorLink) {
+    if (creator && planFeatures(creator).editorLink) {
       streams = await loadRecentHighlights(db as unknown as LedgerDb, Number(creator.id));
     } else {
       creator = undefined;

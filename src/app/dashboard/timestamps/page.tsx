@@ -48,11 +48,12 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
 
-  const [user] = await db<{ id: string; handle: string | null; plan: string | null }[]>`
-    select id::text, handle, plan from users where google_id = ${googleId}
+  const [user] = await db<{ id: string; handle: string | null; paid_features: string[] | null }[]>`
+    select id::text, handle, paid_features from users where google_id = ${googleId}
   `;
   if (!user?.handle) redirect("/dashboard");
-  if (!planFeatures(user.plan).timestamps) redirect("/dashboard");
+  const features = planFeatures(user);
+  if (!features.timestamps) redirect("/dashboard");
 
   let migrated = true;
   let state = { hasLink: false, delay: 22, youtube: false, reconnect: false, discord: false };
@@ -136,10 +137,10 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
             discordConnected={state.discord}
             notice={notice ?? null}
             extras={extras}
-            tipPlan={planFeatures(user.plan).tipMarks}
-            highlightsPlan={planFeatures(user.plan).highlightsPage}
-            editorPlan={planFeatures(user.plan).editorLink}
-            clipPlan={planFeatures(user.plan).clipHelper}
+            tipPlan={features.tipMarks}
+            highlightsPlan={features.highlightsPage}
+            editorPlan={features.editorLink}
+            clipPlan={features.clipHelper}
             helper={helper}
             bufferSeconds={replayBufferNeeded(state.delay)}
           />

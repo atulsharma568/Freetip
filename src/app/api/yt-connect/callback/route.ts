@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getSessionFeatures } from "@/lib/creator-features";
 import { getDb } from "@/lib/db";
 import { seal, secretBoxAvailable } from "@/lib/secret-box";
 import { SITE_URL } from "@/lib/url";
@@ -19,6 +20,8 @@ export async function GET(request: Request) {
   const session = await auth();
   const googleId = (session?.user as { googleId?: string } | undefined)?.googleId;
   if (!googleId) return NextResponse.redirect(`${SITE_URL}/signin`);
+
+  if (!(await getSessionFeatures()).timestamps) return back("yt=unavailable");
 
   const params = new URL(request.url).searchParams;
   const cookie = request.headers.get("cookie")?.split(/;\s*/).find((c) => c.startsWith(`${YT_STATE_COOKIE}=`))?.split("=")[1];

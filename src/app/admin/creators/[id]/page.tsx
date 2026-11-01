@@ -5,6 +5,8 @@ import { getCreatorDetail } from "@/lib/admin/creator-detail";
 import { formatINR } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
+import { setCreatorFeatures } from "@/app/actions/admin";
+import { FEATURES } from "@/lib/plans";
 import { CouldNotRead, FinanceNotSetUp } from "../../_components/Notices";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,18 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!result.ok) return <CouldNotRead detail={result.error} />;
   const c = result.data;
   if (!c) notFound();
+
+  // Paid features (migration 0035), read apart so this page loads before it is run.
+  let granted: string[] | null = [];
+  try {
+    const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${Number(id)}`;
+    granted = f?.paid_features ?? [];
+  } catch (err) {
+    console.error("Admin creator: could not read the paid features (migration 0035 run?).", err);
+    granted = null;
+  }
+  const save = setCreatorFeatures.bind(null, Number(id));
+  const groups = [...new Set(FEATURES.map((f) => f.group))];
 
   const rows: [string, string][] = [
     ["Email", c.email],
@@ -60,6 +74,76 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           </div>
         ))}
       </dl>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Paid features</h2>
+          <p className="text-xs text-muted">
+            Everything is off until you tick it here, for this creator only. Creators never see a plan or a price;
+            a feature that is off is simply not shown to them. Planned features that are not built yet are listed
+            so you can see what is coming, but cannot be switched on.
+          </p>
+        </div>
+        {granted === null ? (
+          <p role="alert" className="rounded-2xl border border-control bg-surface px-4 py-3 text-sm text-text">
+            Could not read the switches. Run migration 0035 in Neon.
+          </p>
+        ) : (
+          <form action={save} className="space-y-4">
+            {groups.map((group) => (
+              <fieldset key={group} className="space-y-2 rounded-2xl border border-control p-4">
+                <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{group}</legend>
+                {FEATURES.filter((f) => f.group === group).map((f) => {
+                  const on = granted.includes(f.key);
+                  return (
+                    <label key={f.key} className={`flex items-start gap-3 text-sm ${f.built ? "" : "opacity-60"}`}>
+                      <input
+                        type="checkbox"
+                        name="feature"
+                        value={f.key}
+                        defaultChecked={f.built && on}
+                        disabled={!f.built}
+                        className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
+                      />
+                      <span>
+                        <span className="text-text">{f.label}</span>
+                        {f.needsTimestamps && <span className="text-muted"> (needs Stream timestamps)</span>}
+                        <span className="block text-xs text-muted">{f.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+            ))}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                name="intent"
+                value="save"
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-ink"
+              >
+                Save
+              </button>
+              <button
+                type="submit"
+                name="intent"
+                value="all"
+                className="rounded-xl border border-control px-4 py-2 text-sm text-text hover:border-muted"
+              >
+                Turn on everything that exists
+              </button>
+              <button
+                type="submit"
+                name="intent"
+                value="none"
+                className="rounded-xl border border-control px-4 py-2 text-sm text-text hover:border-muted"
+              >
+                Turn all off
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-text">Latest tips</h2>

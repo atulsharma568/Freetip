@@ -184,3 +184,19 @@ Neither publishes payout rules, so the payout design question is not answered.
 - YouTube membership detection.
 - Chat bot and broad multi-platform support.
 - Instant payout or zero-hold promises before the account model is verified.
+
+## Strimome (added 2026-11-01)
+
+Indian streamer tipping site, `strimome.in`. A client-rendered React app (Firebase and Razorpay), so search engines see an empty page; read from its public JavaScript, not from watching it run. Fee numbers sit in its admin settings and are not public. Tagline: "Where support becomes a stream moment"; promises same-day payouts.
+
+Ideas worth taking (all switched off by default; the owner turns them on per creator in `/admin/creators/<id>`, see `src/lib/plans.ts`):
+
+- Support streak overlay (a counter with a countdown that keeps going while tips keep coming). Built 2026-11-01.
+- Top supporter and recent supporters overlays, each with its own OBS link. Built 2026-11-01.
+- Fan voice notes priced by length (5, 10, 15, 20 seconds), sold to creators as a paid subscription. Planned.
+- Themed alert styles, many fonts, GIF placement. Planned.
+- Birthday message. Planned. Fan levels, a fan list and paid highlighted messages are also on the planned list.
+- Remember the fan's name on their device (no account): not built, not gated, a free fan-side convenience.
+- A TEST badge on test alerts and warnings never to show the overlay link on stream: not built, copy-only.
+
+Not taken for now: international tips in USD, EUR and GBP (their code shows a 7% fee, a ₹200 cap and a separate 7-day settlement; it touches the same money rules as our payout engine), settle-on-demand (blocked by the aggregation question in `docs/rules-check.md`), a public streamer directory, and fan accounts with a follow list.

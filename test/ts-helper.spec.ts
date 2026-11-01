@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { builtFeatureKeys } from "../src/lib/plans";
 import type { PGlite } from "@electric-sql/pglite";
 import { hashToken } from "../src/lib/stream-timestamps";
 import {
@@ -33,6 +34,7 @@ async function creator(pg: PGlite, over: { helper?: string | null; status?: stri
       over.helper === null ? null : hashToken(over.helper ?? tok("h", seq)), over.delay ?? 22,
     ],
   );
+  await pg.query(`update users set paid_features = $1::text[] where id = $2`, [builtFeatureKeys(), r.rows[0].id]);
   return { id: Number(r.rows[0].id), token: tok("h", seq) };
 }
 

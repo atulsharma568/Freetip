@@ -33,11 +33,11 @@ export type HelperLookup = { ok: true; creator: HelperCreator } | { ok: false };
 // Whose helper this is. A wrong, suspended or ungated token is just "not found".
 export async function findHelperCreator(db: LedgerDb, token: string): Promise<HelperLookup> {
   if (!TOKEN_PATTERN.test(token)) return { ok: false };
-  const [row] = await db<{ id: string; delay: number; plan: string | null; creator_status: string }[]>`
-    select id::text, ts_delay_seconds as delay, plan, creator_status
+  const [row] = await db<{ id: string; delay: number; paid_features: string[] | null; creator_status: string }[]>`
+    select id::text, ts_delay_seconds as delay, paid_features, creator_status
       from users where ts_helper_token_hash = ${hashToken(token)}
   `;
-  if (!row || row.creator_status === "suspended" || !planFeatures(row.plan).clipHelper) return { ok: false };
+  if (!row || row.creator_status === "suspended" || !planFeatures(row).clipHelper) return { ok: false };
   return { ok: true, creator: { id: row.id, delaySeconds: row.delay } };
 }
 
