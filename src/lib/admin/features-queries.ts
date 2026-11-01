@@ -15,6 +15,7 @@ export interface FeatureMatrixRow {
   handle: string | null;
   email: string;
   effective: PlanFeatures;
+  granted: string[];
   anyOn: boolean;
 }
 
@@ -31,7 +32,7 @@ export interface FeatureMatrix {
 
 export function getFeatureMatrix(
   db: LedgerDb,
-  opts: { onlyOn: boolean },
+  opts: { onlyOn: boolean; q?: string },
   pageSize = FEATURES_PAGE_SIZE,
 ): Promise<Loaded<FeatureMatrix>> {
   return load("the paid features", async () => {
@@ -54,10 +55,15 @@ export function getFeatureMatrix(
         handle: u.handle,
         email: u.email,
         effective,
+        granted: u.paid_features ?? [],
         anyOn: FEATURES.some((f) => effective[f.key]),
       };
     });
-    const listed = opts.onlyOn ? rows.filter((r) => r.anyOn) : rows;
+    const q = (opts.q ?? "").trim().toLowerCase();
+    const found = q
+      ? rows.filter((r) => [r.name, r.email, r.handle].some((v) => v?.toLowerCase().includes(q)))
+      : rows;
+    const listed = opts.onlyOn && !q ? found.filter((r) => r.anyOn) : found;
     return {
       rows: listed.slice(0, pageSize),
       counts,
