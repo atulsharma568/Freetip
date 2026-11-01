@@ -53,3 +53,8 @@ next-env.d.ts
 
 waitlist-*.csv
 
+
+# voice word exports (fan-typed words, keep private) and the offline model venv
+/voice-words*.csv
+/indicxlit-review*.csv
+/.venv-indicxlit/
