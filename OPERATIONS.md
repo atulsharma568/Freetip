@@ -51,7 +51,10 @@ npm run lint                # eslint
 npm run build               # production build
 npx playwright test -c playwright.unit.config.ts test/<file>.spec.ts   # fast tests, no browser or build
 npm run test:e2e            # full tests; needs Chromium (npx playwright install chromium); CI runs these too
+npm run emoji:refresh       # re-download Unicode's emoji names for the voice (see below)
 ```
+
+**Refreshing the emoji names (about once a year, after Unicode's autumn release).** The voice reads every emoji: our own funny Hindi and plain English names are in `src/lib/emoji-names.ts` (edit a line there to change one, no command needed), and every other emoji falls back to Unicode's official name in `src/lib/emoji-names-cldr.ts`. That second file is generated, never edited by hand. To pick up new emoji: run `npm run emoji:refresh` (needs internet), look at `git diff` (only new emoji should be added), run the type check and the tests, then commit and push. It downloads the files itself and never overwrites a name from `emoji-names.ts`.
 
 A change is "done" when type check, lint and build pass. CI (`.github/workflows/ci.yml`) runs on every push to `main`; check the Actions tab on GitHub.
 
