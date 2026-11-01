@@ -116,6 +116,8 @@ curl.exe -H "Authorization: Bearer $t" https://freetip.in/api/cron/tip-text-purg
 
 Sign in with the Google account whose ID is in `OWNER_GOOGLE_IDS`. Pages: Overview; Finance (balances, creators, payments, settlements); Reconciliation (**Sync** button posts missed tips to the books); Audit log; Creators (accent reset, suspend); Messages (contact form; mark handled); Sounds (remove a creator's sound); Voice words (`/admin/tts-words`, edit the Hinglish dictionary and download the unknown-word log). Money numbers: `src/lib/money.ts` (5% fee plus 2.75% processing charge) and `src/lib/balances.ts` (payout minimum, holds).
 
+Voice word suggestions (optional, offline, on one computer only): `docs/indicxlit.md`. Setup once per computer, run when `/admin/tts-words` has new words.
+
 ## 9. How the pieces connect
 
 - Fan tip page `/<handle>` creates an order, Razorpay takes the payment, Razorpay calls `/api/webhooks/razorpay`, the tip is marked captured and posted to the ledger.

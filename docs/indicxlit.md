@@ -27,3 +27,24 @@ unclear and its word lists are tiny.
 
 `--no-model` checks the file handling without the model. The CSV holds words fans
 typed, so both CSV files are git-ignored and must never be committed.
+
+## One-time setup, repeat run
+
+- **Setup is once per computer.** The virtual environment (`.venv-indicxlit`) stays
+  on that computer; it is not in git, so a second computer needs its own setup.
+- **Running is repeated**, only when `/admin/tts-words` has collected enough new
+  unknown words (say once a month, or after a busy stream week). Each run is steps 1,
+  3 and 4 above, a few minutes.
+- You do not need it on every computer. Pick one. The export is a download from the
+  admin page, so it works from any computer's browser.
+
+## On the Windows PC
+
+The script is in the repo, so `git pull` brings it. Untested on Windows: `fairseq`
+(a dependency of IndicXlit) often fails to build there. Easiest options, in order:
+1. Do the run on the Mac, copy only `indicxlit-review.csv` across, and give it to
+   we on any computer.
+2. Use WSL (Ubuntu) on the PC and follow the Mac steps inside it.
+3. Native Windows: install Python 3.10 and the Visual Studio Build Tools, then use
+   `py -3.10 -m venv .venv-indicxlit`, `.venv-indicxlit\Scripts\activate`, and the
+   same `pip install`. If it fails, use option 1 or 2.
