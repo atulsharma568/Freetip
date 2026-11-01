@@ -78,6 +78,7 @@ export default async function CreatorPage({ params }: Props) {
         minTipPaise={creator.min_tip_paise}
         messageMaxChars={creator.message_max_chars}
         bio={creator.bio}
+        alertMode={creator.alert_mode}
         previewMode={creator.creator_status !== "active"}
       />
       </div>

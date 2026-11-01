@@ -2,6 +2,7 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { tipThanksLine, type AlertMode } from "@/lib/alerts";
 import Image from "next/image";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Switch } from "@/components/ui/Switch";
@@ -232,6 +233,7 @@ function SuccessScreen({
   anonymous,
   alertName,
   alertMessage,
+  alertMode,
   reference,
   onAgain,
 }: {
@@ -241,6 +243,7 @@ function SuccessScreen({
   anonymous: boolean;
   alertName: string;
   alertMessage: string;
+  alertMode: AlertMode;
   reference: string;
   onAgain: () => void;
 }) {
@@ -361,7 +364,7 @@ function SuccessScreen({
         </p>
         <p className="success-line text-xl font-semibold text-text">Sent to {displayName}!</p>
         <p className="success-line text-sm text-muted">
-          {anonymous ? "Your tip is on its way." : "They'll see your message on stream."}
+          {tipThanksLine(anonymous, alertMessage, alertMode)}
         </p>
       </div>
       <div className="success-line flex flex-wrap justify-center gap-2">
@@ -403,6 +406,8 @@ interface Props {
   // Smallest tip that can have its message read aloud, or null when the voice is
   // not offered (the site switch or the creator has it off).
   voiceMinPaise: number | null;
+  // How the creator plays alerts, so the success screen only promises what will happen.
+  alertMode?: AlertMode;
   previewMode?: boolean;
 }
 
@@ -417,6 +422,7 @@ export function TipForm({
   bio,
   sounds,
   voiceMinPaise,
+  alertMode = "split",
   previewMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -432,6 +438,8 @@ export function TipForm({
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  // Set when the fan closes the payment window without paying.
+  const [closed, setClosed] = useState(false);
   const [paidAmount, setPaidAmount] = useState(0);
   // What the fan sent, kept for the success screen (the form is cleared for "send another").
   const [sent, setSent] = useState({ name: "Anonymous", message: "", reference: "" });
@@ -480,6 +488,7 @@ export function TipForm({
 
   async function handlePay() {
     if (!canPay) return;
+    setClosed(false);
     setPhase("creating");
     setErrorMsg("");
 
@@ -537,6 +546,7 @@ export function TipForm({
         modal: {
           ondismiss: () => {
             setPhase("idle");
+            setClosed(true);
           },
         },
       });
@@ -558,8 +568,10 @@ export function TipForm({
         anonymous={anonymous}
         alertName={sent.name}
         alertMessage={sent.message}
+        alertMode={alertMode}
         reference={sent.reference}
         onAgain={() => {
+          setClosed(false);
           setPhase("idle");
           setMessage("");
           setTipName("");
@@ -588,7 +600,7 @@ export function TipForm({
       <div className="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-14">
         {/* Left on wide screens (sticky), above the form on phones */}
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">
-          <section className="tip-section space-y-5" aria-label="Creator">
+          <section className="tip-section order-1 space-y-5" aria-label="Creator">
             <div className="flex items-center gap-4">
               {pictureUrl && (
                 <Image
@@ -626,7 +638,7 @@ export function TipForm({
             </ul>
           </section>
 
-          <section className="tip-section space-y-3" aria-label="Alert preview">
+          <section className="tip-section order-3 space-y-3 lg:order-none" aria-label="Alert preview">
             <p className={sectionLabel}>Preview on stream</p>
             <AlertCard
               name={alertName}
@@ -639,7 +651,7 @@ export function TipForm({
         </div>
 
         {/* The tip */}
-        <div className="tip-section space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 sm:p-8">
+        <div className="tip-section order-2 space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 sm:p-8 lg:order-none">
           {/* 01 Amount */}
           <fieldset className="space-y-3">
             <legend className="sr-only">Amount</legend>
@@ -697,7 +709,7 @@ export function TipForm({
                   onChange={(e) => setCustom(e.target.value)}
                   placeholder="Enter amount"
                   aria-label="Custom tip amount in rupees"
-                  className="numeric w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+                  className="numeric w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground pl-8 pr-4 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
                 />
               </div>
             )}
@@ -725,7 +737,7 @@ export function TipForm({
                 onChange={(e) => setTipName(e.target.value)}
                 placeholder={anonymous ? "Hidden" : "Riya, Kabir…"}
                 disabled={anonymous}
-                className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color,opacity] duration-200 focus:border-accent focus:outline-none disabled:opacity-40"
+                className="w-full h-12 rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted transition-[border-color,opacity] duration-200 focus:border-accent disabled:opacity-40"
               />
             </div>
             <div className="space-y-2">
@@ -739,7 +751,7 @@ export function TipForm({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Great stream today!"
-                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent focus:outline-none"
+                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent"
               />
               <p aria-live={nearLimit ? "polite" : "off"} className="text-right text-xs text-muted">
                 {message.length}/{messageLimit}
@@ -781,7 +793,17 @@ export function TipForm({
           {/* 03 Send */}
           <div className="space-y-4">
             <StepHeading n={3} title="Send" />
-            <p className="text-sm text-muted">You pay exactly the tip. No account or email needed.</p>
+            <p className="text-sm text-muted">
+              Pay with UPI or a card. You pay exactly the tip, and no account or email is needed.
+            </p>
+            {message.trim() && <p className="text-sm text-muted">Your message may appear on stream.</p>}
+
+            {closed && phase === "idle" && (
+              <p role="status" className="text-sm text-muted">
+                Payment window closed. If it went through, your tip still reaches {displayName}; otherwise you
+                weren&apos;t charged.
+              </p>
+            )}
 
             {phase === "error" && (
               <p role="alert" className="text-sm text-red-400">

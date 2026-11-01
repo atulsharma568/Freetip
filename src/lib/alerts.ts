@@ -69,3 +69,14 @@ export function pickNext(mode: AlertMode, rows: TipRow[], now: Date): Pick | nul
   }
   return null;
 }
+
+// What the tip page's success screen may promise the fan. With no message the
+// tip plays at once in every mode; with one, the creator's mode decides when it
+// shows. Keep this in step with the rules above.
+export function tipThanksLine(anonymous: boolean, message: string, mode: AlertMode): string {
+  const hasMessage = message.trim().length > 0;
+  if (!hasMessage) return anonymous ? "Your tip is on its way." : "They'll see your tip on stream.";
+  if (mode === "approve") return "They'll see your tip and message once they approve it.";
+  if (mode === "split") return "Your tip shows on stream now. Your message shows once they approve it.";
+  return anonymous ? "Your tip is on its way." : "They'll see your message on stream.";
+}
