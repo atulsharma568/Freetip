@@ -6,6 +6,9 @@ import { OPERATOR, PLACEHOLDER, type OperatorKey } from "@/lib/legal";
 export function Fill({ k }: { k: OperatorKey }) {
   const value = OPERATOR[k];
   if (value) return <>{value}</>;
+  // The owner confirmed (2026-11-01) there is no GST registration. Set `gstin` in
+  // lib/legal.ts if that changes.
+  if (k === "gstin") return <>Not registered for GST</>;
   return (
     <span className="rounded bg-accent/15 px-1 font-medium text-accent">
       [{PLACEHOLDER[k]}]

@@ -8,6 +8,6 @@ import { SITE_URL } from "@/lib/url";
 const LEGAL_PATHS = ["/about", "/pricing", "/contact", "/terms", "/privacy", "/refunds", "/delivery", "/community-guidelines"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = ["", "/privacy", "/terms", ...(LEGAL_DRAFT ? [] : LEGAL_PATHS)];
+  const paths = [...new Set(["", "/privacy", "/terms", ...(LEGAL_DRAFT ? [] : LEGAL_PATHS)])];
   return paths.map((path) => ({ url: `${SITE_URL}${path}` }));
 }

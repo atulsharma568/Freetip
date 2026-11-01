@@ -14,7 +14,7 @@ export const OPERATOR = {
   grievanceOfficer: "Atul Sharma",
   grievanceDesignation: "Founder",
   grievanceEmail: "",
-  gstin: "", // leave empty if not registered for GST
+  gstin: "", // empty means "Not registered for GST" on the pages (owner, 2026-11-01)
   dataRegion: "Singapore (AWS ap-southeast-1)", // where the database and server run
 };
 
@@ -35,9 +35,9 @@ export const PLACEHOLDER: Record<OperatorKey, string> = {
   dataRegion: "Data region",
 };
 
-// Shown on every legal page until the details above are filled in and a
-// lawyer has reviewed the text.
-export const LEGAL_DRAFT = true;
+// True shows the draft banner on every legal page and keeps them out of search.
+// Turned off by the owner on 2026-11-01 without a legal review (no budget).
+export const LEGAL_DRAFT = false;
 
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;

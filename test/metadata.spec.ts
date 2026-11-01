@@ -30,6 +30,7 @@ test.describe("search and sharing metadata", () => {
       (match) => new URL(match[1]).pathname,
     );
     expect(locations).toContain("/");
+    expect(locations).toEqual(expect.arrayContaining(["/terms", "/privacy", "/contact"]));
     // /signup and /signin are noindex, so they stay out of the sitemap.
     expect(locations).not.toContain("/signup");
     expect(locations).not.toContain("/signin");
@@ -72,13 +73,13 @@ test.describe("search and sharing metadata", () => {
     );
   });
 
-  for (const route of ["/terms", "/privacy"]) {
-    test(`${route} has a noindex robots meta tag`, async ({ page }) => {
+  // The draft switch is off (owner, 2026-11-01): policy pages are indexable and listed.
+  for (const route of ["/terms", "/privacy", "/contact"]) {
+    test(`${route} is indexable and has no draft banner`, async ({ page }) => {
       await page.goto(route, { waitUntil: "domcontentloaded" });
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-        "content",
-        /noindex/i,
-      );
+      await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
+      await expect(page.getByText("waiting for legal review")).toHaveCount(0);
+      await expect(page.getByText("[", { exact: false }).filter({ hasText: /^\[[A-Za-z ,']+\]$/ })).toHaveCount(0);
     });
   }
 
