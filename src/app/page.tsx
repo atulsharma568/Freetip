@@ -39,7 +39,7 @@ export default function Home() {
           <Faq />
           <Closer />
         </main>
-        <Footer onHome />
+        <Footer />
       </div>
     </>
   );

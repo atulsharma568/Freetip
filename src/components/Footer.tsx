@@ -3,14 +3,6 @@ import { SITE_NAME } from "@/lib/site";
 import { OPERATOR } from "@/lib/legal";
 import { Logo } from "@/components/logo/Logo";
 
-const SECTIONS = [
-  { href: "#how", label: "How it works" },
-  { href: "#stream", label: "On stream" },
-  { href: "#why", label: "Why Freetip" },
-  { href: "#fees", label: "Fees" },
-  { href: "#faq", label: "FAQ" },
-];
-
 const GROUPS = [
   {
     title: "Company",
@@ -33,24 +25,14 @@ const GROUPS = [
   },
 ];
 
-// Site footer on every page: the home page's sections, company pages and
-// every policy page (payment partners expect policy links on every page).
-// Off the home page, section links point back to it.
-export function Footer({ onHome = false }: { onHome?: boolean }) {
-  const groups = [
-    {
-      title: "Product",
-      links: SECTIONS.map((s) => ({ href: onHome ? s.href : `/${s.href}`, label: s.label })),
-    },
-    ...GROUPS,
-  ];
-  // Product links (section anchors) fill with lime; the rest draw a line.
-  const linkClass = (title: string) =>
-    `${title === "Product" ? "link-fill" : "link-line"} transition-colors duration-200 hover:text-text`;
+// Site footer on every page: company pages and every policy page (payment
+// partners expect policy links on every page).
+export function Footer() {
+  const linkClass = "link-line transition-colors duration-200 hover:text-text";
 
   return (
     <footer className="border-t border-line/60">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <Link href="/" aria-label={`${SITE_NAME} home`} className="block w-fit text-text">
             <Logo interactive className="h-10 w-auto" />
@@ -59,18 +41,18 @@ export function Footer({ onHome = false }: { onHome?: boolean }) {
             Tips for Indian YouTube streamers, paid by UPI or card. Not live yet.
           </p>
         </div>
-        {groups.map((group) => (
+        {GROUPS.map((group) => (
           <nav key={group.title} aria-label={group.title}>
             <p className="text-sm font-semibold">{group.title}</p>
             <ul className="mt-3 space-y-2 text-sm text-muted">
               {group.links.map((item) => (
                 <li key={item.href}>
                   {item.href.startsWith("/") && !item.href.startsWith("/#") ? (
-                    <Link href={item.href} className={linkClass(group.title)}>
+                    <Link href={item.href} className={linkClass}>
                       {item.label}
                     </Link>
                   ) : (
-                    <a href={item.href} className={linkClass(group.title)}>
+                    <a href={item.href} className={linkClass}>
                       {item.label}
                     </a>
                   )}
