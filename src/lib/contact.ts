@@ -2,13 +2,34 @@
 // action, which checks every field again before saving anything.
 import { EMAIL_PATTERN } from "@/lib/waitlist";
 
+// `hint` is the one line shown under the topic once it is chosen, so people send
+// what we need the first time.
 export const CONTACT_TOPICS = [
-  { value: "general", label: "A question" },
-  { value: "payment", label: "A payment problem" },
-  { value: "creator", label: "My creator account" },
-  { value: "report", label: "Report a page or message" },
-  { value: "privacy", label: "A privacy request" },
+  { value: "general", label: "A question", hint: "Ask anything about how Freetip works." },
+  {
+    value: "payment",
+    label: "A payment problem",
+    hint: "Add the payment ID or UTR, the amount, the date and the creator's handle. Never send a PIN, OTP or card number.",
+  },
+  {
+    value: "creator",
+    label: "My creator account",
+    hint: "Say your handle, and what you were trying to do. To close your account, use the button at the bottom of your dashboard.",
+  },
+  {
+    value: "report",
+    label: "Report a page or message",
+    hint: "Paste the link to the page, or the creator's handle and what the message said.",
+  },
+  {
+    value: "privacy",
+    label: "A privacy request",
+    hint: "Write from the email you use with Freetip, and say if you want a copy of your data or want it deleted.",
+  },
 ] as const;
+
+// The ticket number people see and quote: the saved message's id, padded.
+export const ticketNumber = (id: number) => `FT-${String(id).padStart(5, "0")}`;
 
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]["value"];
 export type ContactField = "name" | "email" | "topic" | "payment_ref" | "message";
@@ -17,7 +38,7 @@ export const CONTACT_LIMITS = { name: 100, paymentRef: 60, messageMin: 10, messa
 
 export type ContactState =
   | { status: "idle" }
-  | { status: "ok" }
+  | { status: "ok"; ticket: string }
   | { status: "invalid"; field: ContactField }
   | { status: "rate_limited" }
   | { status: "unavailable" };
@@ -26,7 +47,7 @@ export const CONTACT_IDLE: ContactState = { status: "idle" };
 
 const MESSAGES: Record<ContactState["status"] | ContactField, string> = {
   idle: "",
-  ok: "Thanks, your message is sent. We will reply by email.",
+  ok: "Thanks, your message is sent.",
   invalid: "",
   name: "Enter your name (up to 100 characters).",
   email: "Enter a valid email address so we can reply.",

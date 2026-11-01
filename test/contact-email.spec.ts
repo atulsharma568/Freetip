@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { buildNotification } from "../src/lib/contact-notification";
+import { buildNotification, buildReceipt } from "../src/lib/contact-notification";
 
 const entry = {
   name: "Asha Rao",
@@ -27,4 +27,23 @@ test.describe("contact notification", () => {
     const { text } = buildNotification({ ...entry, paymentRef: null, topic: "general" });
     expect(text).not.toContain("Payment reference");
   });
+});
+
+test("the owner email carries the ticket, and the receipt repeats nothing the visitor typed", () => {
+  const entry = {
+    name: "Asha <script>",
+    email: "asha@example.com",
+    topic: "general" as const,
+    paymentRef: null,
+    message: "A secret question about my money",
+  };
+  const { subject, text } = buildNotification(entry, "FT-00042");
+  expect(subject).toContain("FT-00042");
+  expect(text).toContain("Ticket: FT-00042");
+
+  const receipt = buildReceipt("FT-00042");
+  expect(receipt.subject).toContain("FT-00042");
+  expect(receipt.text).toContain("FT-00042");
+  expect(receipt.text).not.toContain("secret");
+  expect(receipt.text).not.toContain("Asha");
 });

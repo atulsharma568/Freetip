@@ -29,6 +29,8 @@ export function ContactForm() {
   const [answer, action, pending] = useActionState(sendContact, CONTACT_IDLE);
   const [edited, setEdited] = useState(false);
   const [topic, setTopic] = useState("");
+  const [length, setLength] = useState(0);
+  const topicHint = CONTACT_TOPICS.find((t) => t.value === topic)?.hint;
   const state = edited ? CONTACT_IDLE : answer;
   const invalid = (field: ContactField) => state.status === "invalid" && state.field === field;
 
@@ -38,9 +40,16 @@ export function ContactForm() {
 
   if (answer.status === "ok" && !edited) {
     return (
-      <p role="status" className="rounded-field border border-accent/40 bg-accent/10 p-4 text-sm text-text">
-        {contactMessage(answer)}
-      </p>
+      <div role="status" className="space-y-3 rounded-field border border-accent/40 bg-accent/10 p-5 text-sm text-text">
+        <p className="font-semibold">{contactMessage(answer)}</p>
+        <p>
+          Your ticket number is <span className="numeric font-semibold">{answer.ticket}</span>. Note it down and quote it
+          if you write to us again.
+        </p>
+        <p className="text-muted">
+          We read every message by hand and reply to the email you gave. A complaint is acknowledged within 24 hours.
+        </p>
+      </div>
     );
   }
 
@@ -124,6 +133,7 @@ export function ContactForm() {
             </option>
           ))}
         </select>
+        {topicHint && <p className="text-sm text-muted">{topicHint}</p>}
       </div>
 
       {topic === "payment" && (
@@ -154,10 +164,14 @@ export function ContactForm() {
           rows={6}
           required
           maxLength={CONTACT_LIMITS.messageMax}
+          onChange={(e) => setLength(e.target.value.length)}
           aria-invalid={invalid("message")}
-          aria-describedby="contact-status"
+          aria-describedby="contact-status contact-count"
           className={`${FIELD} py-3`}
         />
+        <p id="contact-count" className="numeric text-right text-xs text-muted">
+          {length} / {CONTACT_LIMITS.messageMax}
+        </p>
       </div>
 
       <p id="contact-status" aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm text-red-400">
@@ -179,7 +193,7 @@ export function ContactForm() {
         )}
       </button>
       <p className="text-sm text-muted">
-        We use your name and email only to reply. See our{" "}
+        We use your name and email only to reply. You get a ticket number as soon as you send. See our{" "}
         <Link href="/privacy#collect">privacy policy</Link>
         .
       </p>

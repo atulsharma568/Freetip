@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { contactMessage, parseContact } from "../src/lib/contact";
+import { contactMessage, parseContact, ticketNumber } from "../src/lib/contact";
 
 function makeForm(fields: Record<string, string | undefined>) {
   const form = new FormData();
@@ -72,8 +72,14 @@ test.describe("contact rules", () => {
 
   test("every state has a message for the form", () => {
     expect(contactMessage({ status: "invalid", field: "email" })).toMatch(/email/i);
-    expect(contactMessage({ status: "ok" })).toMatch(/sent/i);
+    expect(contactMessage({ status: "ok", ticket: "FT-00001" })).toMatch(/sent/i);
     expect(contactMessage({ status: "rate_limited" })).not.toBe("");
     expect(contactMessage({ status: "idle" })).toBe("");
   });
+});
+
+test("ticket numbers are the id padded to five digits", () => {
+  expect(ticketNumber(7)).toBe("FT-00007");
+  expect(ticketNumber(12345)).toBe("FT-12345");
+  expect(ticketNumber(123456)).toBe("FT-123456");
 });

@@ -3,8 +3,8 @@
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
-import { sendContactEmail } from "@/lib/contact-email";
-import { parseContact, type ContactState } from "@/lib/contact";
+import { sendContactEmail, sendContactReceipt } from "@/lib/contact-email";
+import { parseContact, ticketNumber, type ContactState } from "@/lib/contact";
 
 // Saved messages allowed per network per hour. Kept low: a person sends one
 // or two, and every message is read by hand.
@@ -15,7 +15,7 @@ export async function sendContact(
   form: FormData,
 ): Promise<ContactState> {
   // People never see this field; bots fill it in. Say it worked, save nothing.
-  if (form.get("website")) return { status: "ok" };
+  if (form.get("website")) return { status: "ok", ticket: ticketNumber(Math.floor(Math.random() * 90000) + 10000) };
 
   const parsed = parseContact(form);
   if (!parsed.ok) return { status: "invalid", field: parsed.field };
@@ -44,7 +44,7 @@ export async function sendContact(
     `;
     if (recent >= LIMIT) return { status: "rate_limited" };
 
-    await sql`
+    const [saved] = await sql<{ id: number }[]>`
       with attempt as (
         insert into contact_attempts (ip_hash) values (${ipHash})
       ), purge as (
@@ -52,10 +52,12 @@ export async function sendContact(
       )
       insert into contact_messages (name, email, topic, payment_ref, message)
       values (${entry.name}, ${entry.email}, ${entry.topic}, ${entry.paymentRef}, ${entry.message})
+      returning id::int as id
     `;
-    // Saved. The email to the owner is a courtesy; its failure is only logged.
-    await sendContactEmail(entry);
-    return { status: "ok" };
+    const ticket = ticketNumber(saved.id);
+    // Saved. Both emails are courtesies; a failure is only logged.
+    await Promise.all([sendContactEmail(entry, ticket), sendContactReceipt(entry, ticket)]);
+    return { status: "ok", ticket };
   } catch (error) {
     console.error("Contact: save failed.", error instanceof Error ? error.message : error);
     return { status: "unavailable" };
