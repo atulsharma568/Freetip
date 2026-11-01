@@ -171,27 +171,28 @@ export function Nav() {
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 sm:flex">
           {session ? (
             <>
-              <GlassOrbButton
+              <div className="hidden items-center gap-2 sm:flex">
+                <GlassOrbButton
                   onClick={() => signOut({ callbackUrl: "/" })}
                   icon={<SignOut weight="bold" size={15} />}
                 >
                   Sign out
                 </GlassOrbButton>
+              </div>
+              {/* Visible on phones too: a signed-in creator should not need the menu. */}
               <ChromeButton href="/dashboard" icon={<SquaresFour weight="bold" size={15} />}>
                 Dashboard
               </ChromeButton>
             </>
           ) : (
-            <>
+            <div className="hidden items-center gap-2 sm:flex">
               <ChromeButton href="/signup" icon={<PencilSimple weight="bold" size={15} />}>
                 Sign up
               </ChromeButton>
-            </>
+            </div>
           )}
-          </div>
           <button
             ref={toggle}
             type="button"

@@ -2,39 +2,31 @@
 
 import { useState, useTransition } from "react";
 import { testVoice, type VoiceTestResult } from "@/app/actions/voice-test";
-import { TEST_INPUT_MAX, TEST_SAMPLES } from "@/lib/voice-test";
+import { TEST_INPUT_MAX } from "@/lib/voice-test";
 
 export function VoiceTest({ maxChars }: { maxChars: number }) {
   const limit = Math.min(maxChars, TEST_INPUT_MAX);
-  const [text, setText] = useState<string>(TEST_SAMPLES[0].text.slice(0, limit));
+  const [text, setText] = useState<string>("");
   const [result, setResult] = useState<VoiceTestResult | null>(null);
   const [pending, startTransition] = useTransition();
 
   function speak() {
     setResult(null);
-    startTransition(async () => setResult(await testVoice(text)));
+    startTransition(async () => {
+      try {
+        setResult(await testVoice(text));
+      } catch {
+        setResult({ status: "error", message: "Could not run the test. Reload the page and try again." });
+      }
+    });
   }
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
         Hear what your fans&apos; messages sound like, with no payment. It runs your message through
-        the same cleanup and word filter as a real alert, then through the real voice. Try Roman
-        Hindi (&ldquo;bhai kya mast stream hai&rdquo;) to hear the Hindi voice.
+        the same cleanup and word filter as a real alert, then through the real voice.
       </p>
-
-      <div className="flex flex-wrap gap-2">
-        {TEST_SAMPLES.map((s) => (
-          <button
-            key={s.label}
-            type="button"
-            onClick={() => setText(s.text.slice(0, limit))}
-            className="h-9 rounded-full border border-control px-4 text-xs text-text transition-colors hover:border-accent"
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
 
       <div className="space-y-2">
         <label htmlFor="voice-test-text" className="text-xs text-muted">
@@ -45,6 +37,7 @@ export function VoiceTest({ maxChars }: { maxChars: number }) {
           value={text}
           maxLength={limit}
           rows={3}
+          placeholder="Type a message to hear it read aloud"
           onChange={(e) => setText(e.target.value)}
           className="w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none"
         />

@@ -78,7 +78,13 @@ export async function testVoice(input: string): Promise<VoiceTestResult> {
     console.error("Voice test: cooldown failed (migration 0020 run?).", err);
   }
 
-  const result = await synthesizeDetailed(prepared.text, user.id, { testRun: true });
+  let result: Awaited<ReturnType<typeof synthesizeDetailed>>;
+  try {
+    result = await synthesizeDetailed(prepared.text, user.id, { testRun: true });
+  } catch (err) {
+    console.error("Voice test: synthesis threw.", err);
+    return { status: "error", message: "The voice did not answer. Try again shortly." };
+  }
   if (!result.ok) {
     const message =
       result.reason === "cap"
