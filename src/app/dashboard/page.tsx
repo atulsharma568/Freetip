@@ -10,7 +10,7 @@ import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
 import { CloseAccount } from "./CloseAccount";
 import { CreatorQR } from "./CreatorQR";
-import { GoalTile } from "./GoalTile";
+import { GoalTile, type GoalHistoryRow } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
 import { TipIsland } from "./TipIsland";
 import { VoiceTest } from "./VoiceTest";
@@ -23,6 +23,8 @@ import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { ttsAvailable } from "@/lib/tts";
+import { parseRepeat, periodStart, type GoalRepeat } from "@/lib/goal";
+import { closeFinishedPeriods } from "@/lib/goal-history";
 import { safeAccent } from "@/lib/accent";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 
@@ -115,6 +117,41 @@ export default async function DashboardPage() {
       }
     } catch (err) {
       console.error("Dashboard: could not read the goal.", err);
+    }
+  }
+
+  // Repeating goals (migration 0027), also read apart: the period setting, this
+  // period's progress and the finished periods.
+  let goalRepeat: GoalRepeat = "never";
+  let goalRaisedRupees = 0;
+  let goalHistory: GoalHistoryRow[] = [];
+  if (db && user && goalRupees !== null) {
+    try {
+      const [found] = await db<{ goal_repeat: string }[]>`select goal_repeat from users where id = ${user.id}`;
+      goalRepeat = parseRepeat(found?.goal_repeat);
+      if (goalRepeat !== "never") {
+        await closeFinishedPeriods(db, user.id);
+        const since = periodStart(goalRepeat, new Date());
+        const [sum] = await db<{ raised: string }[]>`
+          select coalesce(sum(gross_amount_minor), 0) as raised from tip_orders
+          where creator_id = ${user.id} and status = 'captured' and captured_at >= ${since}
+        `;
+        goalRaisedRupees = Math.floor(Number(sum?.raised ?? 0) / 100);
+        const rows = await db<{ repeat: string; period_start: Date; title: string; target_paise: string; raised_paise: string; hit: boolean }[]>`
+          select repeat, period_start, title, target_paise, raised_paise, hit from goal_history
+          where creator_id = ${user.id} order by period_start desc limit 8
+        `;
+        goalHistory = rows.map((r) => ({
+          repeat: parseRepeat(r.repeat),
+          periodStart: r.period_start.toISOString(),
+          title: r.title,
+          targetRupees: Math.round(Number(r.target_paise) / 100),
+          raisedRupees: Math.floor(Number(r.raised_paise) / 100),
+          hit: r.hit,
+        }));
+      }
+    } catch (err) {
+      console.error("Dashboard: could not read the repeating goal (migration 0027 run?).", err);
     }
   }
 
@@ -287,7 +324,13 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
             Goal bar
           </h2>
-          <GoalTile title={goalTitle} targetRupees={goalRupees} />
+          <GoalTile
+            title={goalTitle}
+            targetRupees={goalRupees}
+            repeat={goalRepeat}
+            raisedRupees={goalRaisedRupees}
+            history={goalHistory}
+          />
         </div>
 
         {user.alert_mode !== "instant" && (

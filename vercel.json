@@ -25,6 +25,10 @@
       "schedule": "29 4 * * *"
     },
     {
+      "path": "/api/cron/goal-periods",
+      "schedule": "40 18 * * *"
+    },
+    {
       "path": "/api/cron/tip-text-purge",
       "schedule": "47 4 * * *"
     }

@@ -113,6 +113,7 @@ export async function closeCreatorAccount(
         goal_title          = null,
         goal_target_paise   = null,
         goal_started_at     = null,
+        goal_repeat         = 'never',
         overlay_token_hash  = null,
         default_sound_id    = null,
         creator_status      = 'suspended'

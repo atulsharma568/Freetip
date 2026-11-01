@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { goalPercent } from "@/lib/goal";
+import { goalPercent, REPEAT_LABEL, type GoalRepeat } from "@/lib/goal";
 
 interface Goal {
   title: string;
   targetPaise: number;
   raisedPaise: number;
+  repeat?: GoalRepeat;
 }
 
 const POLL_MS = 5000;
@@ -59,7 +60,9 @@ export function GoalBar({ token }: { token: string }) {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: 22, fontWeight: 600 }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goal.title}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {goal.repeat && goal.repeat !== "never" ? `${goal.title} · ${REPEAT_LABEL[goal.repeat].toLowerCase()}` : goal.title}
+        </span>
         <span style={{ whiteSpace: "nowrap" }}>
           ₹{rupees(goal.raisedPaise)} / ₹{rupees(goal.targetPaise)}
         </span>

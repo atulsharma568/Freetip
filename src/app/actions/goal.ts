@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { checkGoal } from "@/lib/goal";
+import { checkGoal, parseRepeat } from "@/lib/goal";
 
 // Dashboard actions for the goal bar. Only the signed-in creator's own goal is
 // touched (migration 0018).
@@ -26,12 +26,13 @@ export async function saveGoal(_prev: GoalResult | null, form: FormData): Promis
   const googleId = await googleIdOrRedirect();
   const check = checkGoal(form.get("goal_title"), form.get("goal_rupees"));
   if (!check.ok) return { status: "error", message: check.message };
+  const repeat = parseRepeat(form.get("goal_repeat"));
   const db = getDb();
   if (!db) return FAILED;
   try {
     await db`
       update users set goal_title = ${check.title}, goal_target_paise = ${check.targetPaise},
-                       goal_started_at = now()
+                       goal_repeat = ${repeat}, goal_started_at = now()
       where google_id = ${googleId}
     `;
   } catch (err) {
@@ -39,7 +40,13 @@ export async function saveGoal(_prev: GoalResult | null, form: FormData): Promis
     return FAILED;
   }
   revalidatePath("/dashboard");
-  return { status: "ok", message: "Goal saved. The bar starts from zero." };
+  return {
+    status: "ok",
+    message:
+      repeat === "never"
+        ? "Goal saved. The bar starts from zero."
+        : "Goal saved. It starts again from zero by itself at the start of each period (India time).",
+  };
 }
 
 export async function clearGoal(): Promise<GoalResult> {
@@ -48,7 +55,7 @@ export async function clearGoal(): Promise<GoalResult> {
   if (!db) return FAILED;
   try {
     await db`
-      update users set goal_title = null, goal_target_paise = null, goal_started_at = null
+      update users set goal_title = null, goal_target_paise = null, goal_started_at = null, goal_repeat = 'never'
       where google_id = ${googleId}
     `;
   } catch (err) {

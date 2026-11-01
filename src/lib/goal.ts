@@ -23,3 +23,39 @@ export function goalPercent(raisedPaise: number, targetPaise: number): number {
   if (targetPaise <= 0) return 0;
   return Math.min(100, Math.max(0, Math.floor((raisedPaise / targetPaise) * 100)));
 }
+
+// Repeating goals. Periods follow the clock in India (UTC+5:30, no daylight saving),
+// weeks start on Monday.
+export const GOAL_REPEATS = ["never", "daily", "weekly", "monthly"] as const;
+export type GoalRepeat = (typeof GOAL_REPEATS)[number];
+
+export function parseRepeat(value: unknown): GoalRepeat {
+  return GOAL_REPEATS.find((r) => r === value) ?? "never";
+}
+
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+// Start of the period that contains `now`, as a real instant. `back` steps that many
+// whole periods earlier (1 = the period that just finished).
+export function periodStart(repeat: Exclude<GoalRepeat, "never">, now: Date, back = 0): Date {
+  const local = new Date(now.getTime() + IST_OFFSET_MS);
+  const y = local.getUTCFullYear();
+  let m = local.getUTCMonth();
+  let d = local.getUTCDate();
+  if (repeat === "monthly") {
+    m -= back;
+    d = 1;
+  } else if (repeat === "weekly") {
+    d -= (local.getUTCDay() + 6) % 7 + 7 * back;
+  } else {
+    d -= back;
+  }
+  return new Date(Date.UTC(y, m, d) - IST_OFFSET_MS);
+}
+
+export const REPEAT_LABEL: Record<GoalRepeat, string> = {
+  never: "",
+  daily: "Today",
+  weekly: "This week",
+  monthly: "This month",
+};
