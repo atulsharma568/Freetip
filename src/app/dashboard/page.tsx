@@ -8,6 +8,7 @@ import { PageShell } from "@/components/PageShell";
 import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
+import { CloseAccount } from "./CloseAccount";
 import { CreatorQR } from "./CreatorQR";
 import { GoalTile } from "./GoalTile";
 import { OverlayTile } from "./OverlayTile";
@@ -305,6 +306,7 @@ export default async function DashboardPage() {
             ttsAvailable={ttsAvailable()}
           />
         </div>
+        <CloseAccount />
       </div>
     </PageShell>
   );

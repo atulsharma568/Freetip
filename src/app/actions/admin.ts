@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { CLOSED_EMAIL_DOMAIN, closeCreatorAccount } from "@/lib/account-close";
 import { requireOwner } from "@/lib/owner-auth";
 import { getDb } from "@/lib/db";
 import type { LedgerDb, SweepResult } from "@/lib/accrual";
@@ -20,6 +22,10 @@ export async function setCreatorStatus(
 
   const db = getDb();
   if (!db) throw new Error("Database unavailable");
+
+  // A closed account stays closed: its row is empty and only kept for the records.
+  const [closed] = await db<{ email: string }[]>`select email from users where id = ${creatorId}`;
+  if (closed?.email.endsWith(CLOSED_EMAIL_DOMAIN)) return;
 
   // Sync onboarding_state when changing creator_status:
   //   active   → onboarding_state = 'active'  (completed the gate)
@@ -194,4 +200,28 @@ export async function syncBooksNow(): Promise<SyncState> {
     console.error("Admin: syncing the books failed", err);
     return { status: "error", message: "Could not sync. Has migration 0023 been run?" };
   }
+}
+
+// Closes a creator's account at their request (the privacy policy tells them to ask
+// through the contact form). The same rules as their own button: money owed or a
+// payout in progress stops it, and the page says why.
+export async function adminCloseCreator(creatorId: number): Promise<void> {
+  await requireOwner();
+  if (!Number.isSafeInteger(creatorId) || creatorId < 1) return;
+
+  const db = getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  const result = await closeCreatorAccount(db as unknown as LedgerDb, creatorId, { role: "owner", userId: null });
+  if (result.status === "closed") {
+    for (const url of result.blobUrls) {
+      try {
+        await del(url);
+      } catch (err) {
+        console.error("Could not delete sound file", err);
+      }
+    }
+  }
+  revalidatePath("/admin/creators");
+  if (result.status === "blocked") redirect(`/admin/creators?blocked=${result.reason}`);
 }

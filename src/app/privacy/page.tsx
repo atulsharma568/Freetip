@@ -144,11 +144,14 @@ const SECTIONS: LegalSection[] = [
         <h3>How long we keep it, and how to delete it</h3>
         <p>
           We keep this data while your creator account is open. To have it
-          deleted, close your account or ask us through the{" "}
-          <Link href="/contact">contact form</Link> from the email you signed up with.
-          We delete your profile, including the Google data above, within 30 days,
-          except records we must keep by law (tip, payout and tax records, which
-          do not include your YouTube data). You can also take away our access at
+          deleted, use <strong>Close your account</strong> at the bottom of your
+          dashboard, or ask us through the <Link href="/contact">contact form</Link>{" "}
+          from the email you signed up with. Closing erases your profile,
+          including the Google data above, straight away. We keep only the records
+          we must keep by law (tip, payout and tax records, which do not include
+          your YouTube data), and your handle stays reserved so nobody else can
+          take it. If money is still owed to you or a payout is in progress, we
+          settle that first. You can also take away our access at
           any time from your Google Account at myaccount.google.com/permissions;
           without that access we can no longer read your channel.
         </p>
@@ -313,8 +316,8 @@ const SECTIONS: LegalSection[] = [
         </li>
         <li>
           <strong>Creator accounts:</strong> while the account is open. When you
-          close it we delete your profile within 30 days, except records we
-          must keep by law.
+          close it your profile is erased straight away, except records we must
+          keep by law and your reserved handle.
         </li>
         <li>
           <strong>Security logs:</strong> at least one year, as the law requires,

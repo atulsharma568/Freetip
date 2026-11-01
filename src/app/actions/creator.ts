@@ -2,7 +2,7 @@
 
 import { createHash, randomBytes } from "crypto";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { getDb } from "@/lib/db";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
@@ -10,6 +10,9 @@ import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
 import { presetHex } from "@/lib/accent";
 import { accentFromPicture } from "@/lib/accent-server";
+import { BLOCKER_MESSAGE, closeCreatorAccount } from "@/lib/account-close";
+import type { LedgerDb } from "@/lib/accrual";
+import { del } from "@vercel/blob";
 
 // Handles that map to existing app routes or would cause confusion.
 // Next.js static routes already take precedence over /[handle], but we block
@@ -263,4 +266,57 @@ export async function generateOverlayLink(): Promise<OverlayLinkState> {
   }
 
   return { status: "ok", url: `https://${SITE_HOST}/overlay/${token}` };
+}
+
+// ── Closing the account ─────────────────────────────────────────────────────
+
+export type CloseAccountState = { status: "idle" } | { status: "error"; message: string };
+export const CLOSE_ACCOUNT_IDLE: CloseAccountState = { status: "idle" };
+
+// The creator closes their own account (see lib/account-close.ts for what goes and
+// what stays). They must type CLOSE; money still owed or a payout in progress
+// stops it and points them to the contact form.
+export async function closeMyAccount(
+  _prev: CloseAccountState,
+  form: FormData,
+): Promise<CloseAccountState> {
+  const session = await auth();
+  if (!session?.user) redirect("/signin");
+  const googleId = (session.user as { googleId?: string }).googleId;
+  if (!googleId) redirect("/signin");
+
+  if (String(form.get("confirm") ?? "").trim().toUpperCase() !== "CLOSE") {
+    return { status: "error", message: "Type CLOSE to confirm" };
+  }
+
+  const db = getDb();
+  if (!db) return { status: "error", message: "Database unavailable. Try again shortly" };
+
+  let result;
+  try {
+    const [row] = await db<{ id: string }[]>`select id::text from users where google_id = ${googleId}`;
+    if (!row) redirect("/signin");
+    result = await closeCreatorAccount(db as unknown as LedgerDb, Number(row.id), { role: "creator", userId: Number(row.id) });
+  } catch (err) {
+    // redirect() throws to leave the page: let that through.
+    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+    if (typeof err === "object" && err !== null && "digest" in err) throw err;
+    console.error("Close account failed.", err);
+    return { status: "error", message: "Could not close your account. Try again shortly" };
+  }
+
+  if (result.status === "blocked") return { status: "error", message: BLOCKER_MESSAGE[result.reason] };
+  if (result.status === "closed") {
+    // The files are removed after the database is, so a failure here leaves a few
+    // orphan files for the daily clean-up job, never a half-closed account.
+    for (const url of result.blobUrls) {
+      try {
+        await del(url);
+      } catch (err) {
+        console.error("Could not delete sound file", err);
+      }
+    }
+  }
+  await signOut({ redirectTo: "/?closed=1" });
+  return CLOSE_ACCOUNT_IDLE;
 }

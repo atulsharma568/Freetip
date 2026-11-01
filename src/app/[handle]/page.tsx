@@ -5,6 +5,7 @@ import { getCreator, getCreatorAccent, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { PageShell } from "@/components/PageShell";
 import { accentStyle } from "@/lib/accent";
+import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -38,7 +39,7 @@ export default async function CreatorPage({ params }: Props) {
   if (!HANDLE_PATTERN.test(handle)) notFound();
 
   const creator = await getCreator(handle);
-  if (!creator) notFound();
+  if (!creator || isClosedGoogleId(creator.google_id)) notFound();
 
   // Allow the creator to preview their own page even while pending/suspended.
   // auth() is only called for non-active creators — active pages skip it entirely.

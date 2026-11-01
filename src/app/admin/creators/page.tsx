@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { setCreatorStatus, rejectCreatorOnboarding, resetCreatorAccent } from "@/app/actions/admin";
+import { setCreatorStatus, rejectCreatorOnboarding, resetCreatorAccent, adminCloseCreator } from "@/app/actions/admin";
+import { BLOCKER_MESSAGE, CLOSED_EMAIL_DOMAIN, type CloseBlocker } from "@/lib/account-close";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { requireOwner } from "@/lib/owner-auth";
 import { DEFAULT_ACCENT, safeAccent } from "@/lib/accent";
@@ -34,8 +35,14 @@ const ONBOARDING_STYLES: Record<string, string> = {
   rejected: "bg-red-400/10 text-red-400 border-red-400/20",
 };
 
-export default async function AdminCreatorsPage() {
+export default async function AdminCreatorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ blocked?: string }>;
+}) {
   await requireOwner();
+  const { blocked } = await searchParams;
+  const blockedReason = blocked && blocked in BLOCKER_MESSAGE ? (blocked as CloseBlocker) : null;
   const db = getDb();
 
   const creators: CreatorRow[] = db
@@ -78,6 +85,12 @@ export default async function AdminCreatorsPage() {
         </p>
       </div>
 
+      {blockedReason && (
+        <p role="alert" className="rounded-2xl border border-control bg-surface px-4 py-3 text-sm text-text">
+          Not closed: {BLOCKER_MESSAGE[blockedReason]}
+        </p>
+      )}
+
       <div className="overflow-x-auto rounded-2xl border border-control">
         <table className="w-full text-sm">
           <thead>
@@ -95,6 +108,8 @@ export default async function AdminCreatorsPage() {
               const suspend = setCreatorStatus.bind(null, c.id, "suspended");
               const reset = setCreatorStatus.bind(null, c.id, "pending");
               const reject = rejectCreatorOnboarding.bind(null, c.id);
+              const close = adminCloseCreator.bind(null, c.id);
+              const isClosed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
 
               return (
                 <tr key={c.id} className="bg-surface/30 hover:bg-surface/60 transition-colors">
@@ -152,6 +167,9 @@ export default async function AdminCreatorsPage() {
 
                   {/* Actions */}
                   <td className="px-4 py-3">
+                    {isClosed ? (
+                      <span className="text-xs text-muted">Closed, kept for the records</span>
+                    ) : (
                     <div className="flex flex-wrap gap-2">
                       {c.creator_status !== "active" && (
                         <form action={approve}>
@@ -193,7 +211,24 @@ export default async function AdminCreatorsPage() {
                           </button>
                         </form>
                       )}
+                      <details className="text-xs">
+                        <summary className="cursor-pointer rounded-lg border border-control px-3 py-1 font-medium text-muted transition-colors hover:text-text">
+                          Close account
+                        </summary>
+                        <form action={close} className="mt-2 space-y-2">
+                          <p className="max-w-[220px] text-muted">
+                            Permanent. Removes their profile and sounds; money records stay.
+                          </p>
+                          <button
+                            type="submit"
+                            className="rounded-lg border border-control px-3 py-1 font-medium text-text transition-colors hover:border-muted"
+                          >
+                            Confirm close
+                          </button>
+                        </form>
+                      </details>
                     </div>
+                    )}
                   </td>
                 </tr>
               );
