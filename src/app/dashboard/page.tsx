@@ -5,6 +5,7 @@ import Image from "next/image";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { planFeatures } from "@/lib/plans";
+import { parseRegionalLang, type RegionalLang } from "@/lib/regional-voices";
 import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
 import { SettingsForm } from "./SettingsForm";
@@ -90,6 +91,21 @@ async function readVoiceGender(db: Db, userId: number): Promise<"female" | "male
   } catch (err) {
     console.error("Dashboard: could not read the voice choice (migration 0029 run?).", err);
     return "female";
+  }
+}
+
+// The regional language (migration 0039) and whether the creator may use it; a
+// saved language shows only while the switch is on, as it only plays then.
+async function readRegionalVoice(db: Db, userId: number): Promise<{ regionalVoices: boolean; voiceLang: RegionalLang | null }> {
+  try {
+    const [found] = await db<{ tts_lang: string | null; paid_features: string[] | null }[]>`
+      select tts_lang, paid_features from users where id = ${userId}
+    `;
+    const regionalVoices = planFeatures(found).regionalVoices;
+    return { regionalVoices, voiceLang: regionalVoices ? parseRegionalLang(found?.tts_lang) : null };
+  } catch (err) {
+    console.error("Dashboard: could not read the regional language (migration 0039 run?).", err);
+    return { regionalVoices: false, voiceLang: null };
   }
 }
 
@@ -258,6 +274,7 @@ export default async function DashboardPage() {
   const [
     bannedWords,
     voiceGender,
+    { regionalVoices, voiceLang },
     { handleChanged, handleRequest },
     accent,
     extras,
@@ -269,6 +286,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     readBannedWords(db, user.id),
     readVoiceGender(db, user.id),
+    readRegionalVoice(db, user.id),
     readHandleChange(db, user.id),
     readAccent(db, user.id),
     readExtraOverlays(db, user.id),
@@ -352,7 +370,7 @@ export default async function DashboardPage() {
                   )}
                   {ttsAvailable() && !suspended && (
                     <Tile id="voice" title="Test the voice">
-                      <VoiceTest maxChars={user.message_max_chars} />
+                      <VoiceTest maxChars={user.message_max_chars} sampleLang={voiceLang} />
                     </Tile>
                   )}
                 </div>
@@ -406,6 +424,8 @@ export default async function DashboardPage() {
                     accent={safeAccent(accent)}
                     ttsAvailable={ttsAvailable()}
                     voiceGender={voiceGender}
+                    regionalVoices={regionalVoices}
+                    voiceLang={voiceLang ?? ""}
                   />
                 </Tile>
               </div>

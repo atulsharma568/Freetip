@@ -3,15 +3,17 @@ import { getDb } from "@/lib/db";
 import { loadLearnedWords, recordUnknownWords } from "@/lib/tts-words";
 import { azureConfigured, azureSynthesize } from "@/lib/tts-azure";
 import { pollyConfigured, pollySynthesize } from "@/lib/tts-polly";
+import { effectiveRegionalLang, type RegionalLang } from "@/lib/regional-voices";
 import {
   azureVoice,
   cacheKey,
+  isPollyLanguage,
   limitsFromEnv,
   prepareSpeech,
   testLimits,
   type VoiceGender,
   withinLimits,
-  type Prepared,
+  type SpeechLanguage,
 } from "@/lib/tts-pure";
 
 // Text-to-speech engine layer. Azure Speech is the main engine (free tier), Amazon
@@ -68,6 +70,21 @@ async function creatorGender(db: Db, creatorId: number): Promise<VoiceGender> {
   }
 }
 
+// The creator's regional language (migration 0039), only while their "Regional
+// language voices" switch is on. This is the gate: a switch turned off after the
+// language was saved, a missing column or a failed lookup all mean today's behaviour.
+async function creatorRegionalLanguage(db: Db, creatorId: number): Promise<RegionalLang | null> {
+  try {
+    const [row] = await db<{ tts_lang: string | null; paid_features: string[] | null }[]>`
+      select tts_lang, paid_features from users where id = ${creatorId}
+    `;
+    return effectiveRegionalLang(row);
+  } catch (err) {
+    console.error("TTS: could not read the regional language (migration 0039 run?).", err);
+    return null;
+  }
+}
+
 async function usedChars(db: Db, creatorId: number): Promise<{ creatorToday: number; siteMonth: number }> {
   try {
     const [row] = await db<{ today: string; month: string }[]>`
@@ -109,7 +126,7 @@ export type SynthesisResult =
       ok: true;
       audio: Uint8Array;
       spoken: string;
-      language: Prepared["language"];
+      language: SpeechLanguage;
       voice: string;
       engine: "azure" | "polly";
       cached: boolean;
@@ -126,14 +143,17 @@ export async function synthesizeDetailed(
 ): Promise<SynthesisResult> {
   if (!ttsAvailable()) return { ok: false, reason: "off" };
   await loadLearnedWords();
-  const { text, language } = prepareSpeech(message);
   const db = getDb();
+  const regional = db ? await creatorRegionalLanguage(db, creatorId) : null;
+  const { text, language } = prepareSpeech(message, regional);
   if (!options.testRun) await recordUnknownWords(message);
 
   // Cache first: the key includes the voice, so a changed voice setting is not
   // served an old clip. (A clip that fell back to Polly is cached under Azure's key
   // too; it is still a fine clip for that text.)
   const azure = azureConfigured();
+  // Polly reads only Hindi and English: a regional message with no Azure is silent.
+  if (!azure && !isPollyLanguage(language)) return { ok: false, reason: "failed" };
   const gender = options.gender ?? (db ? await creatorGender(db, creatorId) : "female");
   const voice = azure ? azureVoice(language, process.env, gender) : "Kajal";
   const hash = azure ? cacheKey("azure", voice, text) : cacheKey("polly", "kajal", text);
@@ -160,7 +180,7 @@ export async function synthesizeDetailed(
       usedVoice = out.voice;
     }
   }
-  if (!audio && pollyConfigured()) {
+  if (!audio && pollyConfigured() && isPollyLanguage(language)) {
     audio = await pollySynthesize(text, language);
     engine = "polly";
     usedVoice = "Kajal";

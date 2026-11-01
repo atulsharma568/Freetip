@@ -1,5 +1,5 @@
 import "server-only";
-import { azureVoice, buildSsml, type Prepared, type VoiceGender } from "@/lib/tts-pure";
+import { azureVoice, buildSsml, type SpeechLanguage, type VoiceGender } from "@/lib/tts-pure";
 
 // Azure Speech over its REST API (no SDK). The free F0 tier gives 500,000
 // characters a month. AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (for example
@@ -11,7 +11,7 @@ export function azureConfigured(): boolean {
 
 export async function azureSynthesize(
   text: string,
-  language: Prepared["language"],
+  language: SpeechLanguage,
   gender: VoiceGender = "female",
 ): Promise<{ audio: Uint8Array; voice: string } | null> {
   const key = process.env.AZURE_SPEECH_KEY?.trim();

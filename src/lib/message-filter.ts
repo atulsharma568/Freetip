@@ -15,6 +15,7 @@
 import { EMOJI_NAMES, SEQUENCE_NAMES } from "@/lib/emoji-names";
 import { CLDR_EMOJI_NAMES } from "@/lib/emoji-names-cldr";
 import { isHinglish } from "@/lib/hinglish";
+import { hasRegionalScript } from "@/lib/regional-voices";
 
 const LEET: Record<string, string> = {
   "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i",
@@ -100,8 +101,11 @@ export function parseBannedWords(raw: string | null | undefined): string[] {
 
 const URL_PATTERN = /\b(?:https?:\/\/|www\.)\S+/gi;
 const EMAIL_PATTERN = /\S+@\S+\.\S+/g;
-// Control characters (and the zero-width ones used to hide text).
-const INVISIBLE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200f\u2028-\u202e\u2060\ufeff]/g;
+// Control characters (and the zero-width ones used to hide text). The two joiners
+// (U+200C, U+200D) are part of the spelling inside Malayalam, Bengali and other
+// Indic words, so one between two letters stays and the voice gets the word whole.
+const INVISIBLE =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b\u200e\u200f\u2028-\u202e\u2060\ufeff]|(?<![\p{L}\p{M}])[\u200c\u200d]|[\u200c\u200d](?![\p{L}\p{M}])/gu;
 // Emoji and pictographs, their joiners, skin tones and variation selectors: the
 // ones nameEmoji does not know are skipped.
 const EMOJI = /[\p{Extended_Pictographic}\u{1f3fb}-\u{1f3ff}\u{fe0e}\u{fe0f}\u{20e3}\u{e0020}-\u{e007f}]/gu;
@@ -119,6 +123,9 @@ const MAX_SPOKEN_EMOJI = 3;
 // Swaps an emoji for its spoken name (ours, else Unicode's official one) (the playful Hindi one when the
 // message is Hindi or Hinglish), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
 function nameEmoji(message: string): string {
+  // The names are Hindi or English, which a Tamil, Bengali or other regional voice
+  // would read badly in the middle of its own language, so those messages skip emoji.
+  if (hasRegionalScript(message)) return message.replace(EMOJI_CLUSTER, " ");
   // An emoji-only message (no words at all) gets the playful Hindi names too: the
   // audience is Indian and the voice reads them well.
   const hindi =

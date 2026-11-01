@@ -47,7 +47,7 @@ test.describe("feature needs and the server gate", () => {
   });
 
   test("a feature that is not built is never on, even if stored", () => {
-    expect(hasFeature({ paid_features: ["regionalVoices"] }, "regionalVoices")).toBe(false);
+    expect(hasFeature({ paid_features: ["voiceNotes"] }, "voiceNotes")).toBe(false);
   });
 });
 

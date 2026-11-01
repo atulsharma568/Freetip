@@ -8,6 +8,7 @@ import { SETTINGS_IDLE } from "@/lib/creator-state";
 import type { AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
 import { MIN_TIP_PAISE } from "@/lib/money";
+import { REGIONAL_LANGUAGES } from "@/lib/regional-voices";
 import { ACCENT_PRESETS, inkFor } from "@/lib/accent";
 import { ChipRadio, OptionRadio, Range, SelectField, Toggle } from "./parts/Controls";
 import { Msg } from "./parts/Msg";
@@ -39,6 +40,10 @@ interface Props {
   // by a note, and the saved values are kept as they are.
   ttsAvailable: boolean;
   voiceGender: "female" | "male";
+  // The paid "Regional language voices" switch, and the saved language ("" for none).
+  // Without the switch the picker is not shown and the saved language is left alone.
+  regionalVoices: boolean;
+  voiceLang: string;
 }
 
 // One titled group of controls; the groups are headed and divided, but all
@@ -55,7 +60,7 @@ function Group({ title, hint, children, first }: { title: string; hint: string; 
   );
 }
 
-export function SettingsForm({ displayName: initialDisplayName, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender, regionalVoices, voiceLang: initialVoiceLang }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   // A stored colour that is not a preset came from "Auto"; it keeps its own swatch.
@@ -69,6 +74,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [tts, setTts] = useState(ttsEnabled);
   const [gender, setGender] = useState(voiceGender);
+  const [voiceLang, setVoiceLang] = useState(initialVoiceLang);
   const [approve, setApprove] = useState(approveBeforePlay);
   const [ttsMin, setTtsMin] = useState(Math.round(ttsMinPaise / 100));
   const [chars, setChars] = useState(messageMaxChars);
@@ -293,6 +299,34 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
             </div>
             <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
           </fieldset>
+          {regionalVoices && (
+            <div className="space-y-2">
+              <label htmlFor="tts-lang" className="block text-sm text-text">
+                Regional language
+              </label>
+              <SelectField
+                id="tts-lang"
+                name="tts_lang"
+                value={voiceLang}
+                onChange={(e) => {
+                  setVoiceLang(e.target.value);
+                  setIsDirty(true);
+                }}
+              >
+                <option value="">None (Hindi and English)</option>
+                {REGIONAL_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label} ({l.native})
+                  </option>
+                ))}
+              </SelectField>
+              <p className="text-xs text-muted">
+                Messages a fan types in this language&apos;s own letters are read in it. Messages typed in English letters
+                are read by the English voice. Marathi and Hindi share their letters, so with Marathi chosen, Devanagari
+                is read as Marathi.
+              </p>
+            </div>
+          )}
           {tts && (
             <div className="space-y-4 border-l border-line pl-4">
               <Toggle

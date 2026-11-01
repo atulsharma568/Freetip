@@ -22,7 +22,7 @@ Made by a read-only planning pass against the code on 2026-11-01. Owner approved
 - **fanLevels (M)**, **fanCrm (M)** (`dashboard/fans`: sort, search, creator note, CSV, delete a fan; extend `account-close.ts`; switching on later has no history, backfill only from the 90-day window), **birthdayMessage (S-M)** (`users.birthday_message`, `tip_orders.birthday_md` day and month only, `fan_profiles.birthday_md`; fan declares optionally; matches today in IST; template with `{name}`; goes through the banned-word filter and TTS cap; self-declared, fires only on a tip that day).
 - Profiles are kept 12 months after the last tip and the creator can delete a fan. **The privacy policy must say this first** (it promises names are deleted after 90 days; `retention.ts`).
 
-## Phase 4: regionalVoices (M)
+## Phase 4: regionalVoices (M) [built 2026-11-01, migration 0039; voice names checked against Microsoft's list, never tried against a live Azure key]
 `users.tts_lang text null` (null = today's behaviour). Files: `tts-pure.ts` (widen `Prepared.language`, voice maps, script detection by Unicode block), `tts-azure.ts`, `voice-test.ts`. Languages: Tamil, Telugu, Kannada, Malayalam, Bengali, Gujarati, Marathi: verify every Azure voice name first. Limits: Marathi and Hindi share Devanagari so the creator's default decides; Roman-script messages (Tanglish etc.) are read by the English voice; Polly is Hindi and English only, so a regional message goes silent if Azure is down; same 500k monthly character cap. Gate in the speech route and in synthesis.
 
 ## Phase 5: voiceNotes (L, riskiest)

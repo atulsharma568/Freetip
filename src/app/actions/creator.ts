@@ -9,6 +9,8 @@ import { HANDLE_MESSAGE, checkHandle, claimHandle } from "@/lib/handle";
 import { REQUEST_MESSAGE, requestHandleChange } from "@/lib/handle-requests";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
+import { FeatureOffError, requireFeature } from "@/lib/plans";
+import { parseRegionalLang } from "@/lib/regional-voices";
 import { SITE_HOST } from "@/lib/site";
 import { presetHex } from "@/lib/accent";
 import { accentFromPicture } from "@/lib/accent-server";
@@ -160,6 +162,10 @@ export async function saveSettings(
   const ttsMinRupees = parseInt(String(form.get("tts_min") ?? "49"), 10);
   const approveBeforePlay = form.get("approve_before_play") === "on";
   const voiceGender = form.get("tts_voice") === "male" ? "male" : "female";
+  // The regional language (paid feature): absent when the form did not show it, "" for
+  // none, otherwise one of the seven.
+  const rawLang = form.get("tts_lang");
+  const voiceLang = rawLang === null ? undefined : parseRegionalLang(String(rawLang));
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
   const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
   const rawBanned = String(form.get("banned_words") ?? "");
@@ -178,6 +184,9 @@ export async function saveSettings(
   }
   if (!ALERT_MODES.includes(alertMode)) {
     return { status: "error", message: "Choose how alerts should play" };
+  }
+  if (rawLang !== null && rawLang !== "" && voiceLang === null) {
+    return { status: "error", message: "Choose a language from the list" };
   }
   if (!Number.isInteger(ttsMinRupees) || ttsMinRupees < 1 || ttsMinRupees > 1000) {
     return { status: "error", message: "Read-aloud amount must be between ₹1 and ₹1,000" };
@@ -223,6 +232,25 @@ export async function saveSettings(
   } catch (err) {
     console.error("Settings: could not save the voice choice (migration 0029 run?).", err);
     return { status: "error", message: "Settings saved, but the voice choice could not be saved. Try again shortly" };
+  }
+
+  // The regional language (migration 0039, paid feature), apart so everything above
+  // saves before it is run. Clearing it is always allowed; choosing one needs the
+  // creator's switch, checked here and not only in the form.
+  if (voiceLang !== undefined) {
+    try {
+      if (voiceLang !== null) {
+        const [row] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where google_id = ${googleId}`;
+        requireFeature(row, "regionalVoices");
+      }
+      await db`update users set tts_lang = ${voiceLang} where google_id = ${googleId}`;
+    } catch (err) {
+      if (err instanceof FeatureOffError) {
+        return { status: "error", message: "Settings saved, but regional language voices are not switched on for your account" };
+      }
+      console.error("Settings: could not save the regional language (migration 0039 run?).", err);
+      return { status: "error", message: "Settings saved, but the language could not be saved. Try again shortly" };
+    }
   }
 
   // The colour is last and apart (migration 0026), so every other setting saves

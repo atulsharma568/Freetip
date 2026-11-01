@@ -118,9 +118,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "regionalVoices",
     label: "Regional language voices",
-    group: "Planned, not built yet",
-    description: "Voices for more Indian languages (other languages, not accents of Hindi).",
-    built: false,
+    group: "Alert box",
+    description: "The creator picks one of Tamil, Telugu, Kannada, Malayalam, Bengali, Gujarati or Marathi; messages typed in that script are read in it (other languages, not accents of Hindi). Needs Azure; Roman-letter messages stay with the English voice.",
+    built: true,
   },
   {
     key: "voiceNotes",

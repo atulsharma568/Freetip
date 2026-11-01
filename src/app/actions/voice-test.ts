@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { parseBannedWords } from "@/lib/message-filter";
 import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { synthesizeDetailed, ttsAvailable } from "@/lib/tts";
+import type { SpeechLanguage } from "@/lib/tts-pure";
 import { prepareTestText, TEST_COOLDOWN_SECONDS } from "@/lib/voice-test";
 
 // The dashboard's "Test voice" button: speaks a typed message through the real
@@ -21,7 +22,7 @@ export type VoiceTestResult =
       audio: string;
       // The text the voice was given (Roman Hindi already turned into Devanagari).
       spoken: string;
-      language: "hi-IN" | "en-IN";
+      language: SpeechLanguage;
       voice: string;
       engine: "azure" | "polly";
       cached: boolean;

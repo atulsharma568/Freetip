@@ -3,36 +3,63 @@
 
 import { createHash } from "crypto";
 import { hindiSpeech } from "@/lib/hinglish";
+import { regionalLanguage, REGIONAL_LANGUAGES, type RegionalLang } from "@/lib/regional-voices";
 
 const DEVANAGARI = /[ऀ-ॿ]/;
+
+// Hindi and Indian English are the two languages Polly can read too; the seven
+// regional ones (paid feature) are Azure only.
+export type SpeechLanguage = "hi-IN" | "en-IN" | RegionalLang;
+
+export function isPollyLanguage(language: SpeechLanguage): language is "hi-IN" | "en-IN" {
+  return language === "hi-IN" || language === "en-IN";
+}
 
 export interface Prepared {
   // What the engine reads: Roman Hindi turned into Devanagari when the message is Hindi.
   text: string;
-  language: "hi-IN" | "en-IN";
+  language: SpeechLanguage;
 }
 
 // A Hindi or Hinglish message is read as Hindi (Devanagari), anything else as
-// Indian English.
-export function prepareSpeech(message: string): Prepared {
+// Indian English. With a regional language (the creator's choice, feature on), a
+// message that has letters of that language's own script is read in it, as typed.
+// Marathi shares Devanagari with Hindi, so the creator's choice decides, and only for
+// Devanagari the fan actually typed: a Roman Hinglish message that was turned into
+// Devanagari here stays Hindi.
+export function prepareSpeech(message: string, regional?: RegionalLang | null): Prepared {
+  if (regional && regionalLanguage(regional).script.test(message)) {
+    return { text: message, language: regional };
+  }
   const { text } = hindiSpeech(message);
   return { text, language: DEVANAGARI.test(text) ? "hi-IN" : "en-IN" };
 }
 
-export const DEFAULT_VOICES = { "hi-IN": "hi-IN-SwaraNeural", "en-IN": "en-IN-NeerjaNeural" } as const;
+const HI_EN_FEMALE = { "hi-IN": "hi-IN-SwaraNeural", "en-IN": "en-IN-NeerjaNeural" } as const;
+const HI_EN_MALE = { "hi-IN": "hi-IN-MadhurNeural", "en-IN": "en-IN-PrabhatNeural" } as const;
+
+export const DEFAULT_VOICES: Record<SpeechLanguage, string> = {
+  ...HI_EN_FEMALE,
+  ...Object.fromEntries(REGIONAL_LANGUAGES.map((l) => [l.code, l.female])),
+} as Record<SpeechLanguage, string>;
 
 export type VoiceGender = "female" | "male";
 
-export const MALE_VOICES = { "hi-IN": "hi-IN-MadhurNeural", "en-IN": "en-IN-PrabhatNeural" } as const;
+export const MALE_VOICES: Record<SpeechLanguage, string> = {
+  ...HI_EN_MALE,
+  ...Object.fromEntries(REGIONAL_LANGUAGES.map((l) => [l.code, l.male])),
+} as Record<SpeechLanguage, string>;
 
-// The env overrides (AZURE_SPEECH_VOICE_HI / _EN) change the female voice only.
+// The env overrides (AZURE_SPEECH_VOICE_HI / _EN) change the female Hindi and
+// English voices only.
 export function azureVoice(
-  language: Prepared["language"],
+  language: SpeechLanguage,
   env: Record<string, string | undefined> = process.env,
   gender: VoiceGender = "female",
 ): string {
   if (gender === "male") return MALE_VOICES[language];
-  const override = language === "hi-IN" ? env.AZURE_SPEECH_VOICE_HI : env.AZURE_SPEECH_VOICE_EN;
+  const override =
+    language === "hi-IN" ? env.AZURE_SPEECH_VOICE_HI : language === "en-IN" ? env.AZURE_SPEECH_VOICE_EN : undefined;
   return override?.trim() || DEFAULT_VOICES[language];
 }
 
@@ -47,7 +74,7 @@ function xmlEscape(text: string): string {
 }
 
 // SSML for one clip. The fan's text is escaped, never inserted as markup.
-export function buildSsml(text: string, language: Prepared["language"], voice: string): string {
+export function buildSsml(text: string, language: SpeechLanguage, voice: string): string {
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${language}">` +
     `<voice name="${xmlEscape(voice)}">${xmlEscape(text)}</voice></speak>`
