@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { HandleField } from "@/components/ui/HandleField";
-import { setHandle, HANDLE_IDLE } from "@/app/actions/creator";
+import { setHandle } from "@/app/actions/creator";
+import { HANDLE_IDLE } from "@/lib/creator-state";
 import { SITE_NAME } from "@/lib/site";
 
 export function HandleSetup() {

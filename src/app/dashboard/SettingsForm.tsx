@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { Switch } from "@/components/ui/Switch";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { saveSettings, SETTINGS_IDLE } from "@/app/actions/creator";
+import { saveSettings } from "@/app/actions/creator";
+import { SETTINGS_IDLE } from "@/lib/creator-state";
 import type { AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS } from "@/lib/message-filter";
 import { ACCENT_PRESETS, inkFor } from "@/lib/accent";

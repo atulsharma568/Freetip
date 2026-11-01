@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { CLOSE_ACCOUNT_IDLE, closeMyAccount } from "@/app/actions/creator";
+import { closeMyAccount } from "@/app/actions/creator";
+import { CLOSE_ACCOUNT_IDLE } from "@/lib/creator-state";
 
 // The last tile on the dashboard. Closing is permanent, so it is behind a button
 // and then a typed word, and it uses outline buttons only (lime is for the main

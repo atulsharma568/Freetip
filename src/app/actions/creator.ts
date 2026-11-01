@@ -10,6 +10,7 @@ import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
 import { SITE_HOST } from "@/lib/site";
 import { presetHex } from "@/lib/accent";
 import { accentFromPicture } from "@/lib/accent-server";
+import { CLOSE_ACCOUNT_IDLE } from "@/lib/creator-state";
 import { BLOCKER_MESSAGE, closeCreatorAccount } from "@/lib/account-close";
 import type { LedgerDb } from "@/lib/accrual";
 import { del } from "@vercel/blob";
@@ -32,7 +33,6 @@ export type HandleState =
   | { status: "error"; message: string }
   | { status: "ok"; handle: string };
 
-export const HANDLE_IDLE: HandleState = { status: "idle" };
 
 export async function setHandle(
   _prev: HandleState,
@@ -85,7 +85,6 @@ export type PayoutState =
   | { status: "error"; message: string }
   | { status: "ok" };
 
-export const PAYOUT_IDLE: PayoutState = { status: "idle" };
 
 export async function submitPayoutDetails(
   _prev: PayoutState,
@@ -133,7 +132,6 @@ export type SettingsState =
   | { status: "error"; message: string }
   | { status: "ok" };
 
-export const SETTINGS_IDLE: SettingsState = { status: "idle" };
 
 export async function saveSettings(
   _prev: SettingsState,
@@ -271,7 +269,6 @@ export async function generateOverlayLink(): Promise<OverlayLinkState> {
 // ── Closing the account ─────────────────────────────────────────────────────
 
 export type CloseAccountState = { status: "idle" } | { status: "error"; message: string };
-export const CLOSE_ACCOUNT_IDLE: CloseAccountState = { status: "idle" };
 
 // The creator closes their own account (see lib/account-close.ts for what goes and
 // what stays). They must type CLOSE; money still owed or a payout in progress

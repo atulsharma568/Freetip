@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { submitPayoutDetails, PAYOUT_IDLE } from "@/app/actions/creator";
+import { submitPayoutDetails } from "@/app/actions/creator";
+import { PAYOUT_IDLE } from "@/lib/creator-state";
 
 type OnboardingState = "not_started" | "submitted" | "active" | "rejected";
 
