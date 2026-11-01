@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { seal, open } from "../src/lib/secret-box";
-import { hashToken, MAX_MOMENTS_PER_STREAM, postDueComments, recordMoment, type Deps } from "../src/lib/stream-timestamps";
+import { clearLiveCache, hashToken, markTipPlayed, MAX_MOMENTS_PER_STREAM, postDueComments, recordMoment, type Deps } from "../src/lib/stream-timestamps";
 import type { PostResult, RefreshResult, YouTubeClient, YtVideo } from "../src/lib/youtube";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
@@ -43,6 +43,8 @@ const video = (over: Partial<YtVideo> = {}): YtVideo => ({
   id: VIDEO, channelId: CHANNEL, title: "Ranked grind", startedAt: START, endedAt: null,
   isLive: true, visible: true, madeForKids: false, ...over,
 });
+
+test.beforeEach(() => clearLiveCache());
 
 function setup(yt = new FakeYt(), discord?: Deps["discord"]) {
   const sent: unknown[] = [];
@@ -338,5 +340,105 @@ test.describe("posting the comment", () => {
     yt.videos.set(VIDEO, video({ isLive: false }));
     await postDueComments(asLedgerDb(pg), deps);
     expect(yt.posted[0].text).toBe("Timestamps:\n\n12:34 early");
+  });
+});
+
+async function liveTip(pg: PGlite, creatorId: number, gross: number, livemode = true) {
+  seq += 1;
+  const t = await pg.query<{ id: string }>(
+    `insert into tip_orders (creator_id, public_reference, gross_amount_minor, status, captured_at, fan_name)
+     values ($1, $2, $3, 'captured', now(), 'Secret Fan') returning id::text`,
+    [creatorId, `tip_${seq}`, gross],
+  );
+  await pg.query(
+    `insert into payment_attempts
+       (tip_order_id, provider, provider_order_ref, provider_payment_ref, provider_status,
+        amount_minor, idempotency_key, livemode, captured_amount_minor, captured_currency, captured_at)
+     values ($1, 'razorpay', $2, $3, 'captured', $4, $5, $6, $4, 'INR', now())`,
+    [t.rows[0].id, `order_${seq}`, `pay_${seq}`, gross, `tip_${seq}`, livemode],
+  );
+  return Number(t.rows[0].id);
+}
+
+const marks = async (pg: PGlite) =>
+  (await pg.query<{ title: string; source: string; chat_user: string | null; ref: string }>(
+    `select title, source, chat_user, ref from stream_timestamps order by id`,
+  )).rows;
+
+test.describe("automatic moments for big tips and goals", () => {
+  async function ready(over: { threshold?: number | null } = {}) {
+    const pg = await freshDatabase();
+    const c = await creator(pg, { webhook: true });
+    await pg.query(`update users set ts_tip_min_paise = $2 where id = $1`, [c.id, over.threshold === undefined ? 50000 : over.threshold]);
+    const fake = setup();
+    fake.yt.videos.set(VIDEO, video());
+    fake.yt.live = VIDEO;
+    return { pg, c, ...fake };
+  }
+
+  test("a tip at or above the threshold adds a moment with only the amount, once", async () => {
+    const { pg, c, deps, sent } = await ready();
+    const big = await liveTip(pg, c.id, 50000);
+    await markTipPlayed(asLedgerDb(pg), deps, big);
+    await markTipPlayed(asLedgerDb(pg), deps, big); // OBS confirmed it twice
+    expect(await marks(pg)).toEqual([{ title: "₹500 tip", source: "tip", chat_user: null, ref: `tip:${big}` }]);
+    expect(sent).toHaveLength(1);
+    expect(JSON.stringify(sent[0])).not.toContain("Secret Fan");
+    expect(JSON.stringify(sent[0])).toContain("₹500 tip");
+  });
+
+  test("a smaller tip adds nothing", async () => {
+    const { pg, c, deps } = await ready();
+    await markTipPlayed(asLedgerDb(pg), deps, await liveTip(pg, c.id, 49900));
+    expect(await marks(pg)).toHaveLength(0);
+  });
+
+  test("switched off, it does not even call YouTube", async () => {
+    const { pg, c, deps, yt } = await ready({ threshold: null });
+    await markTipPlayed(asLedgerDb(pg), deps, await liveTip(pg, c.id, 900000));
+    expect(await marks(pg)).toHaveLength(0);
+    expect(yt.videoCalls).toBe(0);
+  });
+
+  test("a creator who is not live adds nothing", async () => {
+    const { pg, c, deps, yt } = await ready();
+    yt.live = null;
+    await markTipPlayed(asLedgerDb(pg), deps, await liveTip(pg, c.id, 50000));
+    expect(await marks(pg)).toHaveLength(0);
+  });
+
+  test("a test-mode tip adds nothing", async () => {
+    const { pg, c, deps } = await ready();
+    await markTipPlayed(asLedgerDb(pg), deps, await liveTip(pg, c.id, 50000, false));
+    expect(await marks(pg)).toHaveLength(0);
+  });
+
+  test("the tip that completes a goal adds one goal moment, even if another alert is confirmed later", async () => {
+    const { pg, c, deps } = await ready({ threshold: 2000 });
+    await pg.query(
+      `insert into goals (creator_id, title, target_paise, repeat, timezone, carry_over, started_at)
+       values ($1, 'New mic', 50000, 'never', 'Asia/Kolkata', false, '2026-01-01T00:00:00Z')`,
+      [c.id],
+    );
+    const first = await liveTip(pg, c.id, 30000);
+    await markTipPlayed(asLedgerDb(pg), deps, first);
+    expect((await marks(pg)).map((m) => m.source)).toEqual(["tip"]); // under the target: no goal moment
+    const second = await liveTip(pg, c.id, 30000);
+    await markTipPlayed(asLedgerDb(pg), deps, second);
+    await markTipPlayed(asLedgerDb(pg), deps, first);
+    const all = await marks(pg);
+    expect(all.filter((m) => m.source === "goal")).toEqual([
+      expect.objectContaining({ title: "Goal reached: New mic", chat_user: null }),
+    ]);
+  });
+
+  test("automatic moments are in the comment with the chat ones", async () => {
+    const { pg, c, deps, yt } = await ready();
+    await say(pg, deps, c.token, "Ravi", "Nice shot");
+    await markTipPlayed(asLedgerDb(pg), deps, await liveTip(pg, c.id, 50000));
+    yt.videos.set(VIDEO, video({ isLive: false }));
+    await postDueComments(asLedgerDb(pg), deps);
+    expect(yt.posted[0].text).toMatch(/^Timestamps:\n\n12:34 Nice shot( \/ ₹500 tip)?\n?/);
+    expect(yt.posted[0].text).toContain("₹500 tip");
   });
 });

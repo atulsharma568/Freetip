@@ -77,6 +77,19 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
     migrated = false;
   }
 
+  // Phase 2 columns (migration 0033), read apart so the page works before it is run.
+  let extras = { tipMinRupees: null as number | null, isPublic: false, hasEditorLink: false, ready: true };
+  try {
+    const [row] = await db<{ tip_min: number | null; is_public: boolean; has_editor: boolean }[]>`
+      select ts_tip_min_paise as tip_min, ts_public as is_public, ts_editor_token_hash is not null as has_editor
+        from users where id = ${user.id}
+    `;
+    extras = { tipMinRupees: row.tip_min === null ? null : Math.round(row.tip_min / 100), isPublic: row.is_public, hasEditorLink: row.has_editor, ready: true };
+  } catch (err) {
+    console.error("Timestamps page: could not read the extras (migration 0033 run?).", err);
+    extras.ready = false;
+  }
+
   const yt = (await searchParams).yt;
   const notice = yt ? YT_MESSAGES[yt] : undefined;
   const available = youtubeConfigured() && secretBoxAvailable();
@@ -107,6 +120,10 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
             reconnectNeeded={state.reconnect}
             discordConnected={state.discord}
             notice={notice ?? null}
+            extras={extras}
+            tipPlan={planFeatures(user.plan).tipMarks}
+            highlightsPlan={planFeatures(user.plan).highlightsPage}
+            editorPlan={planFeatures(user.plan).editorLink}
           />
         )}
 
@@ -133,7 +150,17 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
                         {s.reason ? `, ${REASONS[s.reason] ?? s.reason}` : ""}
                       </span>
                     </div>
-                    <span className="shrink-0 text-xs text-muted">
+                    <span className="flex shrink-0 flex-col items-end gap-1 text-xs text-muted">
+                      {extras.isPublic && s.n > 0 && (
+                        <a
+                          href={`/${user.handle}/highlights/${s.video_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-text underline-offset-4 hover:underline"
+                        >
+                          Public page
+                        </a>
+                      )}
                       {s.state === "posted"
                         ? "Posted"
                         : s.state === "queued"

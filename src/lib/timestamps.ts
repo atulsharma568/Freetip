@@ -87,11 +87,16 @@ export function cleanUser(raw: string | null | undefined): string {
   return Array.from(name).slice(0, 40).join("") || "Someone";
 }
 
-export type Moment = { seconds: number; title: string; user: string };
+export type Source = "chat" | "tip" | "goal";
+export type Moment = { seconds: number; title: string; user: string; source?: Source };
 
-// Moments within GROUP_WINDOW_SECONDS of the first one in a group become one line at
-// the group's earliest time, with each distinct title once. Oldest first.
-export function commentLines(moments: readonly Moment[], window = GROUP_WINDOW_SECONDS): string[] {
+// A group of moments close together, as the comment, the editor page and the public
+// page show them: one time (the earliest), each distinct title once, and how many
+// separate moments were saved there (several viewers reacting to the same thing is the
+// signal an editor wants). No viewer names: the public page must not carry them.
+export type MomentGroup = { seconds: number; titles: string[]; marks: number; sources: Source[] };
+
+export function groupMoments(moments: readonly Moment[], window = GROUP_WINDOW_SECONDS): MomentGroup[] {
   const sorted = [...moments].sort((a, b) => a.seconds - b.seconds);
   const groups: Moment[][] = [];
   for (const m of sorted) {
@@ -99,10 +104,20 @@ export function commentLines(moments: readonly Moment[], window = GROUP_WINDOW_S
     if (last && m.seconds - last[0].seconds <= window) last.push(m);
     else groups.push([m]);
   }
-  return groups.map((g) => {
-    const titles = [...new Set(g.map((m) => m.title).filter(Boolean))];
-    return titles.length ? `${formatOffset(g[0].seconds)} ${titles.join(" / ")}` : formatOffset(g[0].seconds);
-  });
+  return groups.map((g) => ({
+    seconds: g[0].seconds,
+    titles: [...new Set(g.map((m) => m.title).filter(Boolean))],
+    marks: g.length,
+    sources: [...new Set(g.map((m) => m.source ?? "chat"))],
+  }));
+}
+
+// Moments within GROUP_WINDOW_SECONDS of the first one in a group become one line at
+// the group's earliest time, with each distinct title once. Oldest first.
+export function commentLines(moments: readonly Moment[], window = GROUP_WINDOW_SECONDS): string[] {
+  return groupMoments(moments, window).map((g) =>
+    g.titles.length ? `${formatOffset(g.seconds)} ${g.titles.join(" / ")}` : formatOffset(g.seconds),
+  );
 }
 
 // The one comment posted when the stream ends. Cut at the last whole line that fits
@@ -130,3 +145,54 @@ export function parseDelay(raw: unknown, fallback = 22): number {
   const n = typeof raw === "number" ? raw : typeof raw === "string" && /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
   return Number.isInteger(n) && n >= 0 && n <= MAX_DELAY_SECONDS ? n : fallback;
 }
+
+// YouTube turns a list of times in a video's description into chapters only when the
+// first is 0:00, there are at least three, and each is at least ten seconds long. A
+// missing 0:00 is added as "Start"; a moment closer than ten seconds to the one before
+// it is left out. Titles fall back to "Moment N".
+export const MIN_CHAPTERS = 3;
+export const MIN_CHAPTER_SECONDS = 10;
+
+export type ChaptersResult = { ok: true; text: string; count: number } | { ok: false; reason: string };
+
+export function buildChapters(groups: readonly MomentGroup[]): ChaptersResult {
+  const kept: { seconds: number; title: string }[] = [];
+  groups.forEach((g, i) => {
+    const title = g.titles[0] || `Moment ${i + 1}`;
+    const last = kept[kept.length - 1];
+    if (!last && g.seconds > 0) kept.push({ seconds: 0, title: "Start" });
+    const prev = kept[kept.length - 1];
+    if (prev && g.seconds - prev.seconds < MIN_CHAPTER_SECONDS) return;
+    kept.push({ seconds: g.seconds, title });
+  });
+  if (kept.length < MIN_CHAPTERS) {
+    return { ok: false, reason: `YouTube needs at least ${MIN_CHAPTERS} chapters at least ${MIN_CHAPTER_SECONDS} seconds apart; there are ${kept.length}.` };
+  }
+  return { ok: true, count: kept.length, text: kept.map((c) => `${formatOffset(c.seconds)} ${c.title}`).join("\n") };
+}
+
+// One CSV cell. Quoted when needed, and a cell that starts with = + - or @ gets a
+// leading apostrophe so a spreadsheet does not run what a viewer typed as a formula.
+export function csvCell(value: string | number): string {
+  let text = String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+export function momentsCsv(videoId: string, groups: readonly MomentGroup[]): string {
+  const rows = [["time", "seconds", "label", "source", "marks", "link"]];
+  for (const g of groups) {
+    rows.push([
+      formatOffset(g.seconds),
+      String(g.seconds),
+      g.titles.join(" / "),
+      g.sources.join("+"),
+      String(g.marks),
+      youtubeMomentLink(videoId, g.seconds),
+    ]);
+  }
+  return `${rows.map((r) => r.map(csvCell).join(",")).join("\r\n")}\r\n`;
+}
+
+// "₹500" or "₹1,250" for an automatic moment's label (whole rupees, Indian grouping).
+export const rupeeLabel = (paise: number) => `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;

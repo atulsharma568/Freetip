@@ -4,6 +4,7 @@ import { momentPayload, sendToDiscord } from "./discord-webhook";
 import { open } from "./secret-box";
 import { parseBannedWords } from "./message-filter";
 import { planFeatures } from "./plans";
+import { loadGoalProgress } from "./goal-progress";
 import {
   buildComment,
   chatReply,
@@ -12,6 +13,7 @@ import {
   commentLines,
   isVideoId,
   offsetSeconds,
+  rupeeLabel,
   videoIdFromChatId,
 } from "./timestamps";
 import type { YouTubeClient } from "./youtube";
@@ -58,10 +60,12 @@ type Creator = {
 // YouTube quota on every command. Per server instance; losing it only costs a call.
 const liveCache = new Map<string, { videoId: string | null; until: number }>();
 const LIVE_CACHE_MS = 5 * 60 * 1000;
+// For tests: creator ids repeat across fresh databases.
+export const clearLiveCache = () => liveCache.clear();
 
-async function resolveVideoId(creator: Creator, chatId: string, deps: Deps): Promise<string | null> {
-  const fromChat = videoIdFromChatId(chatId);
-  if (fromChat) return fromChat;
+// The creator's video that is live right now, asked of YouTube with their own permission
+// and remembered a few minutes.
+async function liveVideoId(creator: Creator, deps: Deps): Promise<string | null> {
   const now = deps.now().getTime();
   const hit = liveCache.get(creator.id);
   if (hit && hit.until > now) return hit.videoId;
@@ -72,6 +76,57 @@ async function resolveVideoId(creator: Creator, chatId: string, deps: Deps): Pro
   const videoId = await deps.yt.activeBroadcast(access.accessToken);
   if (videoId) liveCache.set(creator.id, { videoId, until: now + LIVE_CACHE_MS });
   return videoId;
+}
+
+async function resolveVideoId(creator: Creator, chatId: string, deps: Deps): Promise<string | null> {
+  return videoIdFromChatId(chatId) ?? (await liveVideoId(creator, deps));
+}
+
+type StreamInfo = { creator_id: string; started_at: Date | null; title: string | null; n: number };
+
+// What we know about a stream, asking YouTube once if it is new or its start is unknown,
+// and making sure the stream is this creator's own. `error` is a sentence for chat.
+async function ensureStream(
+  db: LedgerDb,
+  deps: Deps,
+  creator: Creator,
+  videoId: string,
+): Promise<{ stream: StreamInfo; error: null } | { stream: null; error: string }> {
+  let [stream] = await db<StreamInfo[]>`
+    select s.creator_id::text, s.started_at, s.title,
+           (select count(*)::int from stream_timestamps m where m.video_id = s.video_id) as n
+      from timestamp_streams s where s.video_id = ${videoId}
+  `;
+  if (stream && stream.creator_id !== creator.id) return { stream: null, error: "This stream belongs to another channel." };
+  if (stream && stream.n >= MAX_MOMENTS_PER_STREAM) return { stream: null, error: "This stream has reached its timestamp limit." };
+
+  if (!stream || !stream.started_at) {
+    const videos = await deps.yt.getVideos([videoId]);
+    const video = videos?.get(videoId);
+    if (video) {
+      if (creator.yt_channel_id && video.channelId !== creator.yt_channel_id) return { stream: null, error: "This stream belongs to another channel." };
+      await db`
+        insert into timestamp_streams (video_id, creator_id, title, started_at)
+        values (${videoId}, ${creator.id}, ${video.title || null}, ${video.startedAt})
+        on conflict (video_id) do update
+          set started_at = coalesce(timestamp_streams.started_at, excluded.started_at),
+              title      = coalesce(timestamp_streams.title, excluded.title)
+        where timestamp_streams.creator_id = excluded.creator_id
+      `;
+    } else {
+      // YouTube did not answer. Save the moment anyway; the posting job checks the
+      // stream's owner before it comments.
+      await db`
+        insert into timestamp_streams (video_id, creator_id) values (${videoId}, ${creator.id})
+        on conflict (video_id) do nothing
+      `;
+    }
+    [stream] = await db<StreamInfo[]>`
+      select s.creator_id::text, s.started_at, s.title, 0 as n from timestamp_streams s where s.video_id = ${videoId}
+    `;
+    if (!stream || stream.creator_id !== creator.id) return { stream: null, error: "This stream belongs to another channel." };
+  }
+  return { stream, error: null };
 }
 
 // Returns true when a rate limit allows this key now (and counts the attempt).
@@ -124,43 +179,9 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
     const videoId = await resolveVideoId(creator, input.chatId, deps);
     if (!videoId || !isVideoId(videoId)) return "Could not tell which stream this is. Is it live?";
 
-    // What we already know about this stream.
-    let [stream] = await db<{ creator_id: string; started_at: Date | null; title: string | null; n: number }[]>`
-      select s.creator_id::text, s.started_at, s.title,
-             (select count(*)::int from stream_timestamps m where m.video_id = s.video_id) as n
-        from timestamp_streams s where s.video_id = ${videoId}
-    `;
-    if (stream && stream.creator_id !== creator.id) return "This stream belongs to another channel.";
-    if (stream && stream.n >= MAX_MOMENTS_PER_STREAM) return "This stream has reached its timestamp limit.";
-
-    // First time we see it (or its start is unknown): ask YouTube once, and make sure
-    // the stream is this creator's own.
-    if (!stream || !stream.started_at) {
-      const videos = await deps.yt.getVideos([videoId]);
-      const video = videos?.get(videoId);
-      if (video) {
-        if (creator.yt_channel_id && video.channelId !== creator.yt_channel_id) return "This stream belongs to another channel.";
-        await db`
-          insert into timestamp_streams (video_id, creator_id, title, started_at)
-          values (${videoId}, ${creator.id}, ${video.title || null}, ${video.startedAt})
-          on conflict (video_id) do update
-            set started_at = coalesce(timestamp_streams.started_at, excluded.started_at),
-                title      = coalesce(timestamp_streams.title, excluded.title)
-          where timestamp_streams.creator_id = excluded.creator_id
-        `;
-      } else {
-        // YouTube did not answer. Save the moment anyway; the posting job checks the
-        // stream's owner before it comments.
-        await db`
-          insert into timestamp_streams (video_id, creator_id) values (${videoId}, ${creator.id})
-          on conflict (video_id) do nothing
-        `;
-      }
-      [stream] = await db<{ creator_id: string; started_at: Date | null; title: string | null; n: number }[]>`
-        select s.creator_id::text, s.started_at, s.title, 0 as n from timestamp_streams s where s.video_id = ${videoId}
-      `;
-      if (!stream || stream.creator_id !== creator.id) return "This stream belongs to another channel.";
-    }
+    const ensured = await ensureStream(db, deps, creator, videoId);
+    if (ensured.stream === null) return ensured.error;
+    const stream = ensured.stream;
 
     const title = cleanTitle(input.message, parseBannedWords(creator.banned_words));
     const now = deps.now();
@@ -185,6 +206,98 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
   } catch (err) {
     console.error("Timestamps: could not save a moment.", err);
     return "Timestamps are not working right now. Try again soon.";
+  }
+}
+
+// ------------------------------------------------------- automatic moments (phase 2)
+
+export type AutoMarkResult = "saved" | "off" | "not_live" | "duplicate" | "refused" | "error";
+
+type AutoMark = { creatorId: number; source: "tip" | "goal"; label: string; ref: string; at: Date };
+
+// Adds a moment on its own: a big tip or a completed goal, at the second its alert played.
+// Needs the creator to have switched automatic moments on (`ts_tip_min_paise` set) and to
+// have connected YouTube (that is how we find which stream is live). The label is only the
+// amount or the goal's title, never a fan's name, so nothing about a fan reaches YouTube,
+// Discord or a public page. Safe to call twice for the same tip or goal.
+export async function recordAutoMark(db: LedgerDb, deps: Deps, mark: AutoMark): Promise<AutoMarkResult> {
+  try {
+    const [creator] = await db<(Creator & { ts_tip_min_paise: number | null })[]>`
+      select id::text, creator_status, plan, yt_channel_id, ts_delay_seconds, banned_words,
+             yt_refresh_token_enc, discord_webhook_enc, ts_tip_min_paise
+        from users where id = ${mark.creatorId}
+    `;
+    if (!creator || creator.creator_status === "suspended" || creator.ts_tip_min_paise === null) return "off";
+    if (!planFeatures(creator.plan).tipMarks) return "off";
+
+    const videoId = await liveVideoId(creator, deps);
+    if (!videoId || !isVideoId(videoId)) return "not_live";
+    const ensured = await ensureStream(db, deps, creator, videoId);
+    if (ensured.stream === null) return "refused";
+    const stream = ensured.stream;
+
+    const title = cleanTitle(mark.label, parseBannedWords(creator.banned_words)) || mark.label.slice(0, 60);
+    const saved = await db<{ id: string }[]>`
+      insert into stream_timestamps (creator_id, video_id, chat_user, title, source, delay_seconds, ref, created_at)
+      values (${creator.id}, ${videoId}, null, ${title}, ${mark.source}, 0, ${mark.ref}, ${mark.at.toISOString()})
+      on conflict (video_id, source, ref) where ref is not null do nothing
+      returning id::text
+    `;
+    if (!saved.length) return "duplicate";
+
+    const webhook = deps.unseal(creator.discord_webhook_enc);
+    const seconds = stream.started_at ? offsetSeconds(mark.at, stream.started_at, 0) : null;
+    if (webhook && seconds !== null) {
+      const result = await deps.discord(
+        webhook,
+        momentPayload({ videoId, streamTitle: stream.title, seconds, title, user: "Freetip" }),
+      );
+      if (result !== "sent") console.error(`Timestamps: Discord message ${result} for creator ${creator.id}.`);
+    }
+    return "saved";
+  } catch (err) {
+    console.error("Timestamps: could not save an automatic moment (migration 0033 run?).", err);
+    return "error";
+  }
+}
+
+// Called once a live tip's alert has really played on the creator's overlay. Marks the tip
+// when it is at or above the creator's threshold, and marks every goal this tip pushed over
+// its target. Test-mode money is ignored, like the books do. Never throws.
+export async function markTipPlayed(db: LedgerDb, deps: Deps, tipId: number): Promise<void> {
+  try {
+    const [tip] = await db<{ creator_id: string; gross: string; threshold: number | null; live: boolean }[]>`
+      select t.creator_id::text, t.gross_amount_minor::text as gross, u.ts_tip_min_paise as threshold,
+             exists (select 1 from payment_attempts pa
+                      where pa.tip_order_id = t.id and pa.livemode is true and pa.provider_status = 'captured') as live
+        from tip_orders t join users u on u.id = t.creator_id
+       where t.id = ${tipId} and t.status = 'captured'
+    `;
+    // Off for this creator (or a test-mode tip): nothing to do, and no YouTube calls made.
+    if (!tip || tip.threshold === null || !tip.live) return;
+    const creatorId = Number(tip.creator_id);
+    const gross = Number(tip.gross);
+    const at = deps.now();
+
+    if (gross >= tip.threshold) {
+      await recordAutoMark(db, deps, { creatorId, source: "tip", label: `${rupeeLabel(gross)} tip`, ref: `tip:${tipId}`, at });
+    }
+
+    // A goal is reached by the tip that takes the total from under its target to at or over it.
+    const goals = await loadGoalProgress(db, creatorId, at);
+    for (const g of goals) {
+      if (g.raisedPaise >= g.effectiveTargetPaise && g.raisedPaise - gross < g.effectiveTargetPaise) {
+        await recordAutoMark(db, deps, {
+          creatorId,
+          source: "goal",
+          label: `Goal reached: ${g.title}`,
+          ref: `goal:${g.id}:${g.since}`,
+          at,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Timestamps: could not mark a played tip (migration 0033 run?).", err);
   }
 }
 

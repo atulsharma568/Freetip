@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { isDiscordWebhookUrl, sendToDiscord, testPayload } from "@/lib/discord-webhook";
 import { open, seal, secretBoxAvailable } from "@/lib/secret-box";
 import { hashToken } from "@/lib/stream-timestamps";
+import { MIN_TIP_PAISE } from "@/lib/money";
 import { parseDelay } from "@/lib/timestamps";
 import { SITE_URL } from "@/lib/url";
 import { createYouTubeClient } from "@/lib/youtube";
@@ -137,6 +138,77 @@ export async function disconnectYouTube(): Promise<TsResult> {
   } catch (err) {
     unstable_rethrow(err);
     console.error("Timestamps: could not disconnect YouTube.", err);
+    return FAILED;
+  }
+}
+
+// Automatic moments: a tip at or above this many rupees, and every completed goal, add a
+// moment by themselves. Null turns them off. Never below the minimum tip.
+export async function saveTipMarks(minRupees: number | null): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    let paise: number | null = null;
+    if (minRupees !== null) {
+      if (!Number.isInteger(minRupees) || minRupees * 100 < MIN_TIP_PAISE || minRupees > 1_000_000) {
+        return { status: "error", message: `Enter a whole number of rupees, ${MIN_TIP_PAISE / 100} or more.` };
+      }
+      paise = minRupees * 100;
+    }
+    await who.db`update users set ts_tip_min_paise = ${paise} where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return {
+      status: "ok",
+      message: paise === null ? "Automatic moments are off." : `On. Tips of ₹${minRupees} or more, and completed goals, add a moment.`,
+    };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not save the automatic moments setting (migration 0033 run?).", err);
+    return FAILED;
+  }
+}
+
+export async function saveHighlightsPublic(on: boolean): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    await who.db`update users set ts_public = ${on === true} where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return { status: "ok", message: on ? "Public highlights pages are on." : "Public highlights pages are off. Their links stop working." };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not save the public pages setting (migration 0033 run?).", err);
+    return FAILED;
+  }
+}
+
+// The private link for the creator's video editor. Shown once; making a new one cancels
+// the old one at once.
+export async function generateEditorLink(): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    const token = randomBytes(32).toString("base64url");
+    await who.db`update users set ts_editor_token_hash = ${hashToken(token)} where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return { status: "ok", message: "Your editor link is ready. Copy it now: it is not shown again.", command: `${SITE_URL}/editor/${token}` };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not make the editor link (migration 0033 run?).", err);
+    return FAILED;
+  }
+}
+
+export async function removeEditorLink(): Promise<TsResult> {
+  try {
+    const who = await creator();
+    if (!who.ok) return who.error;
+    await who.db`update users set ts_editor_token_hash = null where id = ${who.row.id}`;
+    revalidatePath("/dashboard/timestamps");
+    return { status: "ok", message: "Editor link removed. It no longer works." };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("Timestamps: could not remove the editor link.", err);
     return FAILED;
   }
 }

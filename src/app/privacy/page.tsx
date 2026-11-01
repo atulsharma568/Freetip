@@ -327,9 +327,13 @@ const SECTIONS: LegalSection[] = [
         <li>
           <strong>Stream timestamps:</strong> if a creator uses them, the
           chat name of the viewer who typed !ts and what they typed after it
-          are kept 90 days, then deleted. The creator&apos;s YouTube
-          connection and Discord address are kept encrypted until the creator
-          disconnects them or closes their account.
+          are kept 90 days, then deleted. If the creator switches on public
+          highlights pages or an editor link, those show the times and what was
+          typed, never a viewer&apos;s name. Moments added automatically for
+          big tips and completed goals carry only the amount or the goal&apos;s
+          title, not a fan&apos;s name. The creator&apos;s YouTube connection
+          and Discord address are kept encrypted until the creator disconnects
+          them or closes their account.
         </li>
         <li>
           <strong>Payment, payout and tax records:</strong> as long as Indian

@@ -168,4 +168,10 @@ async function eraseTimestampData(db: LedgerDb, userId: number): Promise<void> {
   } catch {
     /* migration 0032 not run: nothing to erase */
   }
+  // Phase 2 settings (migration 0033): the editor link stops working and public pages go.
+  try {
+    await db`update users set ts_editor_token_hash = null, ts_public = false, ts_tip_min_paise = null where id = ${userId}`;
+  } catch {
+    /* migration 0033 not run */
+  }
 }

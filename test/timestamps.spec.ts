@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { isDiscordWebhookUrl, momentPayload, sendToDiscord, testPayload } from "../src/lib/discord-webhook";
 import { open, seal, secretBoxAvailable } from "../src/lib/secret-box";
 import {
+  buildChapters,
   buildComment,
   chatReply,
   cleanTitle,
@@ -9,8 +10,11 @@ import {
   commentLines,
   COMMENT_MAX_CHARS,
   formatOffset,
+  groupMoments,
+  momentsCsv,
   offsetSeconds,
   parseDelay,
+  rupeeLabel,
   videoIdFromChatId,
   youtubeMomentLink,
 } from "../src/lib/timestamps";
@@ -182,5 +186,54 @@ test.describe("discord webhook", () => {
     expect(await sendToDiscord(good, testPayload(), boom)).toBe("failed");
     const limited = (async () => new Response(JSON.stringify({ retry_after: 30 }), { status: 429 })) as unknown as typeof fetch;
     expect(await sendToDiscord(good, testPayload(), limited)).toBe("failed");
+  });
+});
+
+test.describe("groups, chapters and CSV", () => {
+  const g = (seconds: number, titles: string[] = [], marks = 1) => ({ seconds, titles, marks, sources: ["chat" as const] });
+
+  test("grouping counts how many people marked a moment and never carries a name", () => {
+    const groups = groupMoments([
+      { seconds: 600, title: "clutch", user: "a", source: "chat" },
+      { seconds: 604, title: "clutch", user: "b", source: "chat" },
+      { seconds: 607, title: "", user: "c", source: "tip" },
+      { seconds: 900, title: "fail", user: "d" },
+    ]);
+    expect(groups).toEqual([
+      { seconds: 600, titles: ["clutch"], marks: 3, sources: ["chat", "tip"] },
+      { seconds: 900, titles: ["fail"], marks: 1, sources: ["chat"] },
+    ]);
+    expect(JSON.stringify(groups)).not.toMatch(/"user"/);
+  });
+
+  test("chapters start at 0:00, are at least ten seconds apart, and need three", () => {
+    const ok = buildChapters([g(75, ["Boss fight"]), g(120, ["Loot"]), g(125, ["too close"]), g(600, [])]);
+    expect(ok).toEqual({ ok: true, count: 4, text: "0:00 Start\n1:15 Boss fight\n2:00 Loot\n10:00 Moment 4" });
+    expect(buildChapters([g(0, ["Intro"]), g(60, ["Game"]), g(3700, ["End"])])).toEqual({
+      ok: true,
+      count: 3,
+      text: "0:00 Intro\n1:00 Game\n1:01:40 End",
+    });
+    const few = buildChapters([g(0, ["a"]), g(300, ["b"])]);
+    expect(few.ok).toBe(false);
+    expect(buildChapters([])).toMatchObject({ ok: false });
+  });
+
+  test("the CSV quotes cells and stops spreadsheet formulas", () => {
+    const csv = momentsCsv("abcDEF12345", [
+      { seconds: 754, titles: ['say "hi", ok'], marks: 2, sources: ["chat"] },
+      { seconds: 800, titles: ["=HYPERLINK(\"http://x\")"], marks: 1, sources: ["tip", "goal"] },
+    ]);
+    const lines = csv.trimEnd().split("\r\n");
+    expect(lines[0]).toBe("time,seconds,label,source,marks,link");
+    expect(lines[1]).toBe('12:34,754,"say ""hi"", ok",chat,2,https://youtu.be/abcDEF12345?t=754');
+    expect(lines[2].startsWith("13:20,800,\"'=HYPERLINK")).toBe(true);
+    expect(lines[2]).toContain("tip+goal");
+  });
+
+  test("rupee labels use Indian grouping", () => {
+    expect(rupeeLabel(50000)).toBe("₹500");
+    expect(rupeeLabel(125000)).toBe("₹1,250");
+    expect(rupeeLabel(1000000000)).toBe("₹1,00,00,000");
   });
 });

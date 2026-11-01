@@ -17,7 +17,7 @@ export const RESERVED_HANDLES = new Set([
   "tipsite", "www", "support", "help", "me", "creator", "creators",
   "null", "undefined", "anonymous", "system", "user", "users",
   "settings", "login", "logout", "payments", "billing", "webhook",
-  "faq", "static", "security", "official", "staff",
+  "faq", "static", "security", "official", "staff", "editor",
 ]);
 
 export type HandleCheck = { ok: true; handle: string } | { ok: false; message: string };

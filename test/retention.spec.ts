@@ -140,7 +140,11 @@ test("stream timestamps older than 90 days are deleted, with finished streams th
 test("closing an account erases its stream timestamps and the YouTube and Discord secrets", async () => {
   const pg = await freshDatabase();
   const id = await creator(pg);
-  await pg.query(`update users set ts_token_hash = 'h', yt_refresh_token_enc = 'v1.x.y.z', discord_webhook_enc = 'v1.a.b.c' where id = $1`, [id]);
+  await pg.query(
+    `update users set ts_token_hash = 'h', yt_refresh_token_enc = 'v1.x.y.z', discord_webhook_enc = 'v1.a.b.c',
+                      ts_editor_token_hash = 'e', ts_public = true, ts_tip_min_paise = 50000 where id = $1`,
+    [id],
+  );
   await pg.query(`insert into timestamp_streams (video_id, creator_id) values ('abcDEF12345', $1)`, [id]);
   await pg.query(`insert into stream_timestamps (creator_id, video_id, chat_user, title) values ($1, 'abcDEF12345', 'viewer', 'nice')`, [id]);
 
@@ -148,9 +152,13 @@ test("closing an account erases its stream timestamps and the YouTube and Discor
 
   expect((await pg.query(`select 1 from stream_timestamps`)).rows).toHaveLength(0);
   expect((await pg.query(`select 1 from timestamp_streams`)).rows).toHaveLength(0);
-  const u = await pg.query<{ ts_token_hash: string | null; yt_refresh_token_enc: string | null; discord_webhook_enc: string | null }>(
-    `select ts_token_hash, yt_refresh_token_enc, discord_webhook_enc from users where id = $1`,
+  const u = await pg.query<Record<string, unknown>>(
+    `select ts_token_hash, yt_refresh_token_enc, discord_webhook_enc, ts_editor_token_hash, ts_public, ts_tip_min_paise
+       from users where id = $1`,
     [id],
   );
-  expect(u.rows[0]).toEqual({ ts_token_hash: null, yt_refresh_token_enc: null, discord_webhook_enc: null });
+  expect(u.rows[0]).toEqual({
+    ts_token_hash: null, yt_refresh_token_enc: null, discord_webhook_enc: null,
+    ts_editor_token_hash: null, ts_public: false, ts_tip_min_paise: null,
+  });
 });

@@ -1,6 +1,11 @@
 import { createHash } from "crypto";
+import { after } from "next/server";
 import { getDb } from "@/lib/db";
+import type { LedgerDb } from "@/lib/accrual";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
+import { secretBoxAvailable } from "@/lib/secret-box";
+import { markTipPlayed, realDeps } from "@/lib/stream-timestamps";
+import { createYouTubeClient, youtubeConfigured } from "@/lib/youtube";
 
 // The overlay calls this once an alert's card is on screen. Only now is the
 // alert marked shown; until then it is just leased (see ../route.ts), so an OBS
@@ -66,5 +71,12 @@ export async function POST(
         `;
 
   if (!rows.length) return new Response("Not found", { status: 404, headers: NO_STORE });
+
+  // The alert has really played: a creator who switched on automatic stream timestamps
+  // gets a moment for a big tip or a completed goal. After the reply, so the overlay is
+  // never kept waiting, and it never throws (a repeat confirm adds nothing).
+  if (kind === "alert" && youtubeConfigured() && secretBoxAvailable()) {
+    after(() => markTipPlayed(db as unknown as LedgerDb, realDeps(createYouTubeClient()), id));
+  }
   return new Response(null, { status: 204, headers: NO_STORE });
 }
