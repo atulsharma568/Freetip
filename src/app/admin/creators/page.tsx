@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDb } from "@/lib/db";
 import { setCreatorStatus, rejectCreatorOnboarding, resetCreatorAccent, adminCloseCreator } from "@/app/actions/admin";
 import { BLOCKER_MESSAGE, CLOSED_EMAIL_DOMAIN, type CloseBlocker } from "@/lib/account-close";
@@ -38,10 +39,12 @@ const ONBOARDING_STYLES: Record<string, string> = {
 export default async function AdminCreatorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ blocked?: string }>;
+  searchParams: Promise<{ blocked?: string; q?: string }>;
 }) {
   await requireOwner();
-  const { blocked } = await searchParams;
+  const { blocked, q: rawQ } = await searchParams;
+  const q = (rawQ ?? "").trim().slice(0, 100);
+  const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
   const blockedReason = blocked && blocked in BLOCKER_MESSAGE ? (blocked as CloseBlocker) : null;
   const db = getDb();
 
@@ -51,6 +54,8 @@ export default async function AdminCreatorsPage({
                yt_channel_name, yt_channel_url,
                min_tip_paise, message_max_chars, created_at
         from users
+        where ${q === ""}::boolean or name ilike ${like} or email ilike ${like} or handle ilike ${like}
+              or yt_channel_name ilike ${like} or upi_vpa ilike ${like}
         order by created_at desc
         limit 500
       `
@@ -67,7 +72,7 @@ export default async function AdminCreatorsPage({
     }
   }
 
-  if (!creators.length) {
+  if (!creators.length && !q) {
     return (
       <AdminEmptyState
         title="No creators yet"
@@ -84,6 +89,21 @@ export default async function AdminCreatorsPage({
           {creators.length} account{creators.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      <form action="/admin/creators" className="flex gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Search name, email, handle, channel or UPI ID"
+          aria-label="Search creators"
+          className="h-10 w-full max-w-md rounded-xl border border-control bg-surface px-3 text-sm text-text"
+        />
+        <button type="submit" className="rounded-xl border border-control px-4 text-sm text-text hover:border-muted">
+          Search
+        </button>
+      </form>
+      {q && !creators.length && <p className="text-sm text-muted">No creator matches &ldquo;{q}&rdquo;.</p>}
 
       {blockedReason && (
         <p role="alert" className="rounded-2xl border border-control bg-surface px-4 py-3 text-sm text-text">
@@ -115,7 +135,9 @@ export default async function AdminCreatorsPage({
                 <tr key={c.id} className="bg-surface/30 hover:bg-surface/60 transition-colors">
                   {/* Creator */}
                   <td className="px-4 py-3">
-                    <p className="font-medium text-text">{c.name ?? "—"}</p>
+                    <Link href={`/admin/creators/${c.id}`} className="font-medium text-text hover:underline">
+                      {c.name ?? "—"}
+                    </Link>
                     <p className="text-xs text-muted truncate max-w-[180px]">{c.email}</p>
                     {c.yt_channel_name && (
                       <a
