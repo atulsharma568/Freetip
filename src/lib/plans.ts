@@ -132,9 +132,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   {
     key: "overlayThemes",
     label: "Overlay themes and fonts",
-    group: "Planned, not built yet",
-    description: "Ready-made alert styles, fonts and GIF placement.",
-    built: false,
+    group: "Alert box",
+    description: "Pick a ready-made card style and a font for the OBS alert (/dashboard/style).",
+    built: true,
   },
   {
     key: "birthdayMessage",

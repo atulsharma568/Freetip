@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { AlertStage } from "@/components/overlay/AlertStage";
+import { OVERLAY_FONT_CLASSES } from "@/components/overlay/fonts";
 import { overlayVars } from "@/components/overlay/vars";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
 import { getOverlayAccent } from "@/lib/overlay-accent";
@@ -23,7 +24,7 @@ export default async function OverlayPage({ params }: Props) {
   return (
     <>
       <style>{`html, body { background: transparent !important; overflow: hidden; }`}</style>
-      <div style={overlayVars(accent)}>
+      <div className={OVERLAY_FONT_CLASSES} style={overlayVars(accent)}>
         <AlertStage token={token} />
       </div>
     </>

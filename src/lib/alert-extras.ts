@@ -3,6 +3,7 @@ import { NO_FEATURES, planFeatures } from "@/lib/plans";
 import { parseBannedWords } from "@/lib/message-filter";
 import { pickMedia, playable, type AlertMedia, type MediaCandidate } from "@/lib/media";
 import { resolveRule, type AlertRule } from "@/lib/alert-rules";
+import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
 
 // Everything an alert carries besides the fan's name, amount and message: the sound,
 // the voice choice, the creator's banned words and (as the paid features ship) media,
@@ -26,8 +27,10 @@ export type AlertExtras = {
   // The creator's GIF, image or WebM for this alert (custom alert media); null while
   // the feature is off, the creator has no playable file or this is the message card.
   media: AlertMedia | null;
+  // The card style and font the creator picked (overlay themes); null while the
+  // feature is off or both choices are the defaults, which is the plain card.
+  theme: OverlayStyle | null;
   // Filled in by their features; null while that feature is off or not built.
-  theme: null;
   level: null;
   birthday: null;
   voiceNote: null;
@@ -44,6 +47,8 @@ export type RawExtras = {
   soundPicked?: boolean;
   // The creator's alert rules by tip size (alert rules).
   rules?: readonly AlertRule[];
+  // The creator's stored theme and font keys (overlay themes); unknown keys are the default.
+  style?: { theme?: string | null; font?: string | null } | null;
 };
 
 export function resolveAlertExtras(
@@ -75,7 +80,8 @@ export function resolveAlertExtras(
     // A voice tip may still show media (only its sound is dropped). Only the alert
     // card has media, and only while the creator's switch is on at play time.
     media: mediaOn ? pickMedia(ruleFile ? [ruleFile] : (raw.media ?? []), ctx.tipId ?? 0) : null,
-    theme: null,
+    // Both the alert card and the follow-up message card wear the creator's style.
+    theme: ctx.features.overlayThemes ? resolveOverlayStyle(raw.style) : null,
     level: null,
     birthday: null,
     voiceNote: null,
@@ -193,8 +199,18 @@ export async function loadAlertExtras(
     }
   }
 
+  // The creator's card style (migration 0037), read only when the feature is on for them.
+  const style = features.overlayThemes
+    ? await safely("the alert style", null as { theme: string; font: string } | null, async () => {
+        const [found] = await db<{ overlay_theme: string; overlay_font: string }[]>`
+          select overlay_theme, overlay_font from users where id = ${o.creatorId}
+        `;
+        return found ? { theme: found.overlay_theme, font: found.overlay_font } : null;
+      })
+    : null;
+
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, style },
     { kind: o.kind, features, tipId: o.tipId, amountPaise },
   );
 }

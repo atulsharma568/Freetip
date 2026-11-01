@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { tipTierLevel } from "@/lib/tip-tier";
 import { MEDIA_WEBM_MAX_MS, type AlertMedia } from "@/lib/media";
+import { overlayStyleVars, type OverlayStyle } from "@/lib/overlay-themes";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
@@ -18,6 +19,9 @@ export interface OverlayAlert {
   sound?: { url: string; volume: number; ms: number } | null;
   // The creator's GIF, image or WebM for this alert (live overlay only).
   media?: AlertMedia | null;
+  // The creator's card style and font (overlay themes; live overlay and the dashboard
+  // preview). Missing or null is the plain card.
+  theme?: OverlayStyle | null;
   // A made-up alert from the dashboard's test button: the card wears a TEST badge so
   // it is never mistaken for a real tip.
   test?: boolean;
@@ -415,6 +419,7 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
       className={`ov-card ov-t${level}`}
       style={
         {
+          ...overlayStyleVars(alert.theme),
           "--dur": `${showMs(alert)}ms`,
           // Long amounts shrink a little so they never wrap or overflow the card.
           "--fit": Math.min(1, 7 / (amount.length + 1)),
@@ -459,32 +464,37 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
 // is an ink pill with accent text that switches on and off with no fade.
 const CSS = `
 .ov-card {
-  --s: 1; --sp: 1; --fit: 1;
+  --s: 1; --sp: 1; --fit: 1; --c-fs: 1; --bleed: calc(var(--u) * 3);
+  --c-bg: var(--ov-lime); --c-fg: var(--ov-on-lime); --c-amount: var(--c-fg);
+  --c-word-bg: var(--ov-on-lime); --c-word-fg: var(--ov-lime);
+  --c-tag-bg: var(--ov-on-lime); --c-tag-fg: var(--ov-lime);
+  --c-radius: calc(var(--u) * 1.04); --c-radius-p: calc(var(--u) * 2.2);
   position: absolute; left: 50%; bottom: calc(var(--u) * 6); transform: translateX(-50%);
   box-sizing: border-box; width: calc(var(--u) * 30 * var(--s)); max-width: 96%;
   padding: calc(var(--u) * 1.8 * var(--s)) calc(var(--u) * 2.2 * var(--s));
-  background: var(--ov-lime); color: var(--ov-on-lime);
-  border-radius: calc(var(--u) * 1.04); overflow-wrap: anywhere;
+  background: var(--c-bg); color: var(--c-fg); font-family: var(--c-font, inherit);
+  border: var(--c-border, 0 solid transparent); box-shadow: var(--c-shadow, none);
+  border-radius: var(--c-radius); overflow-wrap: anywhere;
   animation: ov-wipe-in 600ms cubic-bezier(.16,1,.3,1) both, ov-wipe-out 450ms cubic-bezier(.7,0,.84,0) calc(var(--dur) - 450ms) forwards;
 }
 .ov-t1 { --s: 1.12; --sp: 1.05; }
 .ov-t2 { --s: 1.25; --sp: 1.1; }
 .ov-t3 { --s: 1.4; --sp: 1.16; }
-.ov-top { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 1.8); font-weight: 600; line-height: 1.2; }
+.ov-top { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 1.8 * var(--c-fs)); font-weight: 600; line-height: 1.2; }
 .ov-verb { font-weight: 500; }
 .ov-test {
   margin-left: auto; padding: calc(var(--u) * 0.25) calc(var(--u) * 0.9); border-radius: 9999px;
-  background: var(--ov-on-lime); color: var(--ov-lime);
+  background: var(--c-tag-bg); color: var(--c-tag-fg);
   font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: calc(var(--u) * 1.2); font-weight: 600; letter-spacing: 0.12em;
 }
-.ov-amount { margin: calc(var(--u) * 0.6) 0 0; font-size: calc(var(--u) * 5.4 * var(--s) * var(--fit)); font-weight: 600; line-height: 1; letter-spacing: -0.025em; white-space: nowrap; }
-.ov-message { margin: calc(var(--u) * 1.3) 0 0; font-size: calc(var(--u) * 1.9); font-weight: 500; line-height: 1.35; word-spacing: 0.25em; }
+.ov-amount { margin: calc(var(--u) * 0.6) 0 0; color: var(--c-amount); font-size: calc(var(--u) * 5.4 * var(--s) * var(--fit)); font-weight: 600; line-height: 1; letter-spacing: -0.025em; white-space: nowrap; }
+.ov-message { margin: calc(var(--u) * 1.3) 0 0; font-size: calc(var(--u) * 1.9 * var(--c-fs)); font-weight: 500; line-height: 1.35; word-spacing: 0.25em; }
 .ov-w { display: inline-block; margin: 0 calc(var(--u) * -0.35); padding: calc(var(--u) * 0.08) calc(var(--u) * 0.35); border-radius: 9999px; animation: ov-word var(--wd) linear var(--ws) 1; }
-.ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4.5 * var(--sp)) calc(var(--u) * 5.5); border-radius: calc(var(--u) * 2.2); }
-.ov-portrait .ov-top { font-size: calc(var(--u) * 4.6); gap: calc(var(--u) * 2); }
+.ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4.5 * var(--sp)) calc(var(--u) * 5.5); border-radius: var(--c-radius-p); }
+.ov-portrait .ov-top { font-size: calc(var(--u) * 4.6 * var(--c-fs)); gap: calc(var(--u) * 2); }
 .ov-portrait .ov-test { font-size: calc(var(--u) * 3); padding: calc(var(--u) * 0.6) calc(var(--u) * 2.2); }
 .ov-portrait .ov-amount { margin-top: calc(var(--u) * 1.4); font-size: calc(var(--u) * 13 * var(--sp) * var(--fit)); }
-.ov-portrait .ov-message { margin-top: calc(var(--u) * 3); font-size: calc(var(--u) * 5); }
+.ov-portrait .ov-message { margin-top: calc(var(--u) * 3); font-size: calc(var(--u) * 5 * var(--c-fs)); }
 .ov-portrait .ov-w { margin: 0 calc(var(--u) * -0.8); padding: calc(var(--u) * 0.2) calc(var(--u) * 0.8); }
 .ov-card > :not(.ov-media) { position: relative; z-index: 1; }
 .ov-media { --mo: 1; pointer-events: none; animation: ov-media-in 400ms ease both, ov-media-out 450ms ease calc(var(--dur) - 450ms) forwards; }
@@ -505,11 +515,11 @@ const CSS = `
   font-size: calc(var(--u) * 1.7); font-weight: 500; line-height: 1.3; color: var(--ov-chalk); background: var(--ov-night);
 }
 .ov-portrait .ov-invalid { font-size: calc(var(--u) * 4.4); padding: calc(var(--u) * 3) calc(var(--u) * 5); }
-@keyframes ov-wipe-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-@keyframes ov-wipe-out { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+@keyframes ov-wipe-in { from { clip-path: inset(calc(var(--bleed) * -1) calc(var(--bleed) * -1) 100% calc(var(--bleed) * -1)); } to { clip-path: inset(calc(var(--bleed) * -1)); } }
+@keyframes ov-wipe-out { from { clip-path: inset(calc(var(--bleed) * -1)); } to { clip-path: inset(100% calc(var(--bleed) * -1) calc(var(--bleed) * -1) calc(var(--bleed) * -1)); } }
 @keyframes ov-media-in { from { opacity: 0; } to { opacity: var(--mo); } }
 @keyframes ov-media-out { from { opacity: var(--mo); } to { opacity: 0; } }
-@keyframes ov-word { from, to { background: var(--ov-on-lime); color: var(--ov-lime); } }
+@keyframes ov-word { from, to { background: var(--c-word-bg); color: var(--c-word-fg); } }
 @media (prefers-reduced-motion: reduce) {
   .ov-card { animation: ov-fade 200ms both, ov-fade-out 200ms linear calc(var(--dur) - 200ms) forwards; }
 }

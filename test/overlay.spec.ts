@@ -182,6 +182,48 @@ test.describe("OBS overlay routes", () => {
     await expect(page.locator(".ov-media")).toHaveCount(0);
   });
 
+  test("a theme and font from the server restyle the card; an unknown key is the plain card", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({
+          json: served
+            ? { alert: null }
+            : { alert: { ...SPEAKING_ALERT.alert, speech: false, theme: { theme: "blocky", font: "pixel" } } },
+        })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.goto(`/overlay/${TOKEN}`);
+    const card = page.locator(".ov-card");
+    await expect(card).toContainText("great stream");
+    // Blocky: square corners, a hard shadow, a border; Pixel: the smaller type multiplier.
+    await expect(card).toHaveCSS("border-top-left-radius", "0px");
+    expect(await card.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
+    expect(await card.evaluate((el) => el.style.getPropertyValue("--c-fs"))).toBe("0.7");
+  });
+
+  test("an unknown theme key from the server plays as the plain card", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({
+          json: served
+            ? { alert: null }
+            : { alert: { ...SPEAKING_ALERT.alert, speech: false, theme: { theme: "retired", font: "nope" } } },
+        })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.goto(`/overlay/${TOKEN}`);
+    const card = page.locator(".ov-card");
+    await expect(card).toContainText("great stream");
+    expect(await card.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+    expect(await card.evaluate((el) => el.style.getPropertyValue("--c-bg"))).toBe("");
+  });
+
   test("the overlay confirms an alert once its card is on screen", async ({ page }) => {
     let served = false;
     await page.route(`**/api/overlay/${TOKEN}`, (route) =>
