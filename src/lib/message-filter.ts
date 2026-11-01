@@ -114,8 +114,61 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/g;
 // Control characters (and the zero-width ones used to hide text).
 const INVISIBLE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b-\u200f\u2028-\u202e\u2060\ufeff]/g;
 // Emoji and pictographs, their joiners, skin tones and variation selectors: the
-// voice either skips them or reads out their names.
+// ones nameEmoji does not know are skipped.
 const EMOJI = /[\p{Extended_Pictographic}\u{1f3fb}-\u{1f3ff}\u{fe0e}\u{fe0f}\u{20e3}\u{e0020}-\u{e007f}]/gu;
+// One emoji with its skin tone, variation selector and joined parts (a family or
+// a flag-like sequence is one symbol, so it is named once).
+const MARKS = "[\\u{1f3fb}-\\u{1f3ff}\\u{fe0e}\\u{fe0f}\\u{20e3}]*";
+const EMOJI_CLUSTER = new RegExp(
+  `\\p{Extended_Pictographic}${MARKS}(?:\\u200d\\p{Extended_Pictographic}${MARKS})*`,
+  "gu",
+);
+const DEVANAGARI = /[ऀ-ॿ]/;
+
+// What the voice says for the common emoji: [English, Hindi]. Anything not listed
+// is skipped, as before. Only the first symbol of a joined sequence is looked up.
+const EMOJI_NAMES: Record<string, [string, string]> = {
+  "😀": ["smile", "मुस्कान"], "😃": ["smile", "मुस्कान"], "😄": ["smile", "मुस्कान"], "😁": ["grin", "मुस्कान"],
+  "😊": ["smile", "मुस्कान"], "🙂": ["smile", "मुस्कान"], "😆": ["laughing", "हँसी"], "😂": ["laughing", "हँसी"],
+  "🤣": ["laughing", "हँसी"], "😅": ["nervous laugh", "हँसी"], "😍": ["heart eyes", "दिल वाली आँखें"],
+  "🥰": ["love", "प्यार"], "😘": ["kiss", "किस"], "😎": ["cool", "कूल"], "🤩": ["wow", "वाह"],
+  "😮": ["wow", "वाह"], "😲": ["wow", "वाह"], "🤯": ["mind blown", "दिमाग उड़ गया"], "😢": ["crying", "रोना"],
+  "😭": ["crying", "रोना"], "😡": ["angry", "गुस्सा"], "🤬": ["angry", "गुस्सा"], "😴": ["sleepy", "नींद"],
+  "🤔": ["thinking", "सोच"], "🙏": ["thank you", "धन्यवाद"], "👍": ["thumbs up", "बढ़िया"], "👎": ["thumbs down", "थम्स डाउन"],
+  "👏": ["clap", "तालियाँ"], "🙌": ["hooray", "वाह"], "💪": ["strong", "ताकत"], "👌": ["perfect", "बढ़िया"],
+  "✌": ["peace", "शांति"], "🤝": ["deal", "हाथ मिलाओ"], "👋": ["wave", "हाय"], "❤": ["heart", "दिल"],
+  "💖": ["heart", "दिल"], "💕": ["heart", "दिल"], "💗": ["heart", "दिल"], "💙": ["heart", "दिल"],
+  "💚": ["heart", "दिल"], "💛": ["heart", "दिल"], "💜": ["heart", "दिल"], "🧡": ["heart", "दिल"],
+  "🖤": ["black heart", "काला दिल"], "💔": ["broken heart", "टूटा दिल"], "🔥": ["fire", "आग"], "💯": ["hundred", "सौ"],
+  "⭐": ["star", "तारा"], "🌟": ["star", "तारा"], "✨": ["sparkles", "चमक"], "🎉": ["party", "पार्टी"],
+  "🎊": ["party", "पार्टी"], "🎂": ["cake", "केक"], "🎁": ["gift", "तोहफा"], "🏆": ["trophy", "ट्रॉफी"],
+  "👑": ["crown", "ताज"], "💰": ["money", "पैसे"], "💸": ["money", "पैसे"], "🎮": ["gaming", "गेमिंग"],
+  "🎧": ["headphones", "हेडफ़ोन"], "🎵": ["music", "संगीत"], "🎶": ["music", "संगीत"], "🚀": ["rocket", "रॉकेट"],
+  "👀": ["eyes", "आँखें"], "💀": ["skull", "खोपड़ी"], "🤡": ["clown", "जोकर"], "😈": ["devil", "शैतान"],
+  "🐐": ["goat", "बकरी"], "☕": ["coffee", "कॉफ़ी"], "🍕": ["pizza", "पिज़्ज़ा"], "🍺": ["beer", "बियर"],
+};
+// Naming every emoji of a long run would hold up the stream.
+const MAX_SPOKEN_EMOJI = 3;
+
+// Swaps the common emoji for their spoken name (Hindi when the message has
+// Devanagari), once per consecutive repeat and at most MAX_SPOKEN_EMOJI times.
+function nameEmoji(message: string): string {
+  const hindi = DEVANAGARI.test(message);
+  let spoken = 0;
+  let last = "";
+  return message.replace(EMOJI_CLUSTER, (cluster) => {
+    const base = Array.from(cluster)[0];
+    const names = EMOJI_NAMES[base];
+    if (!names) return " ";
+    const name = hindi ? names[1] : names[0];
+    if (name === last) return " ";
+    if (spoken >= MAX_SPOKEN_EMOJI) return " ";
+    spoken++;
+    last = name;
+    return ` ${name} `;
+  });
+}
+
 // Marks that are read aloud as noise.
 const SYMBOLS = /[*_~#|<>^\\\[\]{}=+`]/g;
 
@@ -123,7 +176,7 @@ const SYMBOLS = /[*_~#|<>^\\\[\]{}=+`]/g;
 // the result (after cleaning, so removed junk doesn't use up the allowance).
 export function cleanForSpeech(message: string | null | undefined, maxChars: number): string | null {
   if (!message) return null;
-  const cleaned = message
+  const cleaned = nameEmoji(message)
     .replace(INVISIBLE, " ")
     .replace(URL_PATTERN, " ")
     .replace(EMAIL_PATTERN, " ")

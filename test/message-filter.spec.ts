@@ -47,7 +47,15 @@ test.describe("word filter", () => {
 
 test.describe("cleanup before speech", () => {
   test("removes links, emails, emoji and symbol noise", () => {
-    expect(cleanForSpeech("hi https://x.com/a www.y.in me@a.com 😀🔥 **great** #stream", 300)).toBe("hi great stream");
+    expect(cleanForSpeech("hi https://x.com/a www.y.in me@a.com 🧩 **great** #stream", 300)).toBe("hi great stream");
+  });
+
+  test("reads common emoji aloud by name", () => {
+    expect(cleanForSpeech("great stream 🔥", 300)).toBe("great stream fire");
+    expect(cleanForSpeech("thanks ❤️❤️❤️", 300)).toBe("thanks heart");
+    expect(cleanForSpeech("🔥😂🙏👍", 300)).toBe("fire laughing thank you");
+    expect(cleanForSpeech("👍🏽 nice", 300)).toBe("thumbs up nice");
+    expect(cleanForSpeech("भाई मस्त 🔥", 300)).toBe("भाई मस्त आग");
   });
 
   test("shortens floods", () => {
@@ -60,13 +68,13 @@ test.describe("cleanup before speech", () => {
   });
 
   test("returns null when nothing readable is left", () => {
-    expect(cleanForSpeech("😀😀 !!! ***", 300)).toBeNull();
+    expect(cleanForSpeech("🧩🧩 !!! ***", 300)).toBeNull();
     expect(cleanForSpeech("https://x.com", 300)).toBeNull();
     expect(cleanForSpeech(null, 300)).toBeNull();
   });
 
   test("cuts to the limit after cleaning", () => {
-    expect(cleanForSpeech("😀😀😀😀 abcdef", 3)).toBe("abc");
+    expect(cleanForSpeech("🧩🧩🧩🧩 abcdef", 3)).toBe("abc");
   });
 });
 
