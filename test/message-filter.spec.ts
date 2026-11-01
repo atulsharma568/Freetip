@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { EMOJI_NAMES } from "../src/lib/emoji-names";
 import { cleanForSpeech, findBlockedWord, parseBannedWords } from "../src/lib/message-filter";
 import { shouldSpeak, type SpeechSettings, type SpeechTip } from "../src/lib/tts-rules";
 
@@ -57,6 +58,17 @@ test.describe("cleanup before speech", () => {
     // Hinglish gets the playful Hindi names too
     expect(cleanForSpeech("bhai mast stream 😂", 300)).toBe("bhai mast stream हँसता हुआ चेहरा");
     expect(cleanForSpeech("bhai mast stream ❤️ 🍭", 300)).toBe("bhai mast stream गुलाबी दिल चूसने की मिठाई");
+  });
+
+  test("every listed emoji is a real emoji with a name in both languages", () => {
+    expect(EMOJI_NAMES.size).toBeGreaterThan(300);
+    for (const [emoji, [en, hi]] of EMOJI_NAMES) {
+      expect(/^\p{Extended_Pictographic}$/u.test(emoji), emoji).toBe(true);
+      expect(/^[a-z ]+$/.test(en), en).toBe(true);
+      expect(/^[ऀ-ॿ ,]+$/.test(hi), hi).toBe(true);
+    }
+    expect(cleanForSpeech("bhai 🐶 🍎 🏏", 300)).toBe("bhai कुत्ता सेब क्रिकेट");
+    expect(cleanForSpeech("nice 🦁", 300)).toBe("nice lion");
   });
 
   test("shortens floods", () => {
