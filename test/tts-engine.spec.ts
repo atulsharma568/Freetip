@@ -12,6 +12,10 @@ test.describe("speech engine rules", () => {
     expect(azureVoice("hi-IN", {})).toBe("hi-IN-SwaraNeural");
     expect(azureVoice("en-IN", {})).toBe("en-IN-NeerjaNeural");
     expect(azureVoice("hi-IN", { AZURE_SPEECH_VOICE_HI: "hi-IN-MadhurNeural" })).toBe("hi-IN-MadhurNeural");
+    expect(azureVoice("hi-IN", {}, "male")).toBe("hi-IN-MadhurNeural");
+    expect(azureVoice("en-IN", {}, "male")).toBe("en-IN-PrabhatNeural");
+    // The female override never changes the male voice.
+    expect(azureVoice("en-IN", { AZURE_SPEECH_VOICE_EN: "en-IN-AaravNeural" }, "male")).toBe("en-IN-PrabhatNeural");
   });
 
   test("a fan's text is escaped and can never become markup", () => {

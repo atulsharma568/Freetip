@@ -9,6 +9,7 @@ import {
   limitsFromEnv,
   prepareSpeech,
   testLimits,
+  type VoiceGender,
   withinLimits,
   type Prepared,
 } from "@/lib/tts-pure";
@@ -55,6 +56,18 @@ async function writeCache(db: Db, hash: string, audio: Uint8Array): Promise<void
 // Characters already sent for this creator today and for the whole site this month.
 // A failed lookup (table missing) counts as zero, so voice still works before the
 // migration, without caps.
+// The creator's chosen voice (migration 0029). A failed lookup means female, so
+// voice still works before the migration.
+async function creatorGender(db: Db, creatorId: number): Promise<VoiceGender> {
+  try {
+    const [row] = await db<{ tts_voice: string }[]>`select tts_voice from users where id = ${creatorId}`;
+    return row?.tts_voice === "male" ? "male" : "female";
+  } catch (err) {
+    console.error("TTS: could not read the voice choice (migration 0029 run?).", err);
+    return "female";
+  }
+}
+
 async function usedChars(db: Db, creatorId: number): Promise<{ creatorToday: number; siteMonth: number }> {
   try {
     const [row] = await db<{ today: string; month: string }[]>`
@@ -120,7 +133,8 @@ export async function synthesizeDetailed(
   // served an old clip. (A clip that fell back to Polly is cached under Azure's key
   // too; it is still a fine clip for that text.)
   const azure = azureConfigured();
-  const voice = azure ? azureVoice(language) : "Kajal";
+  const gender = db ? await creatorGender(db, creatorId) : "female";
+  const voice = azure ? azureVoice(language, process.env, gender) : "Kajal";
   const hash = azure ? cacheKey("azure", voice, text) : cacheKey("polly", "kajal", text);
   if (db) {
     const cached = await readCache(db, hash);
@@ -139,7 +153,7 @@ export async function synthesizeDetailed(
   let engine: "azure" | "polly" = "azure";
   let usedVoice = voice;
   if (azure) {
-    const out = await azureSynthesize(text, language);
+    const out = await azureSynthesize(text, language, gender);
     if (out) {
       audio = out.audio;
       usedVoice = out.voice;
@@ -153,7 +167,10 @@ export async function synthesizeDetailed(
   if (!audio || !audio.byteLength) return { ok: false, reason: "failed" };
 
   if (db) {
-    await Promise.all([writeCache(db, hash, audio), addUsage(db, creatorId, engine, text.length)]);
+    // Polly has one voice (Kajal, female), so its clip is cached under Polly's own
+    // key and never served to someone who chose Azure's male voice.
+    const writeHash = engine === "polly" ? cacheKey("polly", "kajal", text) : hash;
+    await Promise.all([writeCache(db, writeHash, audio), addUsage(db, creatorId, engine, text.length)]);
   }
   return { ok: true, audio, spoken: text, language, voice: usedVoice, engine, cached: false };
 }

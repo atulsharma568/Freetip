@@ -146,6 +146,7 @@ export async function saveSettings(
   const ttsEnabled = form.get("tts_enabled") === "on";
   const ttsMinRupees = parseInt(String(form.get("tts_min") ?? "49"), 10);
   const approveBeforePlay = form.get("approve_before_play") === "on";
+  const voiceGender = form.get("tts_voice") === "male" ? "male" : "female";
   const bio = String(form.get("bio") ?? "").trim().slice(0, 160) || null;
   const alertMode = String(form.get("alert_mode") ?? "split") as AlertMode;
   const rawBanned = String(form.get("banned_words") ?? "");
@@ -205,6 +206,14 @@ export async function saveSettings(
   } catch (err) {
     console.error("Settings: could not save the banned words.", err);
     return { status: "error", message: "Settings saved, but the banned words could not be saved — try again shortly" };
+  }
+
+  // The voice (migration 0029), apart so everything above saves before it is run.
+  try {
+    await db`update users set tts_voice = ${voiceGender} where google_id = ${googleId}`;
+  } catch (err) {
+    console.error("Settings: could not save the voice choice (migration 0029 run?).", err);
+    return { status: "error", message: "Settings saved, but the voice choice could not be saved. Try again shortly" };
   }
 
   // The colour is last and apart (migration 0026), so every other setting saves

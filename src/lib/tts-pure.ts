@@ -21,7 +21,17 @@ export function prepareSpeech(message: string): Prepared {
 
 export const DEFAULT_VOICES = { "hi-IN": "hi-IN-SwaraNeural", "en-IN": "en-IN-NeerjaNeural" } as const;
 
-export function azureVoice(language: Prepared["language"], env: Record<string, string | undefined> = process.env): string {
+export type VoiceGender = "female" | "male";
+
+export const MALE_VOICES = { "hi-IN": "hi-IN-MadhurNeural", "en-IN": "en-IN-PrabhatNeural" } as const;
+
+// The env overrides (AZURE_SPEECH_VOICE_HI / _EN) change the female voice only.
+export function azureVoice(
+  language: Prepared["language"],
+  env: Record<string, string | undefined> = process.env,
+  gender: VoiceGender = "female",
+): string {
+  if (gender === "male") return MALE_VOICES[language];
   const override = language === "hi-IN" ? env.AZURE_SPEECH_VOICE_HI : env.AZURE_SPEECH_VOICE_EN;
   return override?.trim() || DEFAULT_VOICES[language];
 }

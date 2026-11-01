@@ -35,6 +35,7 @@ interface Props {
   // The site-wide voice switch (owner). When off, the voice controls are replaced
   // by a note, and the saved values are kept as they are.
   ttsAvailable: boolean;
+  voiceGender: "female" | "male";
 }
 
 // One titled group of controls; the groups are headed and divided, but all
@@ -51,7 +52,7 @@ function Group({ title, hint, children, first }: { title: string; hint: string; 
   );
 }
 
-export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, minTipPaise, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   // A stored colour that is not a preset came from "Auto"; it keeps its own swatch.
@@ -64,6 +65,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [tts, setTts] = useState(ttsEnabled);
+  const [gender, setGender] = useState(voiceGender);
   const [approve, setApprove] = useState(approveBeforePlay);
   const [ttsMin, setTtsMin] = useState(Math.round(ttsMinPaise / 100));
   const [chars, setChars] = useState(messageMaxChars);
@@ -285,6 +287,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           <input type="hidden" name="tts_enabled" value={tts ? "on" : "off"} />
           <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
           <input type="hidden" name="tts_min" value={ttsMin} />
+          <input type="hidden" name="tts_voice" value={gender} />
         </div>
       ) : (
         <div className="space-y-3">
@@ -304,6 +307,20 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
                   <span className="ml-2 text-muted text-xs">(recommended)</span>
                 </label>
               </div>
+              <fieldset className="space-y-2 pl-10">
+                <legend className="text-sm text-text">Voice</legend>
+                <div className="flex gap-2">
+                  {(["female", "male"] as const).map((g) => (
+                    <label key={g} className="cursor-pointer">
+                      <input type="radio" name="tts_voice" value={g} checked={gender === g} onChange={() => setGender(g)} className="peer sr-only" />
+                      <span className="flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-[border-color] peer-checked:border-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
+                        {g === "female" ? "Female" : "Male"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
+              </fieldset>
               <div className="space-y-2 pl-10">
                 <label htmlFor="tts-min" className="block text-sm text-text">
                   Read aloud from
@@ -334,6 +351,7 @@ export function SettingsForm({ displayName: initialDisplayName, minTipPaise, mes
           {/* Always submit these so they aren't silently reset when TTS is off */}
           <input type="hidden" name="approve_before_play" value={approve ? "on" : "off"} />
           <input type="hidden" name="tts_min" value={ttsMin} />
+          {!tts && <input type="hidden" name="tts_voice" value={gender} />}
         </div>
       )}
 

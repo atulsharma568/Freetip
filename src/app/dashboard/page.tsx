@@ -94,6 +94,17 @@ export default async function DashboardPage() {
     }
   }
 
+  // The voice choice (migration 0029), read apart for the same reason.
+  let voiceGender: "female" | "male" = "female";
+  if (db && user) {
+    try {
+      const [found] = await db<{ tts_voice: string }[]>`select tts_voice from users where id = ${user.id}`;
+      voiceGender = found?.tts_voice === "male" ? "male" : "female";
+    } catch (err) {
+      console.error("Dashboard: could not read the voice choice (migration 0029 run?).", err);
+    }
+  }
+
   // The accent colour (migration 0026), read apart so the dashboard loads before it is run.
   let accent: string | null = null;
   if (db && user) {
@@ -348,6 +359,7 @@ export default async function DashboardPage() {
             bannedWords={bannedWords}
             accent={safeAccent(accent)}
             ttsAvailable={ttsAvailable()}
+            voiceGender={voiceGender}
           />
         </div>
         <CloseAccount />

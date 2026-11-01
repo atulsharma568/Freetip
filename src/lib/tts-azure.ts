@@ -1,5 +1,5 @@
 import "server-only";
-import { azureVoice, buildSsml, type Prepared } from "@/lib/tts-pure";
+import { azureVoice, buildSsml, type Prepared, type VoiceGender } from "@/lib/tts-pure";
 
 // Azure Speech over its REST API (no SDK). The free F0 tier gives 500,000
 // characters a month. AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (for example
@@ -12,6 +12,7 @@ export function azureConfigured(): boolean {
 export async function azureSynthesize(
   text: string,
   language: Prepared["language"],
+  gender: VoiceGender = "female",
 ): Promise<{ audio: Uint8Array; voice: string } | null> {
   const key = process.env.AZURE_SPEECH_KEY?.trim();
   // Azure's portal shows "Central India"; the endpoint wants "centralindia".
@@ -21,7 +22,7 @@ export async function azureSynthesize(
     console.error("TTS: AZURE_SPEECH_REGION is not a valid region code (use for example centralindia).");
     return null;
   }
-  const voice = azureVoice(language);
+  const voice = azureVoice(language, process.env, gender);
   try {
     const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
       method: "POST",
