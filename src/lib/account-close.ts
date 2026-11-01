@@ -1,9 +1,11 @@
 import type { LedgerDb } from "./accrual";
+import { open } from "./secret-box";
+import { createYouTubeClient } from "./youtube";
 
 // Closing a creator account. The users row cannot be deleted: tips, the ledger,
 // payouts and the audit log all point at it, and the law makes us keep those. So
 // the row is emptied in place. What identifies the person goes (name, email,
-// picture, YouTube channel, bio, sounds, contact-form messages sent from the sign-in email, OBS link, UPI and legal name unless money
+// picture, YouTube channel, bio, sounds, saved stream timestamps and the YouTube and Discord connections, contact-form messages sent from the sign-in email, OBS link, UPI and legal name unless money
 // was ever posted for them, which makes those part of a payout record). The id,
 // the money records and the handle stay: the handle stays reserved so a stranger
 // cannot take over an old QR code or link.
@@ -142,6 +144,28 @@ export async function closeCreatorAccount(
     } catch {
       /* column not there yet */
     }
+    await eraseTimestampData(db, userId);
   }
   return result;
+}
+
+// Stream timestamps (migration 0032): the saved moments carry viewers' names and words,
+// and the creator's YouTube permission and Discord webhook are secrets. All go, and
+// Google is told to cancel the permission. Apart from the main transaction so closing
+// works before the migration is run (nothing to erase then).
+async function eraseTimestampData(db: LedgerDb, userId: number): Promise<void> {
+  try {
+    const [row] = await db<{ token: string | null }[]>`select yt_refresh_token_enc as token from users where id = ${userId}`;
+    await db`delete from stream_timestamps where creator_id = ${userId}`;
+    await db`delete from timestamp_streams where creator_id = ${userId}`;
+    await db`
+      update users set ts_token_hash = null, yt_refresh_token_enc = null, yt_connected_at = null,
+                       yt_reconnect_needed = false, discord_webhook_enc = null
+       where id = ${userId}
+    `;
+    const token = open(row?.token);
+    if (token) await createYouTubeClient().revoke(token);
+  } catch {
+    /* migration 0032 not run: nothing to erase */
+  }
 }

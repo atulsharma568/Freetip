@@ -65,8 +65,8 @@ A change is "done" when type check, lint and build pass. CI (`.github/workflows/
 
 ## 5. Database (Neon)
 
-- Open the Neon console > project > **SQL Editor**, paste the whole migration file, run. Migrations are safe to re-run. Files are in `db/migrations/` (0001 to 0031 so far), run in number order. Base schemas: `db/schema.sql` (waitlist), `db/schema-users.sql` (users).
-- Status as of 2026-11-01: all run through 0026 (0027 and 0028, the goal bar, were run 2026-11-01; 0029, the male or female voice, and 0030, the one-time handle change, and 0031, handle change requests, are new: run all three BEFORE the deploy; without 0030 claiming a handle fails, without 0031 the request form fails) except 0022 (parked) and 0025 (unused); verify with Neon's table list if unsure.
+- Open the Neon console > project > **SQL Editor**, paste the whole migration file, run. Migrations are safe to re-run. Files are in `db/migrations/` (0001 to 0032 so far), run in number order. Base schemas: `db/schema.sql` (waitlist), `db/schema-users.sql` (users).
+- Status as of 2026-11-01: all run through 0026 (0027 and 0028, the goal bar, were run 2026-11-01; 0029, the male or female voice, and 0030, the one-time handle change, and 0031, handle change requests, are new: run all three BEFORE the deploy; without 0030 claiming a handle fails, without 0031 the request form fails; **0032, stream timestamps, is new: run it BEFORE the deploy**, without it the Timestamps page says so and the chat command answers that it is not working, nothing else breaks) except 0022 (parked) and 0025 (unused); verify with Neon's table list if unsure.
 - Connection string: Neon > Connection details > the **pooled** one (host contains `-pooler`). Goes in Vercel as `DATABASE_URL`.
 - Reset a leaked password: Neon > Roles > reset password, update `DATABASE_URL` in Vercel, redeploy.
 - Waitlist export (contains personal data; delete the file after use): in PowerShell `$env:DATABASE_URL="..."; npm run export:waitlist`.
@@ -88,6 +88,8 @@ Set in Vercel > Settings > Environment Variables (Production), then **redeploy**
 | `TTS_ENABLED` (`true`) | Owner switch for voice on the whole site; off by default. |
 | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | Main voice engine. |
 | `POLLY_ACCESS_KEY_ID`, `POLLY_SECRET_ACCESS_KEY`, `POLLY_REGION` (optional) | Fallback voice. |
+| `YT_DATA_API_KEY` | Stream timestamps: a Google Cloud API key restricted to the YouTube Data API v3 (looks up a stream's start time, title and owner). |
+| `YT_TOKEN_KEY` | Stream timestamps: 32 random bytes as base64 (`openssl rand -base64 32`). Encrypts each creator's YouTube permission and Discord address. If lost or changed, creators just connect again; keep a copy somewhere safe. |
 | `NEXT_PUBLIC_GA_ID` | Switches on Google Analytics and its consent banner. Not set yet. |
 | `TTS_AUTOLEARN`, `ANTHROPIC_API_KEY` | **Parked by the owner; do not set.** |
 
@@ -103,7 +105,8 @@ Vercel calls each with `CRON_SECRET`. Times are UTC.
 | `/api/cron/tts-learn` | 04:13 | Voice auto-learning (does nothing while parked). |
 | `/api/cron/accrual-sweep` | 04:29 | Posts missed tips to the ledger. |
 | `/api/cron/goal-periods` | 18:40 (00:10 India) | Records the finished day, week or month of each repeating goal bar (in its own timezone) in `goal_history`, with any carried-over shortfall. The bars reset by themselves; this only keeps the history. |
-| `/api/cron/tip-text-purge` | 04:47 | Blanks fan names and messages older than 90 days; deletes handled contact messages older than 12 months. Reply: `{"cleared":N,"contactDeleted":N}`. |
+| `/api/cron/tip-text-purge` | 04:47 | Blanks fan names and messages older than 90 days; deletes handled contact messages older than 12 months; deletes stream timestamps older than 90 days. Reply: `{"cleared":N,"contactDeleted":N,"timestampsDeleted":N}`. |
+| `/api/cron/stream-timestamps` | 05:23 | Posts one comment with the saved timestamps on each stream that has ended, from the creator's own YouTube account. Reply: `{"configured":true,"checked":N,"posted":N,"skipped":N,"waiting":N,"failed":N,...}`; `{"configured":false}` while `YT_DATA_API_KEY` or `YT_TOKEN_KEY` is missing. **Daily is too slow for this** (a stream's comment would wait up to a day): Vercel's free plan only allows daily crons, so also point a free scheduler (for example cron-job.org) at `https://freetip.in/api/cron/stream-timestamps` every 10 minutes with the header `Authorization: Bearer <CRON_SECRET>`. It is safe to call as often as you like. |
 
 Run one by hand: Vercel > Settings > Cron Jobs > **Run**. Or from PowerShell:
 ```
@@ -112,6 +115,20 @@ $t = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices
 curl.exe -H "Authorization: Bearer $t" https://freetip.in/api/cron/tip-text-purge
 ```
 `Unauthorized` means the wrong or missing secret; `Not set up` means `DATABASE_URL` is missing.
+
+## 7b. Stream timestamps (set up once)
+
+Creators type `!ts` in YouTube live chat (through Nightbot or similar), Freetip saves the moment, and after the stream a comment with all the times is posted from the creator's own channel; each moment can also go to their Discord. Creator page: `/dashboard/timestamps`.
+
+Owner setup, in order:
+1. Run migration `0032_stream_timestamps.sql` in Neon.
+2. Google Cloud (the project that holds your OAuth client): enable **YouTube Data API v3**; create an **API key** restricted to that API and set it as `YT_DATA_API_KEY`. Generate `YT_TOKEN_KEY` (`openssl rand -base64 32`) and set it. Redeploy.
+3. Same OAuth client: add `https://freetip.in/api/yt-connect/callback` under Authorised redirect URIs.
+4. OAuth consent screen: add the scope `https://www.googleapis.com/auth/youtube.force-ssl` to the app and include it in the verification request (reason: posts one comment on the creator's own live stream, only when the creator turns the feature on; the demo video should show the Connect YouTube step and the posted comment). Until Google verifies the app, Google ends each creator's permission after about 7 days and limits the app to 100 test users; the page then asks the creator to connect again.
+5. Set up the every-10-minutes scheduler for `/api/cron/stream-timestamps` (see section 7).
+6. Quota: posting a comment costs about 50 units of the project's 10,000 daily; that is about 200 comments a day for all creators together. Apply for more under Google Cloud > APIs > YouTube Data API > Quotas when it matters.
+
+A creator's problems: the comment never appears (check the stream row on their Timestamps page for the reason); "YouTube is not connected" (they must press Connect YouTube); Nightbot says "Could not tell which stream this is" (the stream is not live, or YouTube is slow; try again). Closing a creator's account erases their saved moments and secrets.
 
 ## 8. The owner console (`/admin`)
 
@@ -156,4 +173,4 @@ Payouts to creators are not automated; the manual payout sheet is blocked until 
 
 ## Keeping this file current
 
-When something here changes (a new migration, variable, cron, admin page, account or procedure), update this file in the same commit. Last updated: 2026-11-01.
+When something here changes (a new migration, variable, cron, admin page, account or procedure), update this file in the same commit. Last updated: 2026-11-01 (stream timestamps).

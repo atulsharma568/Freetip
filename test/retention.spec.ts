@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { purgeHandledContactMessages, purgeOldTipText } from "../src/lib/retention";
+import { purgeHandledContactMessages, purgeOldTimestamps, purgeOldTipText } from "../src/lib/retention";
 import { closeCreatorAccount } from "../src/lib/account-close";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
@@ -103,4 +103,54 @@ test("handled contact messages older than 12 months are deleted, new or unhandle
   expect(audit.rows).toHaveLength(1);
 
   expect(await purgeHandledContactMessages(asLedgerDb(pg))).toEqual({ deleted: 0 });
+});
+
+test("stream timestamps older than 90 days are deleted, with finished streams that have none left", async () => {
+  const pg = await freshDatabase();
+  const id = await creator(pg);
+  const stream = (video: string, state: string, ageDays: number) =>
+    pg.query(
+      `insert into timestamp_streams (video_id, creator_id, state, created_at) values ($1, $2, $3, now() - make_interval(days => $4))`,
+      [video, id, state, ageDays],
+    );
+  const moment = (video: string, ageDays: number) =>
+    pg.query(
+      `insert into stream_timestamps (creator_id, video_id, chat_user, title, created_at)
+       values ($1, $2, 'viewer', 'nice', now() - make_interval(days => $3))`,
+      [id, video, ageDays],
+    );
+  await stream("oldPosted11", "posted", 100);
+  await moment("oldPosted11", 100);
+  await stream("oldQueued11", "queued", 100); // still waiting for its stream to end
+  await moment("oldQueued11", 100);
+  await stream("recent11111", "posted", 10);
+  await moment("recent11111", 10);
+
+  expect(await purgeOldTimestamps(asLedgerDb(pg))).toEqual({ deleted: 2 });
+  const moments = await pg.query<{ video_id: string }>(`select video_id from stream_timestamps`);
+  expect(moments.rows.map((r) => r.video_id)).toEqual(["recent11111"]);
+  const streams = await pg.query<{ video_id: string }>(`select video_id from timestamp_streams order by video_id`);
+  expect(streams.rows.map((r) => r.video_id)).toEqual(["oldQueued11", "recent11111"]);
+  const audit = await pg.query(`select 1 from audit_events where action = 'timestamps.purged'`);
+  expect(audit.rows).toHaveLength(1);
+
+  expect(await purgeOldTimestamps(asLedgerDb(pg))).toEqual({ deleted: 0 });
+});
+
+test("closing an account erases its stream timestamps and the YouTube and Discord secrets", async () => {
+  const pg = await freshDatabase();
+  const id = await creator(pg);
+  await pg.query(`update users set ts_token_hash = 'h', yt_refresh_token_enc = 'v1.x.y.z', discord_webhook_enc = 'v1.a.b.c' where id = $1`, [id]);
+  await pg.query(`insert into timestamp_streams (video_id, creator_id) values ('abcDEF12345', $1)`, [id]);
+  await pg.query(`insert into stream_timestamps (creator_id, video_id, chat_user, title) values ($1, 'abcDEF12345', 'viewer', 'nice')`, [id]);
+
+  expect((await closeCreatorAccount(asLedgerDb(pg), id, { role: "creator", userId: id })).status).toBe("closed");
+
+  expect((await pg.query(`select 1 from stream_timestamps`)).rows).toHaveLength(0);
+  expect((await pg.query(`select 1 from timestamp_streams`)).rows).toHaveLength(0);
+  const u = await pg.query<{ ts_token_hash: string | null; yt_refresh_token_enc: string | null; discord_webhook_enc: string | null }>(
+    `select ts_token_hash, yt_refresh_token_enc, discord_webhook_enc from users where id = $1`,
+    [id],
+  );
+  expect(u.rows[0]).toEqual({ ts_token_hash: null, yt_refresh_token_enc: null, discord_webhook_enc: null });
 });

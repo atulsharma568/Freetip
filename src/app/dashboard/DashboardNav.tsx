@@ -4,11 +4,12 @@ const LINKS = [
   { key: "overview", href: "/dashboard", label: "Overview" },
   { key: "tips", href: "/dashboard/tips", label: "Tips" },
   { key: "sounds", href: "/dashboard/sounds", label: "Sounds" },
+  { key: "timestamps", href: "/dashboard/timestamps", label: "Timestamps" },
 ] as const;
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
 // overview page, below the numbers.
-export function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" }) {
+export function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" | "timestamps" }) {
   return (
     <nav aria-label="Dashboard" className="flex gap-2">
       {LINKS.map((l) => (

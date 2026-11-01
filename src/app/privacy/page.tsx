@@ -111,8 +111,20 @@ const SECTIONS: LegalSection[] = [
           We use the YouTube access only to find the channel you own. From it we
           store the channel ID, the channel name and the channel link, next to
           your name, email and picture. We do not read your videos, comments,
-          subscribers, watch history or analytics, and we never post to YouTube
-          for you.
+          subscribers, watch history or analytics, and signing in never lets us
+          post to YouTube.
+        </p>
+        <p>
+          <strong>Optional: stream timestamps.</strong> If you choose to turn on
+          stream timestamps, a separate step on your dashboard asks Google for
+          one more permission (<code>youtube.force-ssl</code>). We use it for
+          one thing only: to post a single comment on your own live stream,
+          after it ends, listing the moments viewers saved with !ts. We do not
+          read your comments or videos, and we do not post anything else. You
+          can take the permission back at any time with{" "}
+          <strong>Disconnect YouTube</strong> on your dashboard (which also
+          cancels it with Google), from your Google account&apos;s security
+          page, or by closing your account.
         </p>
         <p>
           We use this information only to link your channel to your Freetip page,
@@ -137,9 +149,11 @@ const SECTIONS: LegalSection[] = [
           details in our database (Neon, in Singapore). They are encrypted in
           transit (HTTPS) and at rest, and only people who need them to run
           Freetip can reach them. Google’s access token is used once, at the
-          moment you sign in, to look up your channel. We do not save it or any
-          refresh token, so we cannot call YouTube on your behalf later. After
-          sign-in, your browser holds one encrypted session cookie that contains
+          moment you sign in, to look up your channel, and is not saved. If you
+          turn on stream timestamps, we also keep the refresh token Google gives
+          us for that one permission, encrypted, so we can post the comment
+          after your stream ends; without that step we cannot call YouTube on
+          your behalf later. After sign-in, your browser holds one encrypted session cookie that contains
           only your Google account ID.
         </p>
         <h3>How long we keep it, and how to delete it</h3>
@@ -309,6 +323,13 @@ const SECTIONS: LegalSection[] = [
           <strong>Tip names and messages:</strong> 90 days, so creators and we
           can deal with reports and disputes. After that the name and message
           are deleted and only the payment record stays.
+        </li>
+        <li>
+          <strong>Stream timestamps:</strong> if a creator uses them, the
+          chat name of the viewer who typed !ts and what they typed after it
+          are kept 90 days, then deleted. The creator&apos;s YouTube
+          connection and Discord address are kept encrypted until the creator
+          disconnects them or closes their account.
         </li>
         <li>
           <strong>Payment, payout and tax records:</strong> as long as Indian

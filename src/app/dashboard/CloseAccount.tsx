@@ -22,7 +22,7 @@ export function CloseAccount() {
       {!open ? (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">
-            Removes your profile, channel details, sounds and alert link. You can&apos;t undo it.
+            Removes your profile, channel details, sounds, alert link and saved stream timestamps. You can&apos;t undo it.
           </p>
           <button
             type="button"
@@ -35,7 +35,7 @@ export function CloseAccount() {
       ) : (
         <form action={action} className="mt-4 space-y-4">
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
-            <li>We delete your name, email, picture, YouTube channel, bio, sounds and alert link.</li>
+            <li>We delete your name, email, picture, YouTube channel, bio, sounds, alert link, saved stream timestamps, and the YouTube and Discord connections.</li>
             <li>Your tip page stops working. Your handle stays reserved, so nobody else can take it.</li>
             <li>We keep the tip, payout and tax records the law requires.</li>
             <li>If you have money on your balance or a payout in progress, contact us first.</li>

@@ -42,7 +42,7 @@ export const LEGAL_DRAFT = false;
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
-export const LEGAL_UPDATED = "31 October 2026";
+export const LEGAL_UPDATED = "1 November 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.
@@ -85,8 +85,10 @@ export function feeBreakdown(rupees: number) {
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
   { name: "Vercel", role: "website hosting and the sound files creators upload", status: "active" },
-  { name: "Neon", role: "database (creator accounts, tips, waitlist entries and contact messages)", status: "active" },
+  { name: "Neon", role: "database (creator accounts, tips, saved stream timestamps, waitlist entries and contact messages)", status: "active" },
   { name: "Resend", role: "emailing us a copy of each contact message (your name, email and message pass through it)", status: "planned" },
   { name: "Microsoft Azure (Speech)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },
+  { name: "Google (YouTube)", role: "posting a creator's stream timestamps as a comment on their own stream, only if the creator connects their channel for it", status: "planned" },
+  { name: "Discord", role: "sending each saved stream timestamp to a Discord channel the creator chose, only if the creator connects a webhook (the viewer's chat name, what they typed, and the time)", status: "planned" },
   { name: "Amazon Web Services (Polly)", role: "reading a message aloud when Azure is unavailable (the message text only)", status: "planned" },
 ];

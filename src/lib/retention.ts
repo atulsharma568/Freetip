@@ -54,3 +54,35 @@ export async function purgeHandledContactMessages(db: LedgerDb): Promise<{ delet
     return { deleted: rows.length };
   });
 }
+
+// Timestamp moments hold a viewer's chat name and what they typed after !ts, so they
+// follow the same 90 days as tip text. The comment already posted on YouTube is the
+// creator's own and is not touched. A stream row with no moments left is removed too.
+export const TIMESTAMP_RETENTION_DAYS = 90;
+
+export async function purgeOldTimestamps(db: LedgerDb): Promise<{ deleted: number }> {
+  return db.begin(async (tx) => {
+    const rows = await tx<{ id: string }[]>`
+      delete from stream_timestamps
+       where created_at < now() - make_interval(days => ${TIMESTAMP_RETENTION_DAYS})
+      returning id::text as id
+    `;
+    // Posted, skipped or failed streams with nothing left to show. A queued stream is
+    // kept: its moments are still waiting for the stream to end.
+    await tx`
+      delete from timestamp_streams s
+       where s.state in ('posted', 'skipped', 'failed')
+         and s.created_at < now() - make_interval(days => ${TIMESTAMP_RETENTION_DAYS})
+         and not exists (select 1 from stream_timestamps m where m.video_id = s.video_id)
+    `;
+    if (rows.length) {
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, after_json, reason)
+        values (null, 'system', 'timestamps.purged', 'stream_timestamps',
+                ${{ deleted: rows.length, retention_days: TIMESTAMP_RETENTION_DAYS }}::jsonb,
+                'daily clean-up: stream timestamps older than the retention period')
+      `;
+    }
+    return { deleted: rows.length };
+  });
+}
