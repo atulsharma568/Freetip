@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { checkGoal, goalPercent, parseRepeat, periodStart } from "../src/lib/goal";
+import { carryPaise, checkGoal, goalPercent, parseRepeat, parseTimezone, periodStart } from "../src/lib/goal";
 
 const TOKEN = "a".repeat(43);
 
@@ -28,6 +28,32 @@ test.describe("goal bar", () => {
     expect(parseRepeat("yearly")).toBe("never");
   });
 
+  test("periods follow the goal's own timezone, daylight saving included", () => {
+    const ny = "America/New_York";
+    const now = new Date("2026-11-05T12:00:00Z"); // Thu 5 Nov, 07:00 in New York (EST)
+    expect(periodStart("daily", now, 0, ny).toISOString()).toBe("2026-11-05T05:00:00.000Z");
+    // Clocks went back on Sun 1 Nov: Mon 2 Nov midnight is EST, Mon 26 Oct and 31 Oct midnight are EDT.
+    expect(periodStart("weekly", now, 0, ny).toISOString()).toBe("2026-11-02T05:00:00.000Z");
+    expect(periodStart("weekly", now, 1, ny).toISOString()).toBe("2026-10-26T04:00:00.000Z");
+    expect(periodStart("daily", now, 5, ny).toISOString()).toBe("2026-10-31T04:00:00.000Z");
+    expect(periodStart("monthly", now, 0, ny).toISOString()).toBe("2026-11-01T04:00:00.000Z"); // still EDT at midnight
+    // Ahead of India: 12:00Z is already Fri 6 Nov 01:00 in Auckland (NZDT, UTC+13).
+    expect(periodStart("daily", now, 0, "Pacific/Auckland").toISOString()).toBe("2026-11-05T11:00:00.000Z");
+    expect(periodStart("daily", now, 0, "UTC").toISOString()).toBe("2026-11-05T00:00:00.000Z");
+    // Early January steps back across the year in a zone behind UTC.
+    expect(periodStart("monthly", new Date("2027-01-10T12:00:00Z"), 1, "America/Los_Angeles").toISOString()).toBe("2026-12-01T08:00:00.000Z");
+  });
+
+  test("timezone names are limited to the list, and carry-over is capped at one extra target", () => {
+    expect(parseTimezone("America/New_York")).toBe("America/New_York");
+    expect(parseTimezone("Mars/Olympus")).toBe("Asia/Kolkata");
+    expect(parseTimezone(undefined)).toBe("Asia/Kolkata");
+    expect(carryPaise(1000, 1000, 600)).toBe(400);
+    expect(carryPaise(1000, 1000, 1000)).toBe(0);
+    expect(carryPaise(1000, 1000, 1500)).toBe(0);
+    expect(carryPaise(1000, 1400, 300)).toBe(1000);
+  });
+
   test("goalPercent stays between 0 and 100", () => {
     expect(goalPercent(0, 1000)).toBe(0);
     expect(goalPercent(250, 1000)).toBe(25);
@@ -37,7 +63,9 @@ test.describe("goal bar", () => {
 
   test("the bar shows the title, amounts and progress from the API", async ({ page }) => {
     await page.route(`**/api/overlay/${TOKEN}/goal`, (route) =>
-      route.fulfill({ json: { goal: { title: "New mic", targetPaise: 500000, raisedPaise: 125000 } } }),
+      route.fulfill({
+        json: { goals: [{ title: "New mic", targetPaise: 500000, raisedPaise: 125000 }] },
+      }),
     );
     await page.goto(`/overlay/${TOKEN}/goal`);
     const bar = page.getByTestId("goal-bar");
@@ -46,8 +74,27 @@ test.describe("goal bar", () => {
     await expect(bar.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
   });
 
+  test("several goals stack, and a carried amount is named", async ({ page }) => {
+    await page.route(`**/api/overlay/${TOKEN}/goal`, (route) =>
+      route.fulfill({
+        json: {
+          goals: [
+            { title: "New mic", targetPaise: 500000, raisedPaise: 125000 },
+            { title: "Daily", repeat: "daily", targetPaise: 200000, carryPaise: 100000, raisedPaise: 50000 },
+          ],
+        },
+      }),
+    );
+    await page.goto(`/overlay/${TOKEN}/goal`);
+    const bars = page.getByTestId("goal-bar");
+    await expect(bars).toHaveCount(2);
+    await expect(bars.nth(1)).toContainText("Daily · today");
+    await expect(bars.nth(1)).toContainText("includes ₹1,000 carried over");
+    await expect(bars.nth(0)).not.toContainText("carried over");
+  });
+
   test("no goal shows nothing, and a bad token is a 404", async ({ page, request }) => {
-    await page.route(`**/api/overlay/${TOKEN}/goal`, (route) => route.fulfill({ json: { goal: null } }));
+    await page.route(`**/api/overlay/${TOKEN}/goal`, (route) => route.fulfill({ json: { goals: [], goal: null } }));
     await page.goto(`/overlay/${TOKEN}/goal`);
     await page.waitForTimeout(500);
     await expect(page.getByTestId("goal-bar")).toHaveCount(0);

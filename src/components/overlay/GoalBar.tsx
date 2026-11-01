@@ -8,6 +8,7 @@ interface Goal {
   targetPaise: number;
   raisedPaise: number;
   repeat?: GoalRepeat;
+  carryPaise?: number;
 }
 
 const POLL_MS = 5000;
@@ -16,10 +17,10 @@ function rupees(paise: number) {
   return Math.floor(paise / 100).toLocaleString("en-IN");
 }
 
-// Polls /api/overlay/<token>/goal and draws one bar. Shows nothing while there is
-// no goal, so an OBS source can stay in the scene.
+// Polls /api/overlay/<token>/goal and draws a bar for each goal, stacked. Shows
+// nothing while there is no goal, so an OBS source can stay in the scene.
 export function GoalBar({ token }: { token: string }) {
-  const [goal, setGoal] = useState<Goal | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   useEffect(() => {
     let stop = false;
@@ -27,7 +28,7 @@ export function GoalBar({ token }: { token: string }) {
     async function poll() {
       try {
         const res = await fetch(`/api/overlay/${token}/goal`, { cache: "no-store" });
-        if (!stop && res.ok) setGoal((await res.json()).goal ?? null);
+        if (!stop && res.ok) setGoals((await res.json()).goals ?? []);
       } catch {
         // Keep the last bar on a network blip.
       }
@@ -40,18 +41,35 @@ export function GoalBar({ token }: { token: string }) {
     };
   }, [token]);
 
-  if (!goal) return null;
-  const pct = goalPercent(goal.raisedPaise, goal.targetPaise);
+  if (goals.length === 0) return null;
 
   return (
     <div
-      data-testid="goal-bar"
       style={{
         position: "absolute",
         left: "50%",
         bottom: "4%",
         width: "min(90%, 960px)",
         transform: "translateX(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      {goals.map((goal, i) => (
+        <Bar key={i} goal={goal} />
+      ))}
+    </div>
+  );
+}
+
+function Bar({ goal }: { goal: Goal }) {
+  const pct = goalPercent(goal.raisedPaise, goal.targetPaise);
+
+  return (
+    <div
+      data-testid="goal-bar"
+      style={{
         padding: "14px 18px",
         borderRadius: 16,
         background: "rgba(10,10,10,0.82)",
@@ -79,6 +97,11 @@ export function GoalBar({ token }: { token: string }) {
           style={{ width: `${pct}%`, height: "100%", background: "#bfe84a", transition: "width 0.8s ease" }}
         />
       </div>
+      {goal.carryPaise ? (
+        <div style={{ marginTop: 6, fontSize: 15, opacity: 0.75 }}>
+          includes ₹{rupees(goal.carryPaise)} carried over
+        </div>
+      ) : null}
     </div>
   );
 }

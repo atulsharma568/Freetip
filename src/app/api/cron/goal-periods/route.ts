@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { getDb } from "@/lib/db";
+import type { Query } from "@/lib/accrual";
 import { closeFinishedPeriods } from "@/lib/goal-history";
 
 // Daily, just after midnight in India (see vercel.json): records the day, week or
@@ -21,10 +22,10 @@ export async function GET(request: Request) {
   if (!sql) return new Response("Not set up", { status: 503 });
 
   try {
-    const written = await closeFinishedPeriods(sql);
+    const written = await closeFinishedPeriods(sql as unknown as Query);
     return new Response(`OK (${written} periods recorded)`);
   } catch (err) {
-    console.error("Goal periods: failed (migration 0027 run?).", err);
+    console.error("Goal periods: failed (migration 0028 run?).", err);
     return new Response("Failed", { status: 500 });
   }
 }

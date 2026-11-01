@@ -83,6 +83,10 @@ export async function closeCreatorAccount(
       delete from creator_sounds where creator_id = ${userId} returning blob_url
     `;
 
+    // Goal bars and their history carry the creator's own titles.
+    await tx`delete from goal_history where creator_id = ${userId}`;
+    await tx`delete from goals where creator_id = ${userId}`;
+
     // Messages the creator sent us through the contact form, found by the sign-in
     // email (a message sent from a different address cannot be tied to the account).
     const contact = users[0].email
