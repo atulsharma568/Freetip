@@ -36,8 +36,8 @@ export type FeatureInfo = {
   description: string;
   // false: listed in the admin page but cannot be switched on, because nothing exists yet.
   built: boolean;
-  // Needs the base timestamps switch too.
-  needsTimestamps?: boolean;
+  // Other switches this one only works with (it is off while any of them is off).
+  needs?: readonly FeatureKey[];
 };
 
 export const FEATURES: readonly FeatureInfo[] = [
@@ -54,7 +54,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Stream timestamps",
     description: "A moment is added automatically when a big tip or a goal lands.",
     built: true,
-    needsTimestamps: true,
+    needs: ["timestamps"],
   },
   {
     key: "highlightsPage",
@@ -62,7 +62,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Stream timestamps",
     description: "A public page of the stream's moments with a tip button.",
     built: true,
-    needsTimestamps: true,
+    needs: ["timestamps"],
   },
   {
     key: "editorLink",
@@ -70,7 +70,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Stream timestamps",
     description: "A private link for an editor, plus CSV and copy-as-chapters.",
     built: true,
-    needsTimestamps: true,
+    needs: ["timestamps"],
   },
   {
     key: "clipHelper",
@@ -78,7 +78,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Stream timestamps",
     description: "Saves and trims real clips from the creator's own OBS recording and uploads them to their Discord.",
     built: true,
-    needsTimestamps: true,
+    needs: ["timestamps"],
   },
   {
     key: "supportStreak",
@@ -187,11 +187,38 @@ export function planFeatures(source: FeatureSource): PlanFeatures {
   for (const f of FEATURES) {
     out[f.key] = granted.has(f.key);
   }
-  // The timestamp extras are part of the same product: off with the base switch.
-  if (!out.timestamps) {
-    for (const f of FEATURES) if (f.needsTimestamps) out[f.key] = false;
+  // A feature that needs another is off while that one is off (the timestamp extras
+  // with the base switch). Resolved to a fixed point so a chain of needs also holds.
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const f of FEATURES) {
+      if (out[f.key] && f.needs?.some((k) => !out[k])) {
+        out[f.key] = false;
+        changed = true;
+      }
+    }
   }
   return out;
 }
 
 export const NO_FEATURES: PlanFeatures = planFeatures(null);
+
+// The server-side gate for a paid feature. Call it where the feature is used (an
+// action, an upload route, createTipOrder, an overlay route), never only in the UI:
+// a hidden button is not a lock. `row` is anything with the creator's `paid_features`.
+// Returns true when the feature (and everything it needs) is on.
+export function hasFeature(row: FeatureSource, key: FeatureKey): boolean {
+  return planFeatures(row)[key];
+}
+
+// Throws when the feature is off, for actions and routes that want to stop there.
+export class FeatureOffError extends Error {
+  constructor(public readonly key: FeatureKey) {
+    super(`The ${key} feature is not switched on for this creator.`);
+    this.name = "FeatureOffError";
+  }
+}
+
+export function requireFeature(row: FeatureSource, key: FeatureKey): void {
+  if (!hasFeature(row, key)) throw new FeatureOffError(key);
+}

@@ -6,7 +6,8 @@ import {
   type AlertMode,
   type TipRow,
 } from "@/lib/alerts";
-import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
+import { loadAlertExtras, type Sql } from "@/lib/alert-extras";
+import { findBlockedWord } from "@/lib/message-filter";
 import { shouldSpeak } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
 
@@ -118,31 +119,16 @@ export async function GET(
 
   const row = tips.find((r) => r.id === next.id)!;
 
-  // Whether the fan chose "read my message aloud" (migration 0014). A tip uses
-  // either the voice or a sound, never both. A lookup failure (the column is
-  // missing) means no voice.
-  let requested = false;
-  try {
-    const [found] = await db<{ tts_requested: boolean }[]>`
-      select tts_requested from tip_orders where id = ${next.id}
-    `;
-    requested = !!found?.tts_requested;
-  } catch (err) {
-    console.error("Overlay: could not look up the voice choice.", err);
-  }
-
-  // The creator's banned words (migration 0016); without them nothing is blocked. A tip that got through before a word was added is still held
-  // back here: its message is dropped from the alert and a blocked name shows as
-  // Anonymous.
-  let bannedWords: string[] = [];
-  try {
-    const [found] = await db<{ banned_words: string }[]>`
-      select banned_words from users where id = ${row.creator_id}
-    `;
-    bannedWords = parseBannedWords(found?.banned_words);
-  } catch (err) {
-    console.error("Overlay: could not read the banned words.", err);
-  }
+  // The sound, the voice choice and the banned words (src/lib/alert-extras.ts). A banned
+  // word added after the tip was paid still holds it back here: its message is dropped
+  // from the alert and a blocked name shows as Anonymous.
+  const extras = await loadAlertExtras(db as unknown as Sql, {
+    tipId: next.id,
+    creatorId: row.creator_id,
+    kind: next.kind,
+  });
+  const requested = extras.voiceRequested;
+  const bannedWords = extras.bannedWords;
   const messageBlocked = findBlockedWord(row.fan_message, bannedWords) !== null;
   const nameBlocked = findBlockedWord(row.fan_name, bannedWords) !== null;
 
@@ -168,28 +154,6 @@ export async function GET(
       row.message_max_chars,
     );
 
-  // The alert's sound: the fan's pick (even if the creator hid or repriced it
-  // afterwards), otherwise the creator's default. A voice tip has no sound at all,
-  // not even the default. Only the alert card has one, not the follow-up message
-  // card. A lookup failure (for example the sounds table from migration 0013 is
-  // missing) just means a silent alert.
-  let sound: { url: string; volume: number; ms: number } | null = null;
-  if (next.kind === "alert" && !requested) {
-    try {
-      const [found] = await db<{ blob_url: string; volume: number; duration_ms: number }[]>`
-        select s.blob_url, s.volume, s.duration_ms
-        from tip_orders t
-        join users u on u.id = t.creator_id
-        join creator_sounds s on s.id = coalesce(t.sound_id, u.default_sound_id)
-                             and s.creator_id = u.id
-        where t.id = ${next.id}
-      `;
-      if (found) sound = { url: found.blob_url, volume: found.volume, ms: found.duration_ms };
-    } catch (err) {
-      console.error("Overlay: could not look up the alert sound.", err);
-    }
-  }
-
   return Response.json(
     {
       alert: {
@@ -199,7 +163,7 @@ export async function GET(
         amountPaise: Number(row.gross_amount_minor),
         message: next.withMessage && !messageBlocked ? row.fan_message!.trim() : null,
         speech: speak,
-        sound,
+        sound: extras.sound,
       },
       controls,
     },

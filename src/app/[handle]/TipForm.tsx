@@ -247,8 +247,7 @@ export function TipForm({
         anonymous ? null : tipName.trim() || null,
         message.trim() || null,
         anonymous,
-        extra.kind === "sound" ? extra.id : null,
-        extra.kind === "voice",
+        { soundId: extra.kind === "sound" ? extra.id : null, voice: extra.kind === "voice" },
       );
     } catch {
       setPhase("error");

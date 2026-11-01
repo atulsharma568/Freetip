@@ -14,12 +14,11 @@ const BLOCKED: Partial<Record<FeatureKey, string>> = {
 };
 
 const GROUPS = [...new Set(FEATURES.map((f) => f.group))];
-const BASE: FeatureKey = "timestamps";
+const LABEL = new Map<string, string>(FEATURES.map((f) => [f.key, f.label]));
 
 // The per-creator paid switches. Unbuilt features are listed but cannot be ticked
-// (the server drops them anyway). Ticking a stream-timestamp extra without Stream
-// timestamps is allowed but warned about, because the site keeps it off until the
-// base switch is on too.
+// (the server drops them anyway). Ticking a feature without the ones it needs is
+// allowed but warned about, because the site keeps it off until they are on too.
 export function FeaturesForm({
   action,
   granted,
@@ -60,7 +59,8 @@ export function FeaturesForm({
           <fieldset key={group} className="space-y-3 rounded-surface border border-control bg-surface p-4">
             <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{group}</legend>
             {FEATURES.filter((f) => f.group === group).map((f) => {
-              const missingBase = f.built && f.needsTimestamps && ticked.has(f.key) && !ticked.has(BASE);
+              const missing = f.built && ticked.has(f.key) ? (f.needs ?? []).filter((k) => !ticked.has(k)) : [];
+              const needsText = (f.needs ?? []).map((k) => LABEL.get(k) ?? k).join(", ");
               const blocked = BLOCKED[f.key];
               return (
                 <div key={f.key} className="space-y-1">
@@ -85,14 +85,14 @@ export function FeaturesForm({
                           {blocked}
                         </span>
                       )}
-                      {f.needsTimestamps && <span className="text-muted"> (needs Stream timestamps)</span>}
+                      {needsText && <span className="text-muted"> (needs {needsText})</span>}
                       <span className="block text-xs text-muted">{f.description}</span>
                     </span>
                   </label>
-                  {missingBase && (
+                  {missing.length > 0 && (
                     <p role="status" className={`ml-7 text-xs ${TONE_TEXT.warn}`}>
                       <span aria-hidden="true">{TONE_MARK.warn} </span>
-                      Stream timestamps is not ticked, so this stays off for the creator until it is.
+                      {missing.map((k) => LABEL.get(k) ?? k).join(", ")} {missing.length > 1 ? "are" : "is"} not ticked, so this stays off for the creator until {missing.length > 1 ? "they are" : "it is"}.
                     </p>
                   )}
                 </div>

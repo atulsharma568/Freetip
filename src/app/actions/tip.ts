@@ -3,6 +3,7 @@
 import { createHmac, randomBytes } from "crypto";
 import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
+import { tipExtraColumns, type TipExtras } from "@/lib/tip-extras";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
@@ -65,9 +66,10 @@ export async function createTipOrder(
   fanName: string | null,
   fanMessage: string | null,
   anonymous: boolean,
-  soundId: number | null = null,
-  voice = false,
+  extras: TipExtras = {},
 ): Promise<TipOrderResult> {
+  const soundId = extras.soundId ?? null;
+  const voice = extras.voice ?? false;
   if (!Number.isInteger(amountPaise) || amountPaise < 100) {
     return { status: "error", message: "Invalid tip amount" };
   }
@@ -228,39 +230,23 @@ export async function createTipOrder(
 
   const persist = (withMode: boolean) =>
     db.begin(async (tx) => {
-      // sound_id (migration 0013) and tts_requested (migration 0014) are only
-      // written when the fan chose them: every other tip works before those
-      // migrations are run.
-      const orders =
-        soundId !== null
-          ? await tx<{ id: number }[]>`
-              insert into tip_orders
-                (creator_id, public_reference, gross_amount_minor, currency,
-                 fan_name, fan_message, anonymous, status, sound_id)
-              values
-                (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-                 ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending', ${soundId})
-              returning id
-            `
-          : voice
-            ? await tx<{ id: number }[]>`
-                insert into tip_orders
-                  (creator_id, public_reference, gross_amount_minor, currency,
-                   fan_name, fan_message, anonymous, status, tts_requested)
-                values
-                  (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-                   ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending', true)
-                returning id
-              `
-            : await tx<{ id: number }[]>`
-                insert into tip_orders
-                  (creator_id, public_reference, gross_amount_minor, currency,
-                   fan_name, fan_message, anonymous, status)
-                values
-                  (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
-                   ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
-                returning id
-              `;
+      // The base row has only columns that always exist. Extras (sound_id from
+      // migration 0013, tts_requested from 0014, and the later ones) go in one
+      // update, only when the fan chose one, so every plain tip works before those
+      // migrations are run. Same transaction: an order never exists half-filled.
+      const orders = await tx<{ id: number }[]>`
+        insert into tip_orders
+          (creator_id, public_reference, gross_amount_minor, currency,
+           fan_name, fan_message, anonymous, status)
+        values
+          (${creator.id}, ${publicReference}, ${amountPaise}, 'INR',
+           ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
+        returning id
+      `;
+      const columns = tipExtraColumns({ soundId, voice });
+      if (Object.keys(columns).length > 0) {
+        await tx`update tip_orders set ${tx(columns)} where id = ${orders[0].id}`;
+      }
 
       if (withMode) {
         await tx`
