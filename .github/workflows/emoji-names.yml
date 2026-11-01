@@ -1,0 +1,51 @@
+name: Refresh emoji names
+
+# Once a year, after Unicode's autumn release, re-download Unicode's official emoji
+# names and open a pull request if anything changed. Nothing is merged by itself:
+# the owner looks at the pull request and merges it. Can also be run by hand from the
+# Actions tab ("Run workflow"). No secrets and no outside service are used.
+
+on:
+  schedule:
+    - cron: '17 6 20 10 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Download the names and rebuild the file
+        run: node scripts/refresh-emoji-names.mjs
+
+      - name: Open a pull request if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "Unicode's emoji names have not changed. Nothing to do."
+            exit 0
+          fi
+          branch="emoji-names-$(date +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add src/lib/emoji-names-cldr.ts
+          git commit -m "Refresh the emoji names from Unicode"
+          git push origin "$branch"
+          gh pr create \
+            --title "Refresh the emoji names from Unicode" \
+            --body "Automatic yearly refresh of \`src/lib/emoji-names-cldr.ts\` from Unicode's official emoji names. Look at the file changes: only new or renamed emoji should show. Merging it makes the voice read the new emoji. Our own names in \`emoji-names.ts\` are never changed."
