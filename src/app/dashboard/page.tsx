@@ -17,6 +17,8 @@ import { VoiceTest } from "./VoiceTest";
 import { DashboardNav } from "./DashboardNav";
 import { OverviewStrip } from "./OverviewStrip";
 import { DailyChart } from "./DailyChart";
+import { NextStepCard } from "./NextStepCard";
+import { nextStep } from "@/lib/next-step";
 import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
@@ -165,6 +167,13 @@ export default async function DashboardPage() {
     );
   }
 
+  const step = nextStep({
+    creatorStatus: user.creator_status,
+    onboardingState: user.onboarding_state,
+    hasOverlayLink: user.has_overlay_link,
+    tipCount: overview.find((r) => r.key === "all")?.count ?? 0,
+  });
+
   // Handle set — show tip page link and activation status.
   return (
     <PageShell>
@@ -192,11 +201,13 @@ export default async function DashboardPage() {
           </p>
         </div>
 
+        {step && <NextStepCard step={step} />}
+
         <OverviewStrip rows={overview} />
         {daily.length > 0 && <DailyChart days={daily} />}
 
         {/* Tip page link */}
-        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
+        <div id="tip-page" className="scroll-mt-6 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-3">
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
             Your tip page
           </h2>
@@ -222,11 +233,13 @@ export default async function DashboardPage() {
 
         {/* Payout onboarding gate — shown while pending */}
         {user.creator_status === "pending" && (
-          <PayoutOnboarding
-            state={user.onboarding_state}
-            initialLegalName={user.legal_name ?? user.name ?? ""}
-            initialUpiVpa={user.upi_vpa ?? ""}
-          />
+          <div id="payout" className="scroll-mt-6">
+            <PayoutOnboarding
+              state={user.onboarding_state}
+              initialLegalName={user.legal_name ?? user.name ?? ""}
+              initialUpiVpa={user.upi_vpa ?? ""}
+            />
+          </div>
         )}
 
         {user.creator_status === "active" && (
@@ -250,7 +263,7 @@ export default async function DashboardPage() {
         )}
 
         {/* OBS alerts */}
-        <div className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
+        <div id="alerts" className="scroll-mt-6 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-6 space-y-4">
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">
             Alerts on stream
           </h2>
