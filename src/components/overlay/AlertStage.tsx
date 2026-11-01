@@ -330,14 +330,14 @@ const CSS = `
 .ov-card {
   position: absolute; left: 50%; bottom: calc(var(--u) * 6);
   width: calc(var(--u) * 36); padding: calc(var(--u) * 1.6) calc(var(--u) * 2);
-  background: #12130e; color: #f2f3ec; border-left: calc(var(--u) * 0.45) solid #bfe84a;
+  background: #12130e; color: #f2f3ec; border-left: calc(var(--u) * 0.45) solid var(--ov-accent, #bfe84a);
   border-radius: calc(var(--u) * 1); overflow-wrap: anywhere;
   transform: translateX(-50%);
   animation: ov-in 450ms cubic-bezier(.2,.8,.2,1) both, ov-out 400ms ease-in calc(var(--dur) - 400ms) forwards;
 }
 .ov-line { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: calc(var(--u) * 1.5); }
 .ov-name { font-size: calc(var(--u) * 1.8); font-weight: 600; }
-.ov-amount { font-size: calc(var(--u) * 3.2); font-weight: 700; color: #bfe84a; white-space: nowrap; }
+.ov-amount { font-size: calc(var(--u) * 3.2); font-weight: 700; color: var(--ov-accent, #bfe84a); white-space: nowrap; }
 .ov-message { margin: calc(var(--u) * 0.8) 0 0; font-size: calc(var(--u) * 1.8); line-height: 1.3; color: #c9cbbd; }
 .ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4) calc(var(--u) * 5); border-left-width: calc(var(--u) * 1.2); border-radius: calc(var(--u) * 3); }
 .ov-portrait .ov-name { font-size: calc(var(--u) * 5.2); }

@@ -94,7 +94,7 @@ function Bar({ goal }: { goal: Goal }) {
         style={{ marginTop: 10, height: 16, borderRadius: 8, background: "rgba(255,255,255,0.18)", overflow: "hidden" }}
       >
         <div
-          style={{ width: `${pct}%`, height: "100%", background: "#bfe84a", transition: "width 0.8s ease" }}
+          style={{ width: `${pct}%`, height: "100%", background: "var(--ov-accent, #bfe84a)", transition: "width 0.8s ease" }}
         />
       </div>
       {goal.carryPaise ? (
