@@ -25,6 +25,7 @@ import { loadDailyTips, loadOverview } from "./queries";
 import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { ttsAvailable } from "@/lib/tts";
+import { getTtsFloorPaise } from "@/lib/site-settings";
 import { parseRepeat, parseTimezone } from "@/lib/goal";
 import { loadGoalProgress } from "@/lib/goal-progress";
 import type { Query } from "@/lib/accrual";
@@ -439,6 +440,7 @@ export default async function DashboardPage() {
                     messageMaxChars={user.message_max_chars}
                     ttsEnabled={user.tts_enabled}
                     ttsMinPaise={user.tts_min_paise}
+                    ttsFloorPaise={await getTtsFloorPaise(db)}
                     approveBeforePlay={user.approve_before_play}
                     alertMode={user.alert_mode}
                     bio={user.bio ?? ""}

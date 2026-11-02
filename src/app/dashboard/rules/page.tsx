@@ -62,10 +62,11 @@ export default async function RulesPage() {
           <DashboardNav current="rules" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert rules</h1>
           <p className="text-pretty text-base text-muted">
-            Choose what plays for bigger tips. A tip uses the rule with the highest size it
-            reaches. For tips of ₹1,000 or more a rule can also keep the alert on screen for up to
-            5 minutes; tips after it wait their turn, and Skip ends it early. A sound a fan picks themselves always wins over a rule&apos;s sound, and a
-            tip read aloud by the voice keeps its media but plays no sound.
+            Each rule is a pick on your tip page: a GIF, picture or video with its sound, for one fixed
+            amount. A fan taps it, hears the sound, and the amount is set to yours. A pick plays on its own,
+            with no message, no soundboard sound and no voice, so it never overlaps with them. Only rules of
+            ₹20 or more show on the tip page. For ₹1,000 or more a rule can also keep the alert on screen for up to
+            5 minutes; tips after it wait their turn, and Skip ends it early.
           </p>
         </div>
 

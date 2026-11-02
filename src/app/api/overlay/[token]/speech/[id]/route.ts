@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
+import { effectiveTtsMinPaise, getTtsFloorPaise } from "@/lib/site-settings";
 import { OVERLAY_TOKEN_PATTERN } from "@/lib/alerts";
 import { parseBannedWords } from "@/lib/message-filter";
 import { shouldSpeak, speechText, type SpeechTip } from "@/lib/tts-rules";
@@ -71,7 +72,7 @@ export async function GET(
     {
       ttsEnabled: row.tts_enabled,
       approveBeforePlay: row.approve_before_play,
-      ttsMinPaise: row.tts_min_paise,
+      ttsMinPaise: effectiveTtsMinPaise(row.tts_min_paise, await getTtsFloorPaise(db)),
       bannedWords: parseBannedWords(row.banned_words),
     },
     {

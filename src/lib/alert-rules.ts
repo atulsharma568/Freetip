@@ -24,14 +24,26 @@ export type AlertRule = {
   stayMs?: number | null;
 };
 
-// The rule for a tip: the one with the highest minimum at or below the amount.
-// Null when no rule reaches the tip, so it plays as a normal alert.
-export function resolveRule<T extends { minPaise: number }>(rules: readonly T[], amountPaise: number): T | null {
-  let best: T | null = null;
-  for (const r of rules) {
-    if (r.minPaise <= amountPaise && (!best || r.minPaise > best.minPaise)) best = r;
+// A rule is a pick on the tip page: the fan taps the creator's GIF (and sound) and the tip
+// is set to the rule's fixed amount with no message, so it never overlaps with a sound
+// from the soundboard or the voice. The overlay applies a rule only to a tip that picked
+// it (tip_orders.alert_rule_id). Whether a pick may be made, or the reason it may not;
+// the server runs this again, the page only hides what cannot be picked.
+export function checkRulePick(input: {
+  featureOn: boolean;
+  rule: { min_paise: number } | undefined;
+  amountPaise: number;
+  message: string | null;
+  hasSound: boolean;
+  voice: boolean;
+}): string | null {
+  if (!input.featureOn || !input.rule) return "That pick is no longer available. Choose another or clear it.";
+  if (input.amountPaise !== input.rule.min_paise) {
+    return `This pick is for exactly ₹${Math.ceil(input.rule.min_paise / 100)}.`;
   }
-  return best;
+  if (input.message?.trim()) return "A creator's pick plays on its own, without a message.";
+  if (input.hasSound || input.voice) return "Choose a pick, a sound or a spoken message, not more than one.";
+  return null;
 }
 
 // The creator types rupees; whole rupees from 0 (every tip) up to the cap.

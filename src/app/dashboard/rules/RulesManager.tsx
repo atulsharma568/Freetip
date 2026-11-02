@@ -92,7 +92,7 @@ export function RulesManager({
       <Tile id="add-rule" level={2} title="Add a rule">
         <form onSubmit={add} className="space-y-4">
           <label className="block space-y-1">
-            <span className="text-xs uppercase tracking-widest text-muted">From this tip size up (₹)</span>
+            <span className="text-xs uppercase tracking-widest text-muted">Fixed tip amount (₹)</span>
             <input
               inputMode="numeric"
               value={rupees}
@@ -143,7 +143,7 @@ export function RulesManager({
             </label>
           )}
           <p className="numeric text-xs text-muted">
-            {rules.length} of {maxRules} rules. Saving a size that already has a rule replaces it.
+            {rules.length} of {maxRules} rules. Saving an amount that already has a rule replaces it.
           </p>
           <button type="submit" disabled={busy || full || !rupees || (!mediaId && !soundId && !(canStay && stay))} className={pillPrimary}>
             {busy ? "Saving…" : "Save rule"}

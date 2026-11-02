@@ -2,7 +2,7 @@ import type { PlanFeatures } from "@/lib/plans";
 import { NO_FEATURES, planFeatures } from "@/lib/plans";
 import { parseBannedWords } from "@/lib/message-filter";
 import { pickMedia, playable, type AlertMedia, type MediaCandidate } from "@/lib/media";
-import { resolveRule, type AlertRule } from "@/lib/alert-rules";
+import type { AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
 import { istMonthDay, resolveBirthday } from "@/lib/birthday";
@@ -54,8 +54,9 @@ export type RawExtras = {
   media?: readonly MediaCandidate[];
   // True when the fan picked this sound on the tip page; a rule never overrides it.
   soundPicked?: boolean;
-  // The creator's alert rules by tip size (alert rules).
+  // The creator's alert rules, and the one this tip picked on the tip page (alert rules).
   rules?: readonly AlertRule[];
+  pickedRuleId?: number | null;
   // The creator's stored theme and font keys (overlay themes); unknown keys are the default.
   style?: { theme?: string | null; font?: string | null } | null;
   // The fan's points now and what this tip added (fan levels).
@@ -66,12 +67,14 @@ export type RawExtras = {
 
 export function resolveAlertExtras(
   raw: RawExtras,
-  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number; amountPaise?: number; todayMd?: string },
+  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number; todayMd?: string },
 ): AlertExtras {
-  // The rule for this tip size, only on the alert card and only while the creator's
-  // switch is on at play time.
+  // The rule the fan picked on the tip page (a rule never applies to a tip that did not
+  // pick it), only on the alert card and only while the creator's switch is on at play time.
   const rule =
-    ctx.kind === "alert" && ctx.features.alertRules ? resolveRule(raw.rules ?? [], ctx.amountPaise ?? 0) : null;
+    ctx.kind === "alert" && ctx.features.alertRules && raw.pickedRuleId != null
+      ? ((raw.rules ?? []).find((r) => r.id === raw.pickedRuleId) ?? null)
+      : null;
 
   // The fan's own pick wins over the rule's sound, which wins over the creator's default.
   const ruleSound = rule && !raw.soundPicked ? rule.sound : null;
@@ -192,19 +195,20 @@ export async function loadAlertExtras(
         })
       : [];
 
-  // The creator's rules and the tip's size (migration 0036), read only when the
-  // feature is on for them.
+  // The rule this tip picked on the tip page (migrations 0036 and 0043), read only when
+  // the feature is on for the creator. A tip that picked none gets no rule.
   let rules: AlertRule[] = [];
-  let amountPaise = 0;
+  let pickedRuleId: number | null = null;
   if (o.kind === "alert" && features.alertRules) {
-    rules = await safely("the alert rules", [] as AlertRule[], async () => {
+    rules = await safely("the alert rule", [] as AlertRule[], async () => {
       const rows = await db<
         { id: string; min_paise: number; media_id: string | null; stay_seconds: number | null; blob_url: string | null; volume: number | null; duration_ms: number | null }[]
       >`
         select r.id::text, r.min_paise, r.media_id::text, r.stay_seconds, s.blob_url, s.volume, s.duration_ms
-        from alert_rules r
+        from tip_orders t
+        join alert_rules r on r.id = t.alert_rule_id and r.creator_id = t.creator_id
         left join creator_sounds s on s.id = r.sound_id and s.creator_id = r.creator_id
-        where r.creator_id = ${o.creatorId}
+        where t.id = ${o.tipId}
       `;
       return rows.map((r) => ({
         id: Number(r.id),
@@ -214,14 +218,7 @@ export async function loadAlertExtras(
         sound: r.blob_url ? { url: r.blob_url, volume: r.volume ?? 100, ms: r.duration_ms ?? 0 } : null,
       }));
     });
-    if (rules.length) {
-      amountPaise = await safely("the tip amount", 0, async () => {
-        const [found] = await db<{ gross_amount_minor: string }[]>`
-          select gross_amount_minor::text from tip_orders where id = ${o.tipId}
-        `;
-        return Number(found?.gross_amount_minor ?? 0);
-      });
-    }
+    pickedRuleId = rules[0]?.id ?? null;
   }
 
   // The creator's card style (migration 0037), read only when the feature is on for them.
@@ -265,7 +262,7 @@ export async function loadAlertExtras(
       : null;
 
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, style, fan, birthdayInfo },
-    { kind: o.kind, features, tipId: o.tipId, amountPaise },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, fan, birthdayInfo },
+    { kind: o.kind, features, tipId: o.tipId },
   );
 }

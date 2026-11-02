@@ -12,7 +12,9 @@ import { checkVoicePick } from "@/lib/tts-rules";
 import { ttsAvailable } from "@/lib/tts";
 import { parseBirthday } from "@/lib/birthday";
 import { hasFeature } from "@/lib/plans";
+import { checkRulePick } from "@/lib/alert-rules";
 import { checkPinRequest, pinOffer } from "@/lib/pinned";
+import { effectiveTtsMinPaise, getTtsFloorPaise } from "@/lib/site-settings";
 
 export type TipOrderResult =
   | { status: "error"; message: string }
@@ -73,6 +75,7 @@ export async function createTipOrder(
 ): Promise<TipOrderResult> {
   const soundId = extras.soundId ?? null;
   const voice = extras.voice ?? false;
+  const ruleId = extras.ruleId ?? null;
   if (!Number.isInteger(amountPaise) || amountPaise < 100) {
     return { status: "error", message: "Invalid tip amount" };
   }
@@ -161,7 +164,7 @@ export async function createTipOrder(
     const problem = checkVoicePick({
       platformOn: ttsAvailable(),
       creatorEnabled: creator.tts_enabled,
-      minPaise: creator.tts_min_paise,
+      minPaise: effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(db)),
       amountPaise,
       message: fanMessage,
       hasSound: soundId !== null,
@@ -185,6 +188,32 @@ export async function createTipOrder(
       console.error("Tip: could not check the sound pick.", err);
     }
     const problem = checkPick(sound, amountPaise);
+    if (problem) return { status: "error", message: problem };
+  }
+
+  // The creator's rule pick (a GIF and/or sound at a fixed amount). It stands alone: no
+  // message, no soundboard sound, no voice, and the amount is the rule's own. Checked
+  // here, not only on the page, and refused before payment like the other picks.
+  if (ruleId !== null) {
+    let row: { paid_features: string[] | null; min_paise: number | null } | undefined;
+    try {
+      if (!Number.isSafeInteger(ruleId)) throw new Error("bad rule id");
+      [row] = await db<NonNullable<typeof row>[]>`
+        select u.paid_features, r.min_paise
+        from users u left join alert_rules r on r.id = ${ruleId} and r.creator_id = u.id
+        where u.id = ${creator.id}
+      `;
+    } catch (err) {
+      console.error("Tip: could not check the rule pick (migrations 0036 and 0043 run?).", err);
+    }
+    const problem = checkRulePick({
+      featureOn: hasFeature(row, "alertRules"),
+      rule: row?.min_paise != null ? { min_paise: row.min_paise } : undefined,
+      amountPaise,
+      message: fanMessage,
+      hasSound: soundId !== null,
+      voice,
+    });
     if (problem) return { status: "error", message: problem };
   }
 
@@ -287,7 +316,7 @@ export async function createTipOrder(
            ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
         returning id
       `;
-      const columns = tipExtraColumns({ soundId, voice, birthdayMd, pin });
+      const columns = tipExtraColumns({ soundId, voice, birthdayMd, pin, ruleId });
       if (Object.keys(columns).length > 0) {
         await tx`update tip_orders set ${tx(columns)} where id = ${orders[0].id}`;
       }

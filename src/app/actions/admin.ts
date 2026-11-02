@@ -11,6 +11,7 @@ import { del } from "@vercel/blob";
 import { builtFeatureKeys, sanitizeFeatureKeys } from "@/lib/plans";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
+import { getTtsFloorPaise, parseFloorRupees, TTS_FLOOR_KEY } from "@/lib/site-settings";
 
 type CreatorStatus = "pending" | "active" | "suspended";
 
@@ -549,5 +550,35 @@ export async function rejectHandleChange(
   } catch (err) {
     console.error("Admin: could not reject a handle change", err);
     return fail(SAVE_FAILED);
+  }
+}
+
+// The smallest tip that may have its message read aloud, for every creator (the voice
+// floor in /admin/settings). A creator's own amount can be higher, never lower.
+export async function setTtsFloor(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  const rupees = parseFloorRupees(formData.get("floor"));
+  if (rupees === null) return fail("Enter a whole number of rupees, from 0 to 10,000.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  try {
+    const before = await getTtsFloorPaise(db);
+    await db.begin(async (tx) => {
+      await tx`
+        insert into site_settings (key, value, updated_at) values (${TTS_FLOOR_KEY}, ${String(rupees * 100)}, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+      `;
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
+        values (null, 'owner', 'site.tts_floor_changed', 'site_setting', ${TTS_FLOOR_KEY},
+                ${tx.json({ paise: before })}, ${tx.json({ paise: rupees * 100 })}, 'set by the owner')
+      `;
+    });
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/audit");
+    return ok(rupees === 0 ? "Saved. There is no site-wide minimum now." : `Saved. Voice starts at ₹${rupees} for everyone.`);
+  } catch (err) {
+    console.error("Admin: could not save the voice minimum (migration 0043 run?)", err);
+    return fail("Could not save. Has migration 0043 been run in Neon?");
   }
 }

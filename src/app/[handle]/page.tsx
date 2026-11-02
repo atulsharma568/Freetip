@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipSounds } from "./creator";
+import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipRules, getTipSounds } from "./creator";
 import { auth } from "@/auth";
+import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
 import { accentStyle } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
@@ -11,6 +12,7 @@ import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { ttsAvailable } from "@/lib/tts";
+import { effectiveTtsMinPaise, getTtsFloorPaise } from "@/lib/site-settings";
 
 type Props = { params: Promise<{ handle: string }> };
 
@@ -60,13 +62,15 @@ export default async function CreatorPage({ params }: Props) {
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
-  const [sounds, birthdayOffered, pinOffer] = await Promise.all([
+  const [sounds, rules, birthdayOffered, pinOffer] = await Promise.all([
     getTipSounds(handle),
+    getTipRules(handle),
     getBirthdayOffered(handle),
     getPinOffer(handle),
   ]);
   // The voice is offered only when the site switch and the creator both have it on.
-  const voiceMinPaise = ttsAvailable() && creator.tts_enabled ? creator.tts_min_paise : null;
+  const voiceMinPaise =
+    ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
   const themeStyle = accentStyle(await getCreatorAccent(handle));
 
@@ -75,6 +79,7 @@ export default async function CreatorPage({ params }: Props) {
       <div className="contents" style={themeStyle}>
       <TipForm
         sounds={sounds}
+        rules={rules}
         voiceMinPaise={voiceMinPaise}
         handle={handle}
         displayName={displayName}

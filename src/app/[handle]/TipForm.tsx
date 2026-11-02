@@ -18,7 +18,7 @@ import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
 import { SuccessScreen } from "@/components/tip/SuccessScreen";
 import { rupeeText } from "@/components/tip/format";
-import type { TipSound } from "./creator";
+import type { TipRule, TipSound } from "./creator";
 
 export type { Extra };
 
@@ -114,6 +114,8 @@ interface Props {
   messageMaxChars: number;
   bio: string | null;
   sounds: TipSound[];
+  // The creator's picks: a GIF and/or sound at a fixed amount, tapped instead of typing a message.
+  rules?: TipRule[];
   // Smallest tip that can have its message read aloud, or null when the voice is
   // not offered (the site switch or the creator has it off).
   voiceMinPaise: number | null;
@@ -136,6 +138,7 @@ export function TipForm({
   messageMaxChars,
   bio,
   sounds,
+  rules = [],
   voiceMinPaise,
   alertMode = "split",
   previewMode = false,
@@ -213,6 +216,7 @@ export function TipForm({
   // afterwards blocks the button until the fan fixes it or unticks the pin.
   const pinTooPricey = pin && pinOffer !== null && amountPaise < pinOffer.minPaise;
   const pinNeedsMessage = pin && !message.trim();
+  const rulePicked = extra.kind === "rule";
   const extraBlocked =
     soundTooPricey || voiceTooPricey || voiceNeedsMessage || messageTooLong || pinTooPricey || pinNeedsMessage;
   // After an error the fan can try again; only a request or the popup in flight blocks it.
@@ -229,9 +233,38 @@ export function TipForm({
     }, 500);
   }
 
+  // A creator's pick is for one fixed amount: moving the amount away from it drops the pick.
+  function dropRuleUnless(rupees: number) {
+    setExtra((current) => {
+      if (current.kind !== "rule") return current;
+      const r = rules.find((x) => x.id === current.id);
+      return r && Math.ceil(r.minPaise / 100) === rupees ? current : { kind: "default" };
+    });
+  }
+
   function pickPreset(preset: number | "custom") {
     setSelected(preset);
-    say(preset === "custom" ? parseInt(custom, 10) || 0 : preset);
+    const rupees = preset === "custom" ? parseInt(custom, 10) || 0 : preset;
+    dropRuleUnless(rupees);
+    say(rupees);
+  }
+
+  // Choosing something besides the message. A pick sets the amount to its own and clears the
+  // message and the pin (it plays on its own); a sound or the voice leaves them alone.
+  function chooseExtra(next: Extra) {
+    setExtra(next);
+    if (next.kind !== "rule") return;
+    const r = rules.find((x) => x.id === next.id);
+    if (!r) return;
+    const rupees = Math.ceil(r.minPaise / 100);
+    if (presets.includes(rupees)) setSelected(rupees);
+    else {
+      setSelected("custom");
+      setCustom(String(rupees));
+    }
+    setMessage("");
+    setPin(false);
+    say(rupees);
   }
 
   // Whole rupees only: digits in, nothing else (no e, minus, point or comma).
@@ -239,6 +272,7 @@ export function TipForm({
     let digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 6);
     if (Number(digits) > MAX_RUPEES) digits = String(MAX_RUPEES);
     setCustom(digits);
+    dropRuleUnless(parseInt(digits, 10) || 0);
     say(parseInt(digits, 10) || 0);
   }
 
@@ -269,6 +303,7 @@ export function TipForm({
         {
           soundId: extra.kind === "sound" ? extra.id : null,
           voice: extra.kind === "voice",
+          ruleId: extra.kind === "rule" ? extra.id : null,
           pin: pinOffer !== null && pin,
           birthday:
             birthdayOffered && !anonymous && tipName.trim() && birthMonth && birthDay
@@ -578,9 +613,16 @@ export function TipForm({
                 rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Great stream today!"
-                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text transition-[border-color] placeholder:text-muted focus:border-accent"
+                placeholder={rulePicked ? "Not needed with a streamer's pick" : "Great stream today!"}
+                disabled={rulePicked}
+                className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text transition-[border-color,opacity] placeholder:text-muted focus:border-accent disabled:opacity-40"
               />
+              {rulePicked && (
+                <FieldNote>
+                  A streamer&apos;s pick plays its GIF and sound on its own, so there is no message. Choose another amount or
+                  tap the pick again to write one.
+                </FieldNote>
+              )}
               <p aria-live={nearLimit ? "polite" : "off"} className="text-right text-xs text-muted">
                 {message.length}/{messageLimit}
                 {moreChars && ` · tip ₹${moreChars.rupees} or more for ${moreChars.limit}`}
@@ -594,7 +636,7 @@ export function TipForm({
                 </FieldNote>
               )}
             </div>
-            {pinOffer && (
+            {pinOffer && !rulePicked && (
               <div className="space-y-2 rounded-[var(--radius-field)] border border-line/60 p-4">
                 <div className="flex items-center gap-3">
                   <Switch id="pin-toggle" checked={pin} onChange={setPin} />
@@ -615,14 +657,15 @@ export function TipForm({
               </FieldNote>
             )}
             {pinNeedsMessage && <FieldNote>Write a message to pin, or untick the pin.</FieldNote>}
-            {(sounds.length > 0 || voiceMinPaise !== null) && (
+            {(sounds.length > 0 || rules.length > 0 || voiceMinPaise !== null) && (
               <ExtraPicker
                 sounds={sounds}
+                rules={rules}
                 voiceMinPaise={voiceMinPaise}
                 hasMessage={!!message.trim()}
                 selected={extra}
                 amountPaise={amountPaise}
-                onSelect={setExtra}
+                onSelect={chooseExtra}
               />
             )}
             {soundTooPricey && chosenSound && (

@@ -30,6 +30,8 @@ interface Props {
   messageMaxChars: number;
   ttsEnabled: boolean;
   ttsMinPaise: number;
+  // The owner's site-wide minimum for the voice; a lower amount above is raised to it.
+  ttsFloorPaise?: number;
   approveBeforePlay: boolean;
   alertMode: AlertMode;
   bio: string;
@@ -60,7 +62,7 @@ function Group({ title, hint, children, first }: { title: string; hint: string; 
   );
 }
 
-export function SettingsForm({ displayName: initialDisplayName, messageMaxChars, ttsEnabled, ttsMinPaise, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender, regionalVoices, voiceLang: initialVoiceLang }: Props) {
+export function SettingsForm({ displayName: initialDisplayName, messageMaxChars, ttsEnabled, ttsMinPaise, ttsFloorPaise = 0, approveBeforePlay, alertMode, bio: initialBio, bannedWords: initialBanned, accent, ttsAvailable, voiceGender, regionalVoices, voiceLang: initialVoiceLang }: Props) {
   const [state, action, pending] = useActionState(saveSettings, SETTINGS_IDLE);
 
   // A stored colour that is not a preset came from "Auto"; it keeps its own swatch.
@@ -353,6 +355,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
                 </SelectField>
                 <p className="text-xs text-muted">
                   Fans can choose to have their message read aloud once their tip reaches this amount. A tip uses either a sound or the voice, not both. Only the message is read, never the name.
+                  {ttsFloorPaise > 0 && ` Freetip reads messages aloud only for tips of ₹${Math.ceil(ttsFloorPaise / 100)} or more, so a lower amount here still starts at ₹${Math.ceil(ttsFloorPaise / 100)}.`}
                 </p>
               </div>
             </div>

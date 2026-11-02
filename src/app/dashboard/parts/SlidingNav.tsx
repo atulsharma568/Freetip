@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useWheelScroll } from "@/components/ui/useWheelScroll";
 
 export interface NavItem {
   key: string;
@@ -30,6 +31,8 @@ export function SlidingNav({
   const links = useRef(new Map<string, HTMLAnchorElement>());
   const [hovered, setHovered] = useState<string | null>(null);
   const active = hovered ?? current;
+  // A mouse wheel moves the row sideways (a touchpad swipe already does).
+  useWheelScroll(box);
 
   const place = useCallback(() => {
     const el = links.current.get(active);
@@ -64,7 +67,7 @@ export function SlidingNav({
       ref={box}
       aria-label={label}
       onPointerLeave={() => setHovered(null)}
-      className="group/nav relative flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-control p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="group/nav relative flex max-w-full select-none items-center gap-0.5 overflow-x-auto rounded-full border border-control p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <span
         ref={pill}
