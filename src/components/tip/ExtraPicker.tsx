@@ -1,9 +1,10 @@
 "use client";
 
 import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
-import { FilmSlate, MusicNote, Play, Sparkle, SpeakerHigh, Timer } from "@phosphor-icons/react";
+import { FilmSlate, MusicNote, Pause, Play, Sparkle, SpeakerHigh, Timer } from "@phosphor-icons/react";
 import type { TipRule, TipSound } from "@/app/[handle]/creator";
 import { useWheelScroll } from "@/components/ui/useWheelScroll";
+import { useAudioPreview } from "@/components/ui/useAudioPreview";
 import { FieldNote } from "./FieldNote";
 
 // What the alert adds besides the card. Three separate sections on the tip page:
@@ -18,15 +19,6 @@ export type Extra =
   | { kind: "sound"; id: number }
   | { kind: "voice" }
   | { kind: "rule"; id: number };
-
-// One clip at a time, so previews never stack up.
-let previewing: HTMLAudioElement | null = null;
-function playPreview(url: string) {
-  previewing?.pause();
-  const audio = new Audio(url);
-  previewing = audio;
-  audio.play().catch(() => {});
-}
 
 const rupeesOf = (paise: number) => Math.ceil(paise / 100);
 
@@ -92,6 +84,7 @@ export function ExtraPicker({
   onSelect: (extra: Extra) => void;
 }) {
   const uid = useId();
+  const preview = useAudioPreview();
   const voiceGroup = useRef<HTMLDivElement>(null);
   const voiceLocked = voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceOn = selected.kind === "voice";
@@ -196,11 +189,16 @@ export function ExtraPicker({
                   </button>
                   <button
                     type="button"
-                    onClick={() => playPreview(s.url)}
-                    aria-label={`Preview ${s.name}`}
+                    onClick={() => preview.toggle(s.url)}
+                    aria-label={`${preview.playing === s.url ? "Pause" : "Preview"} ${s.name}`}
+                    aria-pressed={preview.playing === s.url}
                     className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-control text-text transition-[transform,border-color] duration-150 hover:border-muted active:scale-[0.95]"
                   >
-                    <Play weight="fill" aria-hidden="true" className="size-3.5" />
+                    {preview.playing === s.url ? (
+                      <Pause weight="fill" aria-hidden="true" className="size-3.5" />
+                    ) : (
+                      <Play weight="fill" aria-hidden="true" className="size-3.5" />
+                    )}
                   </button>
                 </div>
               );
@@ -227,7 +225,8 @@ export function ExtraPicker({
                   aria-checked={on}
                   tabIndex={firstStop ? 0 : -1}
                   onClick={() => {
-                    if (!on && r.sound) playPreview(r.sound.url);
+                    if (!on && r.sound) preview.toggle(r.sound.url);
+                    else if (on && r.sound && preview.playing === r.sound.url) preview.stop();
                     toggle({ kind: "rule", id: r.id }, on);
                   }}
                   className={`flex w-36 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-field)] border text-left transition-[border-color,background-color] duration-150 ${

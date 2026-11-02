@@ -111,7 +111,7 @@ test("creators tabs count what needs a decision; closed accounts only show under
   const pg = await freshDatabase();
   await creator(pg, { status: "pending", onboarding: "not_started" }); // awaiting, pending
   await creator(pg, { status: "pending", onboarding: "submitted" }); // awaiting, pending, submitted
-  await creator(pg, { status: "active", onboarding: "submitted" }); // awaiting, submitted
+  await creator(pg, { status: "active", onboarding: "submitted", handle: "zebraunique" }); // awaiting, submitted
   await creator(pg, { status: "suspended", onboarding: "active" }); // suspended only
   await creator(pg, { status: "active", onboarding: "active" }); // none
   await creator(pg, { status: "pending", onboarding: "submitted", email: "closed-1@closed.invalid" }); // closed
@@ -129,7 +129,7 @@ test("creators tabs count what needs a decision; closed accounts only show under
   expect(all.data.rows).toHaveLength(4);
   expect(all.data.rows.some((c) => c.closed)).toBe(true);
 
-  const searched = await getCreatorList(db, { q: "Creator 2", tab: "all", page: 1 });
+  const searched = await getCreatorList(db, { q: "zebraunique", tab: "all", page: 1 });
   expect(searched.ok && searched.data.total).toBe(1);
 
   expect(parseCreatorTab(undefined, false)).toBe("awaiting");

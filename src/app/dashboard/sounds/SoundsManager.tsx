@@ -12,6 +12,7 @@ import {
   soundPathPrefix,
 } from "@/lib/sounds";
 import { addSound, deleteSound, setDefaultSound, updateSound } from "@/app/actions/sounds";
+import { useAudioPreview } from "@/components/ui/useAudioPreview";
 import { RollText } from "@/components/motion/RollText";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
@@ -54,16 +55,6 @@ const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 const field =
   "h-11 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text placeholder:text-muted transition-[border-color] focus:border-accent";
 const smallButton = pillOutline;
-
-// One audio element at a time, so previews never stack up.
-let previewing: HTMLAudioElement | null = null;
-function preview(url: string, volume: number) {
-  previewing?.pause();
-  const audio = new Audio(url);
-  audio.volume = volume / 100;
-  previewing = audio;
-  audio.play().catch(() => {});
-}
 
 export function SoundsManager({
   creatorId,
@@ -269,6 +260,7 @@ function SoundItem({
   const [volume, setVolume] = useState(sound.volume);
   const [enabled, setEnabled] = useState(sound.enabled);
   const [working, setWorking] = useState(false);
+  const preview = useAudioPreview();
   const [message, setMessage] = useState("");
 
   const dirty =
@@ -319,8 +311,12 @@ function SoundItem({
           onChange={(e) => setName(e.target.value)}
           className={`${field} min-w-0 flex-1`}
         />
-        <button type="button" onClick={() => preview(sound.url, volume)} className={smallButton} aria-label={`Play ${sound.name}`}>
-          ▶ Play
+        <button type="button" onClick={() => preview.toggle(sound.url, volume)}
+          className={smallButton}
+          aria-label={`${preview.playing === sound.url ? "Pause" : "Play"} ${sound.name}`}
+          aria-pressed={preview.playing === sound.url}
+        >
+          {preview.playing === sound.url ? "❚❚ Pause" : "▶ Play"}
         </button>
       </div>
 

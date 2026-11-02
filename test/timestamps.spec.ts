@@ -148,7 +148,14 @@ test.describe("secret box", () => {
     expect(open("junk", KEY)).toBeNull();
   });
   test("refuses a missing or short key", () => {
-    expect(secretBoxAvailable(undefined)).toBe(false);
+    // Another spec file in the same worker may have set the key; test the missing case clean.
+    const saved = process.env.YT_TOKEN_KEY;
+    delete process.env.YT_TOKEN_KEY;
+    try {
+      expect(secretBoxAvailable(undefined)).toBe(false);
+    } finally {
+      if (saved !== undefined) process.env.YT_TOKEN_KEY = saved;
+    }
     expect(secretBoxAvailable("c2hvcnQ=")).toBe(false);
     expect(secretBoxAvailable(KEY)).toBe(true);
     expect(() => seal("x", "c2hvcnQ=")).toThrow();
