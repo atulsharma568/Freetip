@@ -209,11 +209,11 @@ export function TipForm({
   // lowering the amount afterwards blocks the button until the fan raises it
   // again or picks something else.
   const chosenSound = extra.kind === "sound" ? (sounds.find((s) => s.id === extra.id) ?? null) : null;
-  // A pick, or a soundboard sound with its own minimum, fixes the amount: it is set for the
-  // fan and cannot be changed until they put the pick or sound back.
-  const chosenRule = extra.kind === "rule" ? (rules.find((r) => r.id === extra.id) ?? null) : null;
-  const fixedPaise = chosenRule ? chosenRule.minPaise : chosenSound && chosenSound.minPaise > 0 ? chosenSound.minPaise : null;
-  const amountLocked = fixedPaise !== null;
+  // A creator's pick fixes the amount: it is set for the fan and cannot be changed until
+  // they put the pick back. A soundboard sound only has a minimum, so any amount at or above
+  // it works (below it the sound is locked and the button is blocked).
+  const amountLocked = extra.kind === "rule" && rules.some((r) => r.id === extra.id);
+  const [lockWarning, setLockWarning] = useState(false);
   const soundTooPricey = !!chosenSound && amountPaise < chosenSound.minPaise;
   const voiceTooPricey = extra.kind === "voice" && voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceNeedsMessage = extra.kind === "voice" && !message.trim();
@@ -248,12 +248,8 @@ export function TipForm({
   // message and the pin (it plays on its own); a sound or the voice leaves them alone.
   function chooseExtra(next: Extra) {
     setExtra(next);
-    const fixed =
-      next.kind === "rule"
-        ? rules.find((x) => x.id === next.id)?.minPaise
-        : next.kind === "sound"
-          ? sounds.find((x) => x.id === next.id)?.minPaise
-          : undefined;
+    setLockWarning(false);
+    const fixed = next.kind === "rule" ? rules.find((x) => x.id === next.id)?.minPaise : undefined;
     if (!fixed) return;
     const rupees = Math.ceil(fixed / 100);
     if (presets.includes(rupees)) setSelected(rupees);
@@ -261,10 +257,8 @@ export function TipForm({
       setSelected("custom");
       setCustom(String(rupees));
     }
-    if (next.kind === "rule") {
-      setMessage("");
-      setPin(false);
-    }
+    setMessage("");
+    setPin(false);
     say(rupees);
   }
 
@@ -470,6 +464,7 @@ export function TipForm({
               ₹{rupeeText(amountRupees)}
             </p>
             <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
+            <div onClickCapture={() => amountLocked && setLockWarning(true)} className="space-y-3">
             <fieldset>
               <legend className="sr-only">Choose an amount in rupees</legend>
               <div className="flex flex-wrap gap-2">
@@ -528,11 +523,25 @@ export function TipForm({
             <p id="tip-min" className="text-xs text-muted">
               Minimum ₹{minRupees}
             </p>
+            </div>
             {amountLocked && (
-              <p className="text-xs text-muted">
-                The amount is set by your {chosenRule ? "pick" : "sound"}. To change it, tap the {chosenRule ? "pick" : "sound"} again to put it
-                back.
-              </p>
+              <div
+                role={lockWarning ? "alert" : undefined}
+                className={`rounded-[var(--radius-field)] border px-3 py-2 text-xs ${
+                  lockWarning ? "border-accent text-text" : "border-line/60 text-muted"
+                }`}
+              >
+                {lockWarning
+                  ? "The amount is fixed by the pick you chose. To send a different amount, deselect the pick below first."
+                  : "The amount is set by your pick. To change it, deselect the pick below."}{" "}
+                <button
+                  type="button"
+                  onClick={() => chooseExtra({ kind: "default" })}
+                  className="font-semibold text-accent underline underline-offset-2"
+                >
+                  Deselect the pick
+                </button>
+              </div>
             )}
           </div>
 
