@@ -69,6 +69,20 @@ test.describe("creator dashboard routes", () => {
     expect(response.headers().location).toBe("/signin");
   });
 
+  test("the Streamlabs page and its sign-in routes send signed-out visitors to sign-in", async ({ request }) => {
+    for (const path of ["/dashboard/streamlabs", "/api/streamlabs/start", "/api/streamlabs/callback?code=x&state=y"]) {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status(), path).toBe(307);
+      expect(response.headers().location, path).toMatch(/\/signin$/);
+    }
+  });
+
+  test("the Streamlabs queue cron refuses a call without the secret", async ({ request }) => {
+    const response = await request.get("/api/cron/streamlabs-outbox");
+
+    expect(response.status()).toBe(401);
+  });
+
   test("the CSV export refuses signed-out visitors", async ({ request }) => {
     const response = await request.get("/api/dashboard/tips/export?range=7d");
 

@@ -1,5 +1,7 @@
 import { postCaptureAccrual, type LedgerDb } from "./accrual";
 import { postFanXp } from "./fan-profiles";
+import { realStreamlabsDeps } from "./streamlabs";
+import { enqueueStreamlabsAlert, processOutbox } from "./streamlabs-outbox";
 
 // What happens after the Razorpay webhook has captured a tip, each step on its own
 // so one failing never blocks the next or undoes the capture:
@@ -9,7 +11,8 @@ import { postFanXp } from "./fan-profiles";
 //      failure here);
 //   3. count the tip towards the fan's profile (fan levels and fan list, only for
 //      creators who switched them on, only for a tip with a name);
-//   4. keep a minimal record of the event once its outcome is final (no payer
+//   4. queue and send the tip as a Streamlabs alert, only for creators who connected it;
+//   5. keep a minimal record of the event once its outcome is final (no payer
 //      details: email, phone and UPI ID stay with the payment partner, as the
 //      privacy page says).
 // It never throws. A migration that has not been run yet shows up as a logged
@@ -69,6 +72,17 @@ export async function afterCapture(
     await postFanXp(db, payment.id, process.env.WAITLIST_SALT);
   } catch (err) {
     console.error("Capture: could not count the tip for the fan profile (migration 0038 run?)", payment.id, err);
+  }
+
+  // Streamlabs alert (migration 0041), only for a creator who connected it and has it on.
+  // Its own step: it is queued first, then sent from the queue, so a failure here (or a
+  // missing migration) changes nothing about the capture or the books. This whole function
+  // runs after Razorpay has been answered, so a slow Streamlabs cannot hold the webhook up.
+  try {
+    const queued = await enqueueStreamlabsAlert(db, payment.id);
+    if (queued.status === "queued") await processOutbox(db, realStreamlabsDeps(), 5);
+  } catch (err) {
+    console.error("Capture: could not queue or send the Streamlabs alert (migration 0041 run?)", payment.id, err);
   }
 
   if (!eventId || !outcome) return;

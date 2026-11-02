@@ -27,7 +27,8 @@ export type FeatureKey =
   | "birthdayMessage"
   | "fanLevels"
   | "fanCrm"
-  | "highlightedMessages";
+  | "highlightedMessages"
+  | "streamlabs";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -162,6 +163,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Paid highlighted messages",
     group: "Alert box",
     description: "A fan who tips the creator's minimum can have their message pinned on stream for a set time (/dashboard/pinned, OBS link: alert link + /pinned). Always creator-approved first, even in instant mode, and the creator can take it down any time; the tip stays final. Never shown on the public site.",
+    built: true,
+  },
+  {
+    key: "streamlabs",
+    label: "Streamlabs alerts",
+    group: "Alert box",
+    description: "The creator connects their own Streamlabs account (/dashboard/streamlabs) and each paid tip also shows as an alert in their Streamlabs alert box: name, amount and, by the same rules as the OBS alert, the message. Needs STREAMLABS_CLIENT_ID and STREAMLABS_CLIENT_SECRET; the Streamlabs app is in testing mode, so only accounts whitelisted on it can connect.",
     built: true,
   },
 ];

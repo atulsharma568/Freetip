@@ -1,4 +1,4 @@
-# Streamlabs bridge: build plan (draft for approval, 2026-11-02)
+# Streamlabs bridge: build plan (approved and built 2026-11-02)
 
 Status: the Streamlabs app is registered in **testing mode** (owner's account only, plus whitelisted accounts). Client ID is known and goes into Vercel as `STREAMLABS_CLIENT_ID`. The secret goes into Vercel as `STREAMLABS_CLIENT_SECRET`. Neither is committed. Nothing is built yet. Research: `docs/streamlabs-bridge-research.md`.
 
@@ -54,3 +54,12 @@ Status: the Streamlabs app is registered in **testing mode** (owner's account on
 ## Effort
 
 High for the build (tokens, retries, new policy text). No extra review, as you chose.
+
+## As built (2026-11-02), and where it differs from the draft above
+
+- **Permission asked:** only `alerts.create`. `donations.create` is not needed, because every alert goes out through `POST /alerts` with `type=donation`.
+- **Message rule:** the same per-mode rule the OBS alert uses, decided when the alert is sent (Streamlabs takes one alert once). Instant mode sends the message unless it was rejected; split and approve mode wait for the creator's yes; a paid pinned message always waits. A banned word always removes the message. This is slightly looser than "only approved messages" for instant-mode creators, who chose to trust messages unreviewed on their own stream.
+- **Waiting and dropping:** an alert more than an hour old (counted from the tip, or from the decision if later) is dropped, the same freshness rule as the OBS alert. After five failed tries it is dropped and the tip still counts.
+- **Where the send happens:** straight after capture (inside the existing `after()` step, so Razorpay is never kept waiting), again right after the creator approves a message, and from `/api/cron/streamlabs-outbox` for the rest. Vercel's free plan only runs that cron daily, so an outside scheduler every 2 minutes is optional (OPERATIONS.md 7c).
+- **Not built:** a Streamlabs revoke call on disconnect (their docs list none); tokens are deleted from our side only.
+- **Files:** `src/lib/streamlabs.ts` (rules and client), `src/lib/streamlabs-outbox.ts` (queue, sending, connection), `src/app/api/streamlabs/{start,callback}`, `src/app/api/cron/streamlabs-outbox`, `src/app/actions/streamlabs.ts`, `src/app/dashboard/streamlabs/`, migration `0041_streamlabs.sql`, `test/streamlabs.spec.ts` (30 tests).

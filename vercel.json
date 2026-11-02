@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/stream-timestamps",
       "schedule": "23 5 * * *"
+    },
+    {
+      "path": "/api/cron/streamlabs-outbox",
+      "schedule": "11 5 * * *"
     }
   ]
 }

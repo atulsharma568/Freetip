@@ -411,6 +411,18 @@ const SECTIONS: LegalSection[] = [
           them or closes their account.
         </li>
         <li>
+          <strong>Streamlabs alerts:</strong> only if a creator connects their
+          own Streamlabs account. Each paid tip is then sent to Streamlabs as
+          an alert for that creator: the fan&apos;s name (or &quot;Anonymous&quot;),
+          the amount and, when it would show on the creator&apos;s stream, the
+          message. A message the creator rejected, or that has a word they
+          banned, is not sent. Streamlabs keeps what it receives under its own
+          policy. We keep the creator&apos;s Streamlabs sign-in encrypted until
+          they disconnect or close their account, then delete it straight
+          away. The queue of alerts waiting to be sent holds no names or
+          messages.
+        </li>
+        <li>
           <strong>Payment, payout and tax records:</strong> as long as Indian
           tax, accounting and anti-money-laundering laws require, currently up
           to 8 years.

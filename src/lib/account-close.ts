@@ -1,5 +1,6 @@
 import type { LedgerDb } from "./accrual";
 import { eraseFans } from "./fan-profiles";
+import { eraseStreamlabs } from "./streamlabs-outbox";
 import { open } from "./secret-box";
 import { createYouTubeClient } from "./youtube";
 
@@ -152,6 +153,12 @@ export async function closeCreatorAccount(
       await eraseFans(db, userId);
     } catch {
       /* migration 0038 not run */
+    }
+    // The Streamlabs connection and its queue (migration 0041): the sealed sign-in goes.
+    try {
+      await eraseStreamlabs(db, userId);
+    } catch {
+      /* migration 0041 not run */
     }
     // The creator's alert media files go with the account (the caller deletes the files).
     result.blobUrls.push(...(await eraseMedia(db, userId)));

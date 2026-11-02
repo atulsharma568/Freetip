@@ -90,5 +90,6 @@ export const PROCESSORS = [
   { name: "Microsoft Azure (Speech)", role: "reading a tip's message aloud on a creator's stream (the message text only)", status: "planned" },
   { name: "Google (YouTube)", role: "posting a creator's stream timestamps as a comment on their own stream, only if the creator connects their channel for it", status: "planned" },
   { name: "Discord", role: "sending each saved stream timestamp to a Discord channel the creator chose, only if the creator connects a webhook (the viewer's chat name, what they typed, and the time)", status: "planned" },
+  { name: "Streamlabs", role: "showing a tip as an alert in a creator's own Streamlabs alert box, only if the creator connects their Streamlabs account (the fan's name, the amount and, when it would show on the creator's stream, the message)", status: "planned" },
   { name: "Amazon Web Services (Polly)", role: "reading a message aloud when Azure is unavailable (the message text only)", status: "planned" },
 ];

@@ -27,6 +27,10 @@ const WHAT: Record<string, { what: string; note?: string }> = {
     what: "Posts the timestamp comment on each stream that has ended.",
     note: "Daily is too slow: also call it every 10 minutes from a free outside scheduler with the CRON_SECRET header (OPERATIONS.md section 7).",
   },
+  "/api/cron/streamlabs-outbox": {
+    what: "Sends the Streamlabs alerts still waiting (a message awaiting approval, a spaced-out alert, a retry).",
+    note: "Each tip is also sent straight after it is paid; for waiting alerts to go out on time, also call it every 2 minutes from a free outside scheduler with the CRON_SECRET header (OPERATIONS.md section 7).",
+  },
 };
 
 export function cronJobs(): CronJob[] {
@@ -106,6 +110,13 @@ export const ENV_GROUPS: { title: string; vars: EnvVar[] }[] = [
       { name: "YT_DATA_API_KEY", required: false, what: "YouTube lookups for stream timestamps" },
       { name: "YT_TOKEN_KEY", required: false, what: "Encrypts creators' YouTube and Discord details" },
       { name: "NEXT_PUBLIC_GA_ID", required: false, what: "Google Analytics (not set yet is fine)" },
+    ],
+  },
+  {
+    title: "Streamlabs bridge",
+    vars: [
+      { name: "STREAMLABS_CLIENT_ID", required: false, what: "Streamlabs app id (connecting needs it)" },
+      { name: "STREAMLABS_CLIENT_SECRET", required: false, what: "Streamlabs app secret (connecting needs it)" },
     ],
   },
 ];

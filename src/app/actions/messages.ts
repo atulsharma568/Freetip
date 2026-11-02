@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import type { LedgerDb } from "@/lib/accrual";
 import { pinApprovedTip } from "@/lib/pinned-db";
+import { realStreamlabsDeps } from "@/lib/streamlabs";
+import { processOutbox } from "@/lib/streamlabs-outbox";
 
 // Its own file: a "use server" file that a server component imports is
 // evaluated on the server, and creator.ts exports plain constants.
@@ -37,6 +40,17 @@ export async function decideMessage(orderId: number, decision: "approved" | "rej
   // Its own step with its own try, so a missing migration 0040 never undoes the approval.
   if (decision === "approved" && decided[0]) {
     await pinApprovedTip(db as unknown as LedgerDb, decided[0].creator_id, decided[0].id);
+  }
+  // A Streamlabs alert that was waiting for this decision goes out now, after the reply,
+  // so the click is not slowed by it. The cron picks up anything this misses.
+  if (decided[0]) {
+    after(async () => {
+      try {
+        await processOutbox(db as unknown as LedgerDb, realStreamlabsDeps(), 5);
+      } catch (err) {
+        console.error("Could not send the waiting Streamlabs alert (migration 0041 run?)", err);
+      }
+    });
   }
   revalidatePath("/dashboard");
 }
