@@ -156,6 +156,92 @@ test.describe("OBS overlay routes", () => {
     });
   }
 
+  for (const side of ["left", "right"] as const) {
+    test(`a picture placed above goes ${side} of the card with the layout, on a landscape stage`, async ({ page }) => {
+      let served = false;
+      await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+        route
+          .fulfill({
+            json: served
+              ? { alert: null }
+              : {
+                  alert: {
+                    ...SPEAKING_ALERT.alert,
+                    speech: false,
+                    media: { url: MEDIA_URL, kind: "gif", placement: "above", durationMs: null },
+                    layout: { side },
+                  },
+                },
+          })
+          .then(() => {
+            served = true;
+          }),
+      );
+      await page.route(MEDIA_URL, (route) => route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL_GIF }));
+      await page.goto(`/overlay/${TOKEN}`);
+      await expect(page.getByRole("status")).toContainText("great stream");
+      await expect(page.locator(`.ov-stack.ov-side-${side}`)).toHaveCount(1);
+      // Wait for the entrance animations to settle before measuring.
+      await page.waitForTimeout(900);
+      const card = (await page.locator(".ov-card").boundingBox())!;
+      const media = (await page.locator("img.ov-media-above").boundingBox())!;
+      if (side === "left") expect(media.x + media.width).toBeLessThanOrEqual(card.x + 1);
+      else expect(media.x).toBeGreaterThanOrEqual(card.x + card.width - 1);
+      // Side by side: their vertical ranges overlap, unlike the stacked layout.
+      expect(media.y).toBeLessThan(card.y + card.height);
+      expect(media.y + media.height).toBeGreaterThan(card.y);
+    });
+  }
+
+  test("without a layout the picture stays above the card", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({
+          json: served
+            ? { alert: null }
+            : { alert: { ...SPEAKING_ALERT.alert, speech: false, media: { url: MEDIA_URL, kind: "gif", placement: "above", durationMs: null } } },
+        })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.route(MEDIA_URL, (route) => route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL_GIF }));
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect(page.getByRole("status")).toContainText("great stream");
+    await expect(page.locator(".ov-stack.ov-side")).toHaveCount(0);
+    await page.waitForTimeout(900);
+    const card = (await page.locator(".ov-card").boundingBox())!;
+    const media = (await page.locator("img.ov-media-above").boundingBox())!;
+    expect(media.y + media.height).toBeLessThanOrEqual(card.y + 1);
+  });
+
+  test("the creator's master volume scales the voice, and a normal alert plays it at full volume", async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __vols: number[] }).__vols = [];
+      HTMLMediaElement.prototype.play = function () {
+        (window as unknown as { __vols: number[] }).__vols.push(this.volume);
+        return Promise.resolve();
+      };
+    });
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({ json: served ? { alert: null } : { alert: { ...SPEAKING_ALERT.alert, layout: { voiceVolume: 40 } } } })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.route(`**/api/overlay/${TOKEN}/speech/7`, (route) =>
+      route.fulfill({ status: 200, contentType: "audio/wav", body: silentWav() }),
+    );
+    await page.goto(`/overlay/${TOKEN}`);
+    await expect(page.getByRole("status")).toContainText("great stream");
+    const vols = await page.evaluate(() => (window as unknown as { __vols: number[] }).__vols);
+    expect(vols.length).toBeGreaterThan(0);
+    expect(vols[0]).toBeCloseTo(0.4, 2);
+  });
+
   test("a media file that cannot load is dropped and the plain card still plays", async ({ page }) => {
     let served = false;
     await page.route(`**/api/overlay/${TOKEN}`, (route) =>

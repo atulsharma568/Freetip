@@ -32,7 +32,8 @@ export type FeatureKey =
   // Streamlabs-style alert settings (docs/alert-studio-plan.md).
   | "alertText"
   | "alertMotion"
-  | "alertVariations";
+  | "alertVariations"
+  | "alertLayout";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -195,6 +196,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Alert variations by tip size",
     group: "Alert box",
     description: "From a tip size up, the alert automatically plays the creator's chosen media, sound, wording and colours and can stay longer (/dashboard/variations). A fan's own pick (an alert rule or a soundboard sound) always wins. Media needs custom alert media, wording and colours need alert text and colours; each is shown only while its own switch is on.",
+    built: true,
+  },
+  {
+    key: "alertLayout",
+    label: "Alert volume and layout",
+    group: "Alert box",
+    description: "The creator sets a master volume for alert sounds and the spoken voice (only quieter than normal, never louder) and can put the picture left or right of the card instead of above it (/dashboard/layout). The side layout needs custom alert media and applies on landscape screens only.",
     built: true,
   },
 ];

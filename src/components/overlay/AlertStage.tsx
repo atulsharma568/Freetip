@@ -7,6 +7,7 @@ import { STAY_MAX_SECONDS } from "@/lib/alert-rules";
 import { overlayStyleVars, type OverlayStyle } from "@/lib/overlay-themes";
 import { alertTextVars, headlineSegments, type AlertText } from "@/lib/alert-text";
 import { motionGapMs, motionStayMs, type AlertMotion } from "@/lib/alert-motion";
+import { mixVolume, type AlertLayout } from "@/lib/alert-layout";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
@@ -34,6 +35,10 @@ export interface OverlayAlert {
   // (alert animations and timing; live overlay and the dashboard preview). Missing or null
   // is the normal card.
   motion?: AlertMotion | null;
+  // The creator's master volume for sounds and voice and the side the picture goes on
+  // (alert volume and layout; live overlay and the dashboard preview). Missing or null is
+  // the normal alert.
+  layout?: AlertLayout | null;
   // The fan's level after this tip (fan levels) and the creator's birthday greeting for
   // today (birthday message); both live overlay only.
   level?: { level: number; up: boolean } | null;
@@ -111,11 +116,11 @@ function releaseSpeech(a: QueuedAlert) {
 
 // The sound is a plain file on a public URL, so it loads as an ordinary audio
 // element. A broken file or slow network never holds up the alert.
-function loadClip(sound: { url: string; volume: number }): HTMLAudioElement | undefined {
+function loadClip(sound: { url: string; volume: number }, master?: number): HTMLAudioElement | undefined {
   try {
     const clip = new Audio(sound.url);
     clip.preload = "auto";
-    clip.volume = Math.min(1, Math.max(0.1, sound.volume / 100));
+    clip.volume = mixVolume(sound.volume / 100, master);
     return clip;
   } catch {
     return undefined;
@@ -299,11 +304,13 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
         }
         if (body.alert) {
           const alert: QueuedAlert = body.alert;
-          if (alert.sound) alert.clip = loadClip(alert.sound);
+          if (alert.sound) alert.clip = loadClip(alert.sound, alert.layout?.soundVolume);
           if (alert.media && !(await preloadMedia(alert.media))) alert.media = null;
           if (alert.speech) {
             const speech = await loadSpeech(token, alert.id);
             if (speech) {
+              // The creator's master volume for the voice (only ever quieter than the voice itself).
+              speech.audio.volume = mixVolume(1, alert.layout?.voiceVolume);
               alert.audio = speech.audio;
               alert.speechMs = speech.ms;
             }
@@ -398,8 +405,11 @@ function Scene({ alert }: { alert: QueuedAlert }) {
   }
   if (media.placement === "above") {
     const level = tipTierLevel(alert.amountPaise / 100);
+    // The picture beside the card instead of above it (alert volume and layout); on a vertical
+    // screen it stays above, so the card keeps its width (see the CSS).
+    const side = alert.layout?.side;
     return (
-      <div className={`ov-stack ov-t${level}`}>
+      <div className={`ov-stack ov-t${level}${side ? ` ov-side ov-side-${side}` : ""}`}>
         <MediaLayer media={media} durMs={showMs(alert)} stays={!!alert.stayMs} />
         <Card alert={alert} />
       </div>
@@ -581,6 +591,10 @@ const CSS = `
   display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.4);
 }
 .ov-stack .ov-card { position: relative; left: auto; bottom: auto; transform: none; width: 100%; max-width: none; }
+.ov-stage:not(.ov-portrait) .ov-stack.ov-side { flex-direction: row; align-items: center; width: max-content; gap: calc(var(--u) * 1.6); }
+.ov-stage:not(.ov-portrait) .ov-stack.ov-side-right { flex-direction: row-reverse; }
+.ov-stage:not(.ov-portrait) .ov-stack.ov-side .ov-card { width: calc(var(--u) * 30 * var(--s, 1)); flex: none; }
+.ov-stage:not(.ov-portrait) .ov-stack.ov-side .ov-media-above { max-width: calc(var(--u) * 20); max-height: calc(var(--u) * 20); flex: none; }
 .ov-portrait .ov-stack { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); gap: calc(var(--u) * 3); }
 .ov-portrait .ov-stack .ov-card { width: 100%; }
 .ov-portrait .ov-media-above { max-height: calc(var(--u) * 45); }

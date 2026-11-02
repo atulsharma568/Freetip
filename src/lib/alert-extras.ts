@@ -6,6 +6,7 @@ import type { AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
 import { baseColours, resolveAlertText, type AlertText } from "@/lib/alert-text";
 import { resolveAlertMotion, type AlertMotion } from "@/lib/alert-motion";
+import { resolveAlertLayout, type AlertLayout } from "@/lib/alert-layout";
 import { pickVariation, variationStayMs, variationText, type AlertVariation } from "@/lib/alert-variations";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
 import { istMonthDay, resolveBirthday } from "@/lib/birthday";
@@ -44,6 +45,9 @@ export type AlertExtras = {
   // The creator's animations, length and pause (alert animations and timing); null while the
   // feature is off or nothing was changed, which is the normal card.
   motion: AlertMotion | null;
+  // The creator's master volume and picture side (alert volume and layout); null while the
+  // feature is off or nothing was changed, which is the normal alert.
+  layout: AlertLayout | null;
   // The fan's level after this tip (fan levels); null while the feature is off, the fan has
   // no profile (anonymous, or the tip was before the switch) or this is the message card.
   level: FanLevel | null;
@@ -73,6 +77,8 @@ export type RawExtras = {
   alertText?: { value: unknown; accent: string | null } | null;
   // The creator's stored animations, length and pause (alert animations and timing).
   alertMotion?: unknown;
+  // The creator's stored volume and picture side (alert volume and layout).
+  alertLayout?: unknown;
   // The creator's automatic variations, this tip's size and whether the fan picked an alert
   // rule on the tip page (alert variations by tip size). A pick means no variation.
   variations?: { list: readonly AlertVariation[]; amountPaise: number; picked: boolean } | null;
@@ -153,6 +159,9 @@ export function resolveAlertExtras(
         : null,
     // Both cards come and go the creator's way; the length and pause apply to both too.
     motion: ctx.features.alertMotion ? resolveAlertMotion(raw.alertMotion) : null,
+    // The voice volume applies to the follow-up message card's speech too, the sound volume and
+    // the side only to the alert card (the overlay reads what it needs).
+    layout: ctx.features.alertLayout ? resolveAlertLayout(raw.alertLayout) : null,
     level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
     birthday:
       ctx.kind === "alert" && ctx.features.birthdayMessage && raw.birthdayInfo
@@ -302,6 +311,14 @@ export async function loadAlertExtras(
       })
     : null;
 
+  // The creator's volume and picture side (migration 0047), read only when the feature is on.
+  const alertLayout = features.alertLayout
+    ? await safely("the alert layout", null as unknown, async () => {
+        const [found] = await db<{ alert_layout: unknown }[]>`select alert_layout from users where id = ${o.creatorId}`;
+        return found?.alert_layout ?? null;
+      })
+    : null;
+
   // The creator's variations (migration 0046), this tip's size and whether the fan picked a
   // rule, read only when the feature is on. Each in its own try, so a missing table only
   // drops the variations.
@@ -366,7 +383,7 @@ export async function loadAlertExtras(
       : null;
 
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, variations, fan, birthdayInfo },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, alertLayout, variations, fan, birthdayInfo },
     { kind: o.kind, features, tipId: o.tipId },
   );
 }
