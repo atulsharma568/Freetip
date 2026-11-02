@@ -209,6 +209,11 @@ export function TipForm({
   // lowering the amount afterwards blocks the button until the fan raises it
   // again or picks something else.
   const chosenSound = extra.kind === "sound" ? (sounds.find((s) => s.id === extra.id) ?? null) : null;
+  // A pick, or a soundboard sound with its own minimum, fixes the amount: it is set for the
+  // fan and cannot be changed until they put the pick or sound back.
+  const chosenRule = extra.kind === "rule" ? (rules.find((r) => r.id === extra.id) ?? null) : null;
+  const fixedPaise = chosenRule ? chosenRule.minPaise : chosenSound && chosenSound.minPaise > 0 ? chosenSound.minPaise : null;
+  const amountLocked = fixedPaise !== null;
   const soundTooPricey = !!chosenSound && amountPaise < chosenSound.minPaise;
   const voiceTooPricey = extra.kind === "voice" && voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceNeedsMessage = extra.kind === "voice" && !message.trim();
@@ -233,19 +238,9 @@ export function TipForm({
     }, 500);
   }
 
-  // A creator's pick is for one fixed amount: moving the amount away from it drops the pick.
-  function dropRuleUnless(rupees: number) {
-    setExtra((current) => {
-      if (current.kind !== "rule") return current;
-      const r = rules.find((x) => x.id === current.id);
-      return r && Math.ceil(r.minPaise / 100) === rupees ? current : { kind: "default" };
-    });
-  }
-
   function pickPreset(preset: number | "custom") {
     setSelected(preset);
     const rupees = preset === "custom" ? parseInt(custom, 10) || 0 : preset;
-    dropRuleUnless(rupees);
     say(rupees);
   }
 
@@ -253,17 +248,23 @@ export function TipForm({
   // message and the pin (it plays on its own); a sound or the voice leaves them alone.
   function chooseExtra(next: Extra) {
     setExtra(next);
-    if (next.kind !== "rule") return;
-    const r = rules.find((x) => x.id === next.id);
-    if (!r) return;
-    const rupees = Math.ceil(r.minPaise / 100);
+    const fixed =
+      next.kind === "rule"
+        ? rules.find((x) => x.id === next.id)?.minPaise
+        : next.kind === "sound"
+          ? sounds.find((x) => x.id === next.id)?.minPaise
+          : undefined;
+    if (!fixed) return;
+    const rupees = Math.ceil(fixed / 100);
     if (presets.includes(rupees)) setSelected(rupees);
     else {
       setSelected("custom");
       setCustom(String(rupees));
     }
-    setMessage("");
-    setPin(false);
+    if (next.kind === "rule") {
+      setMessage("");
+      setPin(false);
+    }
     say(rupees);
   }
 
@@ -272,7 +273,6 @@ export function TipForm({
     let digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 6);
     if (Number(digits) > MAX_RUPEES) digits = String(MAX_RUPEES);
     setCustom(digits);
-    dropRuleUnless(parseInt(digits, 10) || 0);
     say(parseInt(digits, 10) || 0);
   }
 
@@ -474,24 +474,26 @@ export function TipForm({
               <legend className="sr-only">Choose an amount in rupees</legend>
               <div className="flex flex-wrap gap-2">
                 {presets.map((preset) => (
-                  <label key={preset} className="relative">
+                  <label key={preset} className={`relative ${amountLocked ? "opacity-50" : ""}`}>
                     <input
                       type="radio"
                       name="amount"
                       value={preset}
                       checked={selected === preset}
+                      disabled={amountLocked}
                       onChange={() => pickPreset(preset)}
                       className="peer sr-only"
                     />
                     <span className={`numeric ${chip}`}>₹{preset}</span>
                   </label>
                 ))}
-                <label className="relative">
+                <label className={`relative ${amountLocked ? "opacity-50" : ""}`}>
                   <input
                     type="radio"
                     name="amount"
                     value="custom"
                     checked={selected === "custom"}
+                    disabled={amountLocked}
                     onChange={() => pickPreset("custom")}
                     className="peer sr-only"
                   />
@@ -510,6 +512,7 @@ export function TipForm({
                   pattern="[0-9]*"
                   autoComplete="off"
                   value={custom}
+                  readOnly={amountLocked}
                   onChange={(e) => changeCustom(e.target.value)}
                   onKeyDown={(e) => {
                     if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
@@ -525,6 +528,12 @@ export function TipForm({
             <p id="tip-min" className="text-xs text-muted">
               Minimum ₹{minRupees}
             </p>
+            {amountLocked && (
+              <p className="text-xs text-muted">
+                The amount is set by your {chosenRule ? "pick" : "sound"}. To change it, tap the {chosenRule ? "pick" : "sound"} again to put it
+                back.
+              </p>
+            )}
           </div>
 
           {/* The alert as it will look, between the amount and the note on phones */}
