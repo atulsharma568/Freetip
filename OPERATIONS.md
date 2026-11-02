@@ -206,6 +206,8 @@ Voice word suggestions (optional, offline, on one computer only): `docs/indicxli
 - Never commit `.env.local`, keys, connection strings or exports of personal data. If a secret is ever committed, rotate it at the provider first, then update Vercel and redeploy.
 - Never force-push; never skip hooks. Keep company details and work email out of commits.
 - `package-lock.json` must only reference `https://registry.npmjs.org/`.
+- **Files that are deliberately not in the public repo (back them up to a private place, for example Google Drive):** `.env.local` (and any other `.env*`; the real values also live in Vercel), `tools/obs-clip-helper/config.json` (helper token and Discord webhook) and any `waitlist-*.csv` or `voice-words*.csv` export. All are listed in `.gitignore`. Do not upload `node_modules`, `.next`, `.vercel` or `test-results` (they can be rebuilt). Also keep a copy of the secrets themselves (Razorpay, Azure, Polly, Google, Streamlabs keys, `YT_TOKEN_KEY`, `AUTH_SECRET`) in a password manager; a Drive folder is not a safe place for them unless it is locked down (see the owner's note in the chat of 2026-11-02).
+- Git history is permanent: removing a file from the repo does not remove it from old commits. The only secrets ever committed were local-only placeholder values in `.env.local` (a passwordless local database and made-up salts, commit `ea688dc`, 2026-10-26), which is why nothing had to be rotated.
 
 ## 12. Picking the project up on another computer
 

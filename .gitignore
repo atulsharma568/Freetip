@@ -61,3 +61,18 @@ waitlist-*.csv
 
 # helper apps keep their own dependencies
 /tools/*/node_modules
+
+# private files: keep them in private storage, never in this public repo
+/docs/global-instructions.md
+
+# helper app settings hold a helper token and a Discord webhook address
+/tools/*/config.json
+
+# keys and credentials of any kind
+*.key
+*.p12
+*.pfx
+*.keystore
+service-account*.json
+client_secret*.json
+credentials*.json
