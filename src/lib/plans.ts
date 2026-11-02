@@ -30,7 +30,8 @@ export type FeatureKey =
   | "highlightedMessages"
   | "streamlabs"
   // Streamlabs-style alert settings (docs/alert-studio-plan.md).
-  | "alertText";
+  | "alertText"
+  | "alertMotion";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -179,6 +180,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Alert text and colours",
     group: "Alert box",
     description: "The creator edits the card's headline ({name} tipped {amount}) and picks the card, text and amount colours, text size and weight (/dashboard/text). Colours that are hard to read are refused. Works with the card style, shown on every alert.",
+    built: true,
+  },
+  {
+    key: "alertMotion",
+    label: "Alert animations and timing",
+    group: "Alert box",
+    description: "The creator picks how the card comes in and leaves (wipe, fade, slide, zoom, bounce), how long it stays (5 to 30 seconds, never shorter than the voice, sound or video needs) and a pause between alerts (/dashboard/motion). Reduced motion always gets a plain fade.",
     built: true,
   },
 ];

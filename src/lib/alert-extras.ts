@@ -5,6 +5,7 @@ import { pickMedia, playable, type AlertMedia, type MediaCandidate } from "@/lib
 import type { AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
 import { baseColours, resolveAlertText, type AlertText } from "@/lib/alert-text";
+import { resolveAlertMotion, type AlertMotion } from "@/lib/alert-motion";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
 import { istMonthDay, resolveBirthday } from "@/lib/birthday";
 
@@ -39,6 +40,9 @@ export type AlertExtras = {
   // The creator's headline, colours, size and weight (alert text and colours); null while the
   // feature is off or nothing was changed, which is the normal card.
   text: AlertText | null;
+  // The creator's animations, length and pause (alert animations and timing); null while the
+  // feature is off or nothing was changed, which is the normal card.
+  motion: AlertMotion | null;
   // The fan's level after this tip (fan levels); null while the feature is off, the fan has
   // no profile (anonymous, or the tip was before the switch) or this is the message card.
   level: FanLevel | null;
@@ -66,6 +70,8 @@ export type RawExtras = {
   // The creator's stored alert text and their accent (alert text and colours); the colours are
   // checked against the card they will sit on.
   alertText?: { value: unknown; accent: string | null } | null;
+  // The creator's stored animations, length and pause (alert animations and timing).
+  alertMotion?: unknown;
   // The fan's points now and what this tip added (fan levels).
   fan?: { xp: number; tipXp: number } | null;
   // The creator's greeting and the fan's birthday and name on this tip (birthday message).
@@ -116,6 +122,8 @@ export function resolveAlertExtras(
             baseColours(ctx.features.overlayThemes ? raw.style?.theme : null, raw.alertText.accent),
           )
         : null,
+    // Both cards come and go the creator's way; the length and pause apply to both too.
+    motion: ctx.features.alertMotion ? resolveAlertMotion(raw.alertMotion) : null,
     level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
     birthday:
       ctx.kind === "alert" && ctx.features.birthdayMessage && raw.birthdayInfo
@@ -257,6 +265,14 @@ export async function loadAlertExtras(
       })
     : null;
 
+  // The creator's animations, length and pause (migration 0045), read only when the feature is on.
+  const alertMotion = features.alertMotion
+    ? await safely("the alert motion", null as unknown, async () => {
+        const [found] = await db<{ alert_motion: unknown }[]>`select alert_motion from users where id = ${o.creatorId}`;
+        return found?.alert_motion ?? null;
+      })
+    : null;
+
   // The fan's points (migration 0038), read only when fan levels are on for the creator.
   // The tip's own counted points tell whether it raised the level.
   const fan =
@@ -288,7 +304,7 @@ export async function loadAlertExtras(
       : null;
 
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, fan, birthdayInfo },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, fan, birthdayInfo },
     { kind: o.kind, features, tipId: o.tipId },
   );
 }

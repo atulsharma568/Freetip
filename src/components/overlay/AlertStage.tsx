@@ -6,6 +6,7 @@ import { MEDIA_WEBM_MAX_MS, type AlertMedia } from "@/lib/media";
 import { STAY_MAX_SECONDS } from "@/lib/alert-rules";
 import { overlayStyleVars, type OverlayStyle } from "@/lib/overlay-themes";
 import { alertTextVars, headlineSegments, type AlertText } from "@/lib/alert-text";
+import { motionGapMs, motionStayMs, type AlertMotion } from "@/lib/alert-motion";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
@@ -29,6 +30,10 @@ export interface OverlayAlert {
   // The creator's headline, colours, text size and weight (alert text and colours; live
   // overlay and the dashboard preview). Missing or null is the normal card.
   text?: AlertText | null;
+  // How the card comes and goes, how long it stays and the pause before the next alert
+  // (alert animations and timing; live overlay and the dashboard preview). Missing or null
+  // is the normal card.
+  motion?: AlertMotion | null;
   // The fan's level after this tip (fan levels) and the creator's birthday greeting for
   // today (birthday message); both live overlay only.
   level?: { level: number; up: boolean } | null;
@@ -54,7 +59,9 @@ const MAX_EXTRA_MS = 8000;
 const SPEECH_TAIL_MS = 1500;
 
 function showMs(a: QueuedAlert) {
-  const byLength = BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
+  // The creator's own length replaces the usual 6 seconds plus reading time; what the sound,
+  // voice and video need below still holds it up, so nothing is cut off.
+  const byLength = motionStayMs(a.motion) ?? BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);
   // The sound plays first and the voice follows it, so the card stays for both.
   const soundMs = a.clip && a.sound ? a.sound.ms : 0;
   // A WebM plays through (up to its hard cap) before the card leaves.
@@ -205,6 +212,8 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
   const testCount = useRef(0);
   const currentRef = useRef<QueuedAlert | null>(null);
   const skipNow = useRef<() => void>(() => {});
+  // The next alert waits until this time (the creator's pause after a card leaves).
+  const gapUntil = useRef(0);
 
   useEffect(() => {
     currentRef.current = current;
@@ -343,6 +352,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       }
       const t = setTimeout(() => {
         releaseSpeech(current);
+        gapUntil.current = Date.now() + motionGapMs(current.motion);
         setCurrent(null);
       }, showMs(current));
       return () => {
@@ -351,6 +361,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
       };
     }
     const t = setInterval(() => {
+      if (Date.now() < gapUntil.current) return;
       const next = queue.current.shift();
       if (next) setCurrent(next);
     }, 400);
@@ -447,6 +458,8 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
         } as React.CSSProperties
       }
       data-test={alert.test ? "true" : undefined}
+      data-in={alert.motion?.enter}
+      data-out={alert.motion?.exit}
       role="status"
     >
       {behind && <MediaLayer media={behind} durMs={showMs(alert)} stays={!!alert.stayMs} />}
@@ -518,8 +531,17 @@ const CSS = `
   background: var(--c-bg); color: var(--c-fg); font-family: var(--c-font, inherit);
   border: var(--c-border, 0 solid transparent); box-shadow: var(--c-shadow, none);
   border-radius: var(--c-radius); overflow-wrap: anywhere;
-  animation: ov-wipe-in 600ms cubic-bezier(.16,1,.3,1) both, ov-wipe-out 450ms cubic-bezier(.7,0,.84,0) calc(var(--dur) - 450ms) forwards;
+  --in-name: ov-wipe-in; --in-ms: 600ms; --in-ease: cubic-bezier(.16,1,.3,1);
+  --out-name: ov-wipe-out; --out-ms: 450ms; --out-ease: cubic-bezier(.7,0,.84,0);
+  animation: var(--in-name) var(--in-ms) var(--in-ease) both, var(--out-name) var(--out-ms) var(--out-ease) calc(var(--dur) - var(--out-ms)) forwards;
 }
+.ov-card[data-in="fade"] { --in-name: ov-fade; --in-ms: 500ms; --in-ease: ease-out; }
+.ov-card[data-in="slide"] { --in-name: ov-slide-in; --in-ms: 600ms; }
+.ov-card[data-in="zoom"] { --in-name: ov-zoom-in; --in-ms: 500ms; }
+.ov-card[data-in="bounce"] { --in-name: ov-bounce-in; --in-ms: 800ms; --in-ease: linear; }
+.ov-card[data-out="fade"] { --out-name: ov-fade-out; --out-ms: 450ms; --out-ease: ease-in; }
+.ov-card[data-out="slide"] { --out-name: ov-slide-out; --out-ms: 500ms; }
+.ov-card[data-out="zoom"] { --out-name: ov-zoom-out; --out-ms: 450ms; --out-ease: ease-in; }
 .ov-t1 { --s: 1.12; --sp: 1.05; }
 .ov-t2 { --s: 1.25; --sp: 1.1; }
 .ov-t3 { --s: 1.4; --sp: 1.16; }
@@ -569,6 +591,11 @@ const CSS = `
 .ov-portrait .ov-invalid { font-size: calc(var(--u) * 4.4); padding: calc(var(--u) * 3) calc(var(--u) * 5); }
 @keyframes ov-wipe-in { from { clip-path: inset(calc(var(--bleed) * -1) calc(var(--bleed) * -1) 100% calc(var(--bleed) * -1)); } to { clip-path: inset(calc(var(--bleed) * -1)); } }
 @keyframes ov-wipe-out { from { clip-path: inset(calc(var(--bleed) * -1)); } to { clip-path: inset(100% calc(var(--bleed) * -1) calc(var(--bleed) * -1) calc(var(--bleed) * -1)); } }
+@keyframes ov-slide-in { from { opacity: 0; translate: 0 calc(var(--u) * 10); } to { opacity: 1; translate: 0 0; } }
+@keyframes ov-slide-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 calc(var(--u) * 10); } }
+@keyframes ov-zoom-in { from { opacity: 0; scale: 0.6; } to { opacity: 1; scale: 1; } }
+@keyframes ov-zoom-out { from { opacity: 1; scale: 1; } to { opacity: 0; scale: 0.6; } }
+@keyframes ov-bounce-in { 0% { opacity: 0; scale: 0.3; } 40% { opacity: 1; scale: 1.1; } 65% { scale: 0.94; } 85% { scale: 1.03; } 100% { opacity: 1; scale: 1; } }
 @keyframes ov-media-in { from { opacity: 0; } to { opacity: var(--mo); } }
 @keyframes ov-media-out { from { opacity: var(--mo); } to { opacity: 0; } }
 @keyframes ov-word { from, to { background: var(--c-word-bg); color: var(--c-word-fg); } }

@@ -182,6 +182,44 @@ test.describe("OBS overlay routes", () => {
     await expect(page.locator(".ov-media")).toHaveCount(0);
   });
 
+  test("motion from the server sets how the card comes and goes and how long it stays; none is the wipe", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({
+          json: served
+            ? { alert: null }
+            : { alert: { ...SPEAKING_ALERT.alert, speech: false, motion: { enter: "zoom", exit: "fade", seconds: 7 } } },
+        })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.goto(`/overlay/${TOKEN}`);
+    const card = page.locator(".ov-card");
+    await expect(card).toContainText("great stream");
+    await expect(card).toHaveAttribute("data-in", "zoom");
+    await expect(card).toHaveAttribute("data-out", "fade");
+    expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("ov-zoom-in, ov-fade-out");
+    expect(await card.evaluate((el) => el.style.getPropertyValue("--dur"))).toBe("7000ms");
+  });
+
+  test("without motion the card wipes in and out for the usual length", async ({ page }) => {
+    let served = false;
+    await page.route(`**/api/overlay/${TOKEN}`, (route) =>
+      route
+        .fulfill({ json: served ? { alert: null } : { alert: { ...SPEAKING_ALERT.alert, speech: false } } })
+        .then(() => {
+          served = true;
+        }),
+    );
+    await page.goto(`/overlay/${TOKEN}`);
+    const card = page.locator(".ov-card");
+    await expect(card).toContainText("great stream");
+    expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("ov-wipe-in, ov-wipe-out");
+    expect(await card.evaluate((el) => el.hasAttribute("data-in"))).toBe(false);
+  });
+
   test("a theme and font from the server restyle the card; an unknown key is the plain card", async ({ page }) => {
     let served = false;
     await page.route(`**/api/overlay/${TOKEN}`, (route) =>
