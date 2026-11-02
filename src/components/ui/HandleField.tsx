@@ -20,7 +20,7 @@ const TONES = {
   },
   dark: {
     field:
-      "border-control bg-ground text-text hover:border-muted has-[:focus-visible]:border-accent has-[:focus-visible]:shadow-[0_0_0_4px_rgb(191_232_74/0.14),0_0_28px_-4px_rgb(191_232_74/0.35)]",
+      "border-control bg-ground text-text hover:border-muted has-[:focus-visible]:border-accent has-[:focus-visible]:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-accent)_14%,transparent),0_0_28px_-4px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]",
     prefix: "text-muted",
     ghost: "text-muted",
     chip: "bg-raised text-text",

@@ -7,14 +7,21 @@ import { useEffect, useRef, type PointerEvent } from "react";
 const W = 28;
 const H = 16;
 
-// Ink → lime → pale lime, indexed by plasma value 0..1.
-const ramp = (t: number): [number, number, number] => {
-  const ink = [24, 30, 12];
-  const lime = [191, 232, 74];
-  const pale = [240, 255, 196];
+// Ink → accent → pale accent, indexed by plasma value 0..1. The accent is
+// the page's own (a creator's colour on the tip page).
+const ramp = (t: number, lime: number[]): [number, number, number] => {
+  const ink = lime.map((c) => c * 0.13);
+  const pale = lime.map((c) => c + (255 - c) * 0.7);
   const [a, b, k] = t < 0.6 ? [ink, lime, t / 0.6] : [lime, pale, (t - 0.6) / 0.4];
   return [0, 1, 2].map((i) => a[i] + (b[i] - a[i]) * k) as [number, number, number];
 };
+
+// The element's --color-accent as RGB, falling back to the default lime.
+function readAccent(el: HTMLElement): number[] {
+  const hex = getComputedStyle(el).getPropertyValue("--color-accent").trim();
+  const n = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0xbfe84a;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
 
 // An on/off switch with a live plasma in its track. Off: the plasma sits
 // dim and still. On: it glows and flows (only while visible and motion is
@@ -37,6 +44,7 @@ export function Switch({
     const ctx = el?.getContext("2d");
     if (!el || !ctx) return;
     const image = ctx.createImageData(W, H);
+    const accent = readAccent(el);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const draw = (time: number) => {
@@ -49,7 +57,7 @@ export function Switch({
             Math.sin((y * 0.7 + t) * 1.1) +
             Math.sin((x * 0.3 + y * 0.5 - t * 1.3) * 0.9) +
             Math.sin(Math.hypot(x - W / 2, y - H / 2) * 0.55 - t * 2);
-          const [r, g, b] = ramp(((v + 4) / 8) * glow);
+          const [r, g, b] = ramp(((v + 4) / 8) * glow, accent);
           const i = (y * W + x) * 4;
           image.data[i] = r;
           image.data[i + 1] = g;
@@ -102,7 +110,7 @@ export function Switch({
         thumb.current?.style.removeProperty("--lx");
         thumb.current?.style.removeProperty("--ly");
       }}
-      className="group relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center overflow-hidden rounded-full border border-control transition-[border-color,box-shadow] duration-300 ease-out-expo hover:border-muted aria-checked:border-accent aria-checked:shadow-[0_0_14px_rgb(191_232_74/0.45)]"
+      className="group relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center overflow-hidden rounded-full border border-control transition-[border-color,box-shadow] duration-300 ease-out-expo hover:border-muted aria-checked:border-accent aria-checked:shadow-[0_0_14px_color-mix(in_srgb,var(--color-accent)_45%,transparent)]"
     >
       <canvas
         ref={canvas}

@@ -488,7 +488,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.16),
     inset 0 -1px 0 rgb(0 0 0 / 0.35),
-    0 10px 28px -14px rgb(191 232 74 / 0.45);
+    0 10px 28px -14px color-mix(in srgb, var(--color-accent) 45%, transparent);
   transition:
     border-color 300ms var(--ease-out-expo),
     box-shadow 300ms var(--ease-out-expo),
@@ -497,11 +497,11 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 
 .glass-btn:hover,
 .glass-btn:focus-visible {
-  border-color: rgb(191 232 74 / 0.45);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.2),
     inset 0 -1px 0 rgb(0 0 0 / 0.35),
-    0 12px 32px -12px rgb(191 232 74 / 0.6);
+    0 12px 32px -12px color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 .glass-btn:active {
@@ -511,14 +511,14 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 .orb {
   background: radial-gradient(
     circle at 34% 28%,
-    #f6ffd8 0 7%,
-    #d4f27a 20%,
+    color-mix(in srgb, var(--color-accent) 20%, white) 0 7%,
+    color-mix(in srgb, var(--color-accent) 70%, white) 20%,
     var(--color-accent) 38%,
-    #5d7a16 74%,
-    #1f2a06 100%
+    color-mix(in srgb, var(--color-accent) 45%, black) 74%,
+    color-mix(in srgb, var(--color-accent) 15%, black) 100%
   );
   box-shadow:
-    0 0 14px rgb(191 232 74 / 0.55),
+    0 0 14px color-mix(in srgb, var(--color-accent) 55%, transparent),
     inset 0 -3px 6px rgb(0 0 0 / 0.4);
 }
 
@@ -549,7 +549,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
   margin: -2px 0 0 -2px;
   border-radius: 9999px;
   background: var(--color-accent);
-  box-shadow: 0 0 6px rgb(191 232 74 / 0.9);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 90%, transparent);
   opacity: 0;
 }
 
@@ -576,13 +576,13 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
   background: radial-gradient(
     circle at var(--lx, 35%) var(--ly, 30%),
     #ffffff 0 7%,
-    #eaffb0 24%,
-    #9cc23a 62%,
-    #2c3a0a 100%
+    color-mix(in srgb, var(--color-accent) 40%, white) 24%,
+    color-mix(in srgb, var(--color-accent) 80%, black) 62%,
+    color-mix(in srgb, var(--color-accent) 20%, black) 100%
   );
   box-shadow:
     inset 0 -2px 4px rgb(0 0 0 / 0.4),
-    0 0 12px rgb(191 232 74 / 0.75);
+    0 0 12px color-mix(in srgb, var(--color-accent) 75%, transparent);
 }
 
 /* Uplink panel: the tip card's "sending" overlay. Ticks switch on in steps
@@ -590,7 +590,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 @keyframes uplink-on {
   to {
     opacity: 1;
-    box-shadow: 0 0 6px rgb(191 232 74 / 0.85);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 85%, transparent);
   }
 }
 
@@ -663,7 +663,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 }
 
 .uplink-glow {
-  text-shadow: 0 0 10px rgb(191 232 74 / 0.6);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 .uplink-swap {
@@ -722,7 +722,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 
 .glitch {
   position: relative;
-  text-shadow: 0 0 28px rgb(191 232 74 / 0.18);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .glitch::before,
@@ -812,7 +812,7 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 .chrome-btn::after {
   background: radial-gradient(
     120px 160% at calc(100% - 22px) 50%,
-    rgb(191 232 74 / 0.55),
+    color-mix(in srgb, var(--color-accent) 55%, transparent),
     transparent 70%
   );
   opacity: 0;
@@ -841,11 +841,11 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
 }
 
 .chrome-btn:focus-visible .chrome-knob {
-  background: radial-gradient(circle at 36% 30%, #f8ffe0 0 9%, #d6f37f 28%, var(--color-accent) 52%, #4f6812 100%);
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--color-accent) 15%, white) 0 9%, color-mix(in srgb, var(--color-accent) 65%, white) 28%, var(--color-accent) 52%, color-mix(in srgb, var(--color-accent) 35%, black) 100%);
   box-shadow:
     0 0 0 2px rgb(255 255 255 / 0.65),
     0 0 0 3px rgb(0 0 0 / 0.28),
-    0 0 16px rgb(191 232 74 / 0.9);
+    0 0 16px color-mix(in srgb, var(--color-accent) 90%, transparent);
 }
 
 @media (hover: hover) {
@@ -854,11 +854,11 @@ body:has(.page-content):not(.page-scrolled) [data-splash-overlay] {
   }
 
   .chrome-btn:hover .chrome-knob {
-    background: radial-gradient(circle at 36% 30%, #f8ffe0 0 9%, #d6f37f 28%, var(--color-accent) 52%, #4f6812 100%);
+    background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--color-accent) 15%, white) 0 9%, color-mix(in srgb, var(--color-accent) 65%, white) 28%, var(--color-accent) 52%, color-mix(in srgb, var(--color-accent) 35%, black) 100%);
     box-shadow:
       0 0 0 2px rgb(255 255 255 / 0.65),
       0 0 0 3px rgb(0 0 0 / 0.28),
-      0 0 16px rgb(191 232 74 / 0.9);
+      0 0 16px color-mix(in srgb, var(--color-accent) 90%, transparent);
   }
 }
 
