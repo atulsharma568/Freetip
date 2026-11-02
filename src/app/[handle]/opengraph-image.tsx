@@ -1,7 +1,8 @@
 import { OG_SIZE, OG_TYPE, renderOg } from "@/lib/og";
 import { SITE_HOST, SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
-import { getCreator } from "./creator";
+import { safeAccent } from "@/lib/accent";
+import { getCreator, getCreatorAccent } from "./creator";
 
 export const alt = `Tip a creator on ${SITE_NAME}`;
 export const size = OG_SIZE;
@@ -24,7 +25,9 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
   }
 
   const name = (creator.display_name ?? creator.name ?? handle).slice(0, 40);
+  const accent = safeAccent(await getCreatorAccent(handle));
   return renderOg({
+    accent,
     lines: [{ text: "Tip" }, { text: name, accent: true }],
     pill: `${SITE_HOST}/${handle}`,
     note: "UPI or card · no account needed",

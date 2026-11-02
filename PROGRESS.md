@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, sitemap dates and creator preview colour)
+
+- The sitemap now gives the policy pages a `lastmod` taken from `LEGAL_UPDATED` (1 November 2026); the home page gets none, because "now" on every build would claim everything changed. A creator's link preview image (`[handle]/opengraph-image.tsx`) now uses the creator's own accent colour on the name and the pill (`renderOg` takes an `accent`; the ink on the pill follows the colour); other previews keep the lime. The sitemap output was read; the preview image was not looked at.
+- FAQ JSON-LD deliberately NOT built: Google shows FAQ rich results only for government and health sites, so it would add nothing, and the FAQ still says "Is it live yet? Not yet" which would be copied into structured data. Revisit that FAQ answer when the owner decides the launch wording.
+- Still not done: loading skeletons per dashboard sub-page, admin balances search and pagination, status colour tokens, em dashes in fan-facing messages.
+
 ## Current state (2026-11-02, rate limits shared and atomic)
 
 - The per-network hourly limits for the contact form, the waitlist and starting a tip now share one helper, `src/lib/rate-limit.ts` (`clientIp`, `ipKey`, `takeAttempt`). It takes a per-network lock, so a burst of parallel requests can no longer all pass before any is counted (contact and waitlist had no lock; tips already did). A visitor with no reported address used to share one "unknown" count on contact and waitlist (5 and 20 an hour for everybody); that shared count now gets ten times the limit. Tips are unchanged on purpose: no address, no salt or a failing check still lets the fan pay. Same tables, no migration. The query was tried inside a rolled-back transaction (3 allowed, the 4th refused, nothing left behind); the forms themselves were not tried.

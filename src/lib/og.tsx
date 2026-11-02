@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { INK_HEX } from "@/lib/site";
+import { inkFor } from "@/lib/accent";
 import { LogoStatic } from "@/components/logo/LogoStatic";
 
 // Shared by every link preview (WhatsApp, X, Discord…): flat, in the site's
@@ -23,11 +24,14 @@ export async function renderOg({
   pill,
   note,
   fontSize = 120,
+  accent = LIME,
 }: {
   lines: OgLine[];
   pill: string;
   note: string;
   fontSize?: number;
+  // A creator's own accent colour; the site's lime when not given.
+  accent?: string;
 }) {
   const [display, body, mono] = await Promise.all([
     font("bricolage-semicondensed-800.ttf"),
@@ -65,7 +69,7 @@ export async function renderOg({
           }}
         >
           {lines.map((line) => (
-            <div key={line.text} style={line.accent ? { color: LIME } : undefined}>
+            <div key={line.text} style={line.accent ? { color: accent } : undefined}>
               {line.text}
             </div>
           ))}
@@ -79,8 +83,8 @@ export async function renderOg({
               padding: "14px 28px",
               borderRadius: 999,
               whiteSpace: "nowrap",
-              background: LIME,
-              color: INK_HEX,
+              background: accent,
+              color: accent === LIME ? INK_HEX : inkFor(accent),
               fontFamily: "Mono",
               fontSize: 30,
             }}
