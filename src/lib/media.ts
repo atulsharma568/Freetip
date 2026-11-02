@@ -20,7 +20,8 @@ export const MEDIA_MAX_SIDE = 4096;
 export type MediaKind = "gif" | "image" | "webm";
 export type MediaPlacement = "above" | "behind" | "fullscreen";
 export const MEDIA_PLACEMENTS: readonly MediaPlacement[] = ["above", "behind", "fullscreen"];
-// The owner holds a creator's first upload for approval; later ones go live.
+// Uploads go live straight away; the owner reviews them afterwards and can take any
+// down. 'new' is kept only for files held under the earlier first-upload rule.
 export type ReviewState = "new" | "approved" | "removed";
 
 export const MEDIA_CONTENT_TYPES: Record<MediaKind, readonly string[]> = {
@@ -149,11 +150,11 @@ export function playable(m: { enabled: boolean; review_state: ReviewState }): bo
   return m.enabled && m.review_state === "approved";
 }
 
-// The state a new upload starts in: held for the owner until the creator has one
-// approved file, live straight away after that. Counting approved files (not all
-// uploads) keeps a second upload from skipping the check while the first still waits.
-export function initialReviewState(approvedCount: number): ReviewState {
-  return approvedCount === 0 ? "new" : "approved";
+// The state a new upload starts in: live straight away (owner's decision, 2026-11-02).
+// The creator is responsible for what they upload; the owner reviews afterwards and
+// takes down anything that breaks the rules.
+export function initialReviewState(): ReviewState {
+  return "approved";
 }
 
 // What the overlay needs to show one file.

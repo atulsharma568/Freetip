@@ -230,8 +230,8 @@ export async function setMessageHandled(
   return ok(handled ? "Marked handled." : "Marked as new.");
 }
 
-// Owner review of a creator's alert media (migration 0036). A creator's first upload
-// is held as 'new'; approving it lets it play (and lets their later uploads go live).
+// Owner review of a creator's alert media (migration 0036). Uploads now go live
+// at once; this approves a file still held as 'new' from the earlier first-upload rule.
 // Both choices are written to the audit history against the creator.
 export async function adminApproveMedia(
   mediaId: number,

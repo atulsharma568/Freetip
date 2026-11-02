@@ -119,7 +119,7 @@ export async function addMedia(input: {
     const full = checkAllowance({ files: have.files, bytes: Number(have.bytes) }, bytes.length);
     if (full) return reject(`${full} Delete a file first.`);
 
-    const state = initialReviewState(have.approved);
+    const state = initialReviewState();
     await db`
       insert into creator_media
         (creator_id, kind, name, blob_url, mime, size_bytes, duration_ms, width, height, placement, review_state)

@@ -129,7 +129,8 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          Upload only sounds you made or have the right to play on your stream.
+          Upload only sounds, pictures, GIFs and videos you made or have the right to
+          play on your stream. They go live at once and we may take any of them down.
         </li>
         <li>
           Don’t use your page to promote anything listed under “Never allowed”, or

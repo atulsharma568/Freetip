@@ -168,7 +168,7 @@ export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, 
           continue;
         }
         room -= 1;
-        set(i, "done", saved.held ? "Added. It waits for Freetip's approval before it plays." : "Added.");
+        set(i, "done", "Added.");
       } catch {
         set(i, "failed", "The upload failed. Check your connection and try again.");
       }

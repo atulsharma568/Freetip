@@ -331,6 +331,15 @@ const SECTIONS: LegalSection[] = [
           section 10.
         </p>
         <p>
+          Creators can also upload pictures, GIFs and short videos that play
+          in their alert. They go live as soon as they are uploaded, without
+          our review. You may upload only files you made or have the right to
+          use, and nothing that breaks section 10 or our community guidelines.
+          You are responsible for them, including any copyright claim they
+          cause. We may look at, hide or remove any file at any time, and may
+          close an account that keeps uploading files that break these rules.
+        </p>
+        <p>
           {SITE_NAME}’s name, logo, design and software belong to us. You may
           not copy them or use them in a way that suggests we endorse you.
         </p>

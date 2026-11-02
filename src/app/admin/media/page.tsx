@@ -30,8 +30,9 @@ type MediaRow = {
 
 const LIMIT = 200;
 
-// Every creator's alert media. Files waiting for approval come first: a creator's
-// first upload does not play until the owner has looked at it here.
+// Every creator's alert media. New uploads play at once; the owner looks them over here
+// and takes down what breaks the rules. Any file still waiting (held under the old
+// first-upload rule) comes first.
 export default async function AdminMediaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requireOwner();
   const q = ((await searchParams).q ?? "").trim().slice(0, 100);
@@ -99,7 +100,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: P
         ) : (
           <AdminEmptyState
             title="No alert media yet"
-            description="Files creators upload appear here. A creator's first file waits for your approval."
+            description="Files creators upload go live at once and appear here for you to look over. Take down anything that breaks the rules."
           />
         )
       ) : (

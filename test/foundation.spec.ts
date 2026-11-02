@@ -158,9 +158,8 @@ test.describe("media rules", () => {
     expect(isOwnBlobUrl("not a url", p)).toBe(false);
   });
 
-  test("files are held for the owner until one is approved; only approved, enabled files play", () => {
-    expect(initialReviewState(0)).toBe("new");
-    expect(initialReviewState(1)).toBe("approved");
+  test("new files go live at once; only approved, enabled files play", () => {
+    expect(initialReviewState()).toBe("approved");
     expect(playable({ enabled: true, review_state: "approved" })).toBe(true);
     expect(playable({ enabled: true, review_state: "new" })).toBe(false);
     expect(playable({ enabled: true, review_state: "removed" })).toBe(false);
