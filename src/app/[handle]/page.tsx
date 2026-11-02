@@ -4,7 +4,7 @@ import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipRu
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
-import { accentStyle } from "@/lib/accent";
+import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
@@ -72,12 +72,14 @@ export default async function CreatorPage({ params }: Props) {
   const voiceMinPaise =
     ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
-  const themeStyle = accentStyle(await getCreatorAccent(handle));
+  const storedAccent = await getCreatorAccent(handle);
+  const themeStyle = accentStyle(storedAccent);
 
   return (
     <PageShell slim>
       <div className="contents" style={themeStyle}>
       <TipForm
+        accent={safeAccent(storedAccent)}
         sounds={sounds}
         rules={rules}
         voiceMinPaise={voiceMinPaise}

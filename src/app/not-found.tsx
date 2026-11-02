@@ -19,8 +19,8 @@ export default function NotFound() {
         </h1>
         <p className="mt-6 max-w-[46ch] text-pretty text-lg text-muted">
           If you typed a creator&apos;s link, like{" "}
-          <span className="numeric text-text">{SITE_HOST}/name</span>, tip pages
-          aren&apos;t live yet. Join the waitlist to hear when they are.
+          <span className="numeric text-text">{SITE_HOST}/name</span>, check the
+          spelling. Or join the waitlist to hear when new things open.
         </p>
         <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
           <Link

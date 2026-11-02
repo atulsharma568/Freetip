@@ -1,3 +1,5 @@
+import { Signed } from "@/components/admin/Signed";
+import Link from "next/link";
 import { fmtIST } from "@/lib/admin/format";
 import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
@@ -18,11 +20,6 @@ export const dynamic = "force-dynamic";
 
 function fmt(date: Date | null): string {
   return fmtIST(date, "date");
-}
-
-// A negative balance is shown in red with its minus sign; it is never rounded up.
-function Signed({ minor }: { minor: number }) {
-  return <span className={minor < 0 ? "text-red-300" : undefined}>{formatINR(minor)}</span>;
 }
 
 export default async function CreatorEarningsPage({
@@ -97,9 +94,11 @@ function CreatorTable({ rows }: { rows: CreatorEarningsRow[] }) {
           {rows.map((r) => (
             <tr key={r.creatorId} className="hover:bg-raised transition-colors">
               <td className="px-4 py-3">
-                <p className="font-medium text-text">{r.name ?? "—"}</p>
+                <Link href={`/admin/creators/${r.creatorId}`} className="font-medium text-text hover:text-accent">
+                  {r.name ?? "—"}
+                </Link>
                 {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}
-                {r.ytChannelName && <p className="text-xs text-muted/60">{r.ytChannelName}</p>}
+                {r.ytChannelName && <p className="text-xs text-muted">{r.ytChannelName}</p>}
               </td>
               <td className="px-4 py-3 text-right font-mono tabular-nums text-text">{r.tipCount}</td>
               <td className="px-4 py-3 text-right font-mono tabular-nums text-accent">

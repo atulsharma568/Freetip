@@ -170,17 +170,22 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
                       <p title={c.email} className="max-w-[200px] truncate text-xs text-muted">
                         {c.email}
                       </p>
-                      {c.ytChannelName && (
-                        <a
-                          href={c.ytChannelUrl ?? "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={c.ytChannelName}
-                          className="block max-w-[200px] truncate text-xs text-muted transition-colors hover:text-text"
-                        >
-                          {c.ytChannelName}
-                        </a>
-                      )}
+                      {c.ytChannelName &&
+                        (c.ytChannelUrl ? (
+                          <a
+                            href={c.ytChannelUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={c.ytChannelName}
+                            className="block max-w-[200px] truncate text-xs text-muted transition-colors hover:text-text"
+                          >
+                            {c.ytChannelName}
+                          </a>
+                        ) : (
+                          <p title={c.ytChannelName} className="max-w-[200px] truncate text-xs text-muted">
+                            {c.ytChannelName}
+                          </p>
+                        ))}
                       <p className="mt-1 text-xs text-muted">Joined {fmtIST(c.createdAt, "date")}</p>
                     </td>
 

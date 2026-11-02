@@ -1,6 +1,9 @@
 import { fmtIST } from "@/lib/admin/format";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { Signed } from "@/components/admin/Signed";
+import { TONE_BADGE, type Tone } from "@/components/admin/tones";
+import Link from "next/link";
 import { getCreatorBalances, type BalancesSummary, type CreatorBalanceRow } from "@/lib/admin/balance-queries";
 import { formatINR } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
@@ -12,11 +15,6 @@ export const dynamic = "force-dynamic";
 
 function fmt(date: Date | null): string {
   return fmtIST(date, "date");
-}
-
-// A negative balance keeps its minus sign and its colour; it is never rounded up.
-function Signed({ minor }: { minor: number }) {
-  return <span className={minor < 0 ? "text-red-300" : undefined}>{formatINR(minor)}</span>;
 }
 
 export default async function CreatorBalancesPage() {
@@ -101,7 +99,9 @@ function Body({ summary }: { summary: BalancesSummary }) {
             {rows.map((r) => (
               <tr key={r.creatorId} className="transition-colors hover:bg-raised">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-text">{r.name ?? "—"}</p>
+                  <Link href={`/admin/creators/${r.creatorId}`} className="font-medium text-text hover:text-accent">
+                    {r.name ?? "—"}
+                  </Link>
                   {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}
                 </td>
                 <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
@@ -114,19 +114,29 @@ function Body({ summary }: { summary: BalancesSummary }) {
                   {formatINR(r.availableMinor)}
                 </td>
                 <td className="px-4 py-3 text-right text-muted">{fmt(r.nextReleaseAt)}</td>
-                <td className="px-4 py-3 text-xs text-muted">
-                  {r.balanceMinor < 0
-                    ? "Owes us"
-                    : r.payableNow
-                      ? "Ready"
-                      : r.creatorStatus !== "active"
-                        ? `Creator ${r.creatorStatus}`
-                        : !r.hasUpiId
-                          ? "No UPI ID"
-                          : r.availableMinor < summary.minPayoutMinor
-                            ? "Below minimum"
-                            : "—"}
-                  {!r.hasCompletedPayout && r.balanceMinor >= 0 ? " · first payout" : ""}
+                <td className="px-4 py-3 text-xs">
+                  {(() => {
+                    const [label, tone]: [string, Tone] =
+                      r.balanceMinor < 0
+                        ? ["Owes us", "bad"]
+                        : r.payableNow
+                          ? ["Ready", "good"]
+                          : r.creatorStatus !== "active"
+                            ? [`Creator ${r.creatorStatus}`, "warn"]
+                            : !r.hasUpiId
+                              ? ["No UPI ID", "warn"]
+                              : r.availableMinor < summary.minPayoutMinor
+                                ? ["Below minimum", "neutral"]
+                                : ["—", "neutral"];
+                    return (
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <span className={`rounded-full px-2 py-0.5 font-medium ${TONE_BADGE[tone]}`}>{label}</span>
+                        {!r.hasCompletedPayout && r.balanceMinor >= 0 && (
+                          <span className="rounded-full bg-raised px-2 py-0.5 text-muted">First payout</span>
+                        )}
+                      </span>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}

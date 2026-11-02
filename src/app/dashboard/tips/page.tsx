@@ -132,7 +132,12 @@ export default async function TipsPage({
                   <p className="text-sm text-muted">You rejected this message.</p>
                 )}
                 {t.message && t.messageStatus === "pending" && (
-                  <p className="text-sm text-muted">Message waiting for your approval.</p>
+                  <p className="text-sm text-muted">
+                    Message waiting for your approval.{" "}
+                    <Link href="/dashboard#queue" className="underline underline-offset-2 hover:text-text">
+                      Open the queue
+                    </Link>
+                  </p>
                 )}
               </li>
             ))}

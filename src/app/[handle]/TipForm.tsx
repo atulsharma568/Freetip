@@ -109,6 +109,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 type Phase = "idle" | "creating" | "checkout" | "success" | "error";
 
 interface Props {
+  accent?: string;
   handle: string;
   displayName: string;
   pictureUrl: string | null;
@@ -148,6 +149,7 @@ export function TipForm({
   previewMode = false,
   birthdayOffered = false,
   pinOffer = null,
+  accent,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const refocusAmount = useRef(false);
@@ -339,7 +341,7 @@ export function TipForm({
         name: "Freetip",
         description: `Tip for ${displayName}`,
         order_id: result.razorpayOrderId,
-        theme: { color: "#bfe84a" },
+        theme: { color: accent ?? "#bfe84a" },
         handler: () => {
           setPaidAmount(result.amountPaise);
           setSent({
@@ -731,6 +733,7 @@ export function TipForm({
                   type="button"
                   onClick={handlePay}
                   disabled={previewMode || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
+                  aria-busy={phase === "creating"}
                   className="beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-[opacity,transform] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {phase === "creating" ? (

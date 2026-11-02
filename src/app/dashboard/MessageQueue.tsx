@@ -80,7 +80,7 @@ export function MessageQueue({ items }: { items: PendingMessage[] }) {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => decide(m, "approved")}
-                    className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-ink transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40"
+                    className="inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-ink transition-[transform,opacity] active:scale-[0.97] disabled:opacity-40"
                   >
                     Approve
                   </button>
@@ -88,7 +88,7 @@ export function MessageQueue({ items }: { items: PendingMessage[] }) {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => decide(m, "rejected")}
-                    className="inline-flex h-10 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-muted disabled:opacity-40"
+                    className="inline-flex h-11 items-center rounded-full border border-control px-5 text-sm text-text transition-colors hover:border-muted disabled:opacity-40"
                   >
                     Reject
                   </button>

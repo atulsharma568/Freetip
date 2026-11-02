@@ -299,7 +299,7 @@ export function SettingsForm({ displayName: initialDisplayName, messageMaxChars,
                 </ChipRadio>
               ))}
             </div>
-            <p className="text-xs text-muted">Use Test the voice below to hear it. If the main voice engine is down, a female voice is used instead.</p>
+            <p className="text-xs text-muted">Use Test the voice above to hear it. If the main voice engine is down, a female voice is used instead.</p>
           </fieldset>
           {regionalVoices && (
             <div className="space-y-2">

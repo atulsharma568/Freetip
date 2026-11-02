@@ -157,12 +157,12 @@ export function RulesManager({
           <EmptyState
             sample={
               <div className="flex items-center gap-3 rounded-field border border-line/60 bg-ground px-4 py-3 text-sm">
-                <span className="numeric font-medium text-text">From ₹500</span>
+                <span className="numeric font-medium text-text">₹500 pick</span>
                 <span className="min-w-0 flex-1 truncate text-muted">Media: Confetti · Sound: Airhorn</span>
               </div>
             }
             title="No rules yet."
-            body="Without a rule, every tip plays the normal alert. For example, from ₹500 up you could show a big GIF with a special sound."
+            body="Without a rule, every tip plays the normal alert. For example, a ₹500 pick could show a big GIF with a special sound."
           />
         </Tile>
       ) : (
@@ -175,7 +175,7 @@ export function RulesManager({
                 className="flex flex-wrap items-center gap-3 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5"
               >
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="numeric text-base font-medium text-text">From ₹{r.minRupees.toLocaleString("en-IN")}</p>
+                  <p className="numeric text-base font-medium text-text">₹{r.minRupees.toLocaleString("en-IN")} pick</p>
                   <p className="break-words text-sm text-muted">
                     {[
                       r.mediaName && `Media: ${r.mediaName}`,
@@ -187,7 +187,7 @@ export function RulesManager({
                   </p>
                 </div>
                 <ConfirmAction
-                  prompt={`Delete the rule from ₹${r.minRupees}?`}
+                  prompt={`Delete the ₹${r.minRupees} pick?`}
                   confirmLabel="Yes, delete it"
                   keepLabel="Keep it"
                   onConfirm={() => remove(r.id)}

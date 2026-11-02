@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, dashboard, admin and public scan pass)
+
+- Three review agents scanned the creator dashboard, the admin and the public pages (read only); the safe fixes are applied: admin balances and earnings link to the creator page, shared `Signed` component (negative money has a mark, not only red), balances status as badges, dead channel link removed, contrast fixes; dashboard rules copy now says "pick", settings voice hint points "above", TipIsland keeps its focus ring, Approve and Reject are 44px, tips list links to the queue; tip page passes the creator's accent to the Razorpay window, pay button `aria-busy`, 404 copy no longer says tip pages are not live.
+- Found but NOT done (owner to pick): sign-out inside the dashboard, remove-goal needs a confirm step, loading skeletons per dashboard sub-page, `[handle]/loading.tsx` and `error.tsx`, rate-limit gaps in contact, waitlist and tip actions (shared "unknown" bucket, fail-open), overlay widgets polling forever on 404, search and pagination on admin balances and earnings, admin status colours as tokens, creator OG image accent, FAQ JSON-LD, sitemap lastModified, em dashes in fan-facing messages. Not seen in a browser.
+
 ## Current state (2026-11-02, creator accent on glow controls)
 
 - The plasma switches (Tip anonymously, Remember my name), glass orb and chrome buttons, handle field glow and the sending panel now take the creator's accent (`--color-accent`) instead of fixed neon lime: shadows and gradients use `color-mix` on the accent, and the switch's canvas reads the accent at draw time. Lint, type check and build pass; not yet seen in a browser with a non-lime accent. The Razorpay checkout window colour is still lime.

@@ -203,7 +203,7 @@ function PaymentTable({ list }: { list: PaymentList }) {
                   <td className="px-4 py-3">
                     <p className="font-mono text-xs text-muted">{r.publicRef}</p>
                     {r.providerPaymentRef && (
-                      <p className="font-mono text-xs text-muted/60">{r.providerPaymentRef}</p>
+                      <p className="font-mono text-xs text-muted">{r.providerPaymentRef}</p>
                     )}
                   </td>
                   <td className="px-4 py-3">
