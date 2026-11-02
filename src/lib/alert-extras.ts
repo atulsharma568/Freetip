@@ -4,6 +4,7 @@ import { parseBannedWords } from "@/lib/message-filter";
 import { pickMedia, playable, type AlertMedia, type MediaCandidate } from "@/lib/media";
 import type { AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
+import { baseColours, resolveAlertText, type AlertText } from "@/lib/alert-text";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
 import { istMonthDay, resolveBirthday } from "@/lib/birthday";
 
@@ -35,6 +36,9 @@ export type AlertExtras = {
   // The card style and font the creator picked (overlay themes); null while the
   // feature is off or both choices are the defaults, which is the plain card.
   theme: OverlayStyle | null;
+  // The creator's headline, colours, size and weight (alert text and colours); null while the
+  // feature is off or nothing was changed, which is the normal card.
+  text: AlertText | null;
   // The fan's level after this tip (fan levels); null while the feature is off, the fan has
   // no profile (anonymous, or the tip was before the switch) or this is the message card.
   level: FanLevel | null;
@@ -59,6 +63,9 @@ export type RawExtras = {
   pickedRuleId?: number | null;
   // The creator's stored theme and font keys (overlay themes); unknown keys are the default.
   style?: { theme?: string | null; font?: string | null } | null;
+  // The creator's stored alert text and their accent (alert text and colours); the colours are
+  // checked against the card they will sit on.
+  alertText?: { value: unknown; accent: string | null } | null;
   // The fan's points now and what this tip added (fan levels).
   fan?: { xp: number; tipXp: number } | null;
   // The creator's greeting and the fan's birthday and name on this tip (birthday message).
@@ -100,6 +107,15 @@ export function resolveAlertExtras(
     stayMs: rule?.stayMs ?? null,
     // Both the alert card and the follow-up message card wear the creator's style.
     theme: ctx.features.overlayThemes ? resolveOverlayStyle(raw.style) : null,
+    // Both cards too: the creator's colours and text size apply to the follow-up message card,
+    // the headline only to the alert card (see the overlay).
+    text:
+      ctx.features.alertText && raw.alertText
+        ? resolveAlertText(
+            raw.alertText.value,
+            baseColours(ctx.features.overlayThemes ? raw.style?.theme : null, raw.alertText.accent),
+          )
+        : null,
     level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
     birthday:
       ctx.kind === "alert" && ctx.features.birthdayMessage && raw.birthdayInfo
@@ -231,6 +247,16 @@ export async function loadAlertExtras(
       })
     : null;
 
+  // The creator's headline and colours (migration 0044), read only when the feature is on.
+  const alertText = features.alertText
+    ? await safely("the alert text", null as { value: unknown; accent: string | null } | null, async () => {
+        const [found] = await db<{ alert_text: unknown; accent: string | null }[]>`
+          select alert_text, accent from users where id = ${o.creatorId}
+        `;
+        return found ? { value: found.alert_text, accent: found.accent } : null;
+      })
+    : null;
+
   // The fan's points (migration 0038), read only when fan levels are on for the creator.
   // The tip's own counted points tell whether it raised the level.
   const fan =
@@ -262,7 +288,7 @@ export async function loadAlertExtras(
       : null;
 
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, fan, birthdayInfo },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, fan, birthdayInfo },
     { kind: o.kind, features, tipId: o.tipId },
   );
 }

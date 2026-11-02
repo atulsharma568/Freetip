@@ -28,7 +28,9 @@ export type FeatureKey =
   | "fanLevels"
   | "fanCrm"
   | "highlightedMessages"
-  | "streamlabs";
+  | "streamlabs"
+  // Streamlabs-style alert settings (docs/alert-studio-plan.md).
+  | "alertText";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -170,6 +172,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Streamlabs alerts",
     group: "Alert box",
     description: "The creator connects their own Streamlabs account (/dashboard/streamlabs) and each paid tip also shows as an alert in their Streamlabs alert box: name, amount and, by the same rules as the OBS alert, the message. Needs STREAMLABS_CLIENT_ID and STREAMLABS_CLIENT_SECRET; the Streamlabs app is in testing mode, so only accounts whitelisted on it can connect.",
+    built: true,
+  },
+  {
+    key: "alertText",
+    label: "Alert text and colours",
+    group: "Alert box",
+    description: "The creator edits the card's headline ({name} tipped {amount}) and picks the card, text and amount colours, text size and weight (/dashboard/text). Colours that are hard to read are refused. Works with the card style, shown on every alert.",
     built: true,
   },
 ];

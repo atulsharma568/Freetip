@@ -5,6 +5,7 @@ import { tipTierLevel } from "@/lib/tip-tier";
 import { MEDIA_WEBM_MAX_MS, type AlertMedia } from "@/lib/media";
 import { STAY_MAX_SECONDS } from "@/lib/alert-rules";
 import { overlayStyleVars, type OverlayStyle } from "@/lib/overlay-themes";
+import { alertTextVars, headlineSegments, type AlertText } from "@/lib/alert-text";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
@@ -25,6 +26,9 @@ export interface OverlayAlert {
   // The creator's card style and font (overlay themes; live overlay and the dashboard
   // preview). Missing or null is the plain card.
   theme?: OverlayStyle | null;
+  // The creator's headline, colours, text size and weight (alert text and colours; live
+  // overlay and the dashboard preview). Missing or null is the normal card.
+  text?: AlertText | null;
   // The fan's level after this tip (fan levels) and the creator's birthday greeting for
   // today (birthday message); both live overlay only.
   level?: { level: number; up: boolean } | null;
@@ -423,13 +427,20 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
   const leadMs = alert.clip && alert.sound ? alert.sound.ms : 0;
   const timings = alert.message && alert.speechMs ? wordTimings(alert.message, alert.speechMs, leadMs) : null;
   const name = alert.name || "Anonymous";
+  // The creator's own headline ("{name} tipped {amount}") replaces "Name tipped" on the alert
+  // card; with {amount} in it the big amount line is not shown twice. The message card keeps
+  // "Name says".
+  const segments = isAlert && alert.text?.headline ? headlineSegments(alert.text.headline) : null;
+  const amountInHeadline = !!segments?.some((s) => s.kind === "amount");
+  const themeVars = overlayStyleVars(alert.theme);
 
   return (
     <div
       className={`ov-card ov-t${level}`}
       style={
         {
-          ...overlayStyleVars(alert.theme),
+          ...themeVars,
+          ...alertTextVars(alert.text, Number(themeVars["--c-fs"] ?? 1)),
           "--dur": `${showMs(alert)}ms`,
           // Long amounts shrink a little so they never wrap or overflow the card.
           "--fit": Math.min(1, 7 / (amount.length + 1)),
@@ -440,16 +451,34 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
     >
       {behind && <MediaLayer media={behind} durMs={showMs(alert)} stays={!!alert.stayMs} />}
       <p className="ov-top">
-        <span className="ov-name">
-          {name}
-          {!alert.test && <span className="ov-verb">{isAlert ? " tipped" : " says"}</span>}
-        </span>
+        {segments ? (
+          <span className="ov-name">
+            {segments.map((seg, i) =>
+              seg.kind === "name" ? (
+                <span key={i}>{name}</span>
+              ) : seg.kind === "amount" ? (
+                <span key={i} className="ov-mono ov-inline-amount">
+                  ₹{amount}
+                </span>
+              ) : (
+                <span key={i} className="ov-verb">
+                  {seg.text}
+                </span>
+              ),
+            )}
+          </span>
+        ) : (
+          <span className="ov-name">
+            {name}
+            {!alert.test && <span className="ov-verb">{isAlert ? " tipped" : " says"}</span>}
+          </span>
+        )}
         {isAlert && alert.level && (
           <span className="ov-level">{alert.level.up ? `Level up! Lv ${alert.level.level}` : `Lv ${alert.level.level}`}</span>
         )}
         {alert.test && <span className="ov-test">TEST</span>}
       </p>
-      {isAlert && <p className="ov-amount ov-mono">₹{amount}</p>}
+      {isAlert && !amountInHeadline && <p className="ov-amount ov-mono">₹{amount}</p>}
       {isAlert && alert.birthday && <p className="ov-birthday">🎂 {alert.birthday}</p>}
       {alert.message && (
         <p className="ov-message">
@@ -494,8 +523,9 @@ const CSS = `
 .ov-t1 { --s: 1.12; --sp: 1.05; }
 .ov-t2 { --s: 1.25; --sp: 1.1; }
 .ov-t3 { --s: 1.4; --sp: 1.16; }
-.ov-top { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 1.8 * var(--c-fs)); font-weight: 600; line-height: 1.2; }
-.ov-verb { font-weight: 500; }
+.ov-top { margin: 0; display: flex; align-items: center; gap: calc(var(--u) * 1); font-size: calc(var(--u) * 1.8 * var(--c-fs)); font-weight: var(--c-fw-top, 600); line-height: 1.2; }
+.ov-verb { font-weight: var(--c-fw-verb, 500); }
+.ov-inline-amount { font-weight: 700; }
 .ov-level {
   margin-left: auto; padding: calc(var(--u) * 0.25) calc(var(--u) * 0.9); border-radius: 9999px; white-space: nowrap;
   background: var(--c-tag-bg); color: var(--c-tag-fg);
@@ -510,7 +540,7 @@ const CSS = `
   font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: calc(var(--u) * 1.2); font-weight: 600; letter-spacing: 0.12em;
 }
 .ov-amount { margin: calc(var(--u) * 0.6) 0 0; color: var(--c-amount); font-size: calc(var(--u) * 5.4 * var(--s) * var(--fit)); font-weight: 600; line-height: 1; letter-spacing: -0.025em; white-space: nowrap; }
-.ov-message { margin: calc(var(--u) * 1.3) 0 0; font-size: calc(var(--u) * 1.9 * var(--c-fs)); font-weight: 500; line-height: 1.35; word-spacing: 0.25em; }
+.ov-message { margin: calc(var(--u) * 1.3) 0 0; font-size: calc(var(--u) * 1.9 * var(--c-fs)); font-weight: var(--c-fw-msg, 500); line-height: 1.35; word-spacing: 0.25em; }
 .ov-w { display: inline-block; margin: 0 calc(var(--u) * -0.35); padding: calc(var(--u) * 0.08) calc(var(--u) * 0.35); border-radius: 9999px; animation: ov-word var(--wd) linear var(--ws) 1; }
 .ov-portrait .ov-card { width: calc(var(--u) * 90); bottom: calc(var(--u) * 14); padding: calc(var(--u) * 4.5 * var(--sp)) calc(var(--u) * 5.5); border-radius: var(--c-radius-p); }
 .ov-portrait .ov-top { font-size: calc(var(--u) * 4.6 * var(--c-fs)); gap: calc(var(--u) * 2); }

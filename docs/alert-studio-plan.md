@@ -42,7 +42,17 @@ Owner request, 2026-11-02: add the kind of controls Streamlabs gives for its don
 - Migration 0044 onwards (next free number); run in Neon BEFORE the deploy; `OPERATIONS.md` gets the migration and any new admin step in the same commit.
 - Tests in the style of `test/pinned.spec.ts`: rules, validation, the overlay resolver with the switch on and off, fallbacks. Not verified until seen in real OBS (nobody has seen the existing overlays there yet either).
 
-## What to decide
+
+1. Build items 1, 2 and 3 in that order, item 4 later.
+2. For item 3, a fan's pick always wins; a variation applies only to a tip with no pick.
+3. Separate switches (`alertText`, `alertMotion`, `alertVariations`), so each can be turned on or charged for on its own.
+
+## Status
+
+- Item 1, alert text and colours: built 2026-11-02 (`alertText`, migration 0044, `/dashboard/text`, `src/lib/alert-text.ts`); details in `PROGRESS.md`. One change from the proposal: the headline may use `{name}` once (required) and `{amount}` (optional); the message card keeps "Name says".
+- Items 2, 3 and 4: not built.
+
+## What was to decide (answered above)
 
 1. Which of items 1 to 4 to build, and in what order (recommended: 1, 2, then 3).
 2. For item 3: fan pick always wins, or the creator chooses per rule.
