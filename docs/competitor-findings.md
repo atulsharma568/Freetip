@@ -196,7 +196,7 @@ Ideas worth taking (all switched off by default; the owner turns them on per cre
 - Fan voice notes priced by length (5, 10, 15, 20 seconds), sold to creators as a paid subscription. Planned.
 - Themed alert styles, many fonts, GIF placement. Planned.
 - Birthday message. Planned. Fan levels, a fan list and paid highlighted messages are also on the planned list.
-- Remember the fan's name on their device (no account): not built, not gated, a free fan-side convenience.
-- A TEST badge on test alerts and warnings never to show the overlay link on stream: not built, copy-only.
+- Remember the fan's name on their device (no account): built 2026-11-01 (phase 1 polish, off by default, name only, `localStorage`).
+- A TEST badge on test alerts and warnings never to show the overlay link on stream: built 2026-11-01 (phase 1 polish; TEST pill in `AlertStage.tsx`, warning in `OverlayTile.tsx`).
 
 Not taken for now: international tips in USD, EUR and GBP (their code shows a 7% fee, a ₹200 cap and a separate 7-day settlement; it touches the same money rules as our payout engine), settle-on-demand (blocked by the aggregation question in `docs/rules-check.md`), a public streamer directory, and fan accounts with a follow list.
