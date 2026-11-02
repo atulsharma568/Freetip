@@ -24,6 +24,12 @@ function toggle(url: string, volumePercent = 100) {
     stop();
     return;
   }
+  play(url, volumePercent);
+}
+
+// Always starts the clip from the beginning, even if the same file is already playing
+// (two picks can share one sound).
+function play(url: string, volumePercent = 100) {
   audio?.pause();
   const next = new Audio(url);
   next.volume = Math.min(1, Math.max(0, volumePercent / 100));
@@ -49,5 +55,5 @@ const subscribe = (l: () => void) => {
 
 export function useAudioPreview() {
   const playing = useSyncExternalStore(subscribe, () => playingUrl, () => null);
-  return { playing, toggle, stop };
+  return { playing, toggle, play, stop };
 }

@@ -225,7 +225,7 @@ export function ExtraPicker({
                   aria-checked={on}
                   tabIndex={firstStop ? 0 : -1}
                   onClick={() => {
-                    if (!on && r.sound) preview.toggle(r.sound.url);
+                    if (!on && r.sound) preview.play(r.sound.url);
                     else if (on && r.sound && preview.playing === r.sound.url) preview.stop();
                     toggle({ kind: "rule", id: r.id }, on);
                   }}
