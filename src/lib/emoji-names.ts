@@ -6,12 +6,14 @@
 // looked up (variation selectors are stripped by the caller). To give an emoji a
 // playful name, add a line here: it overrides the official one.
 
+import { CLDR_EMOJI_NAMES, CLDR_GROUPED_NAMES } from "./emoji-names-cldr";
+
 const GROUPS: [string[], string, string][] = [
   // Faces
   [["😀", "😃", "😄"], "big smile", "दाँत दिखाता चेहरा"],
   [["😁"], "big grin", "बत्तीसी दिखाता चेहरा"],
   [["😊", "🙂"], "smile", "मीठी मुस्कान"],
-  [["😆", "😂", "🤣"], "laughing", "हँसता हुआ चेहरा"],
+  [["😂", "😆", "🤣"], "laughing", "हँसता हुआ चेहरा"],
   [["😅"], "nervous laugh", "पसीना पोंछता हँसता चेहरा"],
   [["😉"], "wink", "आँख मारता चेहरा"],
   [["😍"], "heart eyes", "दिल फेंक चेहरा"],
@@ -700,9 +702,104 @@ const GROUPS: [string[], string, string][] = [
   [["☑"], "ticked box", "सही का निशान"],
 ];
 
-export const EMOJI_NAMES: ReadonlyMap<string, readonly [string, string]> = new Map(
-  GROUPS.flatMap(([emoji, en, hi]) => emoji.map((e) => [e, [en, hi] as const] as const)),
+// Pairs the official names could not separate (their Hindi names are the same word), so
+// each gets its own wording here. The Hindi is ours; a native speaker should read it.
+// The Hindi is optional: left out, the emoji keeps the Hindi name it already has.
+const DISTINCT: [string, string, string?][] = [
+  ["🐇", "rabbit hopping", "दौड़ता खरगोश"],
+  ["🐎", "horse running", "दौड़ता घोड़ा"],
+  ["🐕", "dog walking", "चलता कुत्ता"],
+  ["🏅", "medal", "खेल का तमगा"],
+  ["🥇", "gold medal", "सोने का तमगा"],
+  ["🥈", "silver medal", "चाँदी का तमगा"],
+  ["🥉", "bronze medal", "काँसे का तमगा"],
+  ["🐀", "rat", "बड़ा चूहा"],
+  ["🐅", "tiger", "धारीदार बाघ"],
+  ["👛", "purse", "छोटा पर्स"],
+  ["👜", "handbag", "हैंडबैग"],
+  ["😖", "confounded", "परेशान चेहरा"],
+  ["😯", "hushed", "सन्न चेहरा"],
+  ["🫃", "pregnant man", "गर्भवती आदमी"],
+  ["🫄", "pregnant person", "गर्भवती इंसान"],
+  ["🦆", "duck", "बत्तख"],
+  ["🪿", "goose", "कलहंस"],
+  ["🦐", "shrimp", "झींगा"],
+  ["🦞", "lobster", "लॉबस्टर"],
+  ["🕐", "one o clock", "एक बजे"],
+  ["🕑", "two o clock", "दो बजे"],
+  ["🕒", "three o clock", "तीन बजे"],
+  ["🕓", "four o clock", "चार बजे"],
+  ["🕔", "five o clock", "पाँच बजे"],
+  ["🕕", "six o clock", "छह बजे"],
+  ["🕖", "seven o clock", "सात बजे"],
+  ["🕗", "eight o clock", "आठ बजे"],
+  ["🕘", "nine o clock", "नौ बजे"],
+  ["🕙", "ten o clock", "दस बजे"],
+  ["🕚", "eleven o clock", "ग्यारह बजे"],
+  ["🕛", "twelve o clock", "बारह बजे"],
+  ["🕜", "half past one", "डेढ़ बजे"],
+  ["🕝", "half past two", "ढाई बजे"],
+  ["🕞", "half past three", "साढ़े तीन बजे"],
+  ["🕟", "half past four", "साढ़े चार बजे"],
+  ["🕠", "half past five", "साढ़े पाँच बजे"],
+  ["🕡", "half past six", "साढ़े छह बजे"],
+  ["🕢", "half past seven", "साढ़े सात बजे"],
+  ["🕣", "half past eight", "साढ़े आठ बजे"],
+  ["🕤", "half past nine", "साढ़े नौ बजे"],
+  ["🕥", "half past ten", "साढ़े दस बजे"],
+  ["🕦", "half past eleven", "साढ़े ग्यारह बजे"],
+  ["🕧", "half past twelve", "साढ़े बारह बजे"],
+  ["🏧", "cash machine", "एटीएम मशीन"],
+  ["🔝", "top", "सबसे ऊपर"],
+  ["🔚", "end", "समाप्त"],
+  ["🔛", "on", "चालू"],
+  ["🔜", "soon", "जल्दी आ रहा है"],
+  ["🔟", "ten", "दस"],
+  ["🪅", "pinata", "पिनाटा"],
+  ["🩷", "pink heart", "हल्का गुलाबी दिल"],
+  ["😖", "confounded", "बेचैन चेहरा"],
+  ["☑", "ticked box", "डिब्बे में सही का निशान"],
+  ["🥴", "woozy"],
+  ["🤲", "palms up"],
+  ["💏", "kissing couple"],
+  ["🦗", "cricket insect"],
+  ["🏏", "cricket game"],
+  ["🏔", "snowy mountain"],
+  ["🚂", "steam engine"],
+  ["😪", "sleepy face"],
+  ["🌊", "ocean wave"],
+  ["🍨", "ice cream bowl"],
+  ["🙋", "person raising hand"],
+  ["🐱", "cat face"],
+  ["🐭", "mouse face"],
+  ["🖱", "computer mouse"],
+  ["🐮", "cow face"],
+  ["🐷", "pig face"],
+  ["🐯", "tiger face"],
+  ["🐳", "spouting whale"],
+  ["⛄", "snowman without snow"],
+  ["🍳", "fried egg"],
+];
+
+// The first emoji of a group keeps the playful name; the others take their own official
+// name when there is one (CLDR_GROUPED_NAMES), so two different emoji never read the same
+// (test/emoji-names.spec.ts fails if two do). DISTINCT settles what is left.
+// Emoji renamed on purpose above, though the official-name table also lists some.
+export const DISTINCT_EMOJI: ReadonlySet<string> = new Set(DISTINCT.map(([e]) => e));
+
+const BASE_NAMES = new Map(
+  GROUPS.flatMap(([emoji, en, hi]) =>
+    emoji.map((e, i) => [e, (i > 0 && CLDR_GROUPED_NAMES[e.replace(/\u{fe0f}/gu, "")]) || ([en, hi] as const)] as const),
+  ),
 );
+
+export const EMOJI_NAMES: ReadonlyMap<string, readonly [string, string]> = new Map([
+  ...BASE_NAMES,
+  ...DISTINCT.flatMap(([e, en, hi]) => {
+    const keep = hi ?? BASE_NAMES.get(e)?.[1] ?? CLDR_EMOJI_NAMES[e]?.[1];
+    return keep ? [[e, [en, keep] as const] as const] : [];
+  }),
+]);
 
 // Joined sequences that deserve their own name instead of the first symbol's (the
 // key has variation selectors and skin tones removed).

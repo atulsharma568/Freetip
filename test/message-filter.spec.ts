@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { EMOJI_NAMES } from "../src/lib/emoji-names";
+import { DISTINCT_EMOJI, EMOJI_NAMES } from "../src/lib/emoji-names";
 import { CLDR_EMOJI_NAMES } from "../src/lib/emoji-names-cldr";
 import { cleanForSpeech, findBlockedWord, parseBannedWords } from "../src/lib/message-filter";
 import { shouldSpeak, type SpeechSettings, type SpeechTip } from "../src/lib/tts-rules";
@@ -82,7 +82,8 @@ test.describe("cleanup before speech", () => {
 
   test("an emoji we have no playful name for is read by its official Unicode name", () => {
     for (const [emoji, [en, hi]] of Object.entries(CLDR_EMOJI_NAMES)) {
-      expect(EMOJI_NAMES.has(emoji), emoji).toBe(false);
+      // (a few are renamed on purpose so that no two emoji sound the same)
+      expect(EMOJI_NAMES.has(emoji) && !DISTINCT_EMOJI.has(emoji), emoji).toBe(false);
       expect(/^\p{Extended_Pictographic}$/u.test(emoji), emoji).toBe(true);
       expect(en.length > 0 && hi.length > 0, emoji).toBe(true);
     }
