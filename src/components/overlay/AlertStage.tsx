@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { tipTierLevel } from "@/lib/tip-tier";
 import { MEDIA_WEBM_MAX_MS, type AlertMedia } from "@/lib/media";
+import { STAY_MAX_SECONDS } from "@/lib/alert-rules";
 import { overlayStyleVars, type OverlayStyle } from "@/lib/overlay-themes";
 import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
@@ -19,6 +20,8 @@ export interface OverlayAlert {
   sound?: { url: string; volume: number; ms: number } | null;
   // The creator's GIF, image or WebM for this alert (live overlay only).
   media?: AlertMedia | null;
+  // How long this alert stays up, in ms (alert rules for big tips); missing is the normal length.
+  stayMs?: number | null;
   // The creator's card style and font (overlay themes; live overlay and the dashboard
   // preview). Missing or null is the plain card.
   theme?: OverlayStyle | null;
@@ -53,7 +56,9 @@ function showMs(a: QueuedAlert) {
   // A WebM plays through (up to its hard cap) before the card leaves.
   const mediaMs = a.media?.kind === "webm" && a.media.durationMs ? Math.min(a.media.durationMs, MEDIA_WEBM_MAX_MS) + 500 : 0;
   const base = a.speechMs ? Math.max(byLength, soundMs + a.speechMs + SPEECH_TAIL_MS) : Math.max(byLength, soundMs + SPEECH_TAIL_MS);
-  return Math.max(base, mediaMs);
+  const normal = Math.max(base, mediaMs);
+  // A rule's stay only lengthens the alert, and never past the cap.
+  return a.stayMs ? Math.max(normal, Math.min(a.stayMs, STAY_MAX_SECONDS * 1000)) : normal;
 }
 
 // Downloads the speech for an alert. Any failure (speech off, engine down, slow
@@ -371,7 +376,7 @@ function Scene({ alert }: { alert: QueuedAlert }) {
   if (media.placement === "fullscreen") {
     return (
       <>
-        <MediaLayer media={media} durMs={showMs(alert)} />
+        <MediaLayer media={media} durMs={showMs(alert)} stays={!!alert.stayMs} />
         <Card alert={alert} />
       </>
     );
@@ -380,7 +385,7 @@ function Scene({ alert }: { alert: QueuedAlert }) {
     const level = tipTierLevel(alert.amountPaise / 100);
     return (
       <div className={`ov-stack ov-t${level}`}>
-        <MediaLayer media={media} durMs={showMs(alert)} />
+        <MediaLayer media={media} durMs={showMs(alert)} stays={!!alert.stayMs} />
         <Card alert={alert} />
       </div>
     );
@@ -391,13 +396,14 @@ function Scene({ alert }: { alert: QueuedAlert }) {
 // One file. It never makes sound (a tip uses a sound or the voice, and a clip's own
 // audio would fight both), a WebM stops at its hard cap whatever the file says, and a
 // file that fails to play just disappears and leaves the card.
-function MediaLayer({ media, durMs }: { media: AlertMedia; durMs: number }) {
+function MediaLayer({ media, durMs, stays }: { media: AlertMedia; durMs: number; stays?: boolean }) {
   const [gone, setGone] = useState(false);
   useEffect(() => {
-    if (media.kind !== "webm") return;
+    // A video normally stops at its 10 s cap; under a rule's long stay it keeps looping.
+    if (media.kind !== "webm" || stays) return;
     const t = setTimeout(() => setGone(true), MEDIA_WEBM_MAX_MS);
     return () => clearTimeout(t);
-  }, [media]);
+  }, [media, stays]);
   if (gone) return null;
   const className = `ov-media ov-media-${media.placement}`;
   const style = { "--dur": `${durMs}ms` } as React.CSSProperties;
@@ -432,7 +438,7 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
       data-test={alert.test ? "true" : undefined}
       role="status"
     >
-      {behind && <MediaLayer media={behind} durMs={showMs(alert)} />}
+      {behind && <MediaLayer media={behind} durMs={showMs(alert)} stays={!!alert.stayMs} />}
       <p className="ov-top">
         <span className="ov-name">
           {name}

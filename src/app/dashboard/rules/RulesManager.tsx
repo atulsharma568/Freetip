@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteRule, saveRule } from "@/app/actions/alert-rules";
-import { RULE_MAX_RUPEES } from "@/lib/alert-rules";
+import { RULE_MAX_RUPEES, STAY_CHOICES, STAY_MIN_RUPEES } from "@/lib/alert-rules";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
 import { ConfirmAction } from "../parts/ConfirmAction";
@@ -16,6 +16,11 @@ export interface RuleRow {
   minRupees: number;
   mediaName: string | null;
   soundName: string | null;
+  staySeconds: number | null;
+}
+
+function stayLabel(seconds: number) {
+  return seconds % 60 === 0 ? `${seconds / 60} min` : `${seconds} s`;
 }
 
 interface Option {
@@ -43,8 +48,11 @@ export function RulesManager({
   const [rupees, setRupees] = useState("");
   const [mediaId, setMediaId] = useState("");
   const [soundId, setSoundId] = useState("");
+  const [stay, setStay] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+
+  const canStay = Number(rupees) >= STAY_MIN_RUPEES;
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +62,7 @@ export function RulesManager({
       minRupees: rupees,
       mediaId: mediaId ? Number(mediaId) : null,
       soundId: soundId ? Number(soundId) : null,
+      staySeconds: canStay && stay ? Number(stay) : null,
     });
     setBusy(false);
     if (res.status === "error") {
@@ -64,6 +73,7 @@ export function RulesManager({
     setRupees("");
     setMediaId("");
     setSoundId("");
+    setStay("");
     router.refresh();
   }
 
@@ -116,10 +126,26 @@ export function RulesManager({
               ))}
             </SelectField>
           </label>
+          {canStay && (
+            <label className="block space-y-1">
+              <span className="text-xs uppercase tracking-widest text-muted">Stay on screen for</span>
+              <SelectField value={stay} onChange={(e) => setStay(e.target.value)} className="w-full">
+                <option value="">The normal length</option>
+                {STAY_CHOICES.map((s) => (
+                  <option key={s} value={s}>
+                    {stayLabel(s)}
+                  </option>
+                ))}
+              </SelectField>
+              <span className="block text-xs text-muted">
+                Tips that come in meanwhile wait their turn. You can press Skip to end it early.
+              </span>
+            </label>
+          )}
           <p className="numeric text-xs text-muted">
             {rules.length} of {maxRules} rules. Saving a size that already has a rule replaces it.
           </p>
-          <button type="submit" disabled={busy || full || !rupees || (!mediaId && !soundId)} className={pillPrimary}>
+          <button type="submit" disabled={busy || full || !rupees || (!mediaId && !soundId && !(canStay && stay))} className={pillPrimary}>
             {busy ? "Saving…" : "Save rule"}
           </button>
           <Msg kind={message?.kind} text={message?.text} />
@@ -151,7 +177,13 @@ export function RulesManager({
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="numeric text-base font-medium text-text">From ₹{r.minRupees.toLocaleString("en-IN")}</p>
                   <p className="break-words text-sm text-muted">
-                    {[r.mediaName && `Media: ${r.mediaName}`, r.soundName && `Sound: ${r.soundName}`].filter(Boolean).join(" · ")}
+                    {[
+                      r.mediaName && `Media: ${r.mediaName}`,
+                      r.soundName && `Sound: ${r.soundName}`,
+                      r.staySeconds && `Stays ${stayLabel(r.staySeconds)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
                 <ConfirmAction

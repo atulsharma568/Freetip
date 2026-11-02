@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { hasFeature } from "@/lib/plans";
-import { MAX_RULES_PER_CREATOR, parseRuleRupees, ruleHasEffect } from "@/lib/alert-rules";
+import { MAX_RULES_PER_CREATOR, STAY_MIN_RUPEES, parseRuleRupees, parseStaySeconds, ruleHasEffect } from "@/lib/alert-rules";
 
 export type RuleActionResult = { status: "ok" } | { status: "error"; message: string };
 
@@ -31,6 +31,7 @@ export async function saveRule(input: {
   minRupees: number | string;
   mediaId: number | null;
   soundId: number | null;
+  staySeconds?: number | null;
 }): Promise<RuleActionResult> {
   const creator = await currentCreator();
   if (!creator) return { status: "error", message: "Sign in again to change rules." };
@@ -47,7 +48,14 @@ export async function saveRule(input: {
   if ((mediaId !== null && !Number.isSafeInteger(mediaId)) || (soundId !== null && !Number.isSafeInteger(soundId))) {
     return { status: "error", message: "Pick a file or sound from the lists." };
   }
-  if (!ruleHasEffect(mediaId, soundId)) return { status: "error", message: "Pick a media file, a sound or both." };
+  const stay = parseStaySeconds(input.staySeconds, rupees);
+  if (stay === undefined) {
+    return {
+      status: "error",
+      message: `The alert can stay for 10 seconds to 5 minutes, and only for tips of ₹${STAY_MIN_RUPEES.toLocaleString("en-IN")} or more.`,
+    };
+  }
+  if (!ruleHasEffect(mediaId, soundId) && stay === null) return { status: "error", message: "Pick a media file, a sound or a longer stay." };
   if (mediaId !== null && !hasFeature(creator.row, "customAlertMedia")) {
     return { status: "error", message: "Custom alert media is not switched on for your account." };
   }
@@ -73,9 +81,10 @@ export async function saveRule(input: {
       return { status: "error", message: `You can keep up to ${MAX_RULES_PER_CREATOR} rules.` };
     }
     await db`
-      insert into alert_rules (creator_id, min_paise, media_id, sound_id)
-      values (${creator.id}, ${minPaise}, ${mediaId}, ${soundId})
-      on conflict (creator_id, min_paise) do update set media_id = excluded.media_id, sound_id = excluded.sound_id
+      insert into alert_rules (creator_id, min_paise, media_id, sound_id, stay_seconds)
+      values (${creator.id}, ${minPaise}, ${mediaId}, ${soundId}, ${stay})
+      on conflict (creator_id, min_paise) do update
+        set media_id = excluded.media_id, sound_id = excluded.sound_id, stay_seconds = excluded.stay_seconds
     `;
   } catch (err) {
     console.error("Could not save alert rule", err);

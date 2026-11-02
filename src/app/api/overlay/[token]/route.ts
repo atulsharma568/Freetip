@@ -184,6 +184,7 @@ export async function GET(
         speech: speak,
         sound: extras.sound,
         media: extras.media,
+        stayMs: extras.stayMs,
         theme: extras.theme,
         // A name the creator has since banned shows as Anonymous, so it gets no level or greeting either.
         level: nameBlocked ? null : extras.level,

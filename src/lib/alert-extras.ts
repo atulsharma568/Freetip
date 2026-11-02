@@ -29,6 +29,9 @@ export type AlertExtras = {
   // The creator's GIF, image or WebM for this alert (custom alert media); null while
   // the feature is off, the creator has no playable file or this is the message card.
   media: AlertMedia | null;
+  // How long the alert stays on screen (alert rules, big tips only), in milliseconds;
+  // null is the normal length.
+  stayMs: number | null;
   // The card style and font the creator picked (overlay themes); null while the
   // feature is off or both choices are the defaults, which is the plain card.
   theme: OverlayStyle | null;
@@ -90,6 +93,8 @@ export function resolveAlertExtras(
     // A voice tip may still show media (only its sound is dropped). Only the alert
     // card has media, and only while the creator's switch is on at play time.
     media: mediaOn ? pickMedia(ruleFile ? [ruleFile] : (raw.media ?? []), ctx.tipId ?? 0) : null,
+    // Only the alert card, and only while the rules switch is on at play time.
+    stayMs: rule?.stayMs ?? null,
     // Both the alert card and the follow-up message card wear the creator's style.
     theme: ctx.features.overlayThemes ? resolveOverlayStyle(raw.style) : null,
     level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
@@ -194,9 +199,9 @@ export async function loadAlertExtras(
   if (o.kind === "alert" && features.alertRules) {
     rules = await safely("the alert rules", [] as AlertRule[], async () => {
       const rows = await db<
-        { id: string; min_paise: number; media_id: string | null; blob_url: string | null; volume: number | null; duration_ms: number | null }[]
+        { id: string; min_paise: number; media_id: string | null; stay_seconds: number | null; blob_url: string | null; volume: number | null; duration_ms: number | null }[]
       >`
-        select r.id::text, r.min_paise, r.media_id::text, s.blob_url, s.volume, s.duration_ms
+        select r.id::text, r.min_paise, r.media_id::text, r.stay_seconds, s.blob_url, s.volume, s.duration_ms
         from alert_rules r
         left join creator_sounds s on s.id = r.sound_id and s.creator_id = r.creator_id
         where r.creator_id = ${o.creatorId}
@@ -205,6 +210,7 @@ export async function loadAlertExtras(
         id: Number(r.id),
         minPaise: r.min_paise,
         mediaId: r.media_id === null ? null : Number(r.media_id),
+        stayMs: r.stay_seconds === null ? null : r.stay_seconds * 1000,
         sound: r.blob_url ? { url: r.blob_url, volume: r.volume ?? 100, ms: r.duration_ms ?? 0 } : null,
       }));
     });

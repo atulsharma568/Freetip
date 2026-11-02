@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { planFeatures } from "../src/lib/plans";
 import { loadAlertExtras, resolveAlertExtras, type Sql } from "../src/lib/alert-extras";
-import { parseRuleRupees, resolveRule, ruleHasEffect, type AlertRule } from "../src/lib/alert-rules";
+import { parseRuleRupees, parseStaySeconds, resolveRule, ruleHasEffect, type AlertRule } from "../src/lib/alert-rules";
 import type { MediaCandidate } from "../src/lib/media";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
@@ -54,6 +54,26 @@ test.describe("which rule a tip gets", () => {
     expect(ruleHasEffect(null, null)).toBe(false);
     expect(ruleHasEffect(3, null)).toBe(true);
     expect(ruleHasEffect(null, 4)).toBe(true);
+  });
+});
+
+test.describe("how long a big tip stays on screen", () => {
+  test("a stay is whole seconds from 10 to 300, and only from ₹1,000 up", () => {
+    expect(parseStaySeconds(null, 500)).toBeNull();
+    expect(parseStaySeconds("", 500)).toBeNull();
+    expect(parseStaySeconds(300, 1000)).toBe(300);
+    expect(parseStaySeconds("60", 5000)).toBe(60);
+    expect(parseStaySeconds(60, 999)).toBeUndefined();
+    for (const bad of [9, 301, 1.5, "abc", -5]) expect(parseStaySeconds(bad, 5000)).toBeUndefined();
+  });
+
+  test("the alert carries the rule's stay, and none without a rule or with the switch off", () => {
+    const ctx = { kind: "alert" as const, features: RULES_ONLY, tipId: 7, amountPaise: 200_000 };
+    expect(resolveAlertExtras({ ...base, rules: [rule(1, 1000, { stayMs: 120_000 })] }, ctx).stayMs).toBe(120_000);
+    expect(resolveAlertExtras({ ...base, rules: [rule(1, 1000)] }, ctx).stayMs).toBeNull();
+    expect(resolveAlertExtras({ ...base, rules: [rule(1, 1000, { stayMs: 120_000 })] }, { ...ctx, amountPaise: 50_000 }).stayMs).toBeNull();
+    expect(resolveAlertExtras({ ...base, rules: [rule(1, 1000, { stayMs: 120_000 })] }, { ...ctx, features: OFF }).stayMs).toBeNull();
+    expect(resolveAlertExtras({ ...base, rules: [rule(1, 1000, { stayMs: 120_000 })] }, { ...ctx, kind: "message" }).stayMs).toBeNull();
   });
 });
 
@@ -190,4 +210,24 @@ test("the loader applies the creator's rules to the tip's amount", async () => {
   const off = await loadAlertExtras(db, { tipId: await tip(70_000), creatorId, kind: "alert" });
   expect(off.sound).toBeNull();
   expect(off.media).toBeNull();
+});
+
+test("migration 0042: the loader reads a rule's stay, and the database refuses a small tip or a stay over 5 minutes", async () => {
+  const pg = await freshDatabase();
+  const u = await pg.query<{ id: string }>(
+    `insert into users (google_id, email, handle, creator_status, paid_features)
+     values ('g2','b@example.com','handle2','active', array['alertRules']) returning id::text`,
+  );
+  const creatorId = Number(u.rows[0].id);
+  await pg.query(`insert into alert_rules (creator_id, min_paise, stay_seconds) values ($1, 100000, 120)`, [creatorId]);
+  await expect(pg.query(`insert into alert_rules (creator_id, min_paise, stay_seconds) values ($1, 50000, 60)`, [creatorId])).rejects.toThrow();
+  await expect(pg.query(`insert into alert_rules (creator_id, min_paise, stay_seconds) values ($1, 200000, 301)`, [creatorId])).rejects.toThrow();
+
+  const t = await pg.query<{ id: string }>(
+    `insert into tip_orders (creator_id, public_reference, gross_amount_minor, status) values ($1,'tip_big',150000,'captured') returning id::text`,
+    [creatorId],
+  );
+  const db = asLedgerDb(pg) as unknown as Sql;
+  const out = await loadAlertExtras(db, { tipId: Number(t.rows[0].id), creatorId, kind: "alert" });
+  expect(out.stayMs).toBe(120_000);
 });

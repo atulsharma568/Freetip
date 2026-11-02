@@ -106,7 +106,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     key: "customAlertMedia",
     label: "Custom alert media",
     group: "Alert box",
-    description: "Upload GIFs, WebM videos and images that play in the OBS alert. A creator's first upload waits for the owner's approval (/admin/media).",
+    description: "Upload GIFs, WebM videos and images that play in the OBS alert. Uploads go live at once; the owner can take any down (/admin/media).",
     built: true,
   },
   {

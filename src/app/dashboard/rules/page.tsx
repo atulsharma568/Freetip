@@ -30,8 +30,8 @@ export default async function RulesPage() {
   const mediaOn = hasFeature(user, "customAlertMedia");
 
   const [rules, sounds, media] = await Promise.all([
-    db<{ id: string; min_paise: number; media_id: string | null; sound_id: string | null }[]>`
-      select id::text, min_paise, media_id::text, sound_id::text
+    db<{ id: string; min_paise: number; media_id: string | null; sound_id: string | null; stay_seconds: number | null }[]>`
+      select id::text, min_paise, media_id::text, sound_id::text, stay_seconds
       from alert_rules where creator_id = ${user.id} order by min_paise
     `,
     db<{ id: string; name: string; emoji: string | null }[]>`
@@ -51,6 +51,7 @@ export default async function RulesPage() {
     id: Number(r.id),
     minRupees: Math.ceil(r.min_paise / 100),
     mediaName: r.media_id === null ? null : (mediaName.get(Number(r.media_id)) ?? "A file that is no longer available"),
+    staySeconds: r.stay_seconds,
     soundName: r.sound_id === null ? null : (soundName.get(Number(r.sound_id)) ?? "A sound that is no longer available"),
   }));
 
@@ -62,7 +63,8 @@ export default async function RulesPage() {
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert rules</h1>
           <p className="text-pretty text-base text-muted">
             Choose what plays for bigger tips. A tip uses the rule with the highest size it
-            reaches. A sound a fan picks themselves always wins over a rule&apos;s sound, and a
+            reaches. For tips of ₹1,000 or more a rule can also keep the alert on screen for up to
+            5 minutes; tips after it wait their turn, and Skip ends it early. A sound a fan picks themselves always wins over a rule&apos;s sound, and a
             tip read aloud by the voice keeps its media but plays no sound.
           </p>
         </div>
