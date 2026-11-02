@@ -10,6 +10,9 @@ export type SupporterKind = "streak" | "top" | "recent";
 type Data = { streak?: Streak; top?: TopSupporter | null; recent?: RecentSupporter[] };
 
 const POLL_MS = 5000;
+// After a 404 (link replaced, or the creator paused) ask only once a minute, so a dead link
+// in OBS does not hammer the server, yet a creator who comes back shows up without a reload.
+const GONE_POLL_MS = 60000;
 
 const rupees = (paise: number) => Math.floor(paise / 100).toLocaleString("en-IN");
 
@@ -26,9 +29,16 @@ export function SupporterOverlay({ token, kind }: { token: string; kind: Support
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
+      let wait = POLL_MS;
       try {
         const res = await fetch(`/api/overlay/${token}/supporters`, { cache: "no-store" });
-        if (!stop && res.ok) {
+        if (res.status === 404) {
+          wait = GONE_POLL_MS;
+          if (!stop) {
+            setData({});
+            setLeft(0);
+          }
+        } else if (!stop && res.ok) {
           const next = (await res.json()) as Data;
           setData(next);
           setLeft(next.streak?.remainingSeconds ?? 0);
@@ -36,7 +46,7 @@ export function SupporterOverlay({ token, kind }: { token: string; kind: Support
       } catch {
         // Keep what is on screen through a network blip.
       }
-      if (!stop) timer = setTimeout(poll, POLL_MS);
+      if (!stop) timer = setTimeout(poll, wait);
     }
     poll();
     return () => {

@@ -14,6 +14,9 @@ interface Goal {
 }
 
 const POLL_MS = 5000;
+// After a 404 (link replaced, or the creator paused) ask only once a minute, so a dead link
+// in OBS does not hammer the server, yet a creator who comes back shows up without a reload.
+const GONE_POLL_MS = 60000;
 // How long the card stays flipped to lime after a goal is reached.
 const REACHED_MS = 6000;
 
@@ -31,13 +34,17 @@ export function GoalBar({ token }: { token: string }) {
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
+      let wait = POLL_MS;
       try {
         const res = await fetch(`/api/overlay/${token}/goal`, { cache: "no-store" });
-        if (!stop && res.ok) setGoals((await res.json()).goals ?? []);
+        if (res.status === 404) {
+          wait = GONE_POLL_MS;
+          if (!stop) setGoals([]);
+        } else if (!stop && res.ok) setGoals((await res.json()).goals ?? []);
       } catch {
         // Keep the last bar on a network blip.
       }
-      if (!stop) timer = setTimeout(poll, POLL_MS);
+      if (!stop) timer = setTimeout(poll, wait);
     }
     poll();
     return () => {

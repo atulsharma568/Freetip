@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, small fixes from the scan pass)
+
+- Done from the "found but not done" list below: Remove goal now asks "Yes, remove it" or "Keep it" first; the goal, supporter and pinned OBS overlays ask once a minute (not every few seconds) after a 404 and clear what they show, so a dead link no longer hammers the server and a creator who comes back needs no OBS reload; `[handle]/loading.tsx` and `[handle]/error.tsx` (slim tip-page frame, retry, says no tip was sent). Sign-out needed no change: the site nav already has it on every page (on phones in the menu, with the Dashboard button always visible).
+- Still not done from that list: loading skeletons per dashboard sub-page, rate-limit gaps, admin balances search and pagination, status colour tokens, creator OG accent, FAQ JSON-LD, sitemap lastModified, em dashes in fan-facing messages. Lint, type check and build pass; not seen in a browser.
+
 ## Current state (2026-11-02, dashboard, admin and public scan pass)
 
 - Three review agents scanned the creator dashboard, the admin and the public pages (read only); the safe fixes are applied: admin balances and earnings link to the creator page, shared `Signed` component (negative money has a mark, not only red), balances status as badges, dead channel link removed, contrast fixes; dashboard rules copy now says "pick", settings voice hint points "above", TipIsland keeps its focus ring, Approve and Reject are 44px, tips list links to the queue; tip page passes the creator's accent to the Razorpay window, pay button `aria-busy`, 404 copy no longer says tip pages are not live.

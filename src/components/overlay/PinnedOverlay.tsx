@@ -6,6 +6,9 @@ import { Bump, PANEL_CSS } from "./panel";
 import { STAGE_CSS, stageStyle, useStageSize } from "./stage";
 
 const POLL_MS = 3000;
+// After a 404 (link replaced, or the creator paused) ask only once a minute, so a dead link
+// in OBS does not hammer the server, yet a creator who comes back shows up without a reload.
+const GONE_POLL_MS = 60000;
 
 const rupees = (paise: number) => Math.floor(paise / 100).toLocaleString("en-IN");
 
@@ -26,9 +29,16 @@ export function PinnedOverlay({ token }: { token: string }) {
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
+      let wait = POLL_MS;
       try {
         const res = await fetch(`/api/overlay/${token}/pinned`, { cache: "no-store" });
-        if (!stop && res.ok) {
+        if (res.status === 404) {
+          wait = GONE_POLL_MS;
+          if (!stop) {
+            setCard(null);
+            setLeft(0);
+          }
+        } else if (!stop && res.ok) {
           const next = (await res.json()) as { pinned: PinnedCard | null };
           setCard(next.pinned);
           setLeft(next.pinned?.secondsLeft ?? 0);
@@ -38,7 +48,7 @@ export function PinnedOverlay({ token }: { token: string }) {
       } catch {
         // Keep what is on screen through a network blip.
       }
-      if (!stop) timer = setTimeout(poll, POLL_MS);
+      if (!stop) timer = setTimeout(poll, wait);
     }
     poll();
     return () => {
