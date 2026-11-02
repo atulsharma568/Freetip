@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, search and paging on admin balances and earnings)
+
+- `/admin/finance/balances` and `/admin/finance/creators` (earnings) now have a search box (name and handle; the earnings page also matches the YouTube channel) and 25 rows a page with Previous and Next. The rows are still read in full, so the cards on balances and the footer totals on earnings stay correct: cards count everyone, the earnings footer adds up everyone who matches the search (marked "matching") and not only the page shown. Changing the date range on earnings returns to page 1 (`DateRangeNav` drops `page`). Shared pieces: `src/lib/admin/list-view.ts` (tested in `test/admin-list-view.spec.ts`), `admin/_components/ListSearch.tsx`, the existing `Pager`. Lint, type check and build pass; not seen in a browser.
+- Still not done: status colour tokens on the admin pages.
+
 ## Current state (2026-11-02, dashboard sub-page loading screens)
 
 - Each dashboard sub-page (Tips, Recap, Sounds, Media, Rules, Style, Pinned, Fans, Timestamps, Streamlabs) now has its own `loading.tsx`, all using `parts/SubPageLoading.tsx`: the narrow single column those pages use (`wide` for Style and Pinned), so the wide overview skeleton no longer flashes and then jumps. The overview keeps `dashboard/loading.tsx`. Also: Remove goal now uses the existing `parts/ConfirmAction` (focus moves to the answer, the question names the goal) instead of my own two buttons from earlier today.

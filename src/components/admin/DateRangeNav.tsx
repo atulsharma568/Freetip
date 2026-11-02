@@ -22,6 +22,8 @@ export function DateRangeNav({ current }: { current: RangePreset }) {
   function hrefFor(preset: RangePreset) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("range", preset);
+    // A different period has a different number of pages.
+    params.delete("page");
     return `${pathname}?${params.toString()}`;
   }
 

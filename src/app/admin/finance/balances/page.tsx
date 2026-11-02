@@ -9,7 +9,17 @@ import { formatINR } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import { HOLD_DAYS_NEW_CREATOR, HOLD_DAYS_OTHER, HOLD_DAYS_UPI } from "@/lib/balances";
 import { requireOwner } from "@/lib/owner-auth";
+import {
+  listHref,
+  pageOfRows,
+  parseListQuery,
+  ROWS_PER_PAGE,
+  searchRows,
+  type ListQuery,
+} from "@/lib/admin/list-view";
 import { CouldNotRead, DefinitionNote, FinanceNotSetUp } from "../../_components/Notices";
+import { ListSearch } from "../../_components/ListSearch";
+import { Pager } from "../../_components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +27,15 @@ function fmt(date: Date | null): string {
   return fmtIST(date, "date");
 }
 
-export default async function CreatorBalancesPage() {
+const PATH = "/admin/finance/balances";
+
+export default async function CreatorBalancesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
   await requireOwner();
+  const query = parseListQuery(await searchParams);
   const db = adminDb();
   const result = db ? await getCreatorBalances(db) : null;
 
@@ -48,14 +65,17 @@ export default async function CreatorBalancesPage() {
           description="A creator appears here once a live tip has been posted to the ledger. Test-mode tips are never counted."
         />
       ) : (
-        <Body summary={result.data} />
+        <Body summary={result.data} query={query} />
       )}
     </div>
   );
 }
 
-function Body({ summary }: { summary: BalancesSummary }) {
+function Body({ summary, query }: { summary: BalancesSummary; query: ListQuery }) {
+  // The cards count every creator; only the table below is searched and paged.
   const { rows } = summary;
+  const found = searchRows(rows, query.q, (r) => [r.name, r.handle]);
+  const shown = pageOfRows(found, query.page);
   const sum = (pick: (r: CreatorBalanceRow) => number) => rows.reduce((s, r) => s + pick(r), 0);
   const payable = rows.filter((r) => r.payableNow);
 
@@ -83,66 +103,87 @@ function Body({ summary }: { summary: BalancesSummary }) {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-surface border border-control">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-control bg-raised">
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Creator</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Balance</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Held</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Available</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Next release</th>
-              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-control bg-surface">
-            {rows.map((r) => (
-              <tr key={r.creatorId} className="transition-colors hover:bg-raised">
-                <td className="px-4 py-3">
-                  <Link href={`/admin/creators/${r.creatorId}`} className="font-medium text-text hover:text-accent">
-                    {r.name ?? "—"}
-                  </Link>
-                  {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                  <Signed minor={r.balanceMinor} />
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
-                  {formatINR(r.heldMinor)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
-                  {formatINR(r.availableMinor)}
-                </td>
-                <td className="px-4 py-3 text-right text-muted">{fmt(r.nextReleaseAt)}</td>
-                <td className="px-4 py-3 text-xs">
-                  {(() => {
-                    const [label, tone]: [string, Tone] =
-                      r.balanceMinor < 0
-                        ? ["Owes us", "bad"]
-                        : r.payableNow
-                          ? ["Ready", "good"]
-                          : r.creatorStatus !== "active"
-                            ? [`Creator ${r.creatorStatus}`, "warn"]
-                            : !r.hasUpiId
-                              ? ["No UPI ID", "warn"]
-                              : r.availableMinor < summary.minPayoutMinor
-                                ? ["Below minimum", "neutral"]
-                                : ["—", "neutral"];
-                    return (
-                      <span className="inline-flex flex-wrap items-center gap-1.5">
-                        <span className={`rounded-full px-2 py-0.5 font-medium ${TONE_BADGE[tone]}`}>{label}</span>
-                        {!r.hasCompletedPayout && r.balanceMinor >= 0 && (
-                          <span className="rounded-full bg-raised px-2 py-0.5 text-muted">First payout</span>
-                        )}
-                      </span>
-                    );
-                  })()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ListSearch
+        action={PATH}
+        q={query.q}
+        label="Search creators"
+        placeholder="Search name or handle"
+      />
+
+      {found.length === 0 ? (
+        <p className="text-sm text-muted">No creator matches “{query.q}”.</p>
+      ) : (
+        <div className="space-y-3">
+          <Pager
+            page={shown.page}
+            pageSize={ROWS_PER_PAGE}
+            total={shown.total}
+            shown={shown.rows.length}
+            noun="creator"
+            hrefFor={(p) => listHref(PATH, {}, query.q, p)}
+          />
+          <div className="overflow-x-auto rounded-surface border border-control">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-control bg-raised">
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Creator</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Balance</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Held</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Available</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium text-muted">Next release</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-control bg-surface">
+                {shown.rows.map((r) => (
+                  <tr key={r.creatorId} className="transition-colors hover:bg-raised">
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/creators/${r.creatorId}`} className="font-medium text-text hover:text-accent">
+                        {r.name ?? "—"}
+                      </Link>
+                      {r.handle && <p className="text-xs text-muted">@{r.handle}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                      <Signed minor={r.balanceMinor} />
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-text">
+                      {formatINR(r.heldMinor)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums font-semibold text-text">
+                      {formatINR(r.availableMinor)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted">{fmt(r.nextReleaseAt)}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {(() => {
+                        const [label, tone]: [string, Tone] =
+                          r.balanceMinor < 0
+                            ? ["Owes us", "bad"]
+                            : r.payableNow
+                              ? ["Ready", "good"]
+                              : r.creatorStatus !== "active"
+                                ? [`Creator ${r.creatorStatus}`, "warn"]
+                                : !r.hasUpiId
+                                  ? ["No UPI ID", "warn"]
+                                  : r.availableMinor < summary.minPayoutMinor
+                                    ? ["Below minimum", "neutral"]
+                                    : ["—", "neutral"];
+                        return (
+                          <span className="inline-flex flex-wrap items-center gap-1.5">
+                            <span className={`rounded-full px-2 py-0.5 font-medium ${TONE_BADGE[tone]}`}>{label}</span>
+                            {!r.hasCompletedPayout && r.balanceMinor >= 0 && (
+                              <span className="rounded-full bg-raised px-2 py-0.5 text-muted">First payout</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   );
 }
