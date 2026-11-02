@@ -4,6 +4,7 @@ import { SlidingNav } from "./parts/SlidingNav";
 const LINKS = [
   { key: "overview", href: "/dashboard", label: "Overview" },
   { key: "tips", href: "/dashboard/tips", label: "Tips" },
+  { key: "recap", href: "/dashboard/recap", label: "Recap" },
   { key: "sounds", href: "/dashboard/sounds", label: "Sounds" },
   { key: "media", href: "/dashboard/media", label: "Media" },
   { key: "rules", href: "/dashboard/rules", label: "Rules" },
@@ -16,7 +17,7 @@ const LINKS = [
 // Section links shared by the dashboard pages. Alerts and settings stay on the
 // overview page, below the numbers. Timestamps, Media, Rules, Style and Fans show only for creators they are
 // switched on for.
-export async function DashboardNav({ current }: { current: "overview" | "tips" | "sounds" | "media" | "rules" | "style" | "pinned" | "fans" | "timestamps" }) {
+export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "style" | "pinned" | "fans" | "timestamps" }) {
   const features = await getSessionFeatures();
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "media" || features.customAlertMedia) &&

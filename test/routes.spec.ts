@@ -62,6 +62,13 @@ test.describe("creator dashboard routes", () => {
     expect(response.headers().location).toBe("/signin");
   });
 
+  test("the recap page redirects signed-out visitors to sign-in", async ({ request }) => {
+    const response = await request.get("/dashboard/recap", { maxRedirects: 0 });
+
+    expect(response.status()).toBe(307);
+    expect(response.headers().location).toBe("/signin");
+  });
+
   test("the CSV export refuses signed-out visitors", async ({ request }) => {
     const response = await request.get("/api/dashboard/tips/export?range=7d");
 

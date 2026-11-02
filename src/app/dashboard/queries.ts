@@ -7,6 +7,7 @@ import {
   estimateShare,
   type TipsQuery,
 } from "@/lib/earnings";
+import { RECAP_DAYS, RECAP_MAX_STREAMS, RECAP_MAX_TIPS, groupStreams, type StreamRecap } from "@/lib/stream-recap";
 
 export type OverviewKey = "today" | "7d" | "30d" | "all";
 
@@ -180,4 +181,28 @@ export async function loadTipsForExport(
     tips: rows.slice(0, EXPORT_MAX_ROWS).map(toTipRow),
     truncated: rows.length > EXPORT_MAX_ROWS,
   };
+}
+
+// The creator's latest streams for the recap page: captured tips from the last
+// RECAP_DAYS days grouped into streams (see stream-recap.ts). Capped so one very
+// busy creator cannot make the page read an unbounded table.
+export async function loadRecapStreams(creatorId: number): Promise<StreamRecap[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db<{ captured_at: Date; fan_name: string | null; gross_amount_minor: string }[]>`
+    select captured_at, fan_name, gross_amount_minor
+    from tip_orders
+    where creator_id = ${creatorId}
+      and status = 'captured'
+      and captured_at is not null
+      and captured_at > now() - make_interval(days => ${RECAP_DAYS})
+    order by captured_at desc
+    limit ${RECAP_MAX_TIPS}
+  `;
+  const tips = rows.map((r) => ({
+    capturedAt: r.captured_at,
+    name: r.fan_name,
+    amountPaise: Number(r.gross_amount_minor),
+  }));
+  return groupStreams(tips).slice(0, RECAP_MAX_STREAMS);
 }
