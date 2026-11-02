@@ -6,6 +6,7 @@ import type { AlertRule } from "@/lib/alert-rules";
 import { resolveOverlayStyle, type OverlayStyle } from "@/lib/overlay-themes";
 import { baseColours, resolveAlertText, type AlertText } from "@/lib/alert-text";
 import { resolveAlertMotion, type AlertMotion } from "@/lib/alert-motion";
+import { pickVariation, variationStayMs, variationText, type AlertVariation } from "@/lib/alert-variations";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
 import { istMonthDay, resolveBirthday } from "@/lib/birthday";
 
@@ -72,6 +73,9 @@ export type RawExtras = {
   alertText?: { value: unknown; accent: string | null } | null;
   // The creator's stored animations, length and pause (alert animations and timing).
   alertMotion?: unknown;
+  // The creator's automatic variations, this tip's size and whether the fan picked an alert
+  // rule on the tip page (alert variations by tip size). A pick means no variation.
+  variations?: { list: readonly AlertVariation[]; amountPaise: number; picked: boolean } | null;
   // The fan's points now and what this tip added (fan levels).
   fan?: { xp: number; tipXp: number } | null;
   // The creator's greeting and the fan's birthday and name on this tip (birthday message).
@@ -89,8 +93,19 @@ export function resolveAlertExtras(
       ? ((raw.rules ?? []).find((r) => r.id === raw.pickedRuleId) ?? null)
       : null;
 
-  // The fan's own pick wins over the rule's sound, which wins over the creator's default.
+  // The variation for this tip's size: only the alert card or the message card of a tip with
+  // no rule pick, and only while the creator's switch is on at play time. Its parts are each
+  // checked against their own switch below.
+  const variation =
+    ctx.features.alertVariations && raw.variations && !raw.variations.picked
+      ? pickVariation(raw.variations.list, raw.variations.amountPaise)
+      : null;
+  const alertVariation = ctx.kind === "alert" ? variation : null;
+
+  // The fan's own pick wins over the rule's sound, which wins over the variation's, which
+  // wins over the creator's default.
   const ruleSound = rule && !raw.soundPicked ? rule.sound : null;
+  const variationSound = alertVariation && !raw.soundPicked ? alertVariation.sound : null;
 
   // A rule's media plays when that file is playable and the media switch is on; if it
   // is not (switched off, held, deleted) the tip falls back to the normal rotation.
@@ -99,28 +114,42 @@ export function resolveAlertExtras(
     mediaOn && rule?.mediaId != null
       ? (raw.media ?? []).find((m) => m.id === rule.mediaId && playable(m))
       : undefined;
+  // A variation's media works the same way: a file that is not playable falls back to the
+  // normal rotation.
+  const variationFile =
+    mediaOn && alertVariation?.mediaId != null
+      ? (raw.media ?? []).find((m) => m.id === alertVariation.mediaId && playable(m))
+      : undefined;
+  const chosenFile = ruleFile ?? variationFile;
+
+  // The creator's standard text, and the variation's on top of it (the wording only while the
+  // text switch is on). The colours are checked against the card they will sit on.
+  const textBase = raw.alertText
+    ? baseColours(ctx.features.overlayThemes ? raw.style?.theme : null, raw.alertText.accent)
+    : null;
+  const standardText = textBase && raw.alertText ? resolveAlertText(raw.alertText.value, textBase) : null;
 
   return {
     voiceRequested: raw.voiceRequested,
     bannedWords: raw.bannedWords,
     // A voice tip has no sound at all, not even the default; only the alert card has
     // one, not the follow-up message card.
-    sound: ctx.kind === "alert" && !raw.voiceRequested ? (ruleSound ?? raw.sound) : null,
+    sound: ctx.kind === "alert" && !raw.voiceRequested ? (ruleSound ?? variationSound ?? raw.sound) : null,
     // A voice tip may still show media (only its sound is dropped). Only the alert
     // card has media, and only while the creator's switch is on at play time.
-    media: mediaOn ? pickMedia(ruleFile ? [ruleFile] : (raw.media ?? []), ctx.tipId ?? 0) : null,
-    // Only the alert card, and only while the rules switch is on at play time.
-    stayMs: rule?.stayMs ?? null,
+    media: mediaOn ? pickMedia(chosenFile ? [chosenFile] : (raw.media ?? []), ctx.tipId ?? 0) : null,
+    // Only the alert card, and only while the rules switch is on at play time; a variation's
+    // stay only from the big-tip size up.
+    stayMs: rule?.stayMs ?? (alertVariation ? variationStayMs(alertVariation) : null),
     // Both the alert card and the follow-up message card wear the creator's style.
     theme: ctx.features.overlayThemes ? resolveOverlayStyle(raw.style) : null,
     // Both cards too: the creator's colours and text size apply to the follow-up message card,
     // the headline only to the alert card (see the overlay).
     text:
-      ctx.features.alertText && raw.alertText
-        ? resolveAlertText(
-            raw.alertText.value,
-            baseColours(ctx.features.overlayThemes ? raw.style?.theme : null, raw.alertText.accent),
-          )
+      ctx.features.alertText && textBase
+        ? variation
+          ? variationText(variation.text, standardText, textBase)
+          : standardText
         : null,
     // Both cards come and go the creator's way; the length and pause apply to both too.
     motion: ctx.features.alertMotion ? resolveAlertMotion(raw.alertMotion) : null,
@@ -273,6 +302,39 @@ export async function loadAlertExtras(
       })
     : null;
 
+  // The creator's variations (migration 0046), this tip's size and whether the fan picked a
+  // rule, read only when the feature is on. Each in its own try, so a missing table only
+  // drops the variations.
+  const variations = features.alertVariations
+    ? await safely("the alert variations", null as { list: AlertVariation[]; amountPaise: number; picked: boolean } | null, async () => {
+        const [tip] = await db<{ gross_amount_minor: string; alert_rule_id: string | null }[]>`
+          select gross_amount_minor::text, alert_rule_id::text from tip_orders where id = ${o.tipId}
+        `;
+        if (!tip) return null;
+        const rows = await db<
+          { id: string; min_paise: number; media_id: string | null; text: unknown; stay_seconds: number | null; blob_url: string | null; volume: number | null; duration_ms: number | null }[]
+        >`
+          select v.id::text, v.min_paise, v.media_id::text, v.text, v.stay_seconds, s.blob_url, s.volume, s.duration_ms
+          from alert_variations v
+          left join creator_sounds s on s.id = v.sound_id and s.creator_id = v.creator_id
+          where v.creator_id = ${o.creatorId}
+          order by v.min_paise
+        `;
+        return {
+          amountPaise: Number(tip.gross_amount_minor),
+          picked: tip.alert_rule_id !== null,
+          list: rows.map((r) => ({
+            id: Number(r.id),
+            minPaise: r.min_paise,
+            mediaId: r.media_id === null ? null : Number(r.media_id),
+            text: r.text,
+            stayMs: r.stay_seconds === null ? null : r.stay_seconds * 1000,
+            sound: r.blob_url ? { url: r.blob_url, volume: r.volume ?? 100, ms: r.duration_ms ?? 0 } : null,
+          })),
+        };
+      })
+    : null;
+
   // The fan's points (migration 0038), read only when fan levels are on for the creator.
   // The tip's own counted points tell whether it raised the level.
   const fan =
@@ -304,7 +366,7 @@ export async function loadAlertExtras(
       : null;
 
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, fan, birthdayInfo },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, variations, fan, birthdayInfo },
     { kind: o.kind, features, tipId: o.tipId },
   );
 }

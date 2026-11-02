@@ -31,7 +31,8 @@ export type FeatureKey =
   | "streamlabs"
   // Streamlabs-style alert settings (docs/alert-studio-plan.md).
   | "alertText"
-  | "alertMotion";
+  | "alertMotion"
+  | "alertVariations";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -187,6 +188,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Alert animations and timing",
     group: "Alert box",
     description: "The creator picks how the card comes in and leaves (wipe, fade, slide, zoom, bounce), how long it stays (5 to 30 seconds, never shorter than the voice, sound or video needs) and a pause between alerts (/dashboard/motion). Reduced motion always gets a plain fade.",
+    built: true,
+  },
+  {
+    key: "alertVariations",
+    label: "Alert variations by tip size",
+    group: "Alert box",
+    description: "From a tip size up, the alert automatically plays the creator's chosen media, sound, wording and colours and can stay longer (/dashboard/variations). A fan's own pick (an alert rule or a soundboard sound) always wins. Media needs custom alert media, wording and colours need alert text and colours; each is shown only while its own switch is on.",
     built: true,
   },
 ];

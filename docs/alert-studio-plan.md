@@ -51,7 +51,8 @@ Owner request, 2026-11-02: add the kind of controls Streamlabs gives for its don
 
 - Item 1, alert text and colours: built 2026-11-02 (`alertText`, migration 0044, `/dashboard/text`, `src/lib/alert-text.ts`); details in `PROGRESS.md`. One change from the proposal: the headline may use `{name}` once (required) and `{amount}` (optional); the message card keeps "Name says".
 - Item 2, animations and timing: built 2026-11-02 (`alertMotion`, migration 0045, `/dashboard/motion`, `src/lib/alert-motion.ts`); details in `PROGRESS.md`. Changes from the proposal: no "delay before the message appears" (the spoken words are lit in time with the voice, and a delayed message would drift from it); the length is chosen from 5, 8, 12, 20 and 30 seconds, and the pause between alerts from 2, 5 and 10.
-- Items 3 and 4: not built.
+- Item 3, automatic variations by tip size: built 2026-11-02 (`alertVariations`, migration 0046, table `alert_variations`, `/dashboard/variations`, `src/lib/alert-variations.ts`); details in `PROGRESS.md`. A separate table, not a flag on `alert_rules`, so fan picks and variations never mix.
+- Item 4: not built.
 
 ## What was to decide (answered above)
 
