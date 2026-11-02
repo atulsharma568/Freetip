@@ -28,7 +28,7 @@ export function DatabaseNotSetUp() {
 // 0023, for the money pages); `detail` is the database's own error.
 export function CouldNotRead({ detail, message }: { detail?: string; message?: string }) {
   return (
-    <div role="alert" className="rounded-surface border border-red-400/50 bg-surface p-5">
+    <div role="alert" className="rounded-surface border border-bad/50 bg-surface p-5">
       <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${TONE_TEXT.bad}`}>
         <span aria-hidden="true">{TONE_MARK.bad} </span>Could not read
       </p>

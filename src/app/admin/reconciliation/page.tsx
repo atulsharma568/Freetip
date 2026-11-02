@@ -237,7 +237,7 @@ function RunsBlock({ summary }: { summary: Loaded<ReconciliationSummary> }) {
                       {item.observedMinor != null ? formatINR(item.observedMinor) : "—"}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right font-mono tabular-nums ${variance != null && variance !== 0 ? "text-red-300" : "text-muted"}`}
+                      className={`px-4 py-3 text-right font-mono tabular-nums ${variance != null && variance !== 0 ? "text-bad" : "text-muted"}`}
                     >
                       {variance != null
                         ? `${variance >= 0 ? "+" : "-"}${formatINR(Math.abs(variance))}`

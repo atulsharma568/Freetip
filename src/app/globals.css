@@ -10,6 +10,10 @@
   --color-muted: oklch(0.74 0.01 110);
   --color-accent: #bfe84a;
   --color-ink: oklch(0.2 0.025 120);
+  /* Status hues for the owner console and form errors. Always paired with a mark and a word,
+     never colour alone. Both read at 9:1 or better on the ground. */
+  --color-warn: oklch(0.879 0.169 91.6);
+  --color-bad: oklch(0.808 0.114 19.6);
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --radius-surface: 1.25rem;

@@ -7,22 +7,22 @@ export type Tone = "good" | "warn" | "bad" | "neutral";
 
 export const TONE_BADGE: Record<Tone, string> = {
   good: "bg-accent/15 text-accent",
-  warn: "bg-amber-400/15 text-amber-300",
-  bad: "bg-red-400/15 text-red-300",
+  warn: "bg-warn/15 text-warn",
+  bad: "bg-bad/15 text-bad",
   neutral: "bg-raised text-muted",
 };
 
 export const TONE_TEXT: Record<Tone, string> = {
   good: "text-accent",
-  warn: "text-amber-300",
-  bad: "text-red-300",
+  warn: "text-warn",
+  bad: "text-bad",
   neutral: "text-muted",
 };
 
 export const TONE_BORDER: Record<Tone, string> = {
   good: "border-accent/40",
-  warn: "border-amber-400/40",
-  bad: "border-red-400/50",
+  warn: "border-warn/40",
+  bad: "border-bad/50",
   neutral: "border-control",
 };
 
@@ -77,7 +77,7 @@ export type ButtonSize = "sm" | "md";
 const BUTTON_TONE: Record<ButtonTone, string> = {
   primary: "bg-accent text-ink hover:bg-accent/90",
   quiet: "border border-control text-muted hover:border-text/40 hover:text-text",
-  danger: "border border-red-400/50 text-red-300 hover:bg-red-400/10",
+  danger: "border border-bad/50 text-bad hover:bg-bad/10",
 };
 const BUTTON_SIZE: Record<ButtonSize, string> = {
   sm: "min-h-9 px-3 text-xs",

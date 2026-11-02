@@ -33,7 +33,7 @@ export function SignUpForm() {
         </GoogleButton>
 
         {error && (
-          <p role="alert" className="text-sm font-medium text-red-400">
+          <p role="alert" className="text-sm font-medium text-bad">
             {error}
           </p>
         )}

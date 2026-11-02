@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, status colour tokens and owner console polish)
+
+- Status colours are now theme tokens: `--color-warn` and `--color-bad` in `globals.css` (used as `text-warn`, `bg-bad/15` and so on), replacing the raw amber and red classes in `tones.ts`, the admin error and notice boxes, reconciliation, and the sign-in, sign-up and contact form errors (those were red-400, now the slightly lighter `bad`). No raw red or amber classes are left in `src`.
+- Owner console, how it looks and how you reach things: a creator finder at the top of the sidebar on every page (press `/` to jump to it; it opens the creators list searched across every tab; works without scripts); the sidebar stays in view while scrolling on wide screens; an icon beside each nav item; a Live, Test or No payment key badge in the header on every page (`src/lib/admin/key-mode.ts`, also used by the overview); the title links to the overview. The overview now starts with a count line ("4 waiting for you" or "Nothing waiting"), cards that show "All clear" when empty and a lime edge and arrow when something waits, then Current state, then the "Go to" cards.
+- Checked: lint, type check, build, and 582 logic tests pass. NOT checked: the 115 browser specs cannot run on this Mac (the Playwright browser is not installed and the download times out here), so nothing was seen in a browser, including the overlay changes from earlier today. Run `npx playwright install chromium-headless-shell` on a network that allows it, then `npm run test:e2e`.
+- Nothing left from the scan-pass list.
+
 ## Current state (2026-11-02, search and paging on admin balances and earnings)
 
 - `/admin/finance/balances` and `/admin/finance/creators` (earnings) now have a search box (name and handle; the earnings page also matches the YouTube channel) and 25 rows a page with Previous and Next. The rows are still read in full, so the cards on balances and the footer totals on earnings stay correct: cards count everyone, the earnings footer adds up everyone who matches the search (marked "matching") and not only the page shown. Changing the date range on earnings returns to page 1 (`DateRangeNav` drops `page`). Shared pieces: `src/lib/admin/list-view.ts` (tested in `test/admin-list-view.spec.ts`), `admin/_components/ListSearch.tsx`, the existing `Pager`. Lint, type check and build pass; not seen in a browser.

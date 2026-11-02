@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { badgesFrom, getQueue } from "@/lib/admin/queue";
+import { razorpayKeyMode } from "@/lib/admin/key-mode";
 import { adminDb } from "@/lib/admin/server-db";
+import { TONE_BADGE, TONE_MARK } from "@/components/admin/tones";
 import { requireOwner } from "@/lib/owner-auth";
 import { AdminNav } from "./_components/AdminNav";
 
@@ -19,6 +21,7 @@ export default async function AdminLayout({
   // has no badge (the overview says "could not read" for it).
   const db = adminDb();
   const badges = db ? badgesFrom(await getQueue(db)) : {};
+  const keyMode = razorpayKeyMode();
 
   return (
     <div className="min-h-dvh bg-ground text-text">
@@ -29,17 +32,27 @@ export default async function AdminLayout({
         Skip to the page
       </a>
       <header className="border-b border-control bg-surface">
-        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-6 px-6">
-          <div>
+        <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-2">
+          <Link href="/admin" className="group block py-1">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Freetip</p>
-            <p className="display text-xl">Owner console</p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex min-h-11 items-center rounded-full border border-control px-4 text-sm text-muted transition-colors hover:border-text/40 hover:text-text"
-          >
-            Creator view
+            <p className="display text-xl transition-colors group-hover:text-accent">Owner console</p>
           </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Test money looks like real money on every other page, so say which this is. */}
+            <p
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium ${TONE_BADGE[keyMode.tone]}`}
+              title={keyMode.long}
+            >
+              {TONE_MARK[keyMode.tone] && <span aria-hidden="true">{TONE_MARK[keyMode.tone]}</span>}
+              {keyMode.short}
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center rounded-full border border-control px-4 text-sm text-muted transition-colors hover:border-text/40 hover:text-text"
+            >
+              Creator view
+            </Link>
+          </div>
         </div>
       </header>
 

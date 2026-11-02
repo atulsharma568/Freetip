@@ -13,7 +13,7 @@ import {
 } from "@/lib/contact";
 
 const FIELD =
-  "w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted/70 focus:border-accent focus:outline-none transition-[border-color] aria-[invalid=true]:border-red-400";
+  "w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text placeholder:text-muted/70 focus:border-accent focus:outline-none transition-[border-color] aria-[invalid=true]:border-bad";
 
 const IDS: Record<ContactField, string> = {
   name: "contact-name",
@@ -174,7 +174,7 @@ export function ContactForm() {
         </p>
       </div>
 
-      <p id="contact-status" aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm text-red-400">
+      <p id="contact-status" aria-live="polite" aria-atomic="true" className="min-h-[1.25rem] text-sm text-bad">
         {pending ? "" : contactMessage(state)}
       </p>
 

@@ -17,8 +17,8 @@ export default function AdminError({
   }, [error]);
 
   return (
-    <div role="alert" className="space-y-4 rounded-surface border border-red-400/50 bg-surface p-6">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">
+    <div role="alert" className="space-y-4 rounded-surface border border-bad/50 bg-surface p-6">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-bad">
         <span aria-hidden="true">▲ </span>This page broke
       </p>
       <p className="max-w-2xl text-sm text-text">
