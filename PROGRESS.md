@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, em dashes out of fan-facing messages)
+
+- The tip page's error messages (`src/app/actions/tip.ts`, `TipForm.tsx`) and the preview banner no longer use an em dash; each is now two short sentences. The "Tip ₹—" button placeholder stays (it is a blank, not punctuation). Creator-dashboard and admin messages still say "— try again shortly" in about thirty places; not changed because the scan pass only flagged fan-facing text.
+- Still not done: loading skeletons per dashboard sub-page, admin balances search and pagination, status colour tokens.
+
 ## Current state (2026-11-02, sitemap dates and creator preview colour)
 
 - The sitemap now gives the policy pages a `lastmod` taken from `LEGAL_UPDATED` (1 November 2026); the home page gets none, because "now" on every build would claim everything changed. A creator's link preview image (`[handle]/opengraph-image.tsx`) now uses the creator's own accent colour on the name and the pill (`renderOg` takes an `accent`; the ink on the pill follows the colour); other previews keep the lime. The sitemap output was read; the preview image was not looked at.

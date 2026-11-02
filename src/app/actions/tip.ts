@@ -75,16 +75,16 @@ export async function createTipOrder(
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {
-    return { status: "error", message: "Payments are not configured yet — try again later" };
+    return { status: "error", message: "Payments are not configured yet. Try again later." };
   }
 
   const db = getDb();
-  if (!db) return { status: "error", message: "Service unavailable — try again shortly" };
+  if (!db) return { status: "error", message: "Service unavailable. Try again shortly." };
 
   if (!(await underOrderLimit(db))) {
     return {
       status: "error",
-      message: "Too many tips started from your network — please try again in a little while",
+      message: "Too many tips started from your network. Please try again in a little while.",
     };
   }
 
@@ -262,13 +262,13 @@ export async function createTipOrder(
     if (!rzRes.ok) {
       const body = await rzRes.text().catch(() => "");
       console.error("Razorpay order creation failed", rzRes.status, body);
-      return { status: "error", message: "Could not start payment — try again shortly" };
+      return { status: "error", message: "Could not start payment. Try again shortly." };
     }
     const rzOrder = (await rzRes.json()) as { id: string };
     razorpayOrderId = rzOrder.id;
   } catch (err) {
     console.error("Razorpay order creation error", err);
-    return { status: "error", message: "Could not start payment — try again shortly" };
+    return { status: "error", message: "Could not start payment. Try again shortly." };
   }
 
   // Persist order + payment attempt before the fan can pay. The webhook can only
@@ -331,7 +331,7 @@ export async function createTipOrder(
     }
   } catch (err) {
     console.error("DB persist error for tip order", razorpayOrderId, err);
-    return { status: "error", message: "Service unavailable — try again shortly" };
+    return { status: "error", message: "Service unavailable. Try again shortly." };
   }
 
   return { status: "ok", razorpayOrderId, razorpayKeyId: keyId, amountPaise };

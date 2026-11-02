@@ -313,7 +313,7 @@ export function TipForm({
       );
     } catch {
       setPhase("error");
-      setErrorMsg("Could not start payment — check your connection and try again");
+      setErrorMsg("Could not start payment. Check your connection and try again.");
       return;
     }
 
@@ -327,7 +327,7 @@ export function TipForm({
       await loadRazorpayScript();
     } catch {
       setPhase("error");
-      setErrorMsg("Could not load payment — check your connection and try again");
+      setErrorMsg("Could not load payment. Check your connection and try again.");
       return;
     }
 
@@ -362,7 +362,7 @@ export function TipForm({
       rzp.open();
     } catch {
       setPhase("error");
-      setErrorMsg("Could not open payment — try again");
+      setErrorMsg("Could not open payment. Try again.");
     }
   }
 
@@ -415,7 +415,7 @@ export function TipForm({
       {/* Preview banner for the creator */}
       {previewMode && (
         <div className="enter mb-8 space-y-1 rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4">
-          <p className="text-sm font-semibold text-text">Preview — your page isn&apos;t live yet.</p>
+          <p className="text-sm font-semibold text-text">Preview: your page isn&apos;t live yet.</p>
           <p className="text-sm text-muted">This is exactly what fans will see once you go live.</p>
         </div>
       )}
