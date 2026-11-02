@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, dashboard sub-page loading screens)
+
+- Each dashboard sub-page (Tips, Recap, Sounds, Media, Rules, Style, Pinned, Fans, Timestamps, Streamlabs) now has its own `loading.tsx`, all using `parts/SubPageLoading.tsx`: the narrow single column those pages use (`wide` for Style and Pinned), so the wide overview skeleton no longer flashes and then jumps. The overview keeps `dashboard/loading.tsx`. Also: Remove goal now uses the existing `parts/ConfirmAction` (focus moves to the answer, the question names the goal) instead of my own two buttons from earlier today.
+- Still not done: admin balances search and pagination, status colour tokens. Not seen in a browser.
+
 ## Current state (2026-11-02, em dashes out of fan-facing messages)
 
 - The tip page's error messages (`src/app/actions/tip.ts`, `TipForm.tsx`) and the preview banner no longer use an em dash; each is now two short sentences. The "Tip ₹—" button placeholder stays (it is a blank, not punctuation). Creator-dashboard and admin messages still say "— try again shortly" in about thirty places; not changed because the scan pass only flagged fan-facing text.

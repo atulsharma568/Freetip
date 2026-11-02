@@ -4,9 +4,10 @@ import { useActionState, useId, useState, useTransition } from "react";
 import { removeGoal, saveGoal, type GoalResult } from "@/app/actions/goal";
 import { GOAL_TIMEZONES, GOAL_TITLE_MAX, MAX_GOALS, REPEAT_LABEL, type GoalRepeat } from "@/lib/goal";
 import { RollText } from "@/components/motion/RollText";
+import { ConfirmAction } from "./parts/ConfirmAction";
 import { SelectField, Toggle } from "./parts/Controls";
 import { Msg } from "./parts/Msg";
-import { field as fieldClass, pillOutline, pillPrimary, pillText } from "./parts/styles";
+import { field as fieldClass, pillOutline, pillPrimary } from "./parts/styles";
 
 export interface GoalView {
   id: number;
@@ -56,7 +57,6 @@ function GoalForm({ goal }: { goal?: GoalView }) {
   const [state, action, pending] = useActionState<GoalResult | null, FormData>(saveGoal, null);
   const [removed, setRemoved] = useState<GoalResult | null>(null);
   const [removing, startRemove] = useTransition();
-  const [confirming, setConfirming] = useState(false);
   const [repeat, setRepeat] = useState<GoalRepeat>(goal?.repeat ?? "never");
   const [carry, setCarry] = useState(goal?.carryOver ?? false);
   const shown = removed ?? state;
@@ -154,25 +154,16 @@ function GoalForm({ goal }: { goal?: GoalView }) {
           <button type="submit" disabled={pending} className={`${pillPrimary} h-11`}>
             <RollText>{pending ? "Saving…" : goal ? "Save goal" : "Add goal"}</RollText>
           </button>
-          {goal && !confirming && (
-            <button type="button" onClick={() => setConfirming(true)} className={pillOutline}>
+          {goal && (
+            <ConfirmAction
+              prompt={`Remove “${goal.title}”? Its progress bar leaves your stream.`}
+              confirmLabel="Yes, remove it"
+              disabled={removing}
+              onConfirm={() => startRemove(async () => setRemoved(await removeGoal(goal.id)))}
+              className={pillOutline}
+            >
               Remove goal
-            </button>
-          )}
-          {goal && confirming && (
-            <>
-              <button
-                type="button"
-                disabled={removing}
-                onClick={() => startRemove(async () => setRemoved(await removeGoal(goal.id)))}
-                className={pillOutline}
-              >
-                {removing ? "Removing…" : "Yes, remove it"}
-              </button>
-              <button type="button" disabled={removing} onClick={() => setConfirming(false)} className={pillText}>
-                Keep it
-              </button>
-            </>
+            </ConfirmAction>
           )}
         </div>
       </form>
