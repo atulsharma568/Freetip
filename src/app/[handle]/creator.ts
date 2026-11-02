@@ -91,7 +91,7 @@ export const getBirthdayOffered = cache(async (handle: string): Promise<boolean>
   if (!db) return false;
   try {
     const [row] = await db<{ paid_features: string[] | null; birthday_message: string | null }[]>`
-      select paid_features, birthday_message from users where handle = ${handle} and creator_status = 'active'
+      select paid_features, birthday_message from users where handle = ${handle}
     `;
     return !!row?.birthday_message?.trim() && hasFeature(row, "birthdayMessage");
   } catch {
@@ -110,7 +110,7 @@ export const getPinOffer = cache(async (handle: string): Promise<PinOffer | null
       { paid_features: string[] | null; highlight_min_paise: number | null; highlight_seconds: number | null }[]
     >`
       select paid_features, highlight_min_paise, highlight_seconds
-      from users where handle = ${handle} and creator_status = 'active'
+      from users where handle = ${handle}
     `;
     return row && hasFeature(row, "highlightedMessages") ? pinOffer(row) : null;
   } catch {
@@ -139,7 +139,7 @@ export const getTipRules = cache(async (handle: string): Promise<TipRule[]> => {
   if (!db) return [];
   try {
     const [owner] = await db<{ paid_features: string[] | null }[]>`
-      select paid_features from users where handle = ${handle} and creator_status = 'active'
+      select paid_features from users where handle = ${handle}
     `;
     if (!owner || !hasFeature(owner, "alertRules")) return [];
     const mediaOn = hasFeature(owner, "customAlertMedia");
