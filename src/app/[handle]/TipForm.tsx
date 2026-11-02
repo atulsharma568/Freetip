@@ -13,7 +13,7 @@ import { createTipOrder } from "@/app/actions/tip";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { tipTier } from "@/lib/tip-tier";
 import { AlertCard } from "@/components/tip/AlertCard";
-import { CreatorPanel } from "@/components/tip/CreatorPanel";
+import { CreatorPanel, QrTile } from "@/components/tip/CreatorPanel";
 import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
 import { SuccessScreen } from "@/components/tip/SuccessScreen";
@@ -91,11 +91,15 @@ const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
 function StepHeading({ n, title }: { n: number; title: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <h2 className="text-sm font-medium uppercase tracking-widest text-muted">{title}</h2>
-      <span aria-hidden="true" className="numeric text-xs text-control">
-        0{n} / 03
+    <div className="flex items-center gap-3">
+      <span
+        aria-hidden="true"
+        className="numeric grid size-7 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-ink"
+      >
+        {n}
       </span>
+      <h2 className="text-lg font-semibold text-text">{title}</h2>
+      <span aria-hidden="true" className="h-px flex-1 bg-line/60" />
     </div>
   );
 }
@@ -419,7 +423,6 @@ export function TipForm({
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">
           <div className="enter" style={step(0)}>
             <CreatorPanel
-              handle={handle}
               displayName={displayName}
               pictureUrl={pictureUrl}
               ytChannelName={ytChannelName}
@@ -436,6 +439,9 @@ export function TipForm({
           >
             {preview}
           </section>
+          <div className="enter hidden lg:block" style={step(3)}>
+            <QrTile handle={handle} />
+          </div>
         </div>
 
         {/* The tip */}
@@ -448,26 +454,28 @@ export function TipForm({
           </p>
 
           {/* 01 Amount */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <StepHeading n={1} title="Amount" />
-            <p
-              key={amountRupees}
-              aria-hidden="true"
-              className={`amount-numeral numeric font-semibold leading-none text-accent ${
-                digitCount >= 5
-                  ? "text-[clamp(2.75rem,12vw,3.5rem)]"
-                  : digitCount === 4
-                    ? "text-[clamp(3.25rem,14vw,4.25rem)]"
-                    : "text-[clamp(4rem,17vw,5.5rem)]"
-              }`}
-            >
-              ₹{rupeeText(amountRupees)}
-            </p>
-            <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
+            <div className="space-y-2 rounded-[var(--radius-surface)] bg-ground px-5 py-6 text-center">
+              <p
+                key={amountRupees}
+                aria-hidden="true"
+                className={`amount-numeral numeric font-semibold leading-none text-accent ${
+                  digitCount >= 5
+                    ? "text-[clamp(2.75rem,12vw,3.5rem)]"
+                    : digitCount === 4
+                      ? "text-[clamp(3.25rem,14vw,4.25rem)]"
+                      : "text-[clamp(4rem,17vw,5.5rem)]"
+                }`}
+              >
+                ₹{rupeeText(amountRupees)}
+              </p>
+              <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
+            </div>
             <div onClickCapture={() => amountLocked && setLockWarning(true)} className="space-y-3">
             <fieldset>
               <legend className="sr-only">Choose an amount in rupees</legend>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {presets.map((preset) => (
                   <label key={preset} className={`relative ${amountLocked ? "opacity-50" : ""}`}>
                     <input

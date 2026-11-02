@@ -1,6 +1,56 @@
 import type { ReactNode } from "react";
+import {
+  Cake,
+  ChartBar,
+  ChatCircleText,
+  Eye,
+  FilmSlate,
+  Link as LinkIcon,
+  ListChecks,
+  Medal,
+  MonitorPlay,
+  MusicNotes,
+  Palette,
+  Plugs,
+  PushPin,
+  QrCode,
+  SlidersHorizontal,
+  SpeakerHigh,
+  Stack,
+  Target,
+  TextAa,
+} from "@phosphor-icons/react/ssr";
+import type { Icon } from "@phosphor-icons/react";
 
 type Kind = "surface" | "raised" | "accent";
+
+// A small lime badge beside a tile's title, picked by the tile's id so the pages that
+// use <Tile> need no change. A tile with no entry here just has no badge.
+const ICONS: Record<string, Icon> = {
+  queue: ChatCircleText,
+  alerts: MonitorPlay,
+  overlays: Stack,
+  voice: SpeakerHigh,
+  goals: Target,
+  daily: ChartBar,
+  "tip-page": LinkIcon,
+  qr: QrCode,
+  settings: SlidersHorizontal,
+  preview: Eye,
+  "card-style": Palette,
+  font: TextAa,
+  "add-sounds": MusicNotes,
+  "your-sounds": MusicNotes,
+  "add-rule": ListChecks,
+  "your-rules": ListChecks,
+  "add-media": FilmSlate,
+  "your-media": FilmSlate,
+  "pin-settings": PushPin,
+  "pin-list": PushPin,
+  levels: Medal,
+  birthday: Cake,
+  "streamlabs-connection": Plugs,
+};
 
 const KIND: Record<Kind, string> = {
   surface: "border border-line/60 bg-surface",
@@ -29,6 +79,7 @@ export function Tile({
 }) {
   const Heading = level === 2 ? "h2" : "h3";
   const headingId = id ? `${id}-title` : undefined;
+  const Badge = id ? ICONS[id] : undefined;
   return (
     <section
       id={id}
@@ -37,9 +88,21 @@ export function Tile({
       className={`min-w-0 scroll-mt-20 space-y-4 rounded-surface p-6 md:p-8 ${KIND[kind]} ${className}`}
     >
       {title && (
-        <Heading id={headingId} className="text-sm font-medium uppercase tracking-widest text-muted">
-          {title}
-        </Heading>
+        <div className="flex items-center gap-3">
+          {Badge && (
+            <span
+              aria-hidden="true"
+              className={`grid size-9 shrink-0 place-items-center rounded-[var(--radius-field)] ${
+                kind === "accent" ? "bg-ink text-accent" : "bg-accent text-ink"
+              }`}
+            >
+              <Badge weight="bold" className="size-5" />
+            </span>
+          )}
+          <Heading id={headingId} className={`text-lg font-semibold ${kind === "accent" ? "text-ink" : "text-text"}`}>
+            {title}
+          </Heading>
+        </div>
       )}
       {children}
     </section>

@@ -34,15 +34,15 @@ export function OverviewStrip({ rows, shareUrl }: { rows: OverviewRow[]; shareUr
             <div
               key={key}
               data-tile
-              className="min-w-0 space-y-2 rounded-surface border border-line/60 bg-surface p-5"
+              className="min-w-0 space-y-2 rounded-surface border border-line/60 bg-surface p-5 md:p-6"
             >
-              <dt className="text-sm text-muted">{LABELS[key]}</dt>
-              <dd className="text-3xl font-semibold text-text">
+              <dt className="text-sm font-medium text-text">{LABELS[key]}</dt>
+              <dd className="pt-2 text-[clamp(1.75rem,3.2vw,2.25rem)] font-semibold leading-none text-text">
                 <span className="sr-only">{gross}</span>
                 <MoneyReels text={gross} />
               </dd>
               <dd className="text-sm text-muted">{count === 1 ? "1 tip" : `${count} tips`}</dd>
-              <dd className="numeric text-sm text-muted">
+              <dd className="numeric border-t border-line/60 pt-3 text-sm text-muted">
                 You&apos;d keep about {formatRupees(r?.sharePaise ?? 0)}
               </dd>
             </div>
