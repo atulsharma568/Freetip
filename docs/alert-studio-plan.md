@@ -1,6 +1,6 @@
 # Alert studio: Streamlabs-style donation alert settings as a paid feature (proposal, 2026-11-02)
 
-Owner request, 2026-11-02: add the kind of controls Streamlabs gives for its donation alert box, in our own overlay, as a paid feature. This file compares the two and proposes what to build. **Nothing here is built; the owner approves the shortlist first.** Owner chose for this planning step. No plan name or price goes on the site.
+Owner request, 2026-11-02: add the kind of controls Streamlabs gives for its donation alert box, in our own overlay, as a paid feature. This file compares the two and proposes what to build. **All four items were approved (the owner delegated the decisions) and built the same day; see "Status" at the end.** Owner chose for this planning step. No plan name or price goes on the site.
 
 ## What our alert box already has (checked in the code, 2026-11-02)
 
