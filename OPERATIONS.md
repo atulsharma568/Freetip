@@ -180,6 +180,7 @@ Voice word suggestions (optional, offline, on one computer only): `docs/indicxli
 | Contact emails not arriving | `RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL`; messages are always in `/admin/messages`. |
 | Webhook not firing | Razorpay Dashboard > Webhooks: URL `https://freetip.in/api/webhooks/razorpay`, secret equals `RAZORPAY_WEBHOOK_SECRET`; use Reconciliation > Sync to catch up. |
 | Cron returns 401 | `CRON_SECRET` differs between your call and Vercel. |
+| Vercel emails that Function Storage (10 GB, free plan) is full | Every push to `main` makes a Production deployment and Vercel keeps each one with its own copy of the server code; about 40 a day adds up. Fix: Vercel > project > Settings > Build & Deployment > **Deployment Retention** (it was 30 days; the shortest is 1 day; suggested 1 day for canceled, errored and pre-production, and 7 days or 1 day for production; rollback can only go back that far). Delete old ones now with `npx vercel ls`, then `npx vercel remove <full deployment address> --safe` (several addresses at once are fine). **Never give the project name to `vercel remove`: it removes every deployment, including the live one.** Fewer, bigger commits also help. Check the team's Usage page a day later. Noted 2026-11-02; the retention values the owner saved are not recorded here. |
 
 ## 11. Secrets and safety
 
