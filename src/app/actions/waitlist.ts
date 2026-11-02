@@ -1,10 +1,9 @@
 "use server";
 
-import { createHmac } from "node:crypto";
-import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
 import { WAITLIST_CONSENT_VERSION } from "@/lib/legal";
 import { parseWaitlist, type WaitlistState } from "@/lib/waitlist";
+import { clientIp, ipKey, limitFor, takeAttempt } from "@/lib/rate-limit";
 
 // Saved sign-ups allowed per network per hour. Generous, because many
 // Indian mobile users share one IP address behind their carrier.
@@ -30,28 +29,15 @@ export async function joinWaitlist(
 
   // Only a keyed hash of the IP address is stored, and only for the hour the
   // limit needs it.
-  const list = await headers();
-  const ip =
-    list.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    list.get("x-real-ip") ||
-    "unknown";
-  const ipHash = createHmac("sha256", salt).update(ip).digest("hex");
+  const ip = await clientIp();
+  const key = ipKey(ip ?? "unknown", salt);
 
   try {
-    const [{ recent }] = await sql<{ recent: number }[]>`
-      select count(*)::int as recent from waitlist_attempts
-      where ip_hash = ${ipHash} and created_at > now() - interval '1 hour'
-    `;
-    if (recent >= LIMIT) return { status: "rate_limited" };
+    if (!(await takeAttempt(sql, "waitlist_attempts", key, limitFor(ip, LIMIT)))) return { status: "rate_limited" };
 
     // An address that is already on the list is left as it was, and gets the
     // same answer, so the form never reveals who has signed up.
     await sql`
-      with attempt as (
-        insert into waitlist_attempts (ip_hash) values (${ipHash})
-      ), purge as (
-        delete from waitlist_attempts where created_at < now() - interval '1 hour'
-      )
       insert into waitlist (email, handle, channel_url, source, consent_version)
       values (${entry.email}, ${entry.handle}, ${entry.channel}, ${entry.source}, ${WAITLIST_CONSENT_VERSION})
       on conflict (email) do nothing

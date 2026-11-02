@@ -1,10 +1,9 @@
 "use server";
 
-import { createHmac } from "node:crypto";
-import { headers } from "next/headers";
 import { getDb } from "@/lib/db";
 import { sendContactEmail, sendContactReceipt } from "@/lib/contact-email";
 import { parseContact, ticketNumber, type ContactState } from "@/lib/contact";
+import { clientIp, ipKey, limitFor, takeAttempt } from "@/lib/rate-limit";
 
 // Saved messages allowed per network per hour. Kept low: a person sends one
 // or two, and every message is read by hand.
@@ -30,26 +29,13 @@ export async function sendContact(
 
   // Only a keyed hash of the IP address is kept, and only for the hour the
   // limit needs it. It is never stored with the message.
-  const list = await headers();
-  const ip =
-    list.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    list.get("x-real-ip") ||
-    "unknown";
-  const ipHash = createHmac("sha256", salt).update(ip).digest("hex");
+  const ip = await clientIp();
+  const key = ipKey(ip ?? "unknown", salt);
 
   try {
-    const [{ recent }] = await sql<{ recent: number }[]>`
-      select count(*)::int as recent from contact_attempts
-      where ip_hash = ${ipHash} and created_at > now() - interval '1 hour'
-    `;
-    if (recent >= LIMIT) return { status: "rate_limited" };
+    if (!(await takeAttempt(sql, "contact_attempts", key, limitFor(ip, LIMIT)))) return { status: "rate_limited" };
 
     const [saved] = await sql<{ id: number }[]>`
-      with attempt as (
-        insert into contact_attempts (ip_hash) values (${ipHash})
-      ), purge as (
-        delete from contact_attempts where created_at < now() - interval '1 hour'
-      )
       insert into contact_messages (name, email, topic, payment_ref, message)
       values (${entry.name}, ${entry.email}, ${entry.topic}, ${entry.paymentRef}, ${entry.message})
       returning id::int as id

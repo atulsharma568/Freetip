@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-02, rate limits shared and atomic)
+
+- The per-network hourly limits for the contact form, the waitlist and starting a tip now share one helper, `src/lib/rate-limit.ts` (`clientIp`, `ipKey`, `takeAttempt`). It takes a per-network lock, so a burst of parallel requests can no longer all pass before any is counted (contact and waitlist had no lock; tips already did). A visitor with no reported address used to share one "unknown" count on contact and waitlist (5 and 20 an hour for everybody); that shared count now gets ten times the limit. Tips are unchanged on purpose: no address, no salt or a failing check still lets the fan pay. Same tables, no migration. The query was tried inside a rolled-back transaction (3 allowed, the 4th refused, nothing left behind); the forms themselves were not tried.
+- Still not done: loading skeletons per dashboard sub-page, admin balances search and pagination, status colour tokens, creator OG accent, FAQ JSON-LD, sitemap lastModified, em dashes in fan-facing messages.
+
 ## Current state (2026-11-02, small fixes from the scan pass)
 
 - Done from the "found but not done" list below: Remove goal now asks "Yes, remove it" or "Keep it" first; the goal, supporter and pinned OBS overlays ask once a minute (not every few seconds) after a 404 and clear what they show, so a dead link no longer hammers the server and a creator who comes back needs no OBS reload; `[handle]/loading.tsx` and `[handle]/error.tsx` (slim tip-page frame, retry, says no tip was sent). Sign-out needed no change: the site nav already has it on every page (on phones in the menu, with the Dashboard button always visible).
