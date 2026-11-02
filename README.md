@@ -1,5 +1,7 @@
 # Freetip
 
+> Picking this project up with an AI tool? Start with [`GUIDELINES.md`](GUIDELINES.md).
+
 Pre-launch landing page for a tipping site for Indian YouTube creators. Fans pay a tip from a creator's page with UPI or card, with no account or email, and can leave their name blank for an anonymous tip. Payments are not integrated; creators can join a waitlist (stored in Postgres) until sign-up opens.
 
 Next.js 16 (App Router), Tailwind v4, GSAP with ScrollTrigger, Lenis smooth scroll, and one vendored React Bits component (ClickSpark).
