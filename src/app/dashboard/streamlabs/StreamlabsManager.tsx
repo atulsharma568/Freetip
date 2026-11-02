@@ -29,10 +29,13 @@ export function StreamlabsManager({
     <div className="space-y-4">
       {(!connected || reconnectNeeded) &&
         (available ? (
-          <form action="/api/streamlabs/start" method="get">
+          <form action="/api/streamlabs/start" method="get" className="space-y-2">
             <button type="submit" className={pillPrimary}>
               {reconnectNeeded ? "Connect Streamlabs again" : "Connect Streamlabs"}
             </button>
+            <p className="text-sm text-muted">
+              Not signed in to Streamlabs yet? It may show its own dashboard after you sign in. Come back here and press the button again, then press Authorize.
+            </p>
           </form>
         ) : (
           <p className="text-sm text-muted">This is not switched on for the site yet.</p>
