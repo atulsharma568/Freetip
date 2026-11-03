@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, inkFor } from "../src/lib/accent";
 import { LIMITS } from "../src/lib/page-doc/blocks";
+import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
+import { ONE_PIECE_LADDER, ladderFraction, ladderLevel } from "../src/lib/page-doc/ladder";
+import { themeFor } from "../src/lib/page-doc/theme";
 import { parsePageDoc, pageDocOrDefault, validateForPublish } from "../src/lib/page-doc/parse";
 import type { Block, PageDoc } from "../src/lib/page-doc/types";
 
@@ -182,5 +186,111 @@ test.describe("the rank ladder on the amount block", () => {
   test("a long rank name is cut", () => {
     const ladder = ladderOf({ ...good, levels: [{ upTo: 0.5, name: "n".repeat(60) }, { upTo: 1, name: "King" }] });
     expect(ladder?.levels[0].name).toBe("n".repeat(LIMITS.levelName));
+  });
+});
+
+test.describe("the two default documents", () => {
+  test("each one reads back as itself with nothing repaired", () => {
+    for (const make of [defaultPageDoc, ownerPageDoc]) {
+      const parsed = parsePageDoc(make())!;
+      expect(parsed.doc).toEqual(make());
+      expect(parsed.repairedProtected).toEqual([]);
+    }
+  });
+
+  test("each call gives a fresh copy", () => {
+    const a = defaultPageDoc();
+    a.blocks[0].visible = false;
+    a.theme.accent = "#000000";
+    expect(defaultPageDoc().blocks[0].visible).toBe(true);
+    expect(defaultPageDoc().theme).toEqual({});
+    const o = ownerPageDoc();
+    (o.blocks.find((b) => b.type === "amount") as Block<"amount">).settings.ladder!.levels[0].name = "changed";
+    expect(ownerPageDoc().blocks.find((b) => b.type === "amount")).toMatchObject({ settings: { ladder: ONE_PIECE_LADDER } });
+  });
+
+  test("a normal page is the header, preview and QR beside the form of three steps", () => {
+    const doc = defaultPageDoc();
+    expect(doc.blocks.map((b) => `${b.slot}:${b.type}`)).toEqual([
+      "side:header",
+      "side:alertPreview",
+      "side:qr",
+      "main:amount",
+      "main:note",
+      "main:send",
+      "success:successScreen",
+    ]);
+    expect(doc.theme).toEqual({});
+    expect(find(doc, "amount")!.settings.ladder).toBeNull();
+    expect(find(doc, "successScreen")!.settings.style).toBe("default");
+  });
+
+  test("the owner's page adds the backdrop, links, pressure bar, strip and sign-off in the owner's red", () => {
+    const doc = ownerPageDoc();
+    expect(doc.blocks.map((b) => `${b.slot}:${b.type}`)).toEqual([
+      "background:backdrop",
+      "side:header",
+      "side:creatorLinks",
+      "side:alertPreview",
+      "side:qr",
+      "main:amount",
+      "main:note",
+      "main:send",
+      "bottom:strip",
+      "success:successScreen",
+    ]);
+    expect(find(doc, "creatorLinks")!.settings).toEqual({ tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" });
+    expect(find(doc, "strip")!.settings).toEqual({ left: "YouTube / AcePressure", right: "@acepressure.gg" });
+    expect(find(doc, "amount")!.settings.ladder).toEqual(ONE_PIECE_LADDER);
+    expect(find(doc, "successScreen")!.settings.style).toBe("owner");
+    expect(doc.theme).toEqual({ accent: "#ca1b19", ink: "#f6f6f1" });
+  });
+});
+
+test.describe("the amount bar", () => {
+  test("is empty at the minimum and full at the top, rising in between", () => {
+    expect(ladderFraction(20, 20, 5000)).toBe(0);
+    expect(ladderFraction(5000, 20, 5000)).toBe(1);
+    expect(ladderFraction(99999, 20, 5000)).toBe(1);
+    expect(ladderFraction(0, 20, 5000)).toBe(0);
+    expect(ladderFraction(100, 20, 5000)).toBeGreaterThan(ladderFraction(50, 20, 5000));
+  });
+
+  test("a top at or below the minimum, or a number that is not a number, does not break it", () => {
+    expect(ladderFraction(100, 20, 20)).toBe(1);
+    expect(ladderFraction(10, 20, 20)).toBe(0);
+    expect(ladderFraction(Number.NaN, 20, 5000)).toBe(0);
+    expect(ladderFraction(50, 20, Number.NaN)).toBe(0);
+    expect(ladderFraction(50, Number.NaN, 5000)).toBe(0);
+    expect(ladderFraction(50, 20, Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  test("climbs the One Piece ladder", () => {
+    const names = [0, 0.3, 0.6, 0.9, 1].map((f) => ladderLevel(f, ONE_PIECE_LADDER.levels));
+    expect(names).toEqual(["Rookie", "Supernova", "Warlord", "Yonko", "Pirate King"]);
+  });
+});
+
+test.describe("the page's colours", () => {
+  const sky = ACCENT_PRESETS.find((p) => p.id === "sky")!.hex;
+
+  test("the owner's document sets the owner's red and light ink", () => {
+    expect(themeFor(ownerPageDoc(), "#7dd3fc")).toEqual({
+      style: { "--color-accent": "#ca1b19", "--color-ink": "#f6f6f1" },
+      accent: "#ca1b19",
+    });
+  });
+
+  test("a normal page uses the colour the creator saved", () => {
+    expect(themeFor(defaultPageDoc(), sky)).toEqual({ style: { "--color-accent": sky, "--color-ink": inkFor(sky) }, accent: sky });
+  });
+
+  test("a normal page with no saved colour uses the site's own", () => {
+    expect(themeFor(defaultPageDoc(), null)).toEqual({ style: undefined, accent: DEFAULT_ACCENT });
+  });
+
+  test("a document accent without ink gets the ink the page would choose", () => {
+    const doc = { ...defaultPageDoc(), theme: { accent: "#ca1b19" } };
+    expect(themeFor(doc, null).style).toEqual({ "--color-accent": "#ca1b19", "--color-ink": inkFor("#ca1b19") });
   });
 });

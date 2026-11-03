@@ -1,5 +1,8 @@
 import { isOwnerGoogleId } from "./owner-auth-core";
 import { parseOwnerGoogleIds } from "./owner-auth-core";
+import { ownerPageDoc } from "./page-doc/defaults";
+import { ONE_PIECE_LADDER, ladderFraction, ladderLevel } from "./page-doc/ladder";
+import type { Block } from "./page-doc/types";
 
 // The site owner's own tip page gets its own header (OwnerHero). It is the page of an owner
 // account (OWNER_GOOGLE_IDS) or of a handle listed in OWNER_TIP_HANDLES (default: acepressure),
@@ -23,39 +26,27 @@ export function ownerBrand(env: NodeJS.ProcessEnv = process.env): string {
   return env.OWNER_TIP_BRAND?.trim() || "AcePressure";
 }
 
-// The owner's page is the red of the collar on the avatar. It is too deep to pass the 4.5:1 rule
-// for small text on black (about 3.3:1), which the shared accent check enforces, so the page sets
-// its colours directly: this red for fills, the ring, the bar, buttons and the big amount, and
-// light ink on it (5.4:1). Small text on this page stays white or grey.
-export const OWNER_ACCENT = "#ca1b19";
-export const OWNER_INK = "#f6f6f1";
+// The values the owner's page uses now live in its document (`ownerPageDoc()` in
+// src/lib/page-doc/defaults.ts). These names stay only until the tip page renders from that
+// document, and are derived from it so there is one source of truth.
+const ownerDoc = ownerPageDoc();
+const ownerLinks = ownerDoc.blocks.find((b): b is Block<"creatorLinks"> => b.type === "creatorLinks")!.settings;
+const ownerStrip = ownerDoc.blocks.find((b): b is Block<"strip"> => b.type === "strip")!.settings;
+
+export const OWNER_ACCENT = ownerDoc.theme.accent as string;
+export const OWNER_INK = ownerDoc.theme.ink as string;
 export const ownerThemeStyle: Record<string, string> = { "--color-accent": OWNER_ACCENT, "--color-ink": OWNER_INK };
 
-// Words only the owner's page uses.
 export const OWNER_COPY = {
-  tagline: "Valorant / Live & Highlights",
-  instagram: "acepressure.gg",
-  youtubeLabel: "YouTube / AcePressure",
+  tagline: ownerLinks.tagline,
+  instagram: ownerLinks.instagram,
+  youtubeLabel: ownerStrip.left,
 } as const;
 
-const PRESSURE_TOP_RUPEES = 5000;
-
-// Where an amount sits on the pressure bar: a log scale, so ₹20 and ₹5,000 both fit.
 export function pressureFraction(amountRupees: number, minRupees: number): number {
-  const low = Math.max(1, minRupees);
-  if (!(amountRupees > low)) return 0;
-  return Math.min(1, Math.log(amountRupees / low) / Math.log(PRESSURE_TOP_RUPEES / low));
+  return ladderFraction(amountRupees, minRupees, ONE_PIECE_LADDER.topRupees);
 }
 
-// The word under the bar: a bounty ladder from One Piece, from a rookie up to the Pirate King.
-const PRESSURE_LEVELS = [
-  { upTo: 0.25, name: "Rookie" },
-  { upTo: 0.5, name: "Supernova" },
-  { upTo: 0.75, name: "Warlord" },
-  { upTo: 0.95, name: "Yonko" },
-  { upTo: 1.01, name: "Pirate King" },
-] as const;
-
 export function pressureLevel(fraction: number): string {
-  return PRESSURE_LEVELS.find((l) => fraction < l.upTo)?.name ?? "Pirate King";
+  return ladderLevel(fraction, ONE_PIECE_LADDER.levels);
 }

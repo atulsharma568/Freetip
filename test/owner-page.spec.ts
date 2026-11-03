@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { isOwnerTipPage, OWNER_ACCENT, OWNER_INK, ownerThemeStyle, pressureFraction, pressureLevel } from "../src/lib/owner-page";
+import { isOwnerTipPage } from "../src/lib/owner-page";
+import { ownerPageDoc } from "../src/lib/page-doc/defaults";
 import { contrast } from "../src/lib/accent";
 
 // Only the owner's own tip page gets the custom header.
@@ -33,22 +34,7 @@ test("the owner's page shows the brand, which can be changed", async () => {
 });
 
 test("light ink on the owner's red reads well, and the red is the avatar collar's", () => {
-  expect(OWNER_ACCENT).toBe("#ca1b19");
-  expect(contrast(OWNER_ACCENT, OWNER_INK)).toBeGreaterThanOrEqual(4.5);
-  expect(ownerThemeStyle["--color-accent"]).toBe(OWNER_ACCENT);
-});
-
-test.describe("the pressure bar", () => {
-  test("is empty at the minimum and full at ₹5,000, rising in between", () => {
-    expect(pressureFraction(20, 20)).toBe(0);
-    expect(pressureFraction(5000, 20)).toBe(1);
-    expect(pressureFraction(100, 20)).toBeGreaterThan(pressureFraction(50, 20));
-    expect(pressureFraction(99999, 20)).toBe(1);
-    expect(pressureFraction(0, 20)).toBe(0);
-  });
-
-  test("climbs the One Piece ladder", () => {
-    const names = [0, 0.3, 0.6, 0.9, 1].map(pressureLevel);
-    expect(names).toEqual(["Rookie", "Supernova", "Warlord", "Yonko", "Pirate King"]);
-  });
+  const { accent, ink } = ownerPageDoc().theme;
+  expect(accent).toBe("#ca1b19");
+  expect(contrast(accent!, ink!)).toBeGreaterThanOrEqual(4.5);
 });
