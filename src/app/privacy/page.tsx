@@ -149,7 +149,8 @@ const SECTIONS: LegalSection[] = [
           stream timestamps, a separate step on your dashboard asks Google for
           one more permission (<code>youtube.force-ssl</code>). We use it for
           one thing only: to post a single comment on your own live stream,
-          after it ends, listing the moments viewers saved with !ts. We do not
+          after it ends, listing the moments viewers saved with !ts. To do that
+          we also ask YouTube which of your broadcasts is live right now. We do not
           read your comments or videos, and we do not post anything else. You
           can take the permission back at any time with{" "}
           <strong>Disconnect YouTube</strong> on your dashboard (which also

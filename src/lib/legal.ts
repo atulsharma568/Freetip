@@ -42,7 +42,7 @@ export const LEGAL_DRAFT = false;
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
-export const LEGAL_UPDATED = "1 November 2026";
+export const LEGAL_UPDATED = "3 November 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.
