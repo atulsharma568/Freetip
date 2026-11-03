@@ -8,6 +8,7 @@ import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
+import { isOwnerTipPage } from "@/lib/owner-page";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -95,6 +96,7 @@ export default async function CreatorPage({ params }: Props) {
         bio={creator.bio}
         alertMode={creator.alert_mode}
         pinOffer={pinOffer}
+        variant={isOwnerTipPage(handle, creator.google_id) ? "owner" : "default"}
         previewMode={creator.creator_status !== "active"}
       />
       </div>
