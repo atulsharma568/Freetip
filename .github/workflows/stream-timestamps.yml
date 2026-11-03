@@ -1,0 +1,35 @@
+name: Post stream timestamps
+
+# Every 10 minutes, ask the site to post the timestamp comment on any stream that has
+# ended. Vercel's free plan only runs crons once a day, which would leave a finished
+# stream waiting up to 24 hours. The endpoint is safe to call as often as wanted: a
+# stream still live is left alone and each stream is claimed before it is posted.
+# Needs one repository secret, CRON_SECRET (the same value as in Vercel). Can also be
+# run by hand from the Actions tab ("Run workflow"). GitHub may start a run a few
+# minutes late, and pauses schedules on a repository with no activity for 60 days;
+# the daily Vercel cron stays as the backstop.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+
+    steps:
+      - name: Call the timestamps job
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is not set as a repository secret. Nothing to do."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://freetip.in/api/cron/stream-timestamps
