@@ -167,6 +167,29 @@ test.describe("the tip page is drawn from its document", () => {
     await expect(page.getByText("Hello")).toBeVisible();
   });
 
+  test("the longest words the parser allows, with no spaces, do not make the page scroll sideways at 320px", async ({ page }) => {
+    const long = (n: number, letter = "W") => letter.repeat(n);
+    const doc = ownerPageDoc();
+    editBlock(doc, "creatorLinks", (b) => (b.settings = { tagline: long(60), instagram: "a".repeat(30) }));
+    editBlock(doc, "strip", (b) => (b.settings = { left: long(40, "M"), right: long(40, "N") }));
+    editBlock(doc, "amount", (b) => {
+      b.settings = {
+        ladder: {
+          topRupees: 5000,
+          levels: [
+            { upTo: 0.5, name: long(24, "R") },
+            { upTo: 1, name: long(24, "S") },
+          ],
+        },
+      };
+    });
+    await openFixture(page, docQuery("owner", doc), 320);
+    await expect(page.getByText(long(60))).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth })))
+      .toEqual({ viewport: 320, document: 320 });
+  });
+
   test("the sign-off after a tip follows the document's success style", async ({ page }) => {
     const owner = editBlock(defaultPageDoc(), "successScreen", (b) => (b.settings = { style: "owner" }));
     await openFixture(page, `${docQuery("default", owner)}&view=success`, 390);

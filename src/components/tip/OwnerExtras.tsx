@@ -4,7 +4,8 @@ import { ladderFraction, ladderLevel } from "@/lib/page-doc/ladder";
 import type { Ladder } from "@/lib/page-doc/types";
 
 // Small pieces a tip page can add to the normal layout. They draw the words they are given; the
-// page document (parsed first) supplies them.
+// page document (parsed first) supplies them. The words may be as long as the parser allows with
+// no spaces in them, so each run of text may break anywhere rather than push the page sideways.
 
 // The thin bar in the amount box: it fills as the amount rises, with a rank word from the ladder.
 export function PressureBar({
@@ -33,7 +34,7 @@ export function PressureBar({
           style={{ width: `${Math.max(3, f * 100)}%` }}
         />
       </span>
-      <span aria-hidden="true" className="w-24 text-right text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-text">
+      <span aria-hidden="true" className="w-24 text-right text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-text [overflow-wrap:anywhere]">
         {level}
       </span>
     </div>
@@ -44,7 +45,7 @@ export function PressureBar({
 export function OwnerStrip({ left, right }: { left: string; right: string }) {
   return (
     <p
-      className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line/60 pt-3 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted"
+      className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line/60 pt-3 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted [overflow-wrap:anywhere]"
     >
       <span>{left}</span>
       <span>{right}</span>
@@ -59,7 +60,7 @@ export function OwnerLinks({ tagline, instagram }: { tagline: string; instagram:
   return (
     <div className="space-y-2 px-1">
       {tagline && (
-        <p className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-muted">
+        <p className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-muted [overflow-wrap:anywhere]">
           <span aria-hidden="true" className="h-px w-6 bg-accent" />
           {tagline}
         </p>
@@ -69,7 +70,7 @@ export function OwnerLinks({ tagline, instagram }: { tagline: string; instagram:
           href={`https://www.instagram.com/${instagram}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block text-sm text-muted transition-colors hover:text-text"
+          className="inline-block text-sm text-muted transition-colors [overflow-wrap:anywhere] hover:text-text"
         >
           @{instagram}
           <span className="sr-only"> on Instagram (opens in a new tab)</span>
