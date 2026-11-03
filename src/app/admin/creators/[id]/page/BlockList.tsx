@@ -16,7 +16,7 @@ const SECTIONS: { slot: Slot; label: string }[] = [
 ];
 
 const iconButton =
-  "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:text-text disabled:cursor-not-allowed disabled:opacity-30";
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:text-text aria-disabled:cursor-not-allowed aria-disabled:opacity-30";
 
 // Every block of the page by section, with the controls to move it up or down inside its section
 // (buttons first, dragging as an extra), to hide or show it, and to pick it for editing. The page
@@ -85,10 +85,10 @@ export function BlockList({
                       {required && <span className="shrink-0 rounded-full bg-raised px-2 py-0.5 text-[0.65rem] font-medium text-muted">Required</span>}
                       {!block.visible && <span className="shrink-0 rounded-full bg-raised px-2 py-0.5 text-[0.65rem] font-medium text-muted">Hidden</span>}
                     </button>
-                    <button type="button" aria-label={`Move ${name} up`} disabled={i === 0} onClick={() => onMove(block.type, "up")} className={iconButton}>
+                    <button type="button" aria-label={`Move ${name} up`} aria-disabled={i === 0} onClick={() => i > 0 && onMove(block.type, "up")} className={iconButton}>
                       <ArrowUp aria-hidden="true" />
                     </button>
-                    <button type="button" aria-label={`Move ${name} down`} disabled={i === blocks.length - 1} onClick={() => onMove(block.type, "down")} className={iconButton}>
+                    <button type="button" aria-label={`Move ${name} down`} aria-disabled={i === blocks.length - 1} onClick={() => i < blocks.length - 1 && onMove(block.type, "down")} className={iconButton}>
                       <ArrowDown aria-hidden="true" />
                     </button>
                     {required ? (

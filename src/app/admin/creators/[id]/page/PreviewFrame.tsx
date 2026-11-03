@@ -59,6 +59,23 @@ export function PreviewFrame({
     if (ready) frame.current?.contentWindow?.postMessage({ type: MSG_DOC, doc }, window.location.origin);
   }, [ready, doc, reloads]);
 
+  // The frame's "ready" can arrive before this panel is listening and is then lost. Until the frame
+  // answers, offer it the draft every moment; the frame answers a draft with "ready" (see
+  // PreviewHost), which ends this.
+  const latest = useRef(doc);
+  useEffect(() => {
+    latest.current = doc;
+  }, [doc]);
+  useEffect(() => {
+    if (ready) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      frame.current?.contentWindow?.postMessage({ type: MSG_DOC, doc: latest.current }, window.location.origin);
+      if (++tries >= 40) clearInterval(timer);
+    }, 300);
+    return () => clearInterval(timer);
+  }, [ready, reloads]);
+
   useEffect(() => {
     if (ready) frame.current?.contentWindow?.postMessage({ type: MSG_SELECT, id: selected }, window.location.origin);
   }, [ready, selected, reloads]);

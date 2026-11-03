@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Tip page preview", robots: { index: 
 export default async function PagePreview({ params }: { params: Promise<{ id: string }> }) {
   await requireOwner();
   const { id } = await params;
-  if (!/^\d{1,12}$/.test(id)) notFound();
+  if (!/^\d{1,10}$/.test(id) || Number(id) > 2147483647) notFound(); // users.id is a 32-bit integer
   const creatorId = Number(id);
   const db = getDb();
   if (!db) notFound();

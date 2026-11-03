@@ -18,6 +18,8 @@ export function PreviewHost({ data }: { data: TipPageData }) {
       const next = readDocMessage(event, window.location.origin, window.parent);
       if (next) {
         setDoc(next);
+        // Answer a draft with "ready", so an editor that missed the first one stops asking.
+        window.parent.postMessage({ type: MSG_READY }, window.location.origin);
         return;
       }
       const pick = readSelectMessage(event, window.location.origin, window.parent);

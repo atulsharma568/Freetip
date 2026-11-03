@@ -53,6 +53,9 @@ export function PageEditor({
   const baseRef = useRef<unknown>(start.base);
   // The document last accepted by the store (as the owner typed it), to tell what is unsaved.
   const [sentJson, setSentJson] = useState(() => JSON.stringify(start.doc));
+  // The same value and the save state, for the moment the editor is left (see below).
+  const sentRef = useRef(sentJson);
+  const busyRef = useRef(false);
   // The saved draft as the store cleaned it. Null until there is one.
   const [savedDoc, setSavedDoc] = useState<PageDoc | null>(start.source === "draft" ? start.doc : null);
   const [published, setPublished] = useState(start.published);
@@ -78,6 +81,8 @@ export function PageEditor({
       setDoc(result.doc);
       setSaveError(null);
       setNotice(null);
+      // A question about publishing or reverting was about the draft as it was; ask again.
+      setAsking(null);
     }
     return result;
   }, []);
@@ -89,10 +94,12 @@ export function PageEditor({
       const sent = docRef.current;
       const json = JSON.stringify(sent);
       setSaving(true);
+      busyRef.current = true;
       try {
         const result = await save(baseRef.current, sent);
         if (result.ok) {
           baseRef.current = result.doc;
+          sentRef.current = json;
           setSentJson(json);
           setSavedDoc(result.doc);
           setNotes(result.notes);
@@ -101,11 +108,22 @@ export function PageEditor({
       } catch {
         setSaveError("Could not reach the server. Check the connection and try again.");
       } finally {
+        busyRef.current = false;
         setSaving(false);
       }
     }, AUTOSAVE_MS);
     return () => clearTimeout(timer);
   }, [dirty, doc, saving, conflict, saveError, save]);
+
+  // Leaving the editor by a link inside the site (the tab is not closed, so no warning can ask):
+  // send the change that was still waiting. Best effort; a save already on its way is left alone.
+  useEffect(
+    () => () => {
+      if (busyRef.current || JSON.stringify(docRef.current) === sentRef.current) return;
+      save(baseRef.current, docRef.current).catch(() => {});
+    },
+    [save],
+  );
 
   // A warning if the tab is closed with a change that is not saved yet.
   useEffect(() => {
@@ -158,7 +176,8 @@ export function PageEditor({
         docRef.current = back;
         baseRef.current = null;
         setDoc(back);
-        setSentJson(JSON.stringify(back));
+        sentRef.current = JSON.stringify(back);
+        setSentJson(sentRef.current);
         setSavedDoc(null);
         setNotes([]);
         setConflict(false);
@@ -185,7 +204,7 @@ export function PageEditor({
             : "Nothing changed yet";
   const unpublished = savedDoc !== null && !same(savedDoc, published);
   const canPublish = !dirty && !saving && !conflict && !saveError && unpublished && !working;
-  const canRevert = (savedDoc !== null || dirty) && !working;
+  const canRevert = (savedDoc !== null || dirty) && !working && !saving;
 
   return (
     <div className="space-y-6">

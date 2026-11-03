@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { PageEditor, type EditorStart } from "@/app/admin/creators/[id]/page/PageEditor";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
@@ -73,6 +74,10 @@ export function EditorFixture({ owner }: { owner: boolean }) {
   return (
     <div className="min-h-dvh bg-ground p-6 text-text">
       <div className="mx-auto max-w-7xl">
+        {/* A way out by a client-side navigation, as the admin links are, for the tests. */}
+        <Link href="/dev-fixtures/tip?page=default" className="mb-4 inline-block text-sm text-muted underline">
+          Leave the editor (test)
+        </Link>
         <PageEditor start={start} previewSrc={`/dev-fixtures/preview?page=${owner ? "owner" : "default"}`} creatorName="Sample Creator" save={save} publish={publish} discard={discard} />
       </div>
     </div>
