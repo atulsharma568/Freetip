@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCreator, getCreatorAccent, getPinOffer, getTipBanner, getTipPhoto, getTipRules, getTipSounds } from "./creator";
+import { getCreator, getCreatorAccent, getPageRow, getPinOffer, getTipBanner, getTipPhoto, getTipRules, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
@@ -9,6 +9,7 @@ import { isClosedGoogleId } from "@/lib/account-close";
 import { TipPageView } from "./TipPageView";
 import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
+import { resolvePageDoc } from "@/lib/page-doc/store";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -64,20 +65,22 @@ export default async function CreatorPage({ params }: Props) {
 
   const ownerPage = isOwnerTipPage(handle, creator.google_id);
   const displayName = ownerPage ? ownerBrand() : (creator.display_name ?? creator.name ?? handle);
-  const [sounds, rules, pinOffer, bannerUrl, tipPhoto] = await Promise.all([
+  const [sounds, rules, pinOffer, bannerUrl, tipPhoto, pageRow] = await Promise.all([
     getTipSounds(handle),
     getTipRules(handle),
     getPinOffer(handle),
     getTipBanner(handle),
     getTipPhoto(handle),
+    getPageRow(handle),
   ]);
   // The voice is offered only when the site switch and the creator both have it on.
   const voiceMinPaise =
     ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
-  // The page is drawn from a document of blocks. The owner's page is always the channel's red
-  // (its document carries the colour), whatever accent is saved.
-  const doc = ownerPage ? ownerPageDoc() : defaultPageDoc();
+  // The page is drawn from a document of blocks: the stored one while the creator's "Custom tip
+  // page" switch is on, otherwise today's page (the owner's own page for the owner, whose document
+  // carries the channel's red, whatever accent is saved).
+  const doc = resolvePageDoc(pageRow, ownerPage ? ownerPageDoc() : defaultPageDoc());
   const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
 
   return (

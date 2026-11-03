@@ -1,5 +1,7 @@
 import { cache } from "react";
 import { getDb } from "@/lib/db";
+import type { Query } from "@/lib/accrual";
+import { loadPageRow, type PageRow } from "@/lib/page-doc/store";
 import { hasFeature } from "@/lib/plans";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { playable, type MediaKind, type ReviewState } from "@/lib/media";
@@ -68,6 +70,15 @@ export const getTipSounds = cache(async (handle: string): Promise<TipSound[]> =>
   } catch {
     return [];
   }
+});
+
+// The creator's stored tip page document (migration 0051), read apart so the page still loads
+// before the migration is run (any error is logged and the page is the normal one). It is only
+// used while the creator's "Custom tip page" switch is on: see resolvePageDoc.
+export const getPageRow = cache(async (handle: string): Promise<PageRow | null> => {
+  const db = getDb();
+  if (!db) return null;
+  return loadPageRow(db as unknown as Query, handle);
 });
 
 // The accent colour (migration 0026), read apart so the tip page still loads
