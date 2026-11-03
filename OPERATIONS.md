@@ -174,11 +174,11 @@ If something looks wrong: the alert always falls back to the normal card (bad st
 
 ## 7e. Tip page banner (set up once)
 
-One paid switch, **YouTube banner on the tip page** (group "Tip page"), puts the creator's own YouTube channel banner behind their photo at the top of their tip page. OFF for everyone until you tick it for a creator in `/admin/creators/<id>`. No plan or price on the site.
+One paid switch, **YouTube banner on the tip page** (group "Tip page"), puts a banner behind the creator's photo at the top of their tip page: their own YouTube channel banner, or a picture or animated GIF or WebP they upload from their computer (up to 3 MB; uploads need the Vercel Blob store, `BLOB_READ_WRITE_TOKEN`, the same one the soundboard uses). OFF for everyone until you tick it for a creator in `/admin/creators/<id>`. No plan or price on the site.
 
 1. Run `0048_tip_banner.sql` in Neon (SQL Editor) BEFORE the deploy.
 2. `YT_DATA_API_KEY` must be set in Vercel (the same key stream timestamps use; nothing new to create). Without it the button says reading the banner is not set up.
-3. Tick the switch for a test creator. As that creator open `/dashboard/banner` and press **Use my YouTube banner**; the preview and `/<handle>` show it. **Update from YouTube** copies it again after a banner change on YouTube; **Remove the banner** takes it off. Turning the switch off hides the banner at once (the saved link stays and returns if it is turned on again).
+3. Tick the switch for a test creator. As that creator open `/dashboard/banner` and press **Use my YouTube banner**; the preview and `/<handle>` show it. **Upload from my computer** sends their own picture (it replaces the old one and the old uploaded file is deleted); **Use my YouTube banner** copies it again after a banner change on YouTube; **Remove the banner** takes it off. Turning the switch off hides the banner at once (the saved link stays and returns if it is turned on again).
 4. What can go wrong: "has no banner yet" (the channel has none, add one in YouTube Studio, Customization, Branding); "could not find your YouTube channel" (the creator signed in with an account that has no channel, sign out and in again); a blank banner (YouTube's picture link stopped working, press Update from YouTube). Only addresses on Google's image hosts are ever saved or drawn.
 
 ## 8. The owner console (`/admin`)

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { Lightning, MonitorPlay, UserMinus } from "@phosphor-icons/react";
 import { INK_HEX, SITE_HOST } from "@/lib/site";
+import { isUploadedBannerUrl } from "@/lib/tip-banner";
 
 const PERKS = [
   { Icon: Lightning, text: "UPI and cards" },
@@ -47,6 +48,8 @@ export function CreatorPanel({
               alt=""
               fill
               priority
+              // An upload goes out as it is: the image optimiser would flatten an animated banner.
+              unoptimized={isUploadedBannerUrl(bannerUrl)}
               sizes="(min-width: 1024px) 400px, 100vw"
               className="object-cover"
             />

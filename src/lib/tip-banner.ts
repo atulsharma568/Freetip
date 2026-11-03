@@ -1,17 +1,36 @@
-// The creator's YouTube channel banner, shown behind their photo on the tip page (paid feature
-// `tipBanner`). Pure except for `fetchChannelBanner`, which takes the fetch function so the
+// The banner behind the creator's photo on the tip page (paid feature `tipBanner`): either their
+// YouTube channel banner or a picture they upload (a still image or an animated GIF or WebP).
+// Pure except for `fetchChannelBanner`, which takes the fetch function so the
 // tests can fake YouTube.
 //
-// Only an address on Google's image hosts is ever stored or drawn: the value comes from the
-// YouTube API, but it is checked again when the page is drawn so a bad row can never point the
-// tip page at someone else's server.
+// Only an address on Google's image hosts (a YouTube banner) or in our own Blob store under the
+// banner folder (an upload) is ever stored or drawn: it is checked again when the page is drawn,
+// so a bad row can never point the tip page at someone else's server.
+import { BLOB_HOST_SUFFIX, type MediaKind } from "./media";
+
+export const BANNER_MAX_BYTES = 3 * 1024 * 1024;
+export const BANNER_UPLOAD_KINDS: readonly MediaKind[] = ["gif", "image"];
+export const BANNER_UPLOAD_TYPES = ["image/gif", "image/png", "image/jpeg", "image/webp"] as const;
+
+// Where a creator's uploaded banners live; the upload route only issues a token under it.
+export const bannerPathPrefix = (creatorId: number) => `banners/${creatorId}/`;
+
+// An address in our own Blob store, under any creator's banner folder.
+export function isUploadedBannerUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  try {
+    return new URL(raw).hostname.endsWith(BLOB_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
 
 const BANNER_HOST_SUFFIXES = [".googleusercontent.com", ".ggpht.com"] as const;
 const MAX_URL_LENGTH = 600;
 const API = "https://www.googleapis.com/youtube/v3/channels";
 const TIMEOUT_MS = 12_000;
 
-// The address to draw, or null when it is missing or not a Google image address.
+// The address to draw, or null when it is missing or not an allowed one.
 export function safeBannerUrl(raw: unknown): string | null {
   if (typeof raw !== "string" || !raw || raw.length > MAX_URL_LENGTH) return null;
   let url: URL;
@@ -21,6 +40,9 @@ export function safeBannerUrl(raw: unknown): string | null {
     return null;
   }
   if (url.protocol !== "https:" || url.username || url.password || url.port) return null;
+  if (url.hostname.endsWith(BLOB_HOST_SUFFIX)) {
+    return /^\/banners\/\d+\/[\w.-]+$/.test(url.pathname) && !url.pathname.includes("..") ? url.toString() : null;
+  }
   if (!BANNER_HOST_SUFFIXES.some((s) => url.hostname.endsWith(s))) return null;
   return url.toString();
 }

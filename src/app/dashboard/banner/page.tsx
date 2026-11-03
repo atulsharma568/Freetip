@@ -60,9 +60,9 @@ export default async function BannerPage() {
           <DashboardNav current="banner" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Tip page banner</h1>
           <p className="text-pretty text-base text-muted">
-            Show your YouTube channel banner behind your photo at the top of your tip page. It is copied
-            from YouTube when you press the button, so press it again after you change your banner on
-            YouTube.
+            Show a banner behind your photo at the top of your tip page: your YouTube channel banner, or
+            a picture or animated GIF you upload. A YouTube banner is copied when you press the button,
+            so press it again after you change it on YouTube.
           </p>
         </div>
 
@@ -75,6 +75,8 @@ export default async function BannerPage() {
           ytChannelName={user.yt_channel_name}
           ytChannelUrl={user.yt_channel_url}
           bio={user.bio}
+          creatorId={user.id}
+          uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
         />
       </div>
     </DashboardShell>

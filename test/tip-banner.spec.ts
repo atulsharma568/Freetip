@@ -17,6 +17,20 @@ test.describe("which banner addresses are drawn", () => {
     expect(safeBannerUrl("https://yt3.ggpht.com/x")).toBe("https://yt3.ggpht.com/x");
   });
 
+  test("an upload in our own banner folder passes", () => {
+    const ok = "https://abc123.public.blob.vercel-storage.com/banners/7/banner-x1y2.gif";
+    expect(safeBannerUrl(ok)).toBe(ok);
+    for (const bad of [
+      "https://abc123.public.blob.vercel-storage.com/media/7/banner.gif",
+      "https://abc123.public.blob.vercel-storage.com/banners/seven/a.gif",
+      "https://abc123.public.blob.vercel-storage.com/banners/7/../../a.gif",
+      "https://abc123.public.blob.vercel-storage.com/banners/7/sub/a.gif",
+      "http://abc123.public.blob.vercel-storage.com/banners/7/a.gif",
+    ]) {
+      expect(safeBannerUrl(bad)).toBeNull();
+    }
+  });
+
   test("anything else is refused", () => {
     for (const bad of [
       null,
