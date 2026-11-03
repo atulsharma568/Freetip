@@ -15,7 +15,7 @@ import { DashboardShell } from "../parts/DashboardShell";
 import { VariationsManager, type VariationRow } from "./VariationsManager";
 
 export const metadata: Metadata = {
-  title: `Alert variations: ${SITE_NAME}`,
+  title: `Automatic tiers: ${SITE_NAME}`,
   robots: { index: false },
 };
 
@@ -108,7 +108,7 @@ export default async function VariationsPage() {
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="variations" />
-          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert variations</h1>
+          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Automatic tiers</h1>
           <p className="text-pretty text-base text-muted">
             From a tip size up, the alert changes by itself: your chosen picture or video, sound,
             wording and colours, and for ₹1,000 or more a longer stay. The biggest size at or below the

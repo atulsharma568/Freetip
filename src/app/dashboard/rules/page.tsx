@@ -10,7 +10,7 @@ import { DashboardShell } from "../parts/DashboardShell";
 import { RulesManager, type RuleRow } from "./RulesManager";
 
 export const metadata: Metadata = {
-  title: `Alert rules: ${SITE_NAME}`,
+  title: `Tip page picks: ${SITE_NAME}`,
   robots: { index: false },
 };
 
@@ -60,7 +60,7 @@ export default async function RulesPage() {
       <div className="mx-auto w-full max-w-2xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="rules" />
-          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert rules</h1>
+          <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Tip page picks</h1>
           <p className="text-pretty text-base text-muted">
             Each rule is a pick on your tip page: a GIF, picture or video with its sound, for one fixed
             amount. A fan taps it, hears the sound, and the amount is set to yours. A pick plays on its own,

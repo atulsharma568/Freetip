@@ -118,9 +118,9 @@ export const FEATURES: readonly FeatureInfo[] = [
   },
   {
     key: "alertRules",
-    label: "Alert rules by tip size",
+    label: "Tip page picks",
     group: "Alert box",
-    description: "Pick which media or sound plays depending on how big the tip is (/dashboard/rules). Media rules also need Custom alert media.",
+    description: "A fan taps one of the creator's GIFs (with its sound) on the tip page for one fixed amount, and it plays on its own (/dashboard/rules). Picks with media also need Custom alert media.",
     built: true,
   },
   {
@@ -195,7 +195,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   },
   {
     key: "alertVariations",
-    label: "Alert variations by tip size",
+    label: "Automatic tiers by tip size",
     group: "Alert box",
     description: "From a tip size up, the alert automatically plays the creator's chosen media, sound, wording and colours and can stay longer (/dashboard/variations). A fan's own pick (an alert rule or a soundboard sound) always wins. Media needs custom alert media, wording and colours need alert text and colours; each is shown only while its own switch is on.",
     built: true,
