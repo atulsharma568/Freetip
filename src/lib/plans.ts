@@ -34,7 +34,8 @@ export type FeatureKey =
   | "alertVariations"
   | "alertLayout"
   // The tip page itself.
-  | "tipBanner";
+  | "tipBanner"
+  | "pageBuilder";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -204,6 +205,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Banner on the tip page",
     group: "Tip page",
     description: "A banner shows behind the creator's photo at the top of their tip page: their own YouTube channel banner (one button, needs YT_DATA_API_KEY) or a picture or animated GIF or WebP they upload from their computer (up to 6 MB, needs the Blob store); they can remove it any time (/dashboard/banner).",
+    built: true,
+  },
+  {
+    key: "pageBuilder",
+    label: "Custom tip page",
+    group: "Tip page",
+    description: "The owner publishes a custom tip page for this creator from the owner console (a done-for-you page); the creator never edits it. Nothing changes on their page until one is published, and switching this off puts the normal page back at once.",
     built: true,
   },
 ];
