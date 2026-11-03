@@ -1,0 +1,102 @@
+name: Clean up old Vercel deployments
+
+# Every deployment keeps its own copy of the server code, and Vercel's "Functions
+# Storage" fills up with them (every push to main makes a deployment, and the retention
+# setting does not remove production ones). Once a day this deletes the old ones.
+# Kept, always: the 10 newest deployments, anything younger than 2 days, anything not
+# finished building, and the deployment the live site is serving right now (found from
+# the project, so a rollback to an old one is safe). Needs one repository secret,
+# VERCEL_TOKEN (a Vercel access token for the TipSite team, see OPERATIONS.md 7f). Can
+# also be run by hand from the Actions tab ("Run workflow"); tick "dry run" to only list
+# what would be deleted. GitHub pauses schedules on a repository with no activity for 60
+# days; a push or a manual run wakes it up again.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only list what would be deleted'
+        type: boolean
+        default: false
+
+permissions: {}
+
+env:
+  # Identifiers, not credentials.
+  VERCEL_TEAM_ID: team_bDdesZrZBZCI1wy4cyNSytob
+  VERCEL_PROJECT_ID: prj_ch3dieEQs4EIC2iHQqCyve6B89pu
+  KEEP_NEWEST: '10'
+  KEEP_DAYS: '2'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Delete old deployments
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN is not set as a repository secret. Nothing to do."
+            exit 1
+          fi
+          api() {
+            curl --fail-with-body --silent --show-error --max-time 60 \
+              -H "Authorization: Bearer $VERCEL_TOKEN" "$@"
+          }
+
+          # The deployment serving the live site: never touched.
+          live=$(api "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_TEAM_ID" \
+            | jq -r '.targets.production.id // empty')
+          if [ -z "$live" ]; then
+            echo "Could not find the live deployment. Stopping to be safe."
+            exit 1
+          fi
+          echo "Live deployment (kept): $live"
+
+          # All deployments, newest first, 100 per page.
+          : > all.jsonl
+          until=""
+          while : ; do
+            page=$(api "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_TEAM_ID&limit=100$until")
+            echo "$page" | jq -c '.deployments[] | {uid, created, state}' >> all.jsonl
+            next=$(echo "$page" | jq -r '.pagination.next // empty')
+            [ -z "$next" ] && break
+            until="&until=$next"
+          done
+          total=$(wc -l < all.jsonl | tr -d ' ')
+          echo "Deployments found: $total"
+
+          cutoff=$(( ($(date +%s) - KEEP_DAYS * 86400) * 1000 ))
+          jq -r --argjson keep "$KEEP_NEWEST" --argjson cutoff "$cutoff" --arg live "$live" \
+            -s 'sort_by(-.created) | .[$keep:] | .[]
+                | select(.uid != $live and .created < $cutoff
+                         and (.state == "READY" or .state == "ERROR" or .state == "CANCELED"))
+                | .uid' all.jsonl > delete.txt
+          count=$(wc -l < delete.txt | tr -d ' ')
+          echo "To delete: $count"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            cat delete.txt
+            echo "Dry run: nothing deleted."
+            exit 0
+          fi
+
+          failed=0
+          while read -r id; do
+            [ -z "$id" ] && continue
+            if api -X DELETE "https://api.vercel.com/v13/deployments/$id?teamId=$VERCEL_TEAM_ID" > /dev/null; then
+              echo "deleted $id"
+            else
+              echo "failed $id"
+              failed=$((failed + 1))
+            fi
+          done < delete.txt
+          echo "Done. Deleted $((count - failed)), failed $failed."
+          [ "$failed" -eq 0 ]
