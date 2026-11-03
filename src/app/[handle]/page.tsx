@@ -8,7 +8,7 @@ import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
-import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { isOwnerTipPage, ownerBrand, OWNER_ACCENT } from "@/lib/owner-page";
 import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
@@ -76,7 +76,8 @@ export default async function CreatorPage({ params }: Props) {
   const voiceMinPaise =
     ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
-  const storedAccent = await getCreatorAccent(handle);
+  // The owner's page is always the channel's crimson, whatever accent is saved.
+  const storedAccent = ownerPage ? OWNER_ACCENT : await getCreatorAccent(handle);
   const themeStyle = accentStyle(storedAccent);
 
   return (

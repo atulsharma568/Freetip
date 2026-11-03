@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { isOwnerTipPage } from "../src/lib/owner-page";
+import { isOwnerTipPage, OWNER_ACCENT, pressureFraction, pressureLevel } from "../src/lib/owner-page";
+import { isReadable, safeAccent } from "../src/lib/accent";
 
 // Only the owner's own tip page gets the custom header.
 const env = (o: Record<string, string>) => o as unknown as NodeJS.ProcessEnv;
@@ -29,4 +30,24 @@ test("the owner's page shows the brand, which can be changed", async () => {
   const { ownerBrand } = await import("../src/lib/owner-page");
   expect(ownerBrand(env({}))).toBe("AcePressure");
   expect(ownerBrand(env({ OWNER_TIP_BRAND: " Ace " }))).toBe("Ace");
+});
+
+test("the owner's crimson is readable, so it is not swapped for the default colour", () => {
+  expect(isReadable(OWNER_ACCENT)).toBe(true);
+  expect(safeAccent(OWNER_ACCENT)).toBe(OWNER_ACCENT);
+});
+
+test.describe("the pressure bar", () => {
+  test("is empty at the minimum and full at ₹5,000, rising in between", () => {
+    expect(pressureFraction(20, 20)).toBe(0);
+    expect(pressureFraction(5000, 20)).toBe(1);
+    expect(pressureFraction(100, 20)).toBeGreaterThan(pressureFraction(50, 20));
+    expect(pressureFraction(99999, 20)).toBe(1);
+    expect(pressureFraction(0, 20)).toBe(0);
+  });
+
+  test("climbs the One Piece ladder", () => {
+    const names = [0, 0.3, 0.6, 0.9, 1].map(pressureLevel);
+    expect(names).toEqual(["Rookie", "Supernova", "Warlord", "Yonko", "Pirate King"]);
+  });
 });

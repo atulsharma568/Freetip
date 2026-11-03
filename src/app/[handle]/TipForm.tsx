@@ -14,7 +14,8 @@ import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { tipTier } from "@/lib/tip-tier";
 import { AlertCard } from "@/components/tip/AlertCard";
 import { CreatorPanel, QrTile } from "@/components/tip/CreatorPanel";
-import { OwnerHero } from "@/components/tip/OwnerHero";
+import { OwnerHero, OwnerStrip, PressureBar } from "@/components/tip/OwnerHero";
+import { OwnerSuccess } from "@/components/tip/OwnerSuccess";
 import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
 import { StepHeading } from "@/components/tip/StepHeading";
@@ -351,8 +352,9 @@ export function TipForm({
 
   // ── Success screen ──────────────────────────────────────────────────────────
   if (phase === "success") {
+    const Success = variant === "owner" ? OwnerSuccess : SuccessScreen;
     return (
-      <SuccessScreen
+      <Success
         amountPaise={paidAmount}
         displayName={displayName}
         handle={handle}
@@ -410,8 +412,6 @@ export function TipForm({
             bio={bio}
             ytChannelName={ytChannelName}
             ytChannelUrl={ytChannelUrl}
-            amountRupees={amountRupees}
-            minRupees={minRupees}
             previewMode={previewMode}
           />
         </div>
@@ -473,6 +473,7 @@ export function TipForm({
                 ₹{rupeeText(amountRupees)}
               </p>
               <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
+              {variant === "owner" && <PressureBar amountRupees={amountRupees} minRupees={minRupees} />}
             </div>
             <div onClickCapture={() => amountLocked && setLockWarning(true)} className="space-y-3">
             <fieldset>
@@ -730,6 +731,7 @@ export function TipForm({
           </div>
         </div>
       </div>
+      {variant === "owner" && <OwnerStrip />}
     </div>
   );
 }

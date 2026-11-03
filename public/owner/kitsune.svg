@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-label="Kitsune mask">
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf6ef"/>
+      <stop offset="1" stop-color="#e6dccf"/>
+    </linearGradient>
+  </defs>
+  <path d="M100 234C78 234 50 202 40 162C34 140 34 114 40 94L35 14C35 9 40 7 44 10L86 55C94 53 106 53 114 55L156 10C160 7 165 9 165 14L160 94C166 114 166 140 160 162C150 202 122 234 100 234Z" fill="url(#face)" stroke="#1a0508" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M45 24L80 62L50 86Z" fill="#c8102e"/>
+  <path d="M155 24L120 62L150 86Z" fill="#c8102e"/>
+  <path d="M100 64C91 84 93 100 100 112C107 100 109 84 100 64Z" fill="#c8102e"/>
+  <path d="M48 104C64 90 86 92 96 108C80 102 62 102 48 104Z" fill="#c8102e"/>
+  <path d="M152 104C136 90 114 92 104 108C120 102 138 102 152 104Z" fill="#c8102e"/>
+  <path d="M52 120C66 108 86 112 94 128C80 130 62 130 52 120Z" fill="#1a0508"/>
+  <path d="M148 120C134 108 114 112 106 128C120 130 138 130 148 120Z" fill="#1a0508"/>
+  <path d="M45 142C60 146 74 156 82 172C66 168 53 158 45 142Z" fill="#c8102e"/>
+  <path d="M52 168C64 170 74 178 80 190C68 188 58 180 52 168Z" fill="#c8102e"/>
+  <path d="M155 142C140 146 126 156 118 172C134 168 147 158 155 142Z" fill="#c8102e"/>
+  <path d="M148 168C136 170 126 178 120 190C132 188 142 180 148 168Z" fill="#c8102e"/>
+  <path d="M92 204H108L100 216Z" fill="#1a0508"/>
+  <path d="M100 216V224" stroke="#1a0508" stroke-width="3" stroke-linecap="round"/>
+</svg>

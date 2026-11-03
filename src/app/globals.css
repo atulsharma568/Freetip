@@ -1228,12 +1228,28 @@ html.menu-open body {
   }
 }
 
-/* The owner's own tip page (src/components/tip/OwnerHero.tsx, OwnerBackdrop.tsx). */
+/* The owner's own tip page (src/components/tip/Owner*.tsx). */
 .ap-strip {
   background:
     radial-gradient(ellipse at 80% 0%, color-mix(in oklab, var(--color-accent) 30%, transparent), transparent 60%),
-    repeating-linear-gradient(90deg, color-mix(in oklab, var(--color-line) 55%, transparent) 0 1px, transparent 1px 28px),
     var(--color-ground);
+}
+.ap-ghost {
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in oklab, var(--color-text) 55%, transparent);
+}
+.ap-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  z-index: 1;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  opacity: 0.8;
+}
+.ap-bust {
+  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent);
+  mask-image: linear-gradient(to bottom, #000 78%, transparent);
 }
 .ap-fill {
   transition: width 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
@@ -1241,29 +1257,41 @@ html.menu-open body {
 .ap-backdrop {
   background: var(--color-ground);
 }
-.ap-aurora {
+.ap-smoke {
   position: absolute;
-  width: 70vmax;
-  height: 70vmax;
+  width: 75vmax;
+  height: 75vmax;
   border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.2;
-  background: radial-gradient(circle, var(--color-accent), transparent 65%);
+  filter: blur(90px);
   will-change: transform;
 }
-.ap-aurora-a { left: -25vmax; top: -30vmax; }
-.ap-aurora-b { right: -30vmax; bottom: -35vmax; opacity: 0.12; }
-.ap-backdrop-grid {
-  background-image:
-    repeating-linear-gradient(0deg, color-mix(in oklab, var(--color-line) 40%, transparent) 0 1px, transparent 1px 44px),
-    repeating-linear-gradient(90deg, color-mix(in oklab, var(--color-line) 40%, transparent) 0 1px, transparent 1px 44px);
-  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+.ap-smoke-a { left: -30vmax; top: -35vmax; opacity: 0.2; background: radial-gradient(circle, var(--color-accent), transparent 62%); }
+.ap-smoke-b { right: -35vmax; bottom: -40vmax; opacity: 0.16; background: radial-gradient(circle, #8a1020, transparent 62%); }
+.ap-smoke-c { left: 25vw; top: 35vh; width: 55vmax; height: 55vmax; opacity: 0.1; background: radial-gradient(circle, #9a9a9a, transparent 62%); }
+.ap-slash {
+  position: absolute;
+  height: 2px;
+  width: 80vmax;
+  transform-origin: left center;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-accent) 70%, transparent), transparent);
+  opacity: 0.35;
 }
-.ap-bubble {
+.ap-slash-a { left: -10vmax; top: 18vh; rotate: 35deg; }
+.ap-slash-b { right: -40vmax; top: 62vh; rotate: -145deg; opacity: 0.22; }
+.ap-slash-c { left: -20vmax; bottom: 6vh; rotate: 35deg; opacity: 0.18; }
+.ap-ember {
   position: absolute;
   bottom: -20px;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in oklab, var(--color-accent) 60%, transparent);
+  rotate: 45deg;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-accent) 80%, transparent);
+  opacity: 0;
+}
+.ap-petal {
+  position: absolute;
+  top: -24px;
+  border-radius: 100% 0 100% 0;
+  background: color-mix(in oklab, var(--color-accent) 65%, #5a0a14);
   opacity: 0;
 }
 .ap-grain {
@@ -1272,37 +1300,41 @@ html.menu-open body {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 .ap-vignette {
-  background: radial-gradient(ellipse at 50% 40%, transparent 45%, color-mix(in oklab, black 55%, transparent) 100%);
+  background: radial-gradient(ellipse at 50% 40%, transparent 45%, color-mix(in oklab, black 60%, transparent) 100%);
 }
-@keyframes ap-drift-a {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(14vmax, 10vmax, 0) scale(1.15); }
-}
-@keyframes ap-drift-b {
-  from { transform: translate3d(0, 0, 0) scale(1.1); }
-  to { transform: translate3d(-12vmax, -8vmax, 0) scale(0.95); }
-}
+@keyframes ap-drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vmax, 10vmax, 0) scale(1.15); } }
+@keyframes ap-drift-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-12vmax, -8vmax, 0) scale(0.95); } }
+@keyframes ap-drift-c { from { transform: translate3d(-6vmax, 0, 0); } to { transform: translate3d(8vmax, -6vmax, 0); } }
+@keyframes ap-slash-glide { from { transform: translate3d(-4vmax, 0, 0); opacity: 0.1; } to { transform: translate3d(6vmax, 0, 0); opacity: 0.45; } }
 @keyframes ap-rise {
   0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  10% { opacity: 0.8; }
+  85% { opacity: 0.3; }
+  100% { transform: translate3d(18px, -105vh, 0); opacity: 0; }
+}
+@keyframes ap-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
   10% { opacity: 0.55; }
-  85% { opacity: 0.25; }
-  100% { transform: translate3d(14px, -105vh, 0); opacity: 0; }
+  90% { opacity: 0.35; }
+  100% { transform: translate3d(-60px, 108vh, 0) rotate(400deg); opacity: 0; }
 }
-@keyframes ap-ring {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent); }
-  50% { box-shadow: 0 0 0 10px transparent; }
-}
-@keyframes ap-hot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
+@keyframes ap-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes ap-hot { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes ap-gg { from { transform: scale(1.35) skewX(-6deg); opacity: 0; } to { transform: scale(1) skewX(0); opacity: 1; } }
+@keyframes ap-pop { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) {
-  .ap-aurora-a { animation: ap-drift-a 60s ease-in-out infinite alternate; }
-  .ap-aurora-b { animation: ap-drift-b 75s ease-in-out infinite alternate; }
-  .ap-bubble { animation-name: ap-rise; animation-timing-function: linear; animation-iteration-count: infinite; }
+  .ap-smoke-a { animation: ap-drift-a 60s ease-in-out infinite alternate; }
+  .ap-smoke-b { animation: ap-drift-b 75s ease-in-out infinite alternate; }
+  .ap-smoke-c { animation: ap-drift-c 90s ease-in-out infinite alternate; }
+  .ap-slash { animation: ap-slash-glide 14s ease-in-out infinite alternate; }
+  .ap-ember { animation-name: ap-rise; animation-timing-function: linear; animation-iteration-count: infinite; }
+  .ap-petal { animation-name: ap-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
   .ap-ring { animation: ap-ring 2.6s ease-out infinite; }
   .ap-hot { animation: ap-hot 0.7s ease-in-out infinite; }
+  .ap-gg { animation: ap-gg 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .ap-pop { animation: ap-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ap-fill { transition: none; }
+  .ap-ember, .ap-petal { display: none; }
 }

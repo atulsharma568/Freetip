@@ -22,3 +22,36 @@ export function isOwnerTipPage(
 export function ownerBrand(env: NodeJS.ProcessEnv = process.env): string {
   return env.OWNER_TIP_BRAND?.trim() || "AcePressure";
 }
+
+// The owner's page is crimson, the channel's colour (the banner's red is darker, too dim for
+// text on black; this one is bright enough for both). It does not depend on the saved accent.
+export const OWNER_ACCENT = "#ec3d4e";
+
+// Words only the owner's page uses.
+export const OWNER_COPY = {
+  tagline: "Valorant / Live & Highlights",
+  instagram: "acepressure.gg",
+  youtubeLabel: "YouTube / AcePressure",
+} as const;
+
+const PRESSURE_TOP_RUPEES = 5000;
+
+// Where an amount sits on the pressure bar: a log scale, so ₹20 and ₹5,000 both fit.
+export function pressureFraction(amountRupees: number, minRupees: number): number {
+  const low = Math.max(1, minRupees);
+  if (!(amountRupees > low)) return 0;
+  return Math.min(1, Math.log(amountRupees / low) / Math.log(PRESSURE_TOP_RUPEES / low));
+}
+
+// The word under the bar: a bounty ladder from One Piece, from a rookie up to the Pirate King.
+const PRESSURE_LEVELS = [
+  { upTo: 0.25, name: "Rookie" },
+  { upTo: 0.5, name: "Supernova" },
+  { upTo: 0.75, name: "Warlord" },
+  { upTo: 0.95, name: "Yonko" },
+  { upTo: 1.01, name: "Pirate King" },
+] as const;
+
+export function pressureLevel(fraction: number): string {
+  return PRESSURE_LEVELS.find((l) => fraction < l.upTo)?.name ?? "Pirate King";
+}
