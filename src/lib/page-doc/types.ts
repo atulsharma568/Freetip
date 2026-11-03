@@ -38,8 +38,12 @@ export interface Ladder {
 // Words a block may change are plain text, empty by default. Empty means the standard wording,
 // which stays in the component, so a document that sets nothing looks exactly as before.
 export interface SettingsByType {
-  backdrop: { style: "ember" };
-  header: Record<string, never>;
+  // "ember" is the owner's smoke and embers; "media" draws a picture, GIF or video of the library
+  // (`asset`, an id in page_assets) under a layer of the page colour, `dim` percent thick. A media
+  // backdrop with no readable asset draws nothing, so the page is plain.
+  backdrop: { style: "ember" | "media"; asset: number | null; dim: number };
+  // `bannerAsset` (an id in page_assets, a picture or GIF) replaces the creator's own banner.
+  header: { bannerAsset: number | null };
   creatorLinks: { tagline: string; instagram: string };
   alertPreview: { label: string };
   qr: Record<string, never>;

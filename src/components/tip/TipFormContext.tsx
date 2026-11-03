@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { TipRule, TipSound } from "@/app/[handle]/creator";
+import type { ResolvedAsset } from "@/lib/page-doc/assets";
 import type { PinOffer } from "@/lib/pinned";
 import type { nextMessageStep } from "@/lib/message-limit";
 import type { Extra } from "@/components/tip/ExtraPicker";
@@ -18,6 +19,8 @@ export interface TipFormState {
   displayName: string;
   pictureUrl: string | null;
   bannerUrl: string | null;
+  // The pictures the page document may use, by id (empty when it uses none).
+  assets: Record<number, ResolvedAsset>;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   bio: string | null;

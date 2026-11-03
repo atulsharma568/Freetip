@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buttonClass } from "@/components/admin/tones";
 import { BLOCK_LABELS } from "@/lib/page-doc/blocks";
-import { moveBlock, moveBlockTo, setVisible, type EditResult } from "@/lib/page-doc/edit";
+import { addBlock, moveBlock, moveBlockTo, setVisible, type EditResult } from "@/lib/page-doc/edit";
 import type { PageResult, SaveResult } from "@/lib/page-doc/store";
 import type { BlockType, PageDoc } from "@/lib/page-doc/types";
+import type { PageAssetResult } from "@/app/actions/page-assets";
+import type { AssetListItem } from "@/lib/page-doc/asset-store";
+import { usedAssetIds } from "@/lib/page-doc/assets";
 import { BlockList, type Selection } from "./BlockList";
 import { BlockSettings } from "./BlockSettings";
+import type { AssetLibrary } from "./AssetPicker";
 import { PreviewFrame, type PreviewView } from "./PreviewFrame";
 
 // What the editor opens with (see loadDraft in the store).
@@ -20,6 +24,12 @@ export interface EditorStart {
   source: "draft" | "published" | "default";
   // The creator's normal page, for "Revert to published" when nothing is published.
   fallback: PageDoc;
+}
+
+// The creator's pictures as the page opened with them. `error` is set when they cannot be read.
+export interface LibraryStart {
+  items: AssetListItem[];
+  error: string | null;
 }
 
 export type SaveDraft = (base: unknown, next: PageDoc) => Promise<SaveResult>;
@@ -40,6 +50,10 @@ export function PageEditor({
   save,
   publish,
   discard,
+  creatorId,
+  library: libraryStart,
+  addAsset,
+  removeAsset,
 }: {
   start: EditorStart;
   previewSrc: string;
@@ -47,6 +61,10 @@ export function PageEditor({
   save: SaveDraft;
   publish: PageAction;
   discard: PageAction;
+  creatorId: number;
+  library: LibraryStart;
+  addAsset: AssetLibrary["add"];
+  removeAsset: (assetId: number) => Promise<PageAssetResult>;
 }) {
   const [doc, setDoc] = useState(start.doc);
   const docRef = useRef(start.doc);
@@ -71,6 +89,23 @@ export function PageEditor({
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const dirty = JSON.stringify(doc) !== sentJson;
+
+  // The pictures. When the list changes the preview frame loads again, because it reads the files
+  // when it loads.
+  const [items, setItems] = useState(libraryStart.items);
+  const [reloadKey, setReloadKey] = useState(0);
+  const library: AssetLibrary = {
+    creatorId,
+    items,
+    draftIds: usedAssetIds(doc),
+    error: libraryStart.error,
+    add: addAsset,
+    remove: removeAsset,
+    onItems: (next) => {
+      setItems(next);
+      setReloadKey((n) => n + 1);
+    },
+  };
 
   // Every change goes through here: it works on the latest document, keeps it, and hands the
   // result back so the caller can show why a change was refused.
@@ -150,6 +185,14 @@ export function PageEditor({
     const r = run((d) => setVisible(d, type, on));
     if (r.changed) setAnnounce(`${BLOCK_LABELS[type]} is now ${on ? "shown" : "hidden"}.`);
     else if (r.problems[0]) setAnnounce(r.problems[0]);
+  }
+
+  function addBackdrop() {
+    const r = run((d) => addBlock(d, "backdrop"));
+    if (r.changed) {
+      setSelected("backdrop");
+      setAnnounce("Added a picture backdrop behind the page.");
+    }
   }
 
   async function doPublish() {
@@ -294,9 +337,9 @@ export function PageEditor({
 
       <div className="hidden items-start gap-6 lg:grid lg:grid-cols-[21rem_minmax(0,1fr)]">
         <div className="max-h-[calc(100dvh-2rem)] space-y-6 overflow-y-auto pr-1 lg:sticky lg:top-4">
-          <BlockList doc={doc} selected={selected} onSelect={setSelected} onMove={move} onDrop={drop} onVisible={visible} />
+          <BlockList doc={doc} selected={selected} onSelect={setSelected} onMove={move} onDrop={drop} onVisible={visible} onAddBackdrop={addBackdrop} />
           <hr className="border-control" />
-          <BlockSettings doc={doc} selected={selected} run={run} />
+          <BlockSettings doc={doc} selected={selected} run={run} library={library} />
         </div>
         <PreviewFrame
           src={previewSrc}
@@ -305,6 +348,7 @@ export function PageEditor({
           view={view}
           onView={setView}
           onPick={setSelected}
+          reloadKey={reloadKey}
         />
       </div>
     </div>

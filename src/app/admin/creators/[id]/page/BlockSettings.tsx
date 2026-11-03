@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { buttonClass, FIELD_CLASS } from "@/components/admin/tones";
 import { BLOCK_LABELS, PROTECTED } from "@/lib/page-doc/blocks";
-import { resetBlock, setChoice, setLadder, setText, setTheme, type EditResult, type ThemeResult } from "@/lib/page-doc/edit";
-import { CHOICE_FIELDS, textFieldsFor } from "@/lib/page-doc/fields";
+import { resetBlock, setAsset, setChoice, setLadder, setNumber, setText, setTheme, swapAsset, type EditResult, type ThemeResult } from "@/lib/page-doc/edit";
+import { CHOICE_FIELDS, rangeFieldsFor, textFieldsFor } from "@/lib/page-doc/fields";
 import type { Block, BlockType, PageDoc } from "@/lib/page-doc/types";
+import { AssetPicker, type AssetLibrary } from "./AssetPicker";
 import type { Selection } from "./BlockList";
 import { ColourEditor } from "./ColourEditor";
 import { LadderEditor } from "./LadderEditor";
 
 const ABOUT: Record<BlockType, string> = {
-  backdrop: "The smoke, slashes and embers behind the whole page. Use the eye in the list to turn it off.",
-  header: "The creator's photo, banner, name and bio. They come from the creator's account, so there is nothing to word here. This block has to stay on the page.",
+  backdrop: "What sits behind the whole page: the smoke, slashes and embers, or a picture, GIF or video from the library. Use the eye in the list to turn it off.",
+  header: "The creator's photo, name and bio come from their account, so there is nothing to word here. You can put a picture or GIF from the library in place of their banner. This block has to stay on the page.",
   creatorLinks: "A line of words and an Instagram link under the header. Leave both empty to show nothing.",
   alertPreview: "The alert as it will look on stream, drawn from what the fan types.",
   qr: "The QR code to this page, shown on a laptop. Nothing to edit.",
@@ -29,10 +30,12 @@ export function BlockSettings({
   doc,
   selected,
   run,
+  library,
 }: {
   doc: PageDoc;
   selected: Selection;
   run: <R extends EditResult>(change: (doc: PageDoc) => R) => R;
+  library: AssetLibrary;
 }) {
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
 
@@ -54,7 +57,10 @@ export function BlockSettings({
   const settings = block.settings as Record<string, unknown>;
   const fields = textFieldsFor(block.type, block.settings as never);
   const choices = CHOICE_FIELDS[block.type];
-  const nothing = fields.length === 0 && choices.length === 0 && block.type !== "amount";
+  const ranges = rangeFieldsFor(block.type, block.settings as never);
+  const picture =
+    block.type === "header" ? ("banner" as const) : block.type === "backdrop" && (block.settings as Block<"backdrop">["settings"]).style === "media" ? ("backdrop" as const) : null;
+  const nothing = fields.length === 0 && choices.length === 0 && ranges.length === 0 && !picture && block.type !== "amount";
 
   return (
     <section aria-labelledby="settings-title" className="space-y-4">
@@ -128,13 +134,50 @@ export function BlockSettings({
         );
       })}
 
+      {ranges.map((r) => {
+        const id = `range-${block.type}-${r.key}`;
+        const value = Number(settings[r.key] ?? r.min);
+        return (
+          <div key={r.key} className="space-y-1">
+            <label htmlFor={id} className="flex items-baseline justify-between gap-2 text-xs text-muted">
+              <span>{r.label}</span>
+              <span className="numeric">
+                {value}
+                {r.unit}
+              </span>
+            </label>
+            <input
+              id={id}
+              type="range"
+              min={r.min}
+              max={r.max}
+              step={r.step}
+              value={value}
+              onChange={(e) => run((d) => setNumber(d, block.type, r.key, Number(e.target.value)))}
+              className="block w-full accent-[var(--color-accent)]"
+            />
+            <p className="text-xs text-muted">A layer of the page colour over the picture, so the words stay easy to read.</p>
+          </div>
+        );
+      })}
+
+      {picture && (
+        <AssetPicker
+          use={picture}
+          value={block.type === "header" ? (block as Block<"header">).settings.bannerAsset : (block as Block<"backdrop">).settings.asset}
+          library={library}
+          onPick={(id) => run((d) => setAsset(d, block.type, id))}
+          onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}
+        />
+      )}
+
       {block.type === "amount" && (
         <LadderEditor ladder={(block as Block<"amount">).settings.ladder} onChange={(ladder) => run((d) => setLadder(d, ladder))} />
       )}
 
       {nothing && <p className="text-xs text-muted">There is nothing to edit in this block.</p>}
 
-      {(fields.length > 0 || choices.length > 0 || block.type === "amount") && (
+      {(fields.length > 0 || choices.length > 0 || block.type === "amount" || block.type === "header") && (
         <button type="button" onClick={() => run((d) => resetBlock(d, block.type))} className={buttonClass("quiet", "sm")}>
           Put this block&apos;s words back to standard
         </button>

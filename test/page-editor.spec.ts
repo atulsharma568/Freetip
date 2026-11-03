@@ -335,3 +335,107 @@ test.describe("the editor's own accessibility", () => {
     await expect(live).toHaveText("Moved Send up. Now 2 of 3.");
   });
 });
+
+test.describe("pictures", () => {
+  const add = (page: Page) => list(page).getByRole("button", { name: "Add a picture or video behind the page" });
+  const file = (page: Page, name: RegExp | string) => page.getByRole("button", { name, exact: false }).first();
+  const status = (page: Page) => page.getByRole("status").filter({ hasText: /Draft saved|Changes not saved|Saving|Nothing changed/ }).first();
+
+  test("a page without a backdrop can be given one, which is a picture backdrop with no picture yet", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await expect(list(page).getByRole("button", { name: /^Backdrop/ })).toHaveCount(0);
+    await add(page).click();
+    await expect(add(page)).toHaveCount(0);
+    await expect(list(page).getByRole("region", { name: "Behind the page", exact: true }).getByRole("button", { name: /^Backdrop/ })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Backdrop" })).toHaveValue("media");
+    // The library's files are offered, the video too.
+    for (const name of ["Kitsune", "Embers", "Loop"]) await expect(file(page, new RegExp(`^${name},`))).toBeVisible();
+    await expect(page.getByText("0/10 files").or(page.getByText("3/10 files"))).toBeVisible();
+  });
+
+  test("picking a file draws it in the preview at once, and the darkening slider appears", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await add(page).click();
+    await expect(page.getByLabel(/^Darken the picture/)).toHaveValue("40");
+    await file(page, /^Kitsune,/).click();
+    await expect(frame(page).locator('div.fixed.-z-10 img[src="/owner/kitsune.svg"]')).toHaveCount(1);
+    await expect(file(page, /^Kitsune,/)).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel(/^Darken the picture/).fill("70");
+    await expect(page.getByText("70%")).toBeVisible();
+    const layer = frame(page).locator("div.fixed.-z-10 div.absolute.inset-0");
+    await expect.poll(async () => Number(await layer.evaluate((el) => getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1);
+    await expect(page.getByText("Changes not saved yet").or(page.getByText("Saving…")).or(page.getByText("Draft saved"))).toBeVisible();
+  });
+
+  test("choosing the smoke style hides the picture controls, and None takes the picture off", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await add(page).click();
+    await file(page, /^Embers,/).click();
+    await page.getByRole("button", { name: "None", exact: true }).click();
+    await expect(file(page, /^Embers,/)).toHaveAttribute("aria-pressed", "false");
+    await expect(frame(page).locator("div.fixed.-z-10 img")).toHaveCount(0);
+    await page.getByRole("combobox", { name: "Backdrop" }).selectOption("ember");
+    await expect(page.getByLabel(/^Darken the picture/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Picture", level: 3 })).toHaveCount(0);
+  });
+
+  test("the header takes a picture or GIF as its banner, never a video", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await block(page, /^Header/).click();
+    await expect(page.getByRole("heading", { name: "Banner picture", level: 3 })).toBeVisible();
+    await expect(file(page, /^Kitsune,/)).toBeVisible();
+    await expect(file(page, /^Embers,/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Loop,/ })).toHaveCount(0);
+    await file(page, /^Kitsune,/).click();
+    await expect(frame(page).locator('section[aria-label="Creator"] div.aspect-\\[16\\/5\\] img')).toHaveCount(1);
+  });
+
+  test("Replace is offered only once a picture is chosen", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await add(page).click();
+    await expect(page.getByRole("button", { name: /^Replace/ })).toHaveCount(0);
+    await file(page, /^Embers,/).click();
+    await expect(page.getByRole("button", { name: "Replace “Embers”" })).toBeVisible();
+    await expect(page.getByText("Replace changes the draft only", { exact: false })).toBeVisible();
+  });
+
+  test("a file no page uses can be removed after asking, and one the draft uses cannot be", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await add(page).click();
+    await file(page, /^Embers,/).click();
+    await expect(page.getByText("Draft saved")).toBeVisible();
+
+    // The unused file goes after "Delete".
+    await page.getByRole("button", { name: "Remove Kitsune" }).click();
+    await expect(page.getByRole("button", { name: "Keep" })).toBeVisible();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page.getByText("Removed. The file is deleted.")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Kitsune,/ })).toHaveCount(0);
+    expect(await fixture(page, (f) => f.removed)).toEqual([1]);
+
+    // The one the draft uses cannot be removed at all: the button is off until it is taken off the page.
+    await expect(page.getByRole("button", { name: "Remove Embers" })).toBeDisabled();
+    await expect(file(page, /^Embers,/)).toBeVisible();
+    expect(await fixture(page, (f) => f.removed)).toEqual([1]);
+    // Taking it off the page turns the button back on.
+    await page.getByRole("button", { name: "None", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Remove Embers" })).toBeEnabled();
+  });
+
+  test("Keep cancels a removal", async ({ page }) => {
+    await open(page);
+    await ready(page);
+    await add(page).click();
+    await page.getByRole("button", { name: "Remove Loop" }).click();
+    await page.getByRole("button", { name: "Keep" }).click();
+    await expect(page.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0);
+    expect(await fixture(page, (f) => f.removed)).toEqual([]);
+    void status;
+  });
+});

@@ -1,4 +1,5 @@
 import { inkFor, pairChecks } from "../accent";
+import { ASSET_LIMITS, cleanAssetId } from "./assets";
 import { ALLOWED_SLOTS, BLOCK_LABELS, INSTAGRAM_PATTERN, LIMITS, PROTECTED, defaultSettings, isBlockType } from "./blocks";
 import { PAGE_DOC_VERSION, type Block, type BlockType, type Ladder, type PageDoc, type SettingsByType, type Slot, type Theme } from "./types";
 
@@ -74,9 +75,35 @@ function parseLadder(raw: unknown, notes: Notes): Ladder | null {
   return { topRupees: top, levels: out };
 }
 
+// A picture reference: a whole number id, or nothing. Whether the file exists, is the creator's
+// own and fits the place is checked when the page is drawn (see tip-page-data.ts).
+function assetRef(v: unknown, notes: Notes, label: string): number | null {
+  if (v === undefined || v === null) return null;
+  const id = cleanAssetId(v);
+  if (id === null) notes.add(`${label} was not valid and was removed.`);
+  return id;
+}
+
+// How dark the layer over a backdrop picture is, in whole percent steps within the allowed range.
+function cleanDim(v: unknown, notes: Notes): number {
+  const { min, max, standard } = ASSET_LIMITS.dim;
+  if (v === undefined || v === null) return standard;
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    notes.add("The darkening of the backdrop was not a number and was put back to standard.");
+    return standard;
+  }
+  const n = Math.round(v);
+  if (n < min || n > max) notes.add(`The darkening of the backdrop was kept between ${min} and ${max}.`);
+  return Math.min(max, Math.max(min, n));
+}
+
 const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes) => SettingsByType[K] } = {
-  backdrop: () => ({ style: "ember" }),
-  header: () => ({}),
+  backdrop: (raw, notes) => ({
+    style: raw.style === "media" ? "media" : "ember",
+    asset: assetRef(raw.asset, notes, "The backdrop picture"),
+    dim: cleanDim(raw.dim, notes),
+  }),
+  header: (raw, notes) => ({ bannerAsset: assetRef(raw.bannerAsset, notes, "The banner picture") }),
   creatorLinks: (raw, notes) => {
     const instagram = typeof raw.instagram === "string" && INSTAGRAM_PATTERN.test(raw.instagram) ? raw.instagram : "";
     if (raw.instagram !== undefined && raw.instagram !== "" && !instagram) notes.add("The Instagram handle was not valid and was removed.");

@@ -11,6 +11,7 @@ import { SuccessBlock } from "@/components/tip/blocks/SuccessBlock";
 import type { Extra } from "@/components/tip/ExtraPicker";
 import { TipFormProvider, type Phase, type TipFormState } from "@/components/tip/TipFormContext";
 import { rupeeText } from "@/components/tip/format";
+import type { ResolvedAsset } from "@/lib/page-doc/assets";
 import { findBlock } from "@/lib/page-doc/blocks";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
@@ -110,6 +111,8 @@ interface Props {
   // The page as a document of blocks (parsed already): what is on the page, in what order and
   // with which words. It never changes what a payment does; that stays in this component.
   doc: PageDoc;
+  // The pictures of the library the document uses, by id. Blocks only draw them.
+  assets?: Record<number, ResolvedAsset>;
 }
 
 export function TipForm({
@@ -130,6 +133,7 @@ export function TipForm({
   editing = false,
   pinOffer = null,
   doc,
+  assets = {},
   accent,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -375,6 +379,7 @@ export function TipForm({
     displayName,
     pictureUrl,
     bannerUrl,
+    assets,
     ytChannelName,
     ytChannelUrl,
     bio,

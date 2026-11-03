@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, DotsSixVertical, Eye, EyeSlash, Palette } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, DotsSixVertical, Eye, EyeSlash, ImageSquare, Palette } from "@phosphor-icons/react";
 import { BLOCK_LABELS, PROTECTED } from "@/lib/page-doc/blocks";
 import type { Block, BlockType, PageDoc, Slot } from "@/lib/page-doc/types";
 
@@ -28,6 +28,7 @@ export function BlockList({
   onMove,
   onDrop,
   onVisible,
+  onAddBackdrop,
 }: {
   doc: PageDoc;
   selected: Selection;
@@ -35,6 +36,7 @@ export function BlockList({
   onMove: (type: BlockType, direction: "up" | "down") => void;
   onDrop: (type: BlockType, target: BlockType) => void;
   onVisible: (type: BlockType, visible: boolean) => void;
+  onAddBackdrop: () => void;
 }) {
   const [dragging, setDragging] = useState<Block | null>(null);
 
@@ -49,6 +51,12 @@ export function BlockList({
         <Palette aria-hidden="true" className="shrink-0" />
         Page colours
       </button>
+      {!doc.blocks.some((b) => b.type === "backdrop") && (
+        <button type="button" onClick={onAddBackdrop} className={`${pick("backdrop")} w-full`}>
+          <ImageSquare aria-hidden="true" className="shrink-0" />
+          Add a picture or video behind the page
+        </button>
+      )}
       {SECTIONS.map(({ slot, label }) => {
         const blocks = doc.blocks.filter((b) => b.slot === slot);
         if (blocks.length === 0) return null;

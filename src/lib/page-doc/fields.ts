@@ -1,3 +1,4 @@
+import { ASSET_LIMITS } from "./assets";
 import { INSTAGRAM_PATTERN, LIMITS } from "./blocks";
 import type { BlockType, SettingsByType } from "./types";
 
@@ -26,6 +27,41 @@ export interface ChoiceField {
   label: string;
   options: { value: string; label: string }[];
 }
+
+// A whole number picked on a slider.
+export interface RangeField {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  // Only while this holds for the block's settings.
+  when?: (settings: Record<string, unknown>) => boolean;
+}
+
+export const RANGE_FIELDS: { [K in BlockType]: RangeField[] } = {
+  backdrop: [
+    {
+      key: "dim",
+      label: "Darken the picture",
+      min: ASSET_LIMITS.dim.min,
+      max: ASSET_LIMITS.dim.max,
+      step: ASSET_LIMITS.dim.step,
+      unit: "%",
+      when: (s) => s.style === "media",
+    },
+  ],
+  header: [],
+  creatorLinks: [],
+  alertPreview: [],
+  qr: [],
+  amount: [],
+  note: [],
+  send: [],
+  strip: [],
+  successScreen: [],
+};
 
 export const TEXT_FIELDS: { [K in BlockType]: TextField[] } = {
   backdrop: [],
@@ -60,7 +96,16 @@ export const TEXT_FIELDS: { [K in BlockType]: TextField[] } = {
 };
 
 export const CHOICE_FIELDS: { [K in BlockType]: ChoiceField[] } = {
-  backdrop: [],
+  backdrop: [
+    {
+      key: "style",
+      label: "Backdrop",
+      options: [
+        { value: "ember", label: "Smoke, slashes and embers" },
+        { value: "media", label: "A picture, GIF or video" },
+      ],
+    },
+  ],
   header: [],
   creatorLinks: [],
   alertPreview: [],
@@ -88,6 +133,14 @@ export function textFieldsFor<T extends BlockType>(type: T, settings: SettingsBy
 
 export function findTextField(type: BlockType, key: string): TextField | undefined {
   return TEXT_FIELDS[type].find((f) => f.key === key);
+}
+
+export function rangeFieldsFor<T extends BlockType>(type: T, settings: SettingsByType[T]): RangeField[] {
+  return RANGE_FIELDS[type].filter((f) => !f.when || f.when(settings as Record<string, unknown>));
+}
+
+export function findRangeField(type: BlockType, key: string): RangeField | undefined {
+  return RANGE_FIELDS[type].find((f) => f.key === key);
 }
 
 export function findChoiceField(type: BlockType, key: string): ChoiceField | undefined {

@@ -26,6 +26,7 @@ export function PreviewFrame({
   view,
   onView,
   onPick,
+  reloadKey,
 }: {
   src: string;
   doc: PageDoc;
@@ -33,6 +34,8 @@ export function PreviewFrame({
   view: PreviewView;
   onView: (view: PreviewView) => void;
   onPick: (block: BlockType) => void;
+  // Changes when the library changed, so the frame loads the page again and can draw a new file.
+  reloadKey: number;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -58,6 +61,16 @@ export function PreviewFrame({
   useEffect(() => {
     if (ready) frame.current?.contentWindow?.postMessage({ type: MSG_DOC, doc }, window.location.origin);
   }, [ready, doc, reloads]);
+
+  // The library changed (a file was added or removed): the frame reads its files when it loads, so
+  // load it again. The working draft is sent again as soon as it answers.
+  const seenKey = useRef(reloadKey);
+  useEffect(() => {
+    if (seenKey.current === reloadKey) return;
+    seenKey.current = reloadKey;
+    setReady(false);
+    setReloads((n) => n + 1);
+  }, [reloadKey]);
 
   // The frame's "ready" can arrive before this panel is listening and is then lost. Until the frame
   // answers, offer it the draft every moment; the frame answers a draft with "ready" (see

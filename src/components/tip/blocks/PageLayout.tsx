@@ -39,7 +39,7 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
         if (links) i++;
         sideNodes.push(
           <div key={block.id} className="enter space-y-5" style={step(0)} {...blockAttrs(editing, block.id)}>
-            <HeaderBlock />
+            <HeaderBlock block={block} />
             {links && <CreatorLinksBlock block={links} editing={editing} />}
           </div>,
         );

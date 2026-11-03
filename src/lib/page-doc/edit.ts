@@ -1,6 +1,7 @@
 import { inkFor, pairChecks } from "../accent";
-import { BLOCK_LABELS, LIMITS, PROTECTED, defaultSettings } from "./blocks";
-import { findChoiceField, findTextField } from "./fields";
+import { cleanAssetId, replaceAssetId, usedAssetIds, type AssetKind } from "./assets";
+import { ALLOWED_SLOTS, BLOCK_LABELS, LIMITS, PROTECTED, defaultSettings } from "./blocks";
+import { findChoiceField, findRangeField, findTextField } from "./fields";
 import type { Block, BlockType, Ladder, PageDoc } from "./types";
 
 // The editor's changes to a document, as pure functions. Each one returns a new document and a
@@ -169,4 +170,52 @@ export function resetBlock(doc: PageDoc, type: BlockType): EditResult {
   blocks[at] = { ...blocks[at], settings: defaultSettings(type) } as Block;
   const next = { ...doc, blocks };
   return JSON.stringify(next) === JSON.stringify(doc) ? refuse(doc) : done(next);
+}
+
+// Puts a block the page does not have yet back on it (the owner's backdrop, for a creator whose
+// page had none). Only a type that is missing can be added, in its own section: first for the
+// backdrop (it sits behind everything), last otherwise. A backdrop added this way is the picture
+// kind, because the smoke and embers are the owner's own look.
+export function addBlock(doc: PageDoc, type: BlockType): EditResult {
+  if (indexOf(doc, type) >= 0) return refuse(doc, `The page already has a ${BLOCK_LABELS[type]} block.`);
+  const settings = type === "backdrop" ? { ...defaultSettings("backdrop"), style: "media" as const } : defaultSettings(type);
+  const added = { id: type, type, visible: true, slot: ALLOWED_SLOTS[type][0], settings } as Block;
+  return done({ ...doc, blocks: type === "backdrop" ? [added, ...doc.blocks] : [...doc.blocks, added] });
+}
+
+// Sets one number on a slider, kept inside the field's own range.
+export function setNumber(doc: PageDoc, type: BlockType, key: string, value: number): EditResult {
+  const at = indexOf(doc, type);
+  const field = findRangeField(type, key);
+  if (at < 0 || !field) return refuse(doc, "That setting does not exist.");
+  if (!Number.isFinite(value)) return refuse(doc, `${field.label} must be a number.`);
+  const n = Math.round(value);
+  if (n < field.min || n > field.max) return refuse(doc, `${field.label} must be between ${field.min} and ${field.max}.`);
+  if ((doc.blocks[at].settings as Record<string, unknown>)[key] === n) return refuse(doc);
+  return done(withSettings(doc, at, { [key]: n }));
+}
+
+// The picture of a block: an id from the library, or null for none. Whether the file fits the place
+// is the editor's picker's job (it lists only files that fit); the page draws the normal look for a
+// file that does not.
+const ASSET_KEYS: Partial<Record<BlockType, string>> = { backdrop: "asset", header: "bannerAsset" };
+
+export function setAsset(doc: PageDoc, type: BlockType, id: number | null): EditResult {
+  const at = indexOf(doc, type);
+  const key = ASSET_KEYS[type];
+  if (at < 0 || !key) return refuse(doc, "That block does not take a picture.");
+  if (id !== null && cleanAssetId(id) === null) return refuse(doc, "That picture is not valid.");
+  if ((doc.blocks[at].settings as Record<string, unknown>)[key] === id) return refuse(doc);
+  return done(withSettings(doc, at, { [key]: id }));
+}
+
+// Every place that shows one file shows another instead ("Replace"). Nothing changes if the first
+// file is not used.
+// `toKind` is the new file's kind: a place that cannot take it (a video as a banner) keeps the old
+// file, and if no place can, nothing changes and the editor is told why.
+export function swapAsset(doc: PageDoc, from: number, to: number, toKind?: AssetKind): EditResult {
+  if (cleanAssetId(from) === null || cleanAssetId(to) === null) return refuse(doc, "That picture is not valid.");
+  const out = replaceAssetId(doc, from, to, toKind);
+  if (out.changed) return done(out.doc);
+  return usedAssetIds(doc).includes(from) ? refuse(doc, "The new file cannot be used where the old one was.") : refuse(doc);
 }

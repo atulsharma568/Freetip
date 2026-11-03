@@ -5,8 +5,9 @@ import { getDb } from "@/lib/db";
 // Daily clean-up, run by Vercel Cron (see vercel.json). A creator's browser
 // uploads a file to Blob first and the site saves it afterwards, so a closed tab
 // or a failed save leaves a file nothing points to. This deletes files under
-// sounds/ that no creator_sounds row uses, and under media/ that no creator_media
-// row uses, that are over a day old (so an upload still being saved is never
+// sounds/ that no creator_sounds row uses, under media/ that no creator_media
+// row uses and under page/ that no live page_assets row uses (a taken-down file whose delete failed is
+// cleaned here), that are over a day old (so an upload still being saved is never
 // touched). Vercel sends CRON_SECRET as a
 // bearer token.
 const MIN_AGE_MS = 24 * 60 * 60 * 1000;
@@ -25,19 +26,26 @@ export async function GET(request: Request) {
   const sql = getDb();
   if (!sql || !process.env.BLOB_READ_WRITE_TOKEN) return new Response("Not set up", { status: 503 });
 
-  const folders: { prefix: string; table: "creator_sounds" | "creator_media" }[] = [
+  // `page/` holds the tip page pictures and their stills; both addresses of a row are in use.
+  const folders: { prefix: string; table: "creator_sounds" | "creator_media" | "page_assets" }[] = [
     { prefix: "sounds/", table: "creator_sounds" },
     { prefix: "media/", table: "creator_media" },
+    { prefix: "page/", table: "page_assets" },
   ];
   let removed = 0;
   const skipped: string[] = [];
   for (const { prefix, table } of folders) {
     let used: Set<string>;
     try {
-      const rows = await sql<{ blob_url: string }[]>`select blob_url from ${sql(table)}`;
+      const rows =
+        table === "page_assets"
+          ? await sql<{ blob_url: string }[]>`
+              select blob_url from page_assets where review_state = 'approved'
+              union select poster_url from page_assets where review_state = 'approved' and poster_url is not null`
+          : await sql<{ blob_url: string }[]>`select blob_url from ${sql(table)}`;
       used = new Set(rows.map((r) => r.blob_url));
     } catch {
-      // The table (migration 0013 or 0036) is missing: nothing to compare with, delete nothing there.
+      // The table (migration 0013, 0036 or 0052) is missing: nothing to compare with, delete nothing there.
       skipped.push(table);
       continue;
     }

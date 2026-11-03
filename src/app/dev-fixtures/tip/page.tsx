@@ -8,7 +8,7 @@ import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { pageDocOrDefault } from "@/lib/page-doc/parse";
 import { themeFor } from "@/lib/page-doc/theme";
 import { TipPageView } from "../../[handle]/TipPageView";
-import { fixtureData } from "./fixture-data";
+import { FIXTURE_ASSETS, fixtureData } from "./fixture-data";
 import { SuccessFixture } from "./SuccessFixture";
 
 // A test-only tip page with a made-up creator, so the browser tests can look at the real page
@@ -35,7 +35,7 @@ export default async function TipFixturePage({ searchParams }: Props) {
     return (
       <PageShell slim>
         <div className="contents" style={theme.style}>
-          {backdrop?.visible && <BackdropBlock />}
+          {backdrop?.visible && <BackdropBlock block={backdrop} asset={backdrop.settings.asset === null ? null : (FIXTURE_ASSETS[backdrop.settings.asset] ?? null)} />}
           <SuccessFixture doc={doc} owner={owner} />
         </div>
       </PageShell>

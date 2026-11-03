@@ -4,6 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
 import { findBlock } from "@/lib/page-doc/blocks";
 import { themeFor } from "@/lib/page-doc/theme";
+import type { ResolvedAsset } from "@/lib/page-doc/assets";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
 import { TipForm } from "./TipForm";
@@ -17,6 +18,9 @@ export interface TipPageData {
   // The page as a checked document of blocks, and the creator's saved accent colour (used when
   // the document sets none).
   doc: PageDoc;
+  // The pictures the document may draw, by id: only what the document uses on the real page, every
+  // live file of the creator in the owner's editor preview. Empty when there are none.
+  assets: Record<number, ResolvedAsset>;
   storedAccent: string | null;
   pictureUrl: string | null;
   bannerUrl: string | null;
@@ -41,9 +45,10 @@ export function TipPageView({ data }: { data: TipPageData }) {
   return (
     <PageShell slim>
       <div className="contents" style={style}>
-        {backdrop?.visible && <BackdropBlock />}
+        {backdrop?.visible && <BackdropBlock block={backdrop} asset={backdrop.settings.asset === null ? null : (data.assets[backdrop.settings.asset] ?? null)} />}
         <TipForm
           doc={data.doc}
+          assets={data.assets}
           accent={accent}
           sounds={data.sounds}
           rules={data.rules}

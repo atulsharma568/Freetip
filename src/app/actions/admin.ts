@@ -8,6 +8,7 @@ import type { LedgerDb, SweepResult } from "@/lib/accrual";
 import { syncBooks } from "@/lib/books-sync";
 import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
+import { takeDownAsset } from "@/lib/page-doc/asset-store";
 import { builtFeatureKeys, sanitizeFeatureKeys } from "@/lib/plans";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
@@ -319,6 +320,43 @@ export async function adminRemoveMedia(
   revalidatePath("/admin/media");
   revalidatePath("/admin/audit");
   return ok("File taken down.");
+}
+
+// Takes a picture of a tip page down (page builder phase 3): its files are erased and any page that
+// used it shows its normal look in its place. Allowed while a page still uses it.
+export async function adminTakeDownPageAsset(
+  assetId: number,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(assetId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+
+  let urls: string[] = [];
+  try {
+    const result = await takeDownAsset(db as unknown as LedgerDb, assetId, reasonOf(formData, "removed by the owner") ?? "removed by the owner");
+    if (!result.ok) return fail(result.message);
+    urls = result.urls;
+  } catch (err) {
+    console.error("Admin: could not take down a page file", err);
+    return fail(SAVE_FAILED);
+  }
+  let erased = true;
+  try {
+    await del(urls);
+  } catch (err) {
+    erased = false;
+    console.error("Could not delete page files", err);
+  }
+  revalidatePath("/admin/media");
+  revalidatePath("/admin/audit");
+  return ok(
+    erased
+      ? "File taken down. A page that used it now shows its normal look."
+      : "File taken down and no page shows it, but its file could not be erased just now. The daily clean-up erases it within a day or two.",
+  );
 }
 
 // Owner removal of any creator's sound (for example one that breaks the rules).

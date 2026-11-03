@@ -1,5 +1,6 @@
 import type { LedgerDb, Query } from "../accrual";
 import { hasFeature } from "../plans";
+import { usedAssetIds } from "./assets";
 import { LIMITS } from "./blocks";
 import { pageDocOrDefault, parsePageDoc, validateForPublish } from "./parse";
 import type { PageDoc } from "./types";
@@ -116,6 +117,15 @@ export async function publishDraft(db: LedgerDb, creatorId: number): Promise<Pag
     if (row.page_draft == null) return fail("There is no draft to publish.");
     const checked = validateForPublish(row.page_draft);
     if (!checked.ok) return fail(checked.message);
+    // A picture the draft names must still be a live file of this creator (it may have been taken
+    // down, or removed from a stale tab), otherwise the page would publish plain without a word.
+    const ids = usedAssetIds(checked.doc);
+    if (ids.length > 0) {
+      const live = await tx<{ id: string }[]>`select id::text as id from page_assets where creator_id = ${creatorId} and review_state = 'approved'`;
+      if (ids.some((id) => !live.some((r) => Number(r.id) === id))) {
+        return fail("A picture in this draft is no longer in the library. Pick another one, or take the picture off, then publish.");
+      }
+    }
     // The cleaned document is what is published, not the raw draft.
     const [same] = await tx<{ same: boolean }[]>`select page_published is not distinct from ${checked.doc}::jsonb as same from users where id = ${creatorId}`;
     if (same?.same) return fail("The published page is already this draft.");

@@ -9,6 +9,7 @@ import { pinOffer, type PinOffer } from "@/lib/pinned";
 import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 
 export interface CreatorRow {
+  id: number;
   google_id: string;
   display_name: string | null;
   name: string | null;
@@ -30,7 +31,7 @@ export const getCreator = cache(async (handle: string): Promise<CreatorRow | nul
   const db = getDb();
   if (!db) return null;
   const rows = await db<CreatorRow[]>`
-    select google_id, display_name, name, picture_url, yt_channel_name, yt_channel_url,
+    select id, google_id, display_name, name, picture_url, yt_channel_name, yt_channel_url,
            creator_status, min_tip_paise, message_max_chars, bio,
            tts_enabled, tts_min_paise, alert_mode
     from users

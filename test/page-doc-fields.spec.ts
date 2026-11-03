@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { BLOCK_TYPES, defaultSettings } from "../src/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
-import { CHOICE_FIELDS, TEXT_FIELDS, textFieldsFor } from "../src/lib/page-doc/fields";
+import { CHOICE_FIELDS, RANGE_FIELDS, TEXT_FIELDS, textFieldsFor } from "../src/lib/page-doc/fields";
 import { parsePageDoc } from "../src/lib/page-doc/parse";
 import type { Block, BlockType, PageDoc } from "../src/lib/page-doc/types";
 
@@ -10,7 +10,8 @@ import type { Block, BlockType, PageDoc } from "../src/lib/page-doc/types";
 
 // Settings the table does not list as a text or choice field, because they have their own editor
 // or are not editable.
-const OTHER = new Set(["ladder", "style:backdrop"]);
+// The pictures are chosen in the library picker, the rank bar has its own editor.
+const OTHER = new Set(["ladder", "asset", "bannerAsset"]);
 
 const withSetting = (doc: PageDoc, type: BlockType, patch: Record<string, unknown>): PageDoc => ({
   ...doc,
@@ -37,7 +38,7 @@ test.describe("the field table agrees with the parser", () => {
 
   test("every setting a block has is in the table, or has its own editor", () => {
     for (const type of BLOCK_TYPES) {
-      const listed = new Set([...TEXT_FIELDS[type].map((f) => f.key), ...CHOICE_FIELDS[type].map((f) => f.key)]);
+      const listed = new Set([...TEXT_FIELDS[type].map((f) => f.key), ...CHOICE_FIELDS[type].map((f) => f.key), ...RANGE_FIELDS[type].map((f) => f.key)]);
       for (const key of Object.keys(defaultSettings(type))) {
         const special = OTHER.has(key) || OTHER.has(`${key}:${type}`);
         expect(listed.has(key) || special, `${type}.${key}`).toBe(true);
@@ -48,7 +49,7 @@ test.describe("the field table agrees with the parser", () => {
   test("every field in the table is a setting the block really has", () => {
     for (const type of BLOCK_TYPES) {
       const keys = new Set(Object.keys(defaultSettings(type)));
-      for (const field of [...TEXT_FIELDS[type], ...CHOICE_FIELDS[type]]) expect(keys.has(field.key), `${type}.${field.key}`).toBe(true);
+      for (const field of [...TEXT_FIELDS[type], ...CHOICE_FIELDS[type], ...RANGE_FIELDS[type]]) expect(keys.has(field.key), `${type}.${field.key}`).toBe(true);
     }
   });
 

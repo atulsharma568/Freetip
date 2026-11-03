@@ -2,7 +2,10 @@ import { getCreatorAccent, getPageRow, getPinOffer, getTipBanner, getTipPhoto, g
 import type { TipPageData } from "./TipPageView";
 import { getDb } from "@/lib/db";
 import { MIN_TIP_PAISE } from "@/lib/money";
+import type { Query } from "@/lib/accrual";
 import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { usedAssetIds } from "@/lib/page-doc/assets";
+import { loadPageAssets, resolveAssets } from "@/lib/page-doc/asset-store";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { resolvePageDoc } from "@/lib/page-doc/store";
 import type { PageDoc } from "@/lib/page-doc/types";
@@ -47,11 +50,16 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   // carries the channel's red, whatever accent is saved).
   const doc = options.doc ?? resolvePageDoc(pageRow, defaultDocFor(handle, creator));
   const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
+  // The pictures the document uses, read in one query and only when it uses any, so a page without
+  // pictures costs nothing more. The owner's editor preview gets every live file of the creator
+  // instead, so a file just uploaded can be drawn before it is saved into the draft.
+  const assets = await pageAssets(creator.id, doc, options.editing === true);
 
   return {
     handle,
     displayName,
     doc,
+    assets,
     storedAccent,
     pictureUrl: tipPhoto ?? creator.picture_url,
     bannerUrl,
@@ -70,3 +78,18 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   };
 }
 
+
+async function pageAssets(creatorId: number, doc: PageDoc, all: boolean) {
+  const db = getDb();
+  if (!db) return {};
+  if (all) {
+    try {
+      return await resolveAssets(db as unknown as Query, creatorId);
+    } catch (err) {
+      console.error("Page preview: could not read the page pictures (migration 0052 run?).", err);
+      return {};
+    }
+  }
+  const ids = usedAssetIds(doc);
+  return ids.length === 0 ? {} : loadPageAssets(db as unknown as Query, creatorId, ids);
+}

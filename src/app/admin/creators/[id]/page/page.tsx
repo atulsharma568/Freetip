@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { defaultDocFor } from "@/app/[handle]/tip-page-data";
 import { savePageDraft, publishPage, discardPageDraft } from "@/app/actions/page-doc";
+import { addPageAsset, removePageAsset } from "@/app/actions/page-assets";
 import { load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import type { Query } from "@/lib/accrual";
 import { requireOwner } from "@/lib/owner-auth";
+import { listAssets } from "@/lib/page-doc/asset-store";
 import { loadDraft } from "@/lib/page-doc/store";
 import { CouldNotRead, DatabaseNotSetUp } from "../../../_components/Notices";
 import { PageHeader } from "../../../_components/PageHeader";
@@ -44,6 +46,12 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
   const state = read.data;
   if (!state) notFound();
 
+  // The pictures. The editor works without them (and says so) when migration 0052 has not been run.
+  const pictures = await load("the pictures", () => listAssets(db as unknown as Query, creatorId));
+  const library = pictures.ok
+    ? { items: pictures.data, error: null }
+    : { items: [], error: "The pictures could not be read. Run migration 0052 in Neon, then reload." };
+
   const blocked = !state.switchOn
     ? 'Switch on "Custom tip page" for this creator first, under Paid features on their page.'
     : !row.handle
@@ -73,6 +81,10 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
           save={savePageDraft.bind(null, creatorId)}
           publish={publishPage.bind(null, creatorId)}
           discard={discardPageDraft.bind(null, creatorId)}
+          creatorId={creatorId}
+          library={library}
+          addAsset={addPageAsset.bind(null, creatorId)}
+          removeAsset={removePageAsset.bind(null, creatorId)}
         />
       )}
     </div>
