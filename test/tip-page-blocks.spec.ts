@@ -91,6 +91,8 @@ test.describe("the tip page is drawn from its document", () => {
     await openFixture(page, docQuery("default", { version: 1, blocks: [] }), 1280);
     await expect(page.getByRole("radio", { name: "Custom" })).toBeAttached();
     await expect(page.getByLabel(/^Message/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Tip ₹/ })).toBeDisabled();
+    await page.getByRole("checkbox", { name: /non-refundable/ }).check();
     await expect(page.getByRole("button", { name: /^Tip ₹/ })).toBeEnabled();
     await expect(page.getByText("Scan to tip from your phone")).toHaveCount(0);
   });
@@ -155,6 +157,8 @@ test.describe("the tip page is drawn from its document", () => {
   test("a document that hides the send block still has a working Tip button", async ({ page }) => {
     const doc = editBlock(defaultPageDoc(), "send", (b) => (b.visible = false));
     await openFixture(page, docQuery("default", doc), 1280);
+    await expect(page.getByRole("button", { name: /^Tip ₹/ })).toBeDisabled();
+    await page.getByRole("checkbox", { name: /non-refundable/ }).check();
     await expect(page.getByRole("button", { name: /^Tip ₹/ })).toBeEnabled();
   });
 
@@ -231,6 +235,7 @@ test.describe("the words a block may change", () => {
     await expect(page.getByPlaceholder("Your crew name")).toBeVisible();
     await expect(page.getByPlaceholder("Tell us a story")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Go", level: 2 })).toBeVisible();
+    await page.getByRole("checkbox", { name: /non-refundable/ }).check();
     await expect(page.getByRole("button", { name: /^Boost ₹/ })).toBeEnabled();
     await expect(page.getByText("How it looks", { exact: true }).first()).toBeVisible();
     // The standard words are gone, not shown beside the new ones.
@@ -241,6 +246,7 @@ test.describe("the words a block may change", () => {
   test("the button always shows the amount, whatever its word", async ({ page }) => {
     await openFixture(page, docQuery("default", withSettings(defaultPageDoc(), "send", { buttonLabel: "Boost" })), 1280);
     await page.locator("label", { hasText: "₹500" }).click();
+    await page.getByRole("checkbox", { name: /non-refundable/ }).check();
     await expect(page.getByRole("button", { name: "Boost ₹500" })).toBeEnabled();
   });
 
