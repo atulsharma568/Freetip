@@ -4,7 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
-import { planFeatures } from "@/lib/plans";
+import { hasFeature, planFeatures } from "@/lib/plans";
+import { safePhotoUrl } from "@/lib/tip-banner";
 import { parseRegionalLang, type RegionalLang } from "@/lib/regional-voices";
 import { HandleSetup } from "./HandleSetup";
 import { PayoutOnboarding } from "./PayoutOnboarding";
@@ -284,6 +285,18 @@ export default async function DashboardPage() {
     );
   }
 
+  // The YouTube channel photo (migration 0050), shown where the tip page shows it: only while
+  // the banner switch is on. Read apart so the dashboard still opens before the migration is run.
+  let channelPhoto: string | null = null;
+  try {
+    const [row] = await db<{ paid_features: string[] | null; tip_photo_url: string | null }[]>`
+      select paid_features, tip_photo_url from users where id = ${user.id}
+    `;
+    if (row && hasFeature(row, "tipBanner")) channelPhoto = safePhotoUrl(row.tip_photo_url);
+  } catch (err) {
+    console.error("Dashboard: could not read the channel photo (migration 0050 run?).", err);
+  }
+
   // Handle not yet chosen.
   if (!user.handle) {
     return (
@@ -338,9 +351,9 @@ export default async function DashboardPage() {
         <div className="mx-auto w-full max-w-7xl space-y-8 px-6 pb-10 pt-4">
           <DashboardNav current="overview" />
           <div className="flex items-center gap-4">
-            {user.picture_url && (
+            {(channelPhoto ?? user.picture_url) && (
               <Image
-                src={user.picture_url}
+                src={(channelPhoto ?? user.picture_url) as string}
                 alt="Your profile photo"
                 loading="eager"
                 width={56}
