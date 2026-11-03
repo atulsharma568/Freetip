@@ -12,6 +12,8 @@ import { wordTimings } from "./speech-words";
 import { STAGE_CSS, useStageSize } from "./stage";
 
 export interface OverlayAlert {
+  // Preview only: how long the card stays, in ms, instead of the normal length.
+  previewMs?: number;
   id: number;
   kind: "alert" | "message";
   name: string;
@@ -64,6 +66,8 @@ const MAX_EXTRA_MS = 8000;
 const SPEECH_TAIL_MS = 1500;
 
 function showMs(a: QueuedAlert) {
+  // A dashboard preview leaves soon, so the way out can be seen without a long wait.
+  if (a.previewMs) return a.previewMs;
   // The creator's own length replaces the usual 6 seconds plus reading time; what the sound,
   // voice and video need below still holds it up, so nothing is cut off.
   const byLength = motionStayMs(a.motion) ?? BASE_SHOW_MS + Math.min((a.message?.length ?? 0) * PER_CHAR_MS, MAX_EXTRA_MS);

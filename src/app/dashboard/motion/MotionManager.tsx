@@ -89,6 +89,7 @@ export function MotionManager({
         theme: { theme, font },
         text,
         motion: draft,
+        previewMs: 4500,
       },
     ],
     [theme, font, text, draft],
@@ -193,7 +194,8 @@ export function MotionManager({
           </div>
           <p className="text-xs text-muted">
             A sample alert with a made-up voice, not a real tip. It comes in as soon as you change a
-            choice; press Play again to see it once more.
+            choice and leaves after a few seconds, so you see both; press Play again to see it once more.
+            The real card stays as long as you set below.
           </p>
         </div>
       </Tile>

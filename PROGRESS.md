@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-03, motion preview shows the way out)
+
+- The `/dashboard/motion` preview used the normal card length (6 seconds and more), so the leaving animation came long after the card appeared and looked missing. The preview card now stays 4.5 seconds (`previewMs` on the sample, used only by `showMs` in `AlertStage.tsx`), so both the way in and the way out play, then it repeats. The real overlay is unchanged. Not yet seen in a browser.
+
 ## Current state (2026-11-03, pre-launch checklist re-check; SEO fixes; PageSpeed notes)
 
 - Vercel "Functions Storage" was full: 239 production deployments had piled up (retention does not remove production ones). Owner deleted 236 by hand on 2026-11-03 (the Vercel CLI needs `--dangerously-skip-permissions` for DELETE). Now automated: `.github/workflows/vercel-cleanup.yml` runs daily, keeps the 10 newest, anything under 2 days old, anything building and the live deployment. Needs the repository secret `VERCEL_TOKEN` (steps in `OPERATIONS.md` 7f); not yet run for real, owner to do a dry run first. The selection logic was tested on fake data only.
