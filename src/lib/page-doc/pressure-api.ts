@@ -1,5 +1,7 @@
 import type { Query } from "../accrual";
 import { HANDLE_PATTERN } from "../waitlist";
+import { usableFor } from "./assets";
+import { resolveAssets } from "./asset-store";
 import { loadMeterReading, publishedMeter, type MeterPlace, type MeterReading, type MeterSettings } from "./pressure";
 
 // What the two Pressure meter endpoints answer, as plain functions of a database, so the tests
@@ -12,12 +14,29 @@ type Row = { id: string; paid_features: string[] | null; page_published: unknown
 export type MeterAnswer =
   | { found: false }
   // `reading` is null while the creator has no goal; the meter then draws nothing.
-  | { found: true; reading: MeterReading | null; settings: MeterSettings };
+  // `picture` is the address of the meter's emblem for the OBS place only (null when there is none,
+  // it was removed or taken down, or it is the wrong kind), so the tip page answer never carries it.
+  | { found: true; reading: MeterReading | null; settings: MeterSettings; picture: string | null };
+
+// The emblem's file address, or null. A missing table (migration 0052 not run) or any failure
+// gives null: the bar is drawn without a picture rather than not at all.
+async function emblemUrl(db: Query, creatorId: number, settings: MeterSettings): Promise<string | null> {
+  if (settings.picture === null) return null;
+  try {
+    const asset = (await resolveAssets(db, creatorId, [settings.picture]))[settings.picture];
+    return asset && usableFor(asset.kind, "meter") ? asset.url : null;
+  } catch (err) {
+    console.error("Pressure overlay: could not read the meter picture.", err);
+    return null;
+  }
+}
 
 async function answer(row: Row | undefined, place: MeterPlace, db: Query, now: Date): Promise<MeterAnswer> {
   const settings = publishedMeter(row, place);
   if (!row || !settings) return { found: false };
-  return { found: true, reading: await loadMeterReading(db, Number(row.id), settings, now), settings };
+  const reading = await loadMeterReading(db, Number(row.id), settings, now);
+  const picture = place === "obs" && reading ? await emblemUrl(db, Number(row.id), settings) : null;
+  return { found: true, reading, settings, picture };
 }
 
 // The tip page's meter: by the creator's handle. The caller has already lower-cased it.
@@ -42,8 +61,8 @@ export function pageBody(a: Extract<MeterAnswer, { found: true }>) {
   return { meter: a.reading };
 }
 
-// What OBS receives: the reading and the few settings the bar needs.
+// What OBS receives: the reading, the few settings the bar needs and the emblem's address.
 export function obsBody(a: Extract<MeterAnswer, { found: true }>) {
   const { heading, fill, celebrate, show } = a.settings;
-  return { meter: a.reading, settings: { heading, fill, celebrate, show } };
+  return { meter: a.reading, settings: { heading, fill, celebrate, show, picture: a.picture } };
 }

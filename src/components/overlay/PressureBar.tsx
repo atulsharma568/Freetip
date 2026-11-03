@@ -10,6 +10,8 @@ interface Settings {
   fill: string | null;
   celebrate: boolean;
   show: "rupees" | "percent";
+  // The emblem's file address, or null.
+  picture: string | null;
 }
 
 const POLL_MS = 5000;
@@ -89,7 +91,13 @@ function Meter({ meter, settings }: { meter: MeterReading; settings: Settings })
   return (
     <div data-testid="pressure-meter" className={`ov-panel ov-meter${reached ? " ov-reached" : ""}`}>
       <div className="ov-row ov-meter-top">
-        <span className="ov-label ov-clip">{label}</span>
+        <span className="ov-label ov-clip">
+          {settings.picture && (
+            // eslint-disable-next-line @next/next/no-img-element -- the owner's own upload, kept animated and unoptimised
+            <img src={settings.picture} alt="" className="ov-emblem" onError={(e) => (e.currentTarget.style.display = "none")} />
+          )}
+          {label}
+        </span>
         {reached && <span className="ov-reach ov-mono">GOAL REACHED</span>}
         <span className="ov-mono ov-meter-percent">
           <Bump value={percent}>{percent}%</Bump>
@@ -124,6 +132,7 @@ function Meter({ meter, settings }: { meter: MeterReading; settings: Settings })
 
 const CSS = `
 .ov-meter-top { font-size: calc(var(--f) * 1.8); font-weight: 600; }
+.ov-emblem { width: calc(var(--f) * 2.4); height: calc(var(--f) * 2.4); margin-right: calc(var(--f) * 0.8); border-radius: calc(var(--f) * 0.4); object-fit: cover; vertical-align: middle; }
 .ov-meter-percent { white-space: nowrap; }
 .ov-meter-bottom { margin-top: calc(var(--f) * 0.9); font-size: calc(var(--f) * 1.6); }
 .ov-meter-title { color: var(--ov-ash); font-weight: 400; }

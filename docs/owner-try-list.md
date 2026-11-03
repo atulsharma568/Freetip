@@ -88,3 +88,8 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 - [ ] Open a creator's tip page on a real phone: is there a tick box above the Tip button, never pre-ticked, with working Terms and Refund Policy links (they open in a new tab)? Is the Tip button greyed out until you tick it?
 - [ ] Tick it and make a real small tip through Razorpay: does the payment open and the tip arrive as before? Untick after a failed payment: does the button grey out again?
 - [ ] Look at the box on the owner page (`acepressure`) and in the editor preview (the box should be disabled there, and the preview says payments are off).
+
+## A picture on the OBS Pressure meter (2026-11-03)
+
+- [ ] Give the Pressure meter a picture in the editor, show it "In OBS" or "Both", Publish, then open the OBS link plus `/pressure` in real OBS: does the small picture sit before the heading, not too big or blurry? Try a GIF: does it move?
+- [ ] Remove the picture from the meter and Publish: does the OBS bar go back to words only within about a minute?

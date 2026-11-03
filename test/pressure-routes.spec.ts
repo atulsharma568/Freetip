@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { defaultPageDoc } from "../src/lib/page-doc/defaults";
-import { addBlock, setChoice, setMeterGoal } from "../src/lib/page-doc/edit";
+import { addBlock, setAsset, setChoice, setMeterGoal } from "../src/lib/page-doc/edit";
 import { meterForHandle, meterForToken, obsBody, pageBody } from "../src/lib/page-doc/pressure-api";
 import type { PageDoc } from "../src/lib/page-doc/types";
 import { createWindowLimiter } from "../src/lib/window-limit";
@@ -134,7 +134,44 @@ test.describe("the OBS endpoint", () => {
     if (!a.found) throw new Error("expected a meter");
     const body = obsBody(a);
     expect(Object.keys(body).sort()).toEqual(["meter", "settings"]);
-    expect(body.settings).toEqual({ heading: "", fill: null, celebrate: true, show: "rupees" });
+    expect(body.settings).toEqual({ heading: "", fill: null, celebrate: true, show: "rupees", picture: null });
+  });
+
+  async function asset(pg: PGlite, creatorId: number, kind: string, state = "approved", poster = true) {
+    seq += 1;
+    const base = `https://x1.public.blob.vercel-storage.com/page/${creatorId}/${seq}-`;
+    const r = await pg.query<{ id: string }>(
+      `insert into page_assets (creator_id, kind, name, blob_url, poster_url, mime, size_bytes, review_state) values ($1, $2, 'x', $3, $4, 'image/png', 10, $5) returning id::text`,
+      [creatorId, kind, `${base}a.png`, poster ? `${base}p.png` : null, state],
+    );
+    return Number(r.rows[0].id);
+  }
+
+  test("the emblem's address goes to OBS only, and only while the file is live and fits", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg, { doc: meterDoc({ where: "both" }) });
+    await goal(pg, c.id, 1000);
+    const live = await asset(pg, c.id, "image");
+    const withPic = async (id: number) => {
+      const doc = setAsset(meterDoc({ where: "both" }), "pressureMeter", id).doc;
+      await pg.query(`update users set page_published = $1 where id = $2`, [JSON.stringify(doc), c.id]);
+    };
+    await withPic(live);
+    const obs = await meterForToken(db, c.tokenHash, NOW);
+    if (!obs.found) throw new Error("expected a meter");
+    expect(obsBody(obs).settings.picture).toMatch(new RegExp(`^https://x1\\.public\\.blob\\.vercel-storage\\.com/page/${c.id}/\\d+-a\\.png$`));
+    const page = await meterForHandle(db, c.handle, NOW);
+    if (!page.found) throw new Error("expected a meter");
+    expect(JSON.stringify(pageBody(page))).not.toContain("blob.vercel-storage");
+
+    // A video, a taken-down file and a missing id all give no picture.
+    for (const id of [await asset(pg, c.id, "webm"), await asset(pg, c.id, "image", "removed"), 999999]) {
+      await withPic(id);
+      const a = await meterForToken(db, c.tokenHash, NOW);
+      if (!a.found) throw new Error("expected a meter");
+      expect(obsBody(a).settings.picture).toBeNull();
+    }
   });
 
   test("set for the tip page only, a wrong token, or a switch off give none", async () => {
