@@ -4,6 +4,9 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 ## Current state (2026-11-03, pre-launch checklist re-check; SEO fixes; PageSpeed notes)
 
+- Accessibility 96 on PageSpeed found and fixed: the failing elements were the words of the `RevealWords` paragraphs (the fee tile and the "why Freetip" intro), which start dim (opacity 0.12, contrast 1.9:1 and 2.5:1) until scrolled into view, and a checker that looks early flags them. The dim start is now 0.5 (4.5:1 or better on both backgrounds, computed from the colour tokens); the reveal looks slightly less dramatic. Verified in a browser: all 40 words start at 0.5. Not verified: a new PageSpeed run (owner to re-run after the deploy).
+- Privacy policy: one sentence added saying we ask YouTube which broadcast is live (for stream timestamps), policy date moved to 3 November 2026; text drafted for the Google OAuth verification justification (both scopes).
+
 - Owner confirmed Google Analytics is on (`NEXT_PUBLIC_GA_ID` set in Vercel). Checklist item 17 is done.
 - Organization schema (`OrganizationSchema.tsx`) no longer needs a support email: it needs the legal name and writes the contact form page (`/contact`) as the contact point; an email is added only if one is set. Live after the next deploy.
 - Unknown creator handles returned HTTP 200 (a soft 404) because `loading.tsx` starts streaming before the page runs. New `src/app/[handle]/layout.tsx` checks the handle before streaming, so unknown, badly formed and closed handles are a real 404 (checked on a local production build). Not yet deployed.
