@@ -102,7 +102,7 @@ export function TimestampsManager(props: {
               type="button"
               className={outline}
               disabled={pending}
-              onClick={() => run(disconnectYouTube, (r) => { setYtResult(r); if (r.status === "ok") window.location.reload(); })}
+              onClick={() => run(disconnectYouTube, (r) => { setYtResult(r); if (r.status === "ok") window.location.replace("/dashboard/timestamps"); })}
             >
               Disconnect YouTube
             </button>
