@@ -143,6 +143,15 @@ test.describe("publishing a draft", () => {
     expect((await publishDraft(asLedgerDb(pg), noPage)).ok).toBe(false);
   });
 
+  test("a hidden Pressure meter never blocks Publish while the meter switch is off", async () => {
+    const withMeter = addBlock(normal, "pressureMeter").doc;
+    const hidden = { ...withMeter, blocks: withMeter.blocks.map((b) => (b.type === "pressureMeter" ? { ...b, visible: false } : b)) };
+    const pg = await freshDatabase();
+    const id = await creator(pg, ["pageBuilder"]);
+    await setColumn(pg, id, "page_draft", hidden);
+    expect((await publishDraft(asLedgerDb(pg), id)).ok).toBe(true);
+  });
+
   test("a good draft becomes the published page and the old one is kept one step back", async () => {
     const pg = await freshDatabase();
     const id = await creator(pg);

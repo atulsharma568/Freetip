@@ -21,7 +21,7 @@ export function checkGoal(rawTitle: unknown, rawRupees: unknown): GoalCheck {
 // 0 to 100, whole percent, never above 100.
 export function goalPercent(raisedPaise: number, targetPaise: number): number {
   if (targetPaise <= 0) return 0;
-  return Math.min(100, Math.max(0, Math.floor((raisedPaise / targetPaise) * 100)));
+  return Math.min(100, Math.max(0, Math.floor((raisedPaise * 100) / targetPaise)));
 }
 
 // Repeating goals. Periods follow the clock of the goal's timezone (default India,

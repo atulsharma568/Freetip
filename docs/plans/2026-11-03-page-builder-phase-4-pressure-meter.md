@@ -116,7 +116,7 @@ Most likely first. Each has a test in the task named.
 - [ ] Run lint, type check, build and all specs. Commit and push as the Global Constraints say.
 
 ### Task 8: independent review
-- [ ] A fresh reviewer reads the finished diff against the Review Focus list ( as this repo's rules say) and the fixes are made before the last push.
+- [x] A fresh reviewer reads the finished diff against the Review Focus list ( as this repo's rules say) and the fixes are made before the last push.
 
 ## Open points for the owner (none block the build)
 

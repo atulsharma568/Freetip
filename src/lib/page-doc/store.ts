@@ -117,10 +117,11 @@ export async function publishDraft(db: LedgerDb, creatorId: number): Promise<Pag
     if (row.page_draft == null) return fail("There is no draft to publish.");
     const checked = validateForPublish(row.page_draft);
     if (!checked.ok) return fail(checked.message);
-    // A Pressure meter on a page whose creator does not have the meter switch would publish
-    // nothing fans can see, so say so instead.
-    if (checked.doc.blocks.some((b) => b.type === "pressureMeter") && !hasFeature(row, "pressureMeter")) {
-      return fail('Switch on "Pressure meter" for this creator first, or take the meter off the page, then publish.');
+    // A visible Pressure meter on a page whose creator does not have the meter switch would
+    // publish nothing fans can see, so say so instead. A hidden one draws nothing, so it never
+    // blocks Publish (there is no way to remove a block, only to hide it).
+    if (checked.doc.blocks.some((b) => b.type === "pressureMeter" && b.visible) && !hasFeature(row, "pressureMeter")) {
+      return fail('Switch on "Pressure meter" for this creator first, or hide the meter, then publish.');
     }
     // A picture the draft names must still be a live file of this creator (it may have been taken
     // down, or removed from a stale tab), otherwise the page would publish plain without a word.

@@ -54,6 +54,12 @@ test.describe("goal bar", () => {
     expect(carryPaise(1000, 1400, 300)).toBe(1000);
   });
 
+  test("goalPercent is exact on whole percents", () => {
+    expect(goalPercent(290, 1000)).toBe(29);
+    expect(goalPercent(570, 1000)).toBe(57);
+    expect(goalPercent(999, 1000)).toBe(99);
+  });
+
   test("goalPercent stays between 0 and 100", () => {
     expect(goalPercent(0, 1000)).toBe(0);
     expect(goalPercent(250, 1000)).toBe(25);

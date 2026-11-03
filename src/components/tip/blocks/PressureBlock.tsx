@@ -88,10 +88,10 @@ export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
         aria-valuemax={100}
         aria-valuenow={reading.percent}
         aria-valuetext={`${reading.percent} percent, ${reading.word}`}
-        className="relative h-2 overflow-hidden rounded-full bg-line/60"
+        className="relative h-2 overflow-hidden rounded-full border border-transparent bg-line/60"
       >
         <span
-          className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[width] duration-700 motion-reduce:transition-none"
+          className="absolute inset-y-0 left-0 rounded-full bg-accent [forced-color-adjust:none] transition-[width] duration-700 motion-reduce:transition-none"
           style={{ width: `${reading.percent}%`, ...(fill ? { backgroundColor: fill } : {}) }}
         />
       </div>
