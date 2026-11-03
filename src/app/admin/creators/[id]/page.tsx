@@ -165,6 +165,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           <TipPageBox
             summary={pageRead.data}
             editHref={`/admin/creators/${c.id}/page`}
+            overlaysHref={`/admin/creators/${c.id}/overlays`}
             restoreAction={restoreCreatorPage.bind(null, c.id)}
             resetAction={resetCreatorPage.bind(null, c.id)}
             copyAction={copyCreatorPage.bind(null, c.id)}

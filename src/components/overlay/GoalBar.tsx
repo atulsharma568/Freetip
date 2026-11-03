@@ -2,15 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { goalPercent, REPEAT_LABEL, type GoalRepeat } from "@/lib/goal";
+import type { GoalBarStyle } from "@/lib/overlay-doc/goal-bar-style";
 import { Bump, PANEL_CSS } from "./panel";
 import { STAGE_CSS, stageStyle, useStageSize } from "./stage";
 
-interface Goal {
+export interface Goal {
   title: string;
-  targetPaise: number;
-  raisedPaise: number;
+  // Missing when the owner set the bar to show the percent only: then no rupee figure is sent.
+  targetPaise?: number;
+  raisedPaise?: number;
+  percent?: number;
   repeat?: GoalRepeat;
   carryPaise?: number;
+}
+
+// What the owner editor's preview draws instead of polling: made-up goals and the look being edited.
+export interface GoalBarSample {
+  goals: Goal[];
+  style: GoalBarStyle | null;
 }
 
 const POLL_MS = 5000;
@@ -25,12 +34,17 @@ function rupees(paise: number) {
 }
 
 // Polls /api/overlay/<token>/goal and draws a bar for each goal, stacked. Shows
-// nothing while there is no goal, so an OBS source can stay in the scene.
-export function GoalBar({ token }: { token: string }) {
+// nothing while there is no goal, so an OBS source can stay in the scene. With `sample` (the owner
+// editor's preview) it draws those goals and that look and does not poll.
+export function GoalBar({ token, sample }: { token?: string; sample?: GoalBarSample }) {
   const { ref, w, portrait } = useStageSize();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [polled, setGoals] = useState<Goal[]>([]);
+  const [polledStyle, setStyle] = useState<GoalBarStyle | null>(null);
+  const goals = sample ? sample.goals : polled;
+  const style = sample ? sample.style : polledStyle;
 
   useEffect(() => {
+    if (!token || sample) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
@@ -40,7 +54,11 @@ export function GoalBar({ token }: { token: string }) {
         if (res.status === 404) {
           wait = GONE_POLL_MS;
           if (!stop) setGoals([]);
-        } else if (!stop && res.ok) setGoals((await res.json()).goals ?? []);
+        } else if (!stop && res.ok) {
+          const body = await res.json();
+          setGoals(body.goals ?? []);
+          setStyle(body.style ?? null);
+        }
       } catch {
         // Keep the last bar on a network blip.
       }
@@ -51,7 +69,7 @@ export function GoalBar({ token }: { token: string }) {
       stop = true;
       clearTimeout(timer);
     };
-  }, [token]);
+  }, [token, sample]);
 
   return (
     <div ref={ref} className={`ov-stage${portrait ? " ov-portrait" : ""}`} style={stageStyle(w, portrait)}>
@@ -59,7 +77,7 @@ export function GoalBar({ token }: { token: string }) {
       {goals.length > 0 && (
         <div className="ov-dock ov-dock-bc">
           {goals.map((goal, i) => (
-            <Bar key={i} goal={goal} />
+            <Bar key={i} goal={goal} style={style} />
           ))}
         </div>
       )}
@@ -67,15 +85,17 @@ export function GoalBar({ token }: { token: string }) {
   );
 }
 
-function Bar({ goal }: { goal: Goal }) {
-  const pct = goalPercent(goal.raisedPaise, goal.targetPaise);
+function Bar({ goal, style }: { goal: Goal; style: GoalBarStyle | null }) {
+  const pct = goal.percent ?? goalPercent(goal.raisedPaise ?? 0, goal.targetPaise ?? 0);
+  const hasAmounts = goal.raisedPaise !== undefined && goal.targetPaise !== undefined;
+  const celebrate = style?.celebrate !== false;
   // One-off flip: only when this overlay watches the bar cross the line, never when it
   // loads with the goal already met.
   const [prevPct, setPrevPct] = useState(pct);
   const [reached, setReached] = useState(false);
   if (prevPct !== pct) {
     setPrevPct(pct);
-    if (prevPct < 100 && pct >= 100) setReached(true);
+    if (prevPct < 100 && pct >= 100 && celebrate) setReached(true);
   }
   useEffect(() => {
     if (!reached) return;
@@ -92,7 +112,13 @@ function Bar({ goal }: { goal: Goal }) {
         <span className="ov-clip">{title}</span>
         {reached && <span className="ov-reach ov-mono">GOAL REACHED</span>}
         <span className="ov-mono ov-goal-sums">
-          <Bump value={goal.raisedPaise}>₹{rupees(goal.raisedPaise)}</Bump> / ₹{rupees(goal.targetPaise)}
+          {hasAmounts ? (
+            <>
+              <Bump value={goal.raisedPaise!}>₹{rupees(goal.raisedPaise!)}</Bump> / ₹{rupees(goal.targetPaise!)}
+            </>
+          ) : (
+            <Bump value={pct}>{pct}%</Bump>
+          )}
         </span>
       </div>
       <div
@@ -104,9 +130,9 @@ function Bar({ goal }: { goal: Goal }) {
         aria-valuenow={pct}
         style={{ marginTop: "calc(var(--f) * 1)" }}
       >
-        <div className="ov-fill" style={{ width: `${pct}%` }} />
+        <div className="ov-fill" style={{ width: `${pct}%`, ...(style?.fill && !reached ? { background: style.fill } : {}) }} />
       </div>
-      {goal.carryPaise ? <p className="ov-carry">includes ₹{rupees(goal.carryPaise)} carried over</p> : null}
+      {goal.carryPaise && hasAmounts ? <p className="ov-carry">includes ₹{rupees(goal.carryPaise)} carried over</p> : null}
     </div>
   );
 }

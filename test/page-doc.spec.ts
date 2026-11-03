@@ -454,6 +454,7 @@ test.describe("the Pressure meter block (phase 4)", () => {
       celebrate: true,
       fill: null,
       heading: "",
+      picture: null,
     });
   });
 

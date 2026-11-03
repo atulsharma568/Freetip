@@ -67,3 +67,18 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 - [ ] With the editor already open in another tab, copy a page: does that tab say the draft changed somewhere else (it should, and never overwrite)?
 - [ ] Copy the owner's `acepressure` page to a spare creator: do the words and colours come over, and are the backdrop and banner pictures left out?
 - [ ] Look at the Audit log: one `creator.page_copied` row against the spare creator.
+
+## Page builder, phase 5 part two: the overlay editor, alert and goal bar (steps in `OPERATIONS.md` 7g item 12)
+
+- [ ] Run migration 0053, deploy. Without touching anything, do a real alert and the goal bar look exactly as before in OBS?
+- [ ] Tick "Custom tip page" and the four alert switches for a test creator. Open `/admin/creators/<id>` and press Edit overlays. Does the editor open on the creator's current settings (what they saved on their own pages)?
+- [ ] Change the headline and a colour: does the preview change at once, and does "Draft saved" appear a moment later? Is the real alert in OBS still unchanged until you Publish?
+- [ ] Type a colour pair that is hard to read: is it refused with a clear message, and is Publish off until fixed?
+- [ ] Publish, then send a small real tip: does the real alert in OBS use the new text, colours, animation and timing without an OBS reload?
+- [ ] Press Swap with previous version: does the next alert use the old look? Swap again: the new one?
+- [ ] Switch one alert feature off for the creator: is that part greyed out in the editor and named when you Publish, and does the creator's live alert ignore it as before?
+- [ ] Goal bar tab: pick a bar colour, "Percent only" and turn off the goal-reached moment. Publish and add `/goal` to the alert link as a Browser source in OBS: does it match the preview? With percent only, does no rupee figure show anywhere (look at the browser source's network response too)?
+- [ ] Look at the editor on a laptop and confirm a narrow screen only says to use a laptop.
+- [ ] Open the editor in two tabs, change something in one, then the other: does the second say the overlays were changed somewhere else and refuse to overwrite?
+- [ ] Press Test alert several times: does a real alert ever reach the creator's OBS? (It must not.)
+- [ ] Audit log: one `creator.overlay_published` row per Publish and one `creator.overlay_swapped` per Swap.

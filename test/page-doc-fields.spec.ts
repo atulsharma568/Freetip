@@ -13,7 +13,7 @@ import type { Block, BlockType, PageDoc } from "../src/lib/page-doc/types";
 // or are not editable.
 // The pictures are chosen in the library picker, the rank bar has its own editor, and the meter's
 // goal, rank words, colour and celebration have theirs.
-const OTHER = new Set(["ladder", "asset", "bannerAsset", "goal", "levels", "fill", "celebrate"]);
+const OTHER = new Set(["ladder", "asset", "bannerAsset", "picture", "goal", "levels", "fill", "celebrate"]);
 
 const withSetting = (doc: PageDoc, type: BlockType, patch: Record<string, unknown>): PageDoc => ({
   ...doc,

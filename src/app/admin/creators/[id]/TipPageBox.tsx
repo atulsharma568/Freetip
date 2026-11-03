@@ -6,11 +6,13 @@ import type { PageSummary } from "@/lib/page-doc/store";
 import { CopyPageForm, type CopySource } from "./CopyPageForm";
 
 // The owner's view of a creator's custom tip page: whether the paid switch is on, whether a custom
-// page is published, a link to the editor, and the two ways back (swap with the previous version,
+// page is published, links to the page editor and the overlay editor (the alert and the goal bar;
+// it has its own draft, Publish and swap), and the two ways back (swap with the previous version,
 // normal page).
 export function TipPageBox({
   summary,
   editHref,
+  overlaysHref,
   restoreAction,
   resetAction,
   copyAction,
@@ -18,6 +20,7 @@ export function TipPageBox({
 }: {
   summary: PageSummary;
   editHref: string;
+  overlaysHref: string;
   restoreAction: AdminAction;
   resetAction: AdminAction;
   copyAction: AdminAction;
@@ -47,12 +50,20 @@ export function TipPageBox({
         ))}
       </dl>
       {summary.switchOn && (
-        <Link
-          href={editHref}
-          className="inline-block rounded-full border border-control px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-accent"
-        >
-          Edit tip page
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={editHref}
+            className="inline-block rounded-full border border-control px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-accent"
+          >
+            Edit tip page
+          </Link>
+          <Link
+            href={overlaysHref}
+            className="inline-block rounded-full border border-control px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-accent"
+          >
+            Edit overlays (alert, goal bar)
+          </Link>
+        </div>
       )}
       {summary.switchOn && copySources.length > 0 && <CopyPageForm sources={copySources} copyAction={copyAction} hasDraft={summary.hasDraft} />}
       {!summary.switchOn && (
