@@ -4,11 +4,11 @@ import { getCreator, getCreatorAccent, getPinOffer, getTipBanner, getTipPhoto, g
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
-import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipPageView } from "./TipPageView";
-import { isOwnerTipPage, ownerBrand, OWNER_ACCENT, ownerThemeStyle } from "@/lib/owner-page";
+import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -75,18 +75,18 @@ export default async function CreatorPage({ params }: Props) {
   const voiceMinPaise =
     ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
-  // The owner's page is always the channel's red, whatever accent is saved.
+  // The page is drawn from a document of blocks. The owner's page is always the channel's red
+  // (its document carries the colour), whatever accent is saved.
+  const doc = ownerPage ? ownerPageDoc() : defaultPageDoc();
   const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
-  const themeStyle = ownerPage ? ownerThemeStyle : accentStyle(storedAccent);
 
   return (
     <TipPageView
       data={{
         handle,
         displayName,
-        ownerPage,
-        accent: ownerPage ? OWNER_ACCENT : safeAccent(storedAccent),
-        themeStyle,
+        doc,
+        storedAccent,
         pictureUrl: tipPhoto ?? creator.picture_url,
         bannerUrl,
         ytChannelName: creator.yt_channel_name,

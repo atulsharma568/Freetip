@@ -1,32 +1,42 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/PageShell";
-import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
+import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { fixturesEnabled } from "@/lib/page-fixtures";
-import { ownerBrand, OWNER_ACCENT, ownerThemeStyle } from "@/lib/owner-page";
+import { ownerBrand } from "@/lib/owner-page";
+import { findBlock } from "@/lib/page-doc/blocks";
+import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
+import { pageDocOrDefault } from "@/lib/page-doc/parse";
+import { themeFor } from "@/lib/page-doc/theme";
 import { TipPageView, type TipPageData } from "../../[handle]/TipPageView";
 import { SuccessFixture } from "./SuccessFixture";
 
 // A test-only tip page with a made-up creator, so the browser tests can look at the real page
 // components without a database. 404 unless PAGE_FIXTURES=1 (only the Playwright config sets it).
-//   /dev-fixtures/tip?page=default|owner&view=form|success
+//   /dev-fixtures/tip?page=default|owner&view=form|success&doc=<base64url text>
+// `doc` is a page document as text (anything the parser takes); without one, or with one the
+// parser refuses, the page shows its own default document.
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tip page fixture", robots: { index: false, follow: false } };
 
-type Props = { searchParams: Promise<{ page?: string; view?: string }> };
+type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string }> };
 
 export default async function TipFixturePage({ searchParams }: Props) {
   if (!fixturesEnabled()) notFound();
-  const { page, view } = await searchParams;
+  const { page, view, doc: rawDoc } = await searchParams;
   const owner = page === "owner";
+  const fallback = owner ? ownerPageDoc() : defaultPageDoc();
+  const doc = rawDoc ? pageDocOrDefault(Buffer.from(rawDoc, "base64url").toString("utf8"), fallback) : fallback;
+  const theme = themeFor(doc, null);
 
   if (view === "success") {
+    const backdrop = findBlock(doc, "backdrop");
     return (
       <PageShell slim>
-        <div className="contents" style={owner ? ownerThemeStyle : undefined}>
-          {owner && <OwnerBackdrop />}
-          <SuccessFixture owner={owner} />
+        <div className="contents" style={theme.style}>
+          {backdrop?.visible && <BackdropBlock />}
+          <SuccessFixture doc={doc} owner={owner} />
         </div>
       </PageShell>
     );
@@ -35,9 +45,8 @@ export default async function TipFixturePage({ searchParams }: Props) {
   const data: TipPageData = {
     handle: "samplecreator",
     displayName: owner ? ownerBrand() : "Sample Creator",
-    ownerPage: owner,
-    accent: owner ? OWNER_ACCENT : undefined,
-    themeStyle: owner ? ownerThemeStyle : undefined,
+    doc,
+    storedAccent: null,
     pictureUrl: "/owner/kitsune.svg",
     bannerUrl: null,
     ytChannelName: "Sample Channel",

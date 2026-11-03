@@ -1,7 +1,10 @@
 import type { AlertMode } from "@/lib/alerts";
 import type { PinOffer } from "@/lib/pinned";
 import { PageShell } from "@/components/PageShell";
-import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
+import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
+import { findBlock } from "@/lib/page-doc/blocks";
+import { themeFor } from "@/lib/page-doc/theme";
+import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
 import { TipForm } from "./TipForm";
 
@@ -11,9 +14,10 @@ import { TipForm } from "./TipForm";
 export interface TipPageData {
   handle: string;
   displayName: string;
-  ownerPage: boolean;
-  accent: string | undefined;
-  themeStyle: Record<string, string> | undefined;
+  // The page as a checked document of blocks, and the creator's saved accent colour (used when
+  // the document sets none).
+  doc: PageDoc;
+  storedAccent: string | null;
   pictureUrl: string | null;
   bannerUrl: string | null;
   ytChannelName: string | null;
@@ -30,12 +34,15 @@ export interface TipPageData {
 }
 
 export function TipPageView({ data }: { data: TipPageData }) {
+  const { style, accent } = themeFor(data.doc, data.storedAccent);
+  const backdrop = findBlock(data.doc, "backdrop");
   return (
     <PageShell slim>
-      <div className="contents" style={data.themeStyle}>
-        {data.ownerPage && <OwnerBackdrop />}
+      <div className="contents" style={style}>
+        {backdrop?.visible && <BackdropBlock />}
         <TipForm
-          accent={data.accent}
+          doc={data.doc}
+          accent={accent}
           sounds={data.sounds}
           rules={data.rules}
           voiceMinPaise={data.voiceMinPaise}
@@ -50,7 +57,6 @@ export function TipPageView({ data }: { data: TipPageData }) {
           bio={data.bio}
           alertMode={data.alertMode}
           pinOffer={data.pinOffer}
-          variant={data.ownerPage ? "owner" : "default"}
           previewMode={data.previewMode}
         />
       </div>
