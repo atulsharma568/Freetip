@@ -146,7 +146,8 @@ export function createYouTubeClient(env: NodeJS.ProcessEnv = process.env, doFetc
       try {
         const url = new URL(`${API}/liveBroadcasts`);
         url.searchParams.set("part", "id");
-        url.searchParams.set("mine", "true");
+        // YouTube allows only one filter: broadcastStatus already means the signed-in
+        // channel's own broadcasts, and adding `mine` is a 400.
         url.searchParams.set("broadcastStatus", "active");
         const res = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` }, signal: signal() });
         if (!res.ok) {
