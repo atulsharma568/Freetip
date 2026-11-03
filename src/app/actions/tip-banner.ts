@@ -11,6 +11,7 @@ import {
   BANNER_UPLOAD_KINDS,
   bannerPathPrefix,
   fetchChannelBanner,
+  fetchChannelPhoto,
   isUploadedBannerUrl,
   safeBannerUrl,
 } from "@/lib/tip-banner";
@@ -141,4 +142,46 @@ export async function saveUploadedBanner(input: { url: string }): Promise<TipBan
   if (before !== input.url) await dropBlob(before);
   refresh(ctx.row.handle);
   return { status: "ok", url: input.url };
+}
+
+// Copies the creator's YouTube channel photo for the tip page, kept apart from the Google
+// account photo so signing in again does not undo it.
+export async function copyYouTubePhoto(): Promise<TipBannerActionResult> {
+  const ctx = await owner();
+  if (!ctx) return { status: "error", message: "Sign in again to change your tip page photo." };
+  if (!hasFeature(ctx.row, "tipBanner")) {
+    return { status: "error", message: "The tip page banner is not switched on for your account." };
+  }
+  const found = await fetchChannelPhoto(ctx.row.yt_channel_id);
+  if (!found.ok) {
+    const message = {
+      "not-configured": "Reading your YouTube photo is not set up on this site yet. Please try again later.",
+      "no-channel": "We could not find your YouTube channel. Sign out and sign in again with the channel you stream on.",
+      "no-photo": "Your YouTube channel has no profile photo we can use.",
+      failed: "Could not reach YouTube just now. Please try again in a minute.",
+    }[found.reason];
+    return { status: "error", message };
+  }
+  try {
+    await ctx.db`update users set tip_photo_url = ${found.url} where id = ${ctx.row.id}`;
+  } catch (err) {
+    console.error("Could not save the tip page photo (migration 0050 run?)", err);
+    return { status: "error", message: "Could not save your photo, try again shortly" };
+  }
+  refresh(ctx.row.handle);
+  return { status: "ok", url: found.url };
+}
+
+// Goes back to the Google account photo. Allowed even if the switch was turned off since.
+export async function removeTipPhoto(): Promise<TipBannerActionResult> {
+  const ctx = await owner();
+  if (!ctx) return { status: "error", message: "Sign in again to change your tip page photo." };
+  try {
+    await ctx.db`update users set tip_photo_url = null where id = ${ctx.row.id}`;
+  } catch (err) {
+    console.error("Could not reset the tip page photo (migration 0050 run?)", err);
+    return { status: "error", message: "Could not change your photo, try again shortly" };
+  }
+  refresh(ctx.row.handle);
+  return { status: "ok", url: null };
 }

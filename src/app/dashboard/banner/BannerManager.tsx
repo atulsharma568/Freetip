@@ -3,7 +3,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { removeTipBanner, copyYouTubeBanner, saveUploadedBanner } from "@/app/actions/tip-banner";
+import { removeTipBanner, copyYouTubeBanner, saveUploadedBanner, copyYouTubePhoto, removeTipPhoto } from "@/app/actions/tip-banner";
 import { checkMediaFile, mediaFileName } from "@/lib/media";
 import { BANNER_MAX_BYTES, BANNER_UPLOAD_KINDS, bannerPathPrefix } from "@/lib/tip-banner";
 import { CreatorPanel } from "@/components/tip/CreatorPanel";
@@ -17,6 +17,7 @@ export function BannerManager({
   style,
   displayName,
   pictureUrl,
+  usingYouTubePhoto,
   ytChannelName,
   ytChannelUrl,
   bio,
@@ -28,6 +29,7 @@ export function BannerManager({
   style: CSSProperties | Record<string, string> | undefined;
   displayName: string;
   pictureUrl: string | null;
+  usingYouTubePhoto: boolean;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   bio: string | null;
@@ -35,7 +37,7 @@ export function BannerManager({
   uploadsReady: boolean;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"copy" | "remove" | "upload" | null>(null);
+  const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
 
@@ -51,6 +53,25 @@ export function BannerManager({
     setMessage({
       kind: "ok",
       text: which === "copy" ? "Done. Your YouTube banner now shows on your tip page." : "Removed. Your tip page has no banner.",
+    });
+    router.refresh();
+  }
+
+  async function runPhoto(which: "photo" | "photo-reset") {
+    setBusy(which);
+    setMessage(null);
+    const res = which === "photo" ? await copyYouTubePhoto() : await removeTipPhoto();
+    setBusy(null);
+    if (res.status === "error") {
+      setMessage({ kind: "error", text: res.message });
+      return;
+    }
+    setMessage({
+      kind: "ok",
+      text:
+        which === "photo"
+          ? "Done. Your YouTube channel photo now shows on your tip page."
+          : "Done. Your tip page uses your Google account photo again.",
     });
     router.refresh();
   }
@@ -157,6 +178,34 @@ export function BannerManager({
             {!uploadsReady && " Uploads are not set up on this site yet."}
           </p>
           <Msg kind={message?.kind} text={message?.text} />
+        </div>
+      </Tile>
+
+      <Tile id="photo" level={2} title="Your photo">
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            The round photo on your tip page is your Google account photo. If your YouTube channel has a
+            different one, copy it here (we keep a link to it and never change anything on your channel).
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => runPhoto("photo")} disabled={busy !== null} className={pillPrimary}>
+              {busy === "photo" ? "Reading YouTube…" : "Use my YouTube photo"}
+            </button>
+            {usingYouTubePhoto && (
+              <button
+                type="button"
+                onClick={() => runPhoto("photo-reset")}
+                disabled={busy !== null}
+                className="inline-flex min-h-11 items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted disabled:opacity-50"
+              >
+                {busy === "photo-reset" ? "Changing…" : "Use my Google photo again"}
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-muted">
+            {usingYouTubePhoto ? "Your YouTube channel photo is showing." : "Your Google account photo is showing."} Press
+            the button again after you change your photo on YouTube.
+          </p>
         </div>
       </Tile>
     </div>

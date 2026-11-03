@@ -4,7 +4,7 @@ import { hasFeature } from "@/lib/plans";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { playable, type MediaKind, type ReviewState } from "@/lib/media";
 import { pinOffer, type PinOffer } from "@/lib/pinned";
-import { safeBannerUrl } from "@/lib/tip-banner";
+import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 
 export interface CreatorRow {
   google_id: string;
@@ -95,6 +95,21 @@ export const getTipBanner = cache(async (handle: string): Promise<string | null>
       select paid_features, tip_banner_url from users where handle = ${handle}
     `;
     return row && hasFeature(row, "tipBanner") ? safeBannerUrl(row.tip_banner_url) : null;
+  } catch {
+    return null;
+  }
+});
+
+// The creator's YouTube channel photo for the tip page (migration 0050), under the same switch as
+// the banner. Null means the Google account photo is used.
+export const getTipPhoto = cache(async (handle: string): Promise<string | null> => {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const [row] = await db<{ paid_features: string[] | null; tip_photo_url: string | null }[]>`
+      select paid_features, tip_photo_url from users where handle = ${handle}
+    `;
+    return row && hasFeature(row, "tipBanner") ? safePhotoUrl(row.tip_photo_url) : null;
   } catch {
     return null;
   }

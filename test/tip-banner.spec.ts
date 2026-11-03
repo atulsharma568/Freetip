@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { BANNER_MAX_BYTES, fetchChannelBanner, safeBannerUrl } from "../src/lib/tip-banner";
+import { BANNER_MAX_BYTES, fetchChannelBanner, fetchChannelPhoto, safeBannerUrl, safePhotoUrl } from "../src/lib/tip-banner";
 import { checkMediaFile } from "../src/lib/media";
 import { planFeatures, sanitizeFeatureKeys } from "../src/lib/plans";
 
@@ -96,4 +96,21 @@ test("a banner may be bigger than an alert picture, up to its own limit", () => 
   expect(checkMediaFile(gif, 5 * mb, BANNER_MAX_BYTES).ok).toBe(true);
   expect(checkMediaFile(gif, BANNER_MAX_BYTES, BANNER_MAX_BYTES).ok).toBe(true);
   expect(checkMediaFile(gif, BANNER_MAX_BYTES + 1, BANNER_MAX_BYTES).ok).toBe(false);
+});
+
+test.describe("the YouTube channel photo", () => {
+  test("only Google image hosts pass, never our own uploads", () => {
+    expect(safePhotoUrl(GOOD)).toBe(GOOD);
+    expect(safePhotoUrl("https://abc123.public.blob.vercel-storage.com/banners/7/a.gif")).toBeNull();
+    expect(safePhotoUrl("https://evil.example/x")).toBeNull();
+  });
+
+  test("reads the biggest thumbnail, and says why when it cannot", async () => {
+    const body = { items: [{ snippet: { thumbnails: { default: { url: "https://yt3.ggpht.com/d" }, high: { url: GOOD } } } }] };
+    expect(await fetchChannelPhoto("UC1234567890abcdef", ENV, fakeFetch(body))).toEqual({ ok: true, url: GOOD });
+    expect(await fetchChannelPhoto("UC1234567890abcdef", ENV, fakeFetch({ items: [{ snippet: {} }] }))).toEqual({ ok: false, reason: "no-photo" });
+    expect(await fetchChannelPhoto("UC1234567890abcdef", ENV, fakeFetch({ items: [] }))).toEqual({ ok: false, reason: "no-channel" });
+    expect(await fetchChannelPhoto("UC1234567890abcdef", ENV, fakeFetch({}, 500))).toEqual({ ok: false, reason: "failed" });
+    expect(await fetchChannelPhoto("UC1234567890abcdef", {} as NodeJS.ProcessEnv, fakeFetch(body))).toEqual({ ok: false, reason: "not-configured" });
+  });
 });

@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 import { hasFeature } from "@/lib/plans";
 import { SITE_NAME } from "@/lib/site";
 import { accentStyle } from "@/lib/accent";
-import { safeBannerUrl } from "@/lib/tip-banner";
+import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { BannerManager } from "./BannerManager";
@@ -46,11 +46,20 @@ export default async function BannerPage() {
   // The saved banner sits in a column from migration 0048; before it is run the page still
   // opens, with no banner, and saving says so.
   let saved: string | null = null;
+  let savedPhoto: string | null = null;
   try {
     const [row] = await db<{ tip_banner_url: string | null }[]>`select tip_banner_url from users where id = ${user.id}`;
     saved = safeBannerUrl(row?.tip_banner_url);
   } catch (err) {
     console.error("Banner page: could not read the saved banner (migration 0048 run?).", err);
+  }
+
+  // The channel photo sits in a column from migration 0050, read apart for the same reason.
+  try {
+    const [row] = await db<{ tip_photo_url: string | null }[]>`select tip_photo_url from users where id = ${user.id}`;
+    savedPhoto = safePhotoUrl(row?.tip_photo_url);
+  } catch (err) {
+    console.error("Banner page: could not read the saved photo (migration 0050 run?).", err);
   }
 
   return (
@@ -71,7 +80,8 @@ export default async function BannerPage() {
           handle={user.handle}
           style={accentStyle(user.accent)}
           displayName={user.display_name ?? user.name ?? user.handle}
-          pictureUrl={user.picture_url}
+          pictureUrl={savedPhoto ?? user.picture_url}
+          usingYouTubePhoto={!!savedPhoto}
           ytChannelName={user.yt_channel_name}
           ytChannelUrl={user.yt_channel_url}
           bio={user.bio}

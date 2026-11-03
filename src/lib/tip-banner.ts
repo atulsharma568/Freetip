@@ -82,3 +82,46 @@ export async function fetchChannelBanner(
     return { ok: false, reason: "failed" };
   }
 }
+
+// The channel photo is only ever one of Google's image hosts (never one of our uploads).
+export function safePhotoUrl(raw: unknown): string | null {
+  const url = safeBannerUrl(raw);
+  if (!url) return null;
+  return BANNER_HOST_SUFFIXES.some((s) => new URL(url).hostname.endsWith(s)) ? url : null;
+}
+
+export type PhotoResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: "not-configured" | "no-channel" | "no-photo" | "failed" };
+
+// Reads the public profile picture of a channel (channels.list, snippet; one quota unit).
+export async function fetchChannelPhoto(
+  channelId: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+  doFetch: typeof fetch = fetch,
+): Promise<PhotoResult> {
+  if (!env.YT_DATA_API_KEY) return { ok: false, reason: "not-configured" };
+  if (!channelId || !/^[\w-]{10,64}$/.test(channelId)) return { ok: false, reason: "no-channel" };
+  try {
+    const url = new URL(API);
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("id", channelId);
+    url.searchParams.set("key", env.YT_DATA_API_KEY);
+    const res = await doFetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!res.ok) {
+      console.error(`YouTube: channels.list (photo) answered ${res.status}.`);
+      return { ok: false, reason: "failed" };
+    }
+    const json = (await res.json()) as {
+      items?: { snippet?: { thumbnails?: Record<string, { url?: string }> } }[];
+    };
+    const found = json.items?.[0];
+    if (!found) return { ok: false, reason: "no-channel" };
+    const t = found.snippet?.thumbnails;
+    const photo = safePhotoUrl(t?.high?.url ?? t?.medium?.url ?? t?.default?.url);
+    return photo ? { ok: true, url: photo } : { ok: false, reason: "no-photo" };
+  } catch (err) {
+    console.error("YouTube: channels.list (photo) failed.", err);
+    return { ok: false, reason: "failed" };
+  }
+}
