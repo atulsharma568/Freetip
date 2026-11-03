@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-03, sticky preview on the alert-design pages)
+
+- The Preview tile on Style, Layout, Text and Motion now sticks to the top of the screen (`sticky top-2`) while the choices scroll under it, so a change is seen at once without scrolling up. The preview is capped by screen height (landscape 68vh wide, vertical 21vh wide) so it never fills a phone. Not yet seen in a browser.
+
 ## Current state (2026-11-03, alert-design pages grouped in the menu)
 
 - The dashboard menu had Style, Text, Motion and Layout as four entries. It now has **Look** (Style + Layout) and **Words and motion** (Text + Motion), each with a second row of tabs (`AlertSubNav.tsx`) on its pages. The pages, their addresses, saving and the four paid switches are unchanged; a group opens on its first page that is switched on and the tab row hides when only one of the pair is on. Not yet seen in a browser.

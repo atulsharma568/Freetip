@@ -76,7 +76,7 @@ export function StyleManager({
 
   return (
     <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview">
+      <Tile id="preview" level={2} title="Preview" className="sticky top-2 z-20">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Sample tip and screen shape">
             {AMOUNTS.map((a) => (
@@ -109,7 +109,7 @@ export function StyleManager({
             style={
               {
                 aspectRatio: String(size.ratio),
-                maxWidth: size.ratio < 1 ? "min(100%, 300px)" : "100%",
+                maxWidth: size.ratio < 1 ? "min(100%, 300px, 21vh)" : "min(100%, 68vh)",
                 background: "var(--color-surface)",
                 "--ov-accent": accent,
                 "--ov-ink": inkFor(accent),

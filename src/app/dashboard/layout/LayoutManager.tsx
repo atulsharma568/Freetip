@@ -113,7 +113,7 @@ export function LayoutManager({
 
   return (
     <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview">
+      <Tile id="preview" level={2} title="Preview" className="sticky top-2 z-20">
         <div className="space-y-4">
           <div
             data-testid="layout-preview"
@@ -121,6 +121,7 @@ export function LayoutManager({
             style={
               {
                 aspectRatio: "16 / 9",
+                maxWidth: "min(100%, 68vh)",
                 background: "var(--color-surface)",
                 "--ov-accent": accent,
                 "--ov-ink": inkFor(accent),
