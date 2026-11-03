@@ -76,3 +76,5 @@ waitlist-*.csv
 service-account*.json
 client_secret*.json
 credentials*.json
+
+# local tooling, kept on disk only

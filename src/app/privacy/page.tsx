@@ -168,11 +168,12 @@ const SECTIONS: LegalSection[] = [
           requires it.
         </p>
         <p>
-          Our use of information received from Google APIs follows the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy">
+          Freetip’s use and transfer to any other app of information received
+          from Google APIs will adhere to the{" "}
+          <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes">
             Google API Services User Data Policy
           </a>
-          , including its Limited Use requirements.
+          , including the Limited Use requirements.
         </p>
         <h3>How we store and protect it</h3>
         <p>

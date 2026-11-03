@@ -6,6 +6,7 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 - Accessibility 96 on PageSpeed found and fixed: the failing elements were the words of the `RevealWords` paragraphs (the fee tile and the "why Freetip" intro), which start dim (opacity 0.12, contrast 1.9:1 and 2.5:1) until scrolled into view, and a checker that looks early flags them. The dim start is now 0.5 (4.5:1 or better on both backgrounds, computed from the colour tokens); the reveal looks slightly less dramatic. Verified in a browser: all 40 words start at 0.5. Not verified: a new PageSpeed run (owner to re-run after the deploy).
 - Privacy policy: one sentence added saying we ask YouTube which broadcast is live (for stream timestamps), policy date moved to 3 November 2026; text drafted for the Google OAuth verification justification (both scopes).
+- Privacy policy: the Google API Limited Use sentence now uses Google's exact required wording (for the OAuth verification). Git history rewritten 2026-11-03 so every commit is under the owner's account only; local tooling files are untracked and git-ignored (kept on disk). Anyone with an older clone must re-clone.
 
 - Owner confirmed Google Analytics is on (`NEXT_PUBLIC_GA_ID` set in Vercel). Checklist item 17 is done.
 - Organization schema (`OrganizationSchema.tsx`) no longer needs a support email: it needs the legal name and writes the contact form page (`/contact`) as the contact point; an email is added only if one is set. Live after the next deploy.

@@ -15,7 +15,7 @@ const eslintConfig = defineConfig([
     // Playwright's generated traces and last-run metadata.
     "test-results/**",
     "playwright-report/**",
-    // Third-party agent skills installed by agent-skills/install.sh.
+    // Local tooling, not part of the site.
     // The OBS clip helper is its own small app with its own dependencies and tests.
     "tools/**",
   ]),
