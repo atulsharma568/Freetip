@@ -90,7 +90,6 @@ function writeName(name: string) {
 
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 type Phase = "idle" | "creating" | "checkout" | "success" | "error";
 
@@ -115,8 +114,6 @@ interface Props {
   // How the creator plays alerts, so the success screen only promises what will happen.
   alertMode?: AlertMode;
   previewMode?: boolean;
-  // The creator has the birthday message on and a greeting written: ask for a birthday.
-  birthdayOffered?: boolean;
   // The creator lets a big enough tip pin its message on stream (paid highlighted messages).
   pinOffer?: PinOffer | null;
 }
@@ -136,7 +133,6 @@ export function TipForm({
   voiceMinPaise,
   alertMode = "split",
   previewMode = false,
-  birthdayOffered = false,
   pinOffer = null,
   accent,
 }: Props) {
@@ -152,9 +148,6 @@ export function TipForm({
   const [remember, setRemember] = useState(false);
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
-  // Optional birthday (day and month only), asked only when the creator offers it.
-  const [birthMonth, setBirthMonth] = useState("");
-  const [birthDay, setBirthDay] = useState("");
   const [extra, setExtra] = useState<Extra>({ kind: "default" });
   // Ask for the message to be pinned on stream (only when the creator offers it).
   const [pin, setPin] = useState(false);
@@ -294,10 +287,6 @@ export function TipForm({
           voice: extra.kind === "voice",
           ruleId: extra.kind === "rule" ? extra.id : null,
           pin: pinOffer !== null && pin,
-          birthday:
-            birthdayOffered && !anonymous && tipName.trim() && birthMonth && birthDay
-              ? { month: Number(birthMonth), day: Number(birthDay) }
-              : null,
         },
       );
     } catch {
@@ -375,8 +364,6 @@ export function TipForm({
           // A remembered name stays for the next tip.
           if (!remember) setTipName("");
           setAnonymous(false);
-          setBirthMonth("");
-          setBirthDay("");
           setExtra({ kind: "default" });
           setPin(false);
           setPaidAmount(0);
@@ -583,44 +570,6 @@ export function TipForm({
                 </div>
               )}
             </div>
-            {birthdayOffered && !anonymous && tipName.trim() && (
-              <fieldset className="space-y-2">
-                <legend className="text-sm text-muted">
-                  Birthday <span className="text-control">(optional)</span>
-                </legend>
-                <div className="flex gap-3">
-                  <select
-                    aria-label="Birthday month"
-                    value={birthMonth}
-                    onChange={(e) => setBirthMonth(e.target.value)}
-                    className="h-12 min-w-0 flex-1 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text focus:border-accent"
-                  >
-                    <option value="">Month</option>
-                    {MONTHS.map((m, i) => (
-                      <option key={m} value={i + 1}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label="Birthday day"
-                    value={birthDay}
-                    onChange={(e) => setBirthDay(e.target.value)}
-                    className="h-12 w-28 rounded-[var(--radius-field)] border border-control bg-ground px-3 text-base text-text focus:border-accent"
-                  >
-                    <option value="">Day</option>
-                    {Array.from({ length: 31 }, (_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-muted">
-                  Day and month only, never the year. If you tip on your birthday, {displayName} can greet you on stream.
-                </p>
-              </fieldset>
-            )}
             <div className="space-y-2">
               <label htmlFor="tip-message" className="text-sm text-muted">
                 Message <span className="text-control">(optional)</span>

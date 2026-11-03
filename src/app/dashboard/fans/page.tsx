@@ -7,14 +7,13 @@ import { planFeatures } from "@/lib/plans";
 import { SITE_NAME } from "@/lib/site";
 import type { LedgerDb } from "@/lib/accrual";
 import { formatRupees } from "@/lib/earnings";
-import { FAN_LIST_LIMIT, FAN_SORTS, FAN_SORT_LABELS, birthdayLabel, loadFans, parseFansQuery, type FanRow } from "@/lib/fan-list";
+import { FAN_LIST_LIMIT, FAN_SORTS, FAN_SORT_LABELS, loadFans, parseFansQuery, type FanRow } from "@/lib/fan-list";
 import { levelStartXp } from "@/lib/fan-levels";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { EmptyState } from "../parts/EmptyState";
 import { Tile } from "../parts/Tile";
 import { pillOutline } from "../parts/styles";
-import { BirthdayForm } from "./BirthdayForm";
 import { FanList, type FanItem } from "./FanList";
 
 export const metadata: Metadata = {
@@ -41,18 +40,7 @@ export default async function FansPage({
     select id, handle, creator_status, paid_features from users where google_id = ${googleId}
   `;
   const features = planFeatures(user);
-  if (!user?.handle || !(features.fanLevels || features.fanCrm || features.birthdayMessage)) redirect("/dashboard");
-
-  // Read apart so the page still opens before migration 0038 is run.
-  let greeting = "";
-  if (features.birthdayMessage) {
-    try {
-      const [row] = await db<{ birthday_message: string | null }[]>`select birthday_message from users where id = ${user.id}`;
-      greeting = row?.birthday_message ?? "";
-    } catch (err) {
-      console.error("Fans page: could not read the birthday message (migration 0038 run?)", err);
-    }
-  }
+  if (!user?.handle || !(features.fanLevels || features.fanCrm)) redirect("/dashboard");
 
   const query = parseFansQuery(await searchParams);
   let fans: FanRow[] = [];
@@ -74,7 +62,6 @@ export default async function FansPage({
     tips: f.tips,
     total: formatRupees(f.totalPaise),
     latest: latestFormat.format(f.lastAt),
-    birthday: birthdayLabel(f.birthday),
     note: f.note ?? "",
   }));
 
@@ -101,18 +88,6 @@ export default async function FansPage({
             <p className="numeric text-sm text-text">
               {[2, 3, 4, 5, 10].map((n) => `Lv ${n}: ${levelStartXp(n).toLocaleString("en-IN")} points`).join(" · ")}
             </p>
-          </Tile>
-        )}
-
-        {features.birthdayMessage && (
-          <Tile id="birthday" level={2} title="Birthday message">
-            <p className="text-sm text-muted">
-              Write a greeting and the tip page asks fans, optionally, for their birthday (day and month, never the
-              year). When a fan who gave one tips on that day, your alert shows your greeting with their name. It is
-              never checked, so it is just a friendly line. Use <span className="numeric text-text">{"{name}"}</span> for
-              their name. Leave it empty to turn it off.
-            </p>
-            <BirthdayForm initial={greeting} />
           </Tile>
         )}
 

@@ -46,12 +46,11 @@ export async function postFanXp(db: LedgerDb, paymentRef: string, secret: string
         anonymous: boolean | null;
         gross: string;
         status: string;
-        birthday_md: string | null;
         paid_features: string[] | null;
       }[]
     >`
       select t.id::text as tip_id, t.creator_id::text as creator_id, t.fan_name, t.anonymous,
-             t.gross_amount_minor::text as gross, t.status, t.birthday_md, u.paid_features
+             t.gross_amount_minor::text as gross, t.status, u.paid_features
         from payment_attempts pa
         join tip_orders t on t.id = pa.tip_order_id
         join users u on u.id = t.creator_id
@@ -82,16 +81,15 @@ export async function postFanXp(db: LedgerDb, paymentRef: string, secret: string
 
     await tx`
       insert into fan_profiles
-        (creator_id, fan_key, display_name, tips, total_paise, xp, birthday_md, first_at, last_at)
+        (creator_id, fan_key, display_name, tips, total_paise, xp, first_at, last_at)
       values
         (${tip.creator_id}::bigint, ${key}::text, ${display.slice(0, 50)}::text, 1, ${gross}::bigint,
-         ${xp}::bigint, ${tip.birthday_md}::text, now(), now())
+         ${xp}::bigint, now(), now())
       on conflict (creator_id, fan_key) do update set
         display_name = excluded.display_name,
         tips         = fan_profiles.tips + 1,
         total_paise  = fan_profiles.total_paise + excluded.total_paise,
         xp           = fan_profiles.xp + excluded.xp,
-        birthday_md  = coalesce(excluded.birthday_md, fan_profiles.birthday_md),
         last_at      = now()
     `;
     return { status: "counted", xp } as const;
@@ -128,15 +126,9 @@ export async function reverseFanXp(db: LedgerDb, paymentRef: string): Promise<{ 
   });
 }
 
-// The creator deletes one fan: the profile, its counted tips and the birthday typed with
-// those tips all go. Only that creator's own fan.
+// The creator deletes one fan: the profile and its counted tips go. Only that creator's own fan.
 export async function deleteFan(db: LedgerDb, creatorId: number, key: string): Promise<{ deleted: boolean }> {
   return db.begin(async (tx) => {
-    await tx`
-      update tip_orders set birthday_md = null
-       where birthday_md is not null
-         and id in (select tip_order_id from fan_xp_events where creator_id = ${creatorId}::bigint and fan_key = ${key}::text)
-    `;
     await tx`delete from fan_xp_events where creator_id = ${creatorId}::bigint and fan_key = ${key}::text`;
     const gone = await tx<{ fan_key: string }[]>`
       delete from fan_profiles where creator_id = ${creatorId}::bigint and fan_key = ${key}::text returning fan_key
@@ -145,15 +137,13 @@ export async function deleteFan(db: LedgerDb, creatorId: number, key: string): P
   });
 }
 
-// Closing the account: every profile of this creator, and the birthdays on their tips.
+// Closing the account: every profile of this creator.
 export async function eraseFans(db: LedgerDb, creatorId: number): Promise<number> {
   return db.begin(async (tx) => {
-    await tx`update tip_orders set birthday_md = null where creator_id = ${creatorId}::bigint and birthday_md is not null`;
     await tx`delete from fan_xp_events where creator_id = ${creatorId}::bigint`;
     const gone = await tx<{ fan_key: string }[]>`
       delete from fan_profiles where creator_id = ${creatorId}::bigint returning fan_key
     `;
-    await tx`update users set birthday_message = null where id = ${creatorId}::bigint`;
     return gone.length;
   });
 }

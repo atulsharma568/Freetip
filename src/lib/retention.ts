@@ -9,19 +9,7 @@ import type { LedgerDb } from "./accrual";
 export const TIP_TEXT_RETENTION_DAYS = 90;
 
 export async function purgeOldTipText(db: LedgerDb): Promise<{ cleared: number }> {
-  const result = await purgeOldTipTextRows(db);
-  // The birthday a fan typed with the tip goes with the name (migration 0038). Apart from the
-  // main statement so a missing column cannot stop the name and message being deleted.
-  try {
-    await db`
-      update tip_orders set birthday_md = null
-       where birthday_md is not null
-         and created_at < now() - make_interval(days => ${TIP_TEXT_RETENTION_DAYS})
-    `;
-  } catch {
-    /* migration 0038 not run: no birthdays to clear */
-  }
-  return result;
+  return purgeOldTipTextRows(db);
 }
 
 async function purgeOldTipTextRows(db: LedgerDb): Promise<{ cleared: number }> {

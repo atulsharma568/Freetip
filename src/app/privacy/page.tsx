@@ -61,7 +61,7 @@ const SECTIONS: LegalSection[] = [
             privacy policy.
           </li>
         </ul>
-        <h3>If you tip a creator who uses fan levels, a fan list or a birthday message</h3>
+        <h3>If you tip a creator who uses fan levels or a fan list</h3>
         <p>
           These are optional tools a creator can switch on for their own page.
           Only if the creator has switched one on, and only when you type a name
@@ -74,11 +74,6 @@ const SECTIONS: LegalSection[] = [
             and that name so the same name is matched on later tips, the number
             of tips, the total amount, the points (1 for every ₹1) and the level
             they add up to, and the dates of your first and latest tip;
-          </li>
-          <li>
-            if you choose to give it, the day and month of your birthday, never
-            the year. It is optional, you type it yourself, and we do not check
-            it;
           </li>
           <li>
             if the creator adds one, a private note of their own about you. We
@@ -272,9 +267,9 @@ const SECTIONS: LegalSection[] = [
             <td>Providing the service you asked for</td>
           </tr>
           <tr>
-            <td>Show a fan&apos;s level on the alert, give the creator a list of supporters, and greet a fan on their birthday (only for creators who switch these on)</td>
-            <td>Fan profile: name, tip counts and totals, points and level, optional birthday day and month, the creator&apos;s own note</td>
-            <td>Providing the service the creator and you asked for; your consent for the birthday, which you give by typing it</td>
+            <td>Show a fan&apos;s level on the alert, and give the creator a list of supporters (only for creators who switch these on)</td>
+            <td>Fan profile: name, tip counts and totals, points and level, the creator&apos;s own note</td>
+            <td>Providing the service the creator and you asked for</td>
           </tr>
           <tr>
             <td>Screen messages and handle reports</td>
@@ -323,15 +318,12 @@ const SECTIONS: LegalSection[] = [
           “Lv 3”) can appear on their alert next to your name, on a live stream.
           If they have switched on the fan list, the creator can see, in their
           private dashboard, each fan&apos;s name, number of tips, total amount,
-          level, dates and birthday day and month, and can search, sort, add a
-          note, download the list as a file, or delete a fan. If they have
-          switched on a birthday message and you gave your birthday, the creator&apos;s
-          greeting (with your name in it) can be shown on the alert on stream
-          when you tip on that day. It is never shown on any other day. The creator
+          level and dates, and can search, sort, add a
+          note, download the list as a file, or delete a fan. The creator
           is responsible for what they do with a list they download.
         </p>
         <p>
-          To ask us to delete your profile, or the birthday on it, write to our
+          To ask us to delete your profile, write to our
           Grievance Officer with the creator&apos;s handle and the name you used.
           Because a name is all we have, we may ask you for a payment ID from one
           of your tips to be sure the profile is yours.
@@ -390,16 +382,15 @@ const SECTIONS: LegalSection[] = [
         </li>
         <li>
           <strong>Fan profiles:</strong> only if a creator uses fan levels, the
-          fan list or the birthday message. A profile (name, totals, points,
-          level, optional birthday day and month, and the creator&apos;s note)
+          fan list. A profile (name, totals, points,
+          level and the creator&apos;s note)
           is kept for 12 months after your latest tip, then deleted
           automatically. A new tip on a creator&apos;s page starts the 12 months
           again. The creator can delete a fan&apos;s profile at any time, and
           closing a creator account deletes all of that creator&apos;s profiles
           straight away. If the creator switches these tools off, no new
           profiles are made and the existing ones are still deleted after 12
-          months. The birthday day and month typed with a tip is deleted with
-          that tip&apos;s name after 90 days.
+          months.
         </li>
         <li>
           <strong>Stream timestamps:</strong> if a creator uses them, the

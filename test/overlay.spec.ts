@@ -330,21 +330,19 @@ test.describe("OBS overlay routes", () => {
     expect(await card.evaluate((el) => el.style.getPropertyValue("--c-fs"))).toBe("0.7");
   });
 
-  test("a fan's level and a birthday greeting show on the card, and a plain alert shows neither", async ({ page }) => {
+  test("a fan's level shows on the card, and a plain alert shows none", async ({ page }) => {
     let served = 0;
     await page.route(`**/api/overlay/${TOKEN}`, (route) => {
       served += 1;
       const extra =
-        served === 1 ? { level: { level: 3, up: true }, birthday: "Happy birthday, Riya!" } : served === 2 ? { level: { level: 4, up: false } } : {};
+        served === 1 ? { level: { level: 3, up: true } } : served === 2 ? { level: { level: 4, up: false } } : {};
       return route.fulfill({ json: served > 3 ? { alert: null } : { alert: { ...SPEAKING_ALERT.alert, id: 7 + served, speech: false, ...extra } } });
     });
     await page.goto(`/overlay/${TOKEN}`);
     const card = page.locator(".ov-card");
     await expect(card.locator(".ov-level")).toHaveText("Level up! Lv 3");
-    await expect(card.locator(".ov-birthday")).toContainText("Happy birthday, Riya!");
     // The next alerts: a level with no level-up, then a plain one.
     await expect(card.locator(".ov-level")).toHaveText("Lv 4", { timeout: 20_000 });
-    await expect(card.locator(".ov-birthday")).toHaveCount(0);
     await expect(card.locator(".ov-level")).toHaveCount(0, { timeout: 20_000 });
   });
 

@@ -26,7 +26,7 @@ export async function DashboardNav({ current }: { current: "overview" | "tips" |
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "media" || features.customAlertMedia) &&
       (l.key !== "rules" || features.alertRules) && (l.key !== "variations" || features.alertVariations) && (l.key !== "look" || features.overlayThemes || features.alertLayout) && (l.key !== "words" || features.alertText || features.alertMotion) && (l.key !== "banner" || features.tipBanner) && (l.key !== "pinned" || features.highlightedMessages) &&
-      (l.key !== "fans" || features.fanLevels || features.fanCrm || features.birthdayMessage) && (l.key !== "streamlabs" || features.streamlabs),
+      (l.key !== "fans" || features.fanLevels || features.fanCrm) && (l.key !== "streamlabs" || features.streamlabs),
   );
   // Each group's link opens its first page that is switched on.
   const items = links.map((l) => ({

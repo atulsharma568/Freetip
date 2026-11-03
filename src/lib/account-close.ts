@@ -147,8 +147,7 @@ export async function closeCreatorAccount(
       /* column not there yet */
     }
     await eraseTimestampData(db, userId);
-    // Fan profiles, the birthdays on the creator's tips and their birthday greeting
-    // (migration 0038); nothing to erase before it is run.
+    // Fan profiles (migration 0038); nothing to erase before it is run.
     try {
       await eraseFans(db, userId);
     } catch {

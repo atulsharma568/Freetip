@@ -24,7 +24,6 @@ export type FeatureKey =
   | "regionalVoices"
   | "voiceNotes"
   | "overlayThemes"
-  | "birthdayMessage"
   | "fanLevels"
   | "fanCrm"
   | "highlightedMessages"
@@ -142,13 +141,6 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Overlay themes and fonts",
     group: "Alert box",
     description: "Pick a ready-made card style and a font for the OBS alert (/dashboard/style).",
-    built: true,
-  },
-  {
-    key: "birthdayMessage",
-    label: "Birthday message",
-    group: "Fans",
-    description: "A greeting on the alert when a fan who typed their birthday (day and month) tips on that day (/dashboard/fans).",
     built: true,
   },
   {

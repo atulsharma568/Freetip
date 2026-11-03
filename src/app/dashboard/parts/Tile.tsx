@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import {
-  Cake,
   Image as ImageIcon,
   ChartBar,
   ChatCircleText,
@@ -50,7 +49,6 @@ const ICONS: Record<string, Icon> = {
   "pin-settings": PushPin,
   "pin-list": PushPin,
   levels: Medal,
-  birthday: Cake,
   "streamlabs-connection": Plugs,
 };
 

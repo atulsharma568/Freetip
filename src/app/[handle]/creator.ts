@@ -100,22 +100,6 @@ export const getTipBanner = cache(async (handle: string): Promise<string | null>
   }
 });
 
-// Whether the tip page asks for a birthday: the creator has the birthday message switched on
-// and has written a greeting. Read apart (migrations 0035 and 0038) so the page still loads
-// before they are run.
-export const getBirthdayOffered = cache(async (handle: string): Promise<boolean> => {
-  const db = getDb();
-  if (!db) return false;
-  try {
-    const [row] = await db<{ paid_features: string[] | null; birthday_message: string | null }[]>`
-      select paid_features, birthday_message from users where handle = ${handle}
-    `;
-    return !!row?.birthday_message?.trim() && hasFeature(row, "birthdayMessage");
-  } catch {
-    return false;
-  }
-});
-
 // Whether the tip page offers a pinned message, and on what terms: the creator has the paid
 // highlighted messages switch on and has set a minimum tip. Read apart (migrations 0035 and
 // 0040) so the page still loads before they are run.

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipBanner, getTipRules, getTipSounds } from "./creator";
+import { getCreator, getCreatorAccent, getPinOffer, getTipBanner, getTipRules, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
@@ -62,10 +62,9 @@ export default async function CreatorPage({ params }: Props) {
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
-  const [sounds, rules, birthdayOffered, pinOffer, bannerUrl] = await Promise.all([
+  const [sounds, rules, pinOffer, bannerUrl] = await Promise.all([
     getTipSounds(handle),
     getTipRules(handle),
-    getBirthdayOffered(handle),
     getPinOffer(handle),
     getTipBanner(handle),
   ]);
@@ -94,7 +93,6 @@ export default async function CreatorPage({ params }: Props) {
         messageMaxChars={creator.message_max_chars}
         bio={creator.bio}
         alertMode={creator.alert_mode}
-        birthdayOffered={birthdayOffered}
         pinOffer={pinOffer}
         previewMode={creator.creator_status !== "active"}
       />

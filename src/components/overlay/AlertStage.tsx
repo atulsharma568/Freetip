@@ -41,10 +41,8 @@ export interface OverlayAlert {
   // (alert volume and layout; live overlay and the dashboard preview). Missing or null is
   // the normal alert.
   layout?: AlertLayout | null;
-  // The fan's level after this tip (fan levels) and the creator's birthday greeting for
-  // today (birthday message); both live overlay only.
+  // The fan's level after this tip (fan levels); live overlay only.
   level?: { level: number; up: boolean } | null;
-  birthday?: string | null;
   // A made-up alert from the dashboard's test button: the card wears a TEST badge so
   // it is never mistaken for a real tip.
   test?: boolean;
@@ -506,7 +504,6 @@ function Card({ alert, behind }: { alert: QueuedAlert; behind?: AlertMedia }) {
         {alert.test && <span className="ov-test">TEST</span>}
       </p>
       {isAlert && !amountInHeadline && <p className="ov-amount ov-mono">₹{amount}</p>}
-      {isAlert && alert.birthday && <p className="ov-birthday">🎂 {alert.birthday}</p>}
       {alert.message && (
         <p className="ov-message">
           {timings
@@ -567,10 +564,8 @@ const CSS = `
   background: var(--c-tag-bg); color: var(--c-tag-fg);
   font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: calc(var(--u) * 1.3); font-weight: 600; letter-spacing: 0.06em;
 }
-.ov-birthday { margin: calc(var(--u) * 1) 0 0; font-size: calc(var(--u) * 1.9 * var(--c-fs)); font-weight: 600; line-height: 1.3; }
 .ov-portrait .ov-level { font-size: calc(var(--u) * 3.2); padding: calc(var(--u) * 0.5) calc(var(--u) * 1.8); }
-.ov-portrait .ov-birthday { margin-top: calc(var(--u) * 2.2); font-size: calc(var(--u) * 5 * var(--c-fs)); }
-.ov-test {
+.ov-portrait .ov-test {
   margin-left: auto; padding: calc(var(--u) * 0.25) calc(var(--u) * 0.9); border-radius: 9999px;
   background: var(--c-tag-bg); color: var(--c-tag-fg);
   font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: calc(var(--u) * 1.2); font-weight: 600; letter-spacing: 0.12em;

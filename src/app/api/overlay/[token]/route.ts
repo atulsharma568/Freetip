@@ -190,9 +190,8 @@ export async function GET(
         text: extras.text,
         motion: extras.motion,
         layout: extras.layout,
-        // A name the creator has since banned shows as Anonymous, so it gets no level or greeting either.
+        // A name the creator has since banned shows as Anonymous, so it gets no level either.
         level: nameBlocked ? null : extras.level,
-        birthday: nameBlocked ? null : extras.birthday,
       },
       controls,
     },

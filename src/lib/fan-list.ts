@@ -40,7 +40,6 @@ export interface FanRow {
   totalPaise: number;
   xp: number;
   level: number;
-  birthday: string | null; // "MM-DD"
   note: string | null;
   firstAt: Date;
   lastAt: Date;
@@ -73,13 +72,12 @@ export async function loadFans(db: LedgerDb, creatorId: number, query: FansQuery
       tips: number;
       total_paise: string;
       xp: string;
-      birthday_md: string | null;
       note: string | null;
       first_at: Date;
       last_at: Date;
     }[]
   >`
-    select fan_key, display_name, tips, total_paise::text, xp::text, birthday_md, note, first_at, last_at
+    select fan_key, display_name, tips, total_paise::text, xp::text, note, first_at, last_at
       from fan_profiles
      where creator_id = ${creatorId}::bigint
        and (${query.q}::text = '' or display_name ilike ${like}::text)
@@ -93,7 +91,6 @@ export async function loadFans(db: LedgerDb, creatorId: number, query: FansQuery
     totalPaise: Number(r.total_paise),
     xp: Number(r.xp),
     level: levelFor(Number(r.xp)),
-    birthday: r.birthday_md,
     note: r.note,
     firstAt: new Date(r.first_at),
     lastAt: new Date(r.last_at),
@@ -101,16 +98,8 @@ export async function loadFans(db: LedgerDb, creatorId: number, query: FansQuery
   return { fans: sortFans(fans, query.sort), total: fans.length };
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// "14 Mar" from "03-14"; empty for none.
-export function birthdayLabel(md: string | null): string {
-  const m = md?.match(/^(\d\d)-(\d\d)$/);
-  return m ? `${Number(m[2])} ${MONTHS[Number(m[1]) - 1] ?? ""}`.trim() : "";
-}
-
 export function fansCsv(fans: FanRow[]): string {
-  const rows = [["Name", "Level", "Points", "Tips", "Total (INR)", "First tip (IST)", "Latest tip (IST)", "Birthday", "Note"]];
+  const rows = [["Name", "Level", "Points", "Tips", "Total (INR)", "First tip (IST)", "Latest tip (IST)", "Note"]];
   for (const f of fans) {
     rows.push([
       f.name,
@@ -120,7 +109,6 @@ export function fansCsv(fans: FanRow[]): string {
       (f.totalPaise / 100).toFixed(2),
       formatIst(f.firstAt),
       formatIst(f.lastAt),
-      birthdayLabel(f.birthday),
       f.note ?? "",
     ]);
   }

@@ -9,11 +9,10 @@ import { resolveAlertMotion, type AlertMotion } from "@/lib/alert-motion";
 import { resolveAlertLayout, type AlertLayout } from "@/lib/alert-layout";
 import { pickVariation, variationStayMs, variationText, type AlertVariation } from "@/lib/alert-variations";
 import { levelAfterTip, type FanLevel } from "@/lib/fan-levels";
-import { istMonthDay, resolveBirthday } from "@/lib/birthday";
 
 // Everything an alert carries besides the fan's name, amount and message: the sound,
 // the voice choice, the creator's banned words and (as the paid features ship) media,
-// theme, fan level, birthday, voice note and highlight. The overlay route used to look
+// theme, fan level, voice note and highlight. The overlay route used to look
 // these up one after another; they are now read together, each piece on its own so a
 // column from a migration that has not been run only drops that piece, never the alert.
 //
@@ -51,9 +50,6 @@ export type AlertExtras = {
   // The fan's level after this tip (fan levels); null while the feature is off, the fan has
   // no profile (anonymous, or the tip was before the switch) or this is the message card.
   level: FanLevel | null;
-  // The creator's birthday greeting for this tip (birthday message), already filled in
-  // with the fan's name; null unless the fan's birthday is today.
-  birthday: string | null;
   // Filled in by their features; null while that feature is off or not built.
   voiceNote: null;
   highlight: null;
@@ -84,13 +80,11 @@ export type RawExtras = {
   variations?: { list: readonly AlertVariation[]; amountPaise: number; picked: boolean } | null;
   // The fan's points now and what this tip added (fan levels).
   fan?: { xp: number; tipXp: number } | null;
-  // The creator's greeting and the fan's birthday and name on this tip (birthday message).
-  birthdayInfo?: { template: string | null; tipBirthday: string | null; name: string | null } | null;
 };
 
 export function resolveAlertExtras(
   raw: RawExtras,
-  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number; todayMd?: string },
+  ctx: { kind: "alert" | "message"; features: PlanFeatures; tipId?: number},
 ): AlertExtras {
   // The rule the fan picked on the tip page (a rule never applies to a tip that did not
   // pick it), only on the alert card and only while the creator's switch is on at play time.
@@ -163,16 +157,6 @@ export function resolveAlertExtras(
     // the side only to the alert card (the overlay reads what it needs).
     layout: ctx.features.alertLayout ? resolveAlertLayout(raw.alertLayout) : null,
     level: ctx.kind === "alert" && ctx.features.fanLevels && raw.fan ? levelAfterTip(raw.fan.xp, raw.fan.tipXp) : null,
-    birthday:
-      ctx.kind === "alert" && ctx.features.birthdayMessage && raw.birthdayInfo
-        ? resolveBirthday({
-            template: raw.birthdayInfo.template,
-            tipBirthday: raw.birthdayInfo.tipBirthday,
-            todayMd: ctx.todayMd ?? istMonthDay(new Date()),
-            name: raw.birthdayInfo.name,
-            bannedWords: raw.bannedWords,
-          })
-        : null,
     voiceNote: null,
     highlight: null,
   };
@@ -367,23 +351,8 @@ export async function loadAlertExtras(
         })
       : null;
 
-  // The greeting and this tip's birthday (migration 0038), read only when the feature is on.
-  const birthdayInfo =
-    o.kind === "alert" && features.birthdayMessage
-      ? await safely("the birthday message", null as { template: string | null; tipBirthday: string | null; name: string | null } | null, async () => {
-          const [found] = await db<{ birthday_message: string | null; birthday_md: string | null; fan_name: string | null; anonymous: boolean | null }[]>`
-            select u.birthday_message, t.birthday_md, t.fan_name, t.anonymous
-            from tip_orders t join users u on u.id = t.creator_id
-            where t.id = ${o.tipId}
-          `;
-          return found
-            ? { template: found.birthday_message, tipBirthday: found.birthday_md, name: found.anonymous ? null : found.fan_name }
-            : null;
-        })
-      : null;
-
   return resolveAlertExtras(
-    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, alertLayout, variations, fan, birthdayInfo },
+    { voiceRequested, bannedWords, sound: soundInfo?.sound ?? null, soundPicked: soundInfo?.picked ?? false, media, rules, pickedRuleId, style, alertText, alertMotion, alertLayout, variations, fan },
     { kind: o.kind, features, tipId: o.tipId },
   );
 }

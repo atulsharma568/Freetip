@@ -78,7 +78,7 @@ test.describe("alert extras", () => {
 
   test("the paid extras are absent until their features ship", () => {
     const out = resolveAlertExtras(raw, { kind: "alert", features: NO_FLAGS });
-    expect([out.media, out.theme, out.level, out.birthday, out.voiceNote, out.highlight]).toEqual([null, null, null, null, null, null]);
+    expect([out.media, out.theme, out.level, out.voiceNote, out.highlight]).toEqual([null, null, null, null, null]);
   });
 
   test("the loader reads the sound, the voice choice and the banned words from a real database", async () => {

@@ -2,38 +2,36 @@ import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { levelAfterTip, levelFor, levelStartXp, xpForTip, MAX_LEVEL } from "../src/lib/fan-levels";
 import { deleteFan, eraseFans, fanKey, normaliseFanName, postFanXp, reverseFanXp } from "../src/lib/fan-profiles";
-import { fansCsv, loadFans, parseFansQuery, sortFans, birthdayLabel, type FanRow } from "../src/lib/fan-list";
-import { BIRTHDAY_TEMPLATE_MAX, istMonthDay, parseBirthday, renderBirthdayMessage, resolveBirthday } from "../src/lib/birthday";
+import { fansCsv, loadFans, parseFansQuery, sortFans, type FanRow } from "../src/lib/fan-list";
 import { loadAlertExtras, resolveAlertExtras, type Sql } from "../src/lib/alert-extras";
 import { planFeatures } from "../src/lib/plans";
-import { purgeOldFanProfiles, purgeOldTipText } from "../src/lib/retention";
+import { purgeOldFanProfiles } from "../src/lib/retention";
 import { closeCreatorAccount } from "../src/lib/account-close";
-import { tipExtraColumns } from "../src/lib/tip-extras";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
-// Fan identity (phase 3): levels, the name-only profile, the fan list and the birthday
-// message, against the real schema in memory.
+// Fan identity (phase 3): levels, the name-only profile, the fan list,
+// against the real schema in memory.
 
 const SECRET = "a-test-salt-that-is-long-enough";
 let seq = 0;
 
-async function creator(pg: PGlite, features: string[] = ["fanLevels"], birthdayMessage: string | null = null) {
+async function creator(pg: PGlite, features: string[] = ["fanLevels"]) {
   seq += 1;
   const r = await pg.query<{ id: string }>(
-    `insert into users (google_id, email, handle, creator_status, paid_features, birthday_message)
-     values ($1, $2, $3, 'active', $4, $5) returning id::text`,
-    [`g${seq}`, `c${seq}@example.com`, `handle${seq}`, features, birthdayMessage],
+    `insert into users (google_id, email, handle, creator_status, paid_features)
+     values ($1, $2, $3, 'active', $4) returning id::text`,
+    [`g${seq}`, `c${seq}@example.com`, `handle${seq}`, features],
   );
   return Number(r.rows[0].id);
 }
 
-async function tip(pg: PGlite, creatorId: number, o: { name?: string | null; gross?: number; anonymous?: boolean; birthday?: string | null; status?: string } = {}) {
+async function tip(pg: PGlite, creatorId: number, o: { name?: string | null; gross?: number; anonymous?: boolean; status?: string } = {}) {
   seq += 1;
   const gross = o.gross ?? 10000;
   const t = await pg.query<{ id: string }>(
-    `insert into tip_orders (creator_id, public_reference, gross_amount_minor, fan_name, anonymous, birthday_md, status, captured_at)
-     values ($1, $2, $3, $4, $5, $6, $7, now()) returning id::text`,
-    [creatorId, `tip_${seq}`, gross, "name" in o ? o.name : "Riya", o.anonymous ?? false, o.birthday ?? null, o.status ?? "captured"],
+    `insert into tip_orders (creator_id, public_reference, gross_amount_minor, fan_name, anonymous, status, captured_at)
+     values ($1, $2, $3, $4, $5, $6, now()) returning id::text`,
+    [creatorId, `tip_${seq}`, gross, "name" in o ? o.name : "Riya", o.anonymous ?? false, o.status ?? "captured"],
   );
   const ref = `pay_${seq}`;
   await pg.query(
@@ -129,15 +127,6 @@ test.describe("counting a captured tip", () => {
     expect(rows[0].fan_key).not.toBe(rows[1].fan_key);
   });
 
-  test("a birthday on the tip lands on the profile and a later tip without one keeps it", async () => {
-    const pg = await freshDatabase();
-    const db = asLedgerDb(pg);
-    const c = await creator(pg);
-    await postFanXp(db, (await tip(pg, c, { birthday: "03-14" })).ref, SECRET);
-    await postFanXp(db, (await tip(pg, c)).ref, SECRET);
-    expect((await one<{ birthday_md: string }>(pg, `select birthday_md from fan_profiles`))[0].birthday_md).toBe("03-14");
-  });
-
   test("a whole payment taken back removes the points, and an empty profile goes", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
@@ -168,13 +157,13 @@ test.describe("counting a captured tip", () => {
 });
 
 test.describe("deleting and retention", () => {
-  test("a creator deletes one fan: the profile, the counted tips and the birthday on them", async () => {
+  test("a creator deletes one fan: the profile and the counted tips", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const other = await creator(pg);
-    await postFanXp(db, (await tip(pg, c, { birthday: "05-05" })).ref, SECRET);
-    await postFanXp(db, (await tip(pg, other, { birthday: "06-06" })).ref, SECRET);
+    await postFanXp(db, (await tip(pg, c)).ref, SECRET);
+    await postFanXp(db, (await tip(pg, other)).ref, SECRET);
     const key = fanKey(SECRET, c, "Riya");
 
     // Another creator cannot delete this fan.
@@ -182,7 +171,6 @@ test.describe("deleting and retention", () => {
     expect(await deleteFan(db, c, key)).toEqual({ deleted: true });
     expect(await one(pg, `select 1 from fan_profiles where creator_id = $1`, [c])).toHaveLength(0);
     expect(await one(pg, `select 1 from fan_xp_events where creator_id = $1`, [c])).toHaveLength(0);
-    expect((await one<{ birthday_md: string | null }>(pg, `select birthday_md from tip_orders where creator_id = $1`, [c]))[0].birthday_md).toBeNull();
     expect(await one(pg, `select 1 from fan_profiles where creator_id = $1`, [other])).toHaveLength(1);
   });
 
@@ -202,37 +190,24 @@ test.describe("deleting and retention", () => {
     expect(await purgeOldFanProfiles(db)).toEqual({ deleted: 0 });
   });
 
-  test("the birthday on a tip goes with the name after 90 days", async () => {
-    const pg = await freshDatabase();
-    const c = await creator(pg);
-    await tip(pg, c, { birthday: "01-02" });
-    await tip(pg, c, { birthday: "03-04" });
-    await pg.query(`update tip_orders set created_at = now() - interval '91 days' where birthday_md = '01-02'`);
-    await purgeOldTipText(asLedgerDb(pg));
-    const rows = await one<{ birthday_md: string | null; fan_name: string | null }>(pg, `select birthday_md, fan_name from tip_orders order by id`);
-    expect(rows).toEqual([{ birthday_md: null, fan_name: null }, { birthday_md: "03-04", fan_name: "Riya" }]);
-  });
-
-  test("closing the account erases the profiles, the birthdays and the greeting", async () => {
+  test("closing the account erases the profiles", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
-    const c = await creator(pg, ["fanLevels", "birthdayMessage"], "Happy birthday {name}!");
-    await postFanXp(db, (await tip(pg, c, { birthday: "05-05" })).ref, SECRET);
+    const c = await creator(pg, ["fanLevels"]);
+    await postFanXp(db, (await tip(pg, c)).ref, SECRET);
     // Nothing captured is in the books (not live ledger), so the close is allowed.
     await pg.query(`update payment_attempts set livemode = false`);
     const res = await closeCreatorAccount(db, c, { role: "creator", userId: c });
     expect(res.status).toBe("closed");
     expect(await one(pg, `select 1 from fan_profiles`)).toHaveLength(0);
     expect(await one(pg, `select 1 from fan_xp_events`)).toHaveLength(0);
-    expect((await one<{ birthday_md: string | null }>(pg, `select birthday_md from tip_orders`))[0].birthday_md).toBeNull();
-    expect((await one<{ birthday_message: string | null }>(pg, `select birthday_message from users where id = $1`, [c]))[0].birthday_message).toBeNull();
     expect(await eraseFans(db, c)).toBe(0);
   });
 });
 
 test.describe("the fan list", () => {
   const row = (name: string, o: Partial<FanRow> = {}): FanRow => ({
-    key: name, name, tips: 1, totalPaise: 100, xp: 1, level: 1, birthday: null, note: null,
+    key: name, name, tips: 1, totalPaise: 100, xp: 1, level: 1, note: null,
     firstAt: new Date("2026-01-01T00:00:00Z"), lastAt: new Date("2026-01-01T00:00:00Z"), ...o,
   });
 
@@ -261,7 +236,7 @@ test.describe("the fan list", () => {
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const other = await creator(pg);
-    await postFanXp(db, (await tip(pg, c, { name: "=SUM(1)", birthday: "03-14" })).ref, SECRET);
+    await postFanXp(db, (await tip(pg, c, { name: "=SUM(1)" })).ref, SECRET);
     await postFanXp(db, (await tip(pg, c, { name: "100%" })).ref, SECRET);
     await postFanXp(db, (await tip(pg, other, { name: "Other" })).ref, SECRET);
 
@@ -270,98 +245,45 @@ test.describe("the fan list", () => {
     expect((await loadFans(db, c, { q: "zzz", sort: "recent" })).total).toBe(0);
 
     const csv = fansCsv((await loadFans(db, c, { q: "", sort: "name" })).fans);
-    expect(csv.split("\r\n")[0]).toBe("Name,Level,Points,Tips,Total (INR),First tip (IST),Latest tip (IST),Birthday,Note");
+    expect(csv.split("\r\n")[0]).toBe("Name,Level,Points,Tips,Total (INR),First tip (IST),Latest tip (IST),Note");
     expect(csv).toContain("'=SUM(1)");
-    expect(csv).toContain("14 Mar");
     expect(csv).not.toContain("Other");
   });
 
-  test("birthday labels", () => {
-    expect(birthdayLabel("03-14")).toBe("14 Mar");
-    expect(birthdayLabel(null)).toBe("");
-  });
-});
-
-test.describe("birthday message", () => {
-  test("only a real day and month is kept", () => {
-    expect(parseBirthday(3, 14)).toBe("03-14");
-    expect(parseBirthday(2, 29)).toBe("02-29");
-    for (const [m, d] of [[2, 30], [4, 31], [13, 1], [0, 1], [1, 0], [1.5, 2]] as const) expect(parseBirthday(m, d)).toBeNull();
-    expect(parseBirthday("3", 14)).toBeNull();
-    expect(parseBirthday(null, undefined)).toBeNull();
-  });
-
-  test("today is read in India time, whatever the server clock", () => {
-    // 31 Dec 20:00 UTC is already 1 Jan in India.
-    expect(istMonthDay(new Date("2026-12-31T20:00:00Z"))).toBe("01-01");
-    expect(istMonthDay(new Date("2026-12-31T18:29:00Z"))).toBe("12-31");
-  });
-
-  test("the greeting is the creator's, with the fan's name, only on the day", () => {
-    const o = { template: "Happy birthday, {name}!", tipBirthday: "03-14", todayMd: "03-14", name: "Riya", bannedWords: [] as string[] };
-    expect(resolveBirthday(o)).toBe("Happy birthday, Riya!");
-    expect(resolveBirthday({ ...o, todayMd: "03-15" })).toBeNull();
-    expect(resolveBirthday({ ...o, tipBirthday: null })).toBeNull();
-    expect(resolveBirthday({ ...o, template: "  " })).toBeNull();
-    expect(resolveBirthday({ ...o, template: null })).toBeNull();
-    expect(resolveBirthday({ ...o, name: null })).toBeNull();
-    expect(resolveBirthday({ ...o, name: "   " })).toBeNull();
-  });
-
-  test("a banned word anywhere in the finished line holds it back", () => {
-    const o = { template: "Happy birthday, {name}!", tipBirthday: "03-14", todayMd: "03-14", name: "Riya", bannedWords: ["riya"] };
-    expect(resolveBirthday(o)).toBeNull();
-    expect(resolveBirthday({ ...o, bannedWords: ["birthday"] })).toBeNull();
-  });
-
-  test("a long greeting is cut, and the name cannot lengthen it without end", () => {
-    expect(renderBirthdayMessage("x".repeat(500), "n")).toHaveLength(160);
-    expect(BIRTHDAY_TEMPLATE_MAX).toBe(120);
-  });
-
-  test("the tip stores the birthday only when one is given", () => {
-    expect(tipExtraColumns({ soundId: null, voice: false })).toEqual({});
-    expect(tipExtraColumns({ soundId: null, voice: false, birthdayMd: "03-14" })).toEqual({ birthday_md: "03-14" });
-    expect(tipExtraColumns({ soundId: 3, voice: true, birthdayMd: null })).toEqual({ sound_id: 3, tts_requested: true });
-  });
 });
 
 test.describe("on the alert", () => {
   const base = { voiceRequested: false, bannedWords: [] as string[], sound: null };
-  const ON = planFeatures({ paid_features: ["fanLevels", "birthdayMessage"] });
+  const ON = planFeatures({ paid_features: ["fanLevels"] });
   const OFF = planFeatures(null);
   const fan = { xp: 150, tipXp: 150 };
-  const birthdayInfo = { template: "Happy birthday {name}", tipBirthday: "03-14", name: "Riya" };
 
-  test("level and greeting show on the alert card while the switches are on", () => {
-    const x = resolveAlertExtras({ ...base, fan, birthdayInfo }, { kind: "alert", features: ON, todayMd: "03-14" });
+  test("the level shows on the alert card while the switches are on", () => {
+    const x = resolveAlertExtras({ ...base, fan }, { kind: "alert", features: ON });
     expect(x.level).toEqual({ level: 2, up: true });
-    expect(x.birthday).toBe("Happy birthday Riya");
   });
 
-  test("switched off at play time, or the follow-up message card, shows neither", () => {
-    expect(resolveAlertExtras({ ...base, fan, birthdayInfo }, { kind: "alert", features: OFF, todayMd: "03-14" })).toMatchObject({ level: null, birthday: null });
-    expect(resolveAlertExtras({ ...base, fan, birthdayInfo }, { kind: "message", features: ON, todayMd: "03-14" })).toMatchObject({ level: null, birthday: null });
-    expect(resolveAlertExtras(base, { kind: "alert", features: ON })).toMatchObject({ level: null, birthday: null });
+  test("switched off at play time, or the follow-up message card, shows no level", () => {
+    expect(resolveAlertExtras({ ...base, fan }, { kind: "alert", features: OFF })).toMatchObject({ level: null });
+    expect(resolveAlertExtras({ ...base, fan }, { kind: "message", features: ON })).toMatchObject({ level: null });
+    expect(resolveAlertExtras(base, { kind: "alert", features: ON })).toMatchObject({ level: null });
   });
 
-  test("the loader reads the counted points and the greeting from the database", async () => {
+  test("the loader reads the counted points from the database", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
-    const c = await creator(pg, ["fanLevels", "birthdayMessage"], "Happy birthday {name}");
-    const t = await tip(pg, c, { gross: 30000, birthday: istMonthDay(new Date()) });
+    const c = await creator(pg, ["fanLevels"]);
+    const t = await tip(pg, c, { gross: 30000 });
     await postFanXp(db, t.ref, SECRET);
     const sql = db as unknown as Sql;
 
     const x = await loadAlertExtras(sql, { tipId: t.tipId, creatorId: c, kind: "alert" });
     expect(x.level).toEqual({ level: 3, up: true });
-    expect(x.birthday).toBe("Happy birthday Riya");
 
     // Turn the levels off after the fact: the plain card plays.
-    await pg.query(`update users set paid_features = '{birthdayMessage}' where id = $1`, [c]);
+    await pg.query(`update users set paid_features = '{}' where id = $1`, [c]);
     const y = await loadAlertExtras(sql, { tipId: t.tipId, creatorId: c, kind: "alert" });
     expect(y.level).toBeNull();
-    expect(y.birthday).toBe("Happy birthday Riya");
 
     // A tip with no profile (anonymous, or before the switch) has no level.
     const lone = await tip(pg, c, { name: null });
@@ -371,9 +293,9 @@ test.describe("on the alert", () => {
 });
 
 test.describe("switches", () => {
-  test("the three features are built and can be switched on", () => {
-    const f = planFeatures({ paid_features: ["fanLevels", "fanCrm", "birthdayMessage"] });
-    expect(f.fanLevels && f.fanCrm && f.birthdayMessage).toBe(true);
+  test("both features are built and can be switched on", () => {
+    const f = planFeatures({ paid_features: ["fanLevels", "fanCrm"] });
+    expect(f.fanLevels && f.fanCrm).toBe(true);
     expect(planFeatures({ paid_features: ["voiceNotes"] }).voiceNotes).toBe(false);
   });
 });

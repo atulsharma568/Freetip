@@ -15,7 +15,6 @@ export interface FanItem {
   tips: number;
   total: string;
   latest: string;
-  birthday: string;
   note: string;
 }
 
@@ -61,7 +60,6 @@ function Fan({ fan }: { fan: FanItem }) {
       </div>
       <p className="numeric text-xs text-muted">
         {fan.tips} {fan.tips === 1 ? "tip" : "tips"} · latest {fan.latest}
-        {fan.birthday && ` · birthday ${fan.birthday}`}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input

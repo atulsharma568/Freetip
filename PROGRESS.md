@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-03, birthday message removed)
+
+- The owner decided the birthday message made no sense (self-declared, rarely fires, one more field on the tip page) and it is removed: the switch in `plans.ts`, the dashboard form, the tip-page field, the alert line, the server checks, `src/lib/birthday.ts`, the privacy text and the tests. Fan levels and the fan list are unchanged. No migration to run: the columns `users.birthday_message`, `tip_orders.birthday_md` and `fan_profiles.birthday_md` from migration 0038 are left unused in the database (nothing was switched on, so they hold nothing real). A creator whose switch list still names `birthdayMessage` is unaffected, the key is simply ignored. Browser tests could not run here (Playwright browser missing); lint, type check, build and the 50 database and unit tests pass.
+
 ## Current state (2026-11-03, sticky preview on the alert-design pages)
 
 - The Preview tile on Style, Layout, Text and Motion now sticks to the top of the screen (`sticky top-2`) while the choices scroll under it, so a change is seen at once without scrolling up. The preview is capped by screen height (landscape 68vh wide, vertical 21vh wide) so it never fills a phone. Not yet seen in a browser.

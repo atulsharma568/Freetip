@@ -5,7 +5,6 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { hasFeature } from "@/lib/plans";
 import type { LedgerDb } from "@/lib/accrual";
-import { BIRTHDAY_TEMPLATE_MAX, cleanTemplate } from "@/lib/birthday";
 import { FAN_NOTE_MAX, deleteFan } from "@/lib/fan-profiles";
 
 export type FanActionResult = { status: "ok" } | { status: "error"; message: string };
@@ -25,32 +24,6 @@ async function currentCreator() {
 }
 
 const KEY = /^[0-9a-f]{64}$/;
-
-// The creator's birthday greeting. Empty turns it off. Only for creators with the switch on.
-export async function saveBirthdayMessage(text: string): Promise<FanActionResult> {
-  const creator = await currentCreator();
-  if (!creator) return { status: "error", message: "Sign in again to save." };
-  if (!hasFeature(creator.row, "birthdayMessage")) {
-    return { status: "error", message: "The birthday message is not switched on for your account." };
-  }
-  const db = getDb();
-  if (!db) return DB_DOWN;
-  if (typeof text !== "string" || text.length > BIRTHDAY_TEMPLATE_MAX * 4) {
-    return { status: "error", message: `Keep the greeting under ${BIRTHDAY_TEMPLATE_MAX} characters.` };
-  }
-  const cleaned = cleanTemplate(text);
-  if (text.replace(/\s+/g, " ").trim().length > BIRTHDAY_TEMPLATE_MAX) {
-    return { status: "error", message: `Keep the greeting under ${BIRTHDAY_TEMPLATE_MAX} characters.` };
-  }
-  try {
-    await db`update users set birthday_message = ${cleaned || null} where id = ${creator.id}`;
-  } catch (err) {
-    console.error("Birthday message: could not save (migration 0038 run?)", err);
-    return DB_DOWN;
-  }
-  revalidatePath("/dashboard/fans");
-  return { status: "ok" };
-}
 
 // A private note on one of the creator's own fans.
 export async function saveFanNote(fanKey: string, note: string): Promise<FanActionResult> {
@@ -78,7 +51,7 @@ export async function saveFanNote(fanKey: string, note: string): Promise<FanActi
   return { status: "ok" };
 }
 
-// Deletes a fan's profile, the tips counted for them and the birthday typed with those tips.
+// Deletes a fan's profile, the tips counted for them and .
 export async function deleteFanProfile(fanKey: string): Promise<FanActionResult> {
   const creator = await currentCreator();
   if (!creator) return { status: "error", message: "Sign in again to delete." };
