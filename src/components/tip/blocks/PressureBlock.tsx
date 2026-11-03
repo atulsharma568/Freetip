@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { blockAttrs, useTipForm } from "@/components/tip/TipFormContext";
 import { rupeeText } from "@/components/tip/format";
+import { usableFor, type ResolvedAsset } from "@/lib/page-doc/assets";
 import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { Block } from "@/lib/page-doc/types";
+import { useMotionAllowed } from "./use-motion";
 
 // A fan's browser asks twice a minute, only while the tab is open (the server caches the answer
 // for ten seconds, so a busy page costs one lookup per ten seconds, not one per fan).
@@ -12,12 +14,24 @@ const POLL_MS = 30_000;
 
 const paise = (value: number) => rupeeText(Math.floor(value / 100));
 
+// The small picture beside the heading. A GIF shows its still until the device may play motion
+// (see motion.ts), like a GIF banner.
+function Emblem({ asset }: { asset: ResolvedAsset }) {
+  const motion = useMotionAllowed();
+  const src = asset.kind === "gif" && !motion ? asset.posterUrl : asset.url;
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- the owner's own upload, kept animated and unoptimised
+    <img src={src} alt="" width={28} height={28} decoding="async" className="size-7 shrink-0 rounded-field object-cover" />
+  );
+}
+
 // The creator's goal as a bar. The first reading is in the served page; after that it follows the
 // public endpoint. It draws nothing while there is no reading (no goal), keeps the last reading on
 // a network error, and goes away if the owner has switched it off. The words that follow the goal
 // ("today", "this week", "Goal reached") are the goal's own, never typed by the owner.
 export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
-  const { handle, previewMode, editing, meter } = useTipForm();
+  const { handle, previewMode, editing, meter, assets } = useTipForm();
   const [reading, setReading] = useState<MeterReading | null>(meter);
 
   // A new first reading (the editor preview loads again) replaces what is shown.
@@ -65,6 +79,8 @@ export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
   const { fill, celebrate } = block.settings;
   const heading = block.settings.heading || "Pressure";
   const celebrating = reading.reached && celebrate;
+  // A picture that is missing, taken down or the wrong kind draws nothing.
+  const emblem = block.settings.picture === null ? undefined : assets[block.settings.picture];
   const rupees = reading.raisedPaise !== undefined && reading.targetPaise !== undefined;
 
   return (
@@ -75,10 +91,13 @@ export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
       {...blockAttrs(editing, block.id)}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted [overflow-wrap:anywhere]">
-          {heading}
-          {reading.period && <> · {reading.period}</>}
-        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          {emblem && usableFor(emblem.kind, "meter") && <Emblem asset={emblem} />}
+          <p className="min-w-0 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted [overflow-wrap:anywhere]">
+            {heading}
+            {reading.period && <> · {reading.period}</>}
+          </p>
+        </div>
         <p className="numeric text-sm font-semibold text-text">{celebrating ? "Goal reached" : `${reading.percent}%`}</p>
       </div>
       <div

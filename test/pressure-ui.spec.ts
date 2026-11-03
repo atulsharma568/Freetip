@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { openFixture } from "./helpers/fixture";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
-import { addBlock, setChoice } from "../src/lib/page-doc/edit";
+import { addBlock, setAsset, setChoice } from "../src/lib/page-doc/edit";
 import type { PageDoc } from "../src/lib/page-doc/types";
 
 // The Pressure meter on the tip page and in OBS (page builder phase 4), in a real browser. The tip
@@ -64,6 +64,30 @@ test.describe("the meter on the tip page", () => {
     await openFixture(page, page_(quiet, "&meter=100"), 390);
     await expect(page.getByTestId("pressure-meter")).not.toContainText("Goal reached");
     await expect(page.getByTestId("pressure-meter")).toContainText("100%");
+  });
+
+  test("a picture sits beside the heading, in the served HTML", async ({ page, request }) => {
+    const doc = setAsset(meterDoc(), "pressureMeter", 1).doc;
+    const html = await (await request.get(`/dev-fixtures/tip${page_(doc, "&meter=40")}`)).text();
+    const at = html.indexOf('data-testid="pressure-meter"');
+    expect(html.slice(at, html.indexOf("</section>", at))).toContain("/owner/kitsune.svg");
+    await openFixture(page, page_(doc, "&meter=40"), 390);
+    const emblem = page.getByTestId("pressure-meter").locator("img");
+    await expect(emblem).toHaveCount(1);
+    await expect(emblem).toHaveAttribute("alt", "");
+    const box = await emblem.boundingBox();
+    expect(box?.width).toBeLessThanOrEqual(28);
+    // Nothing spills sideways on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test("a GIF shows its still with reduced motion; a video, a missing file and no picture draw none", async ({ page }) => {
+    await openFixture(page, page_(setAsset(meterDoc(), "pressureMeter", 2).doc, "&meter=40"), 390);
+    await expect(page.getByTestId("pressure-meter").locator("img")).toHaveAttribute("src", "/owner/kitsune.svg");
+    for (const id of [3, 77, null]) {
+      await openFixture(page, page_(setAsset(meterDoc(), "pressureMeter", id).doc, "&meter=40"), 390);
+      await expect(page.getByTestId("pressure-meter").locator("img"), String(id)).toHaveCount(0);
+    }
   });
 
   test("the pages that have no meter block draw none", async ({ page }) => {

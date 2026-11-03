@@ -12,7 +12,7 @@ import type { Query } from "@/lib/accrual";
 import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
 import { setCreatorFeatures } from "@/app/actions/admin";
-import { resetCreatorPage, restoreCreatorPage } from "@/app/actions/page-doc";
+import { copyCreatorPage, resetCreatorPage, restoreCreatorPage } from "@/app/actions/page-doc";
 import { CouldNotRead, DatabaseNotSetUp } from "../../_components/Notices";
 import { CreatorActions } from "../../_components/CreatorActions";
 import { PageHeader } from "../../_components/PageHeader";
@@ -34,7 +34,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, lastChange, audit, pageRead] = await Promise.all([
+  const [featuresRead, lastChange, audit, pageRead, sourcesRead] = await Promise.all([
     load("the paid features", async () => {
       const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
       return f?.paid_features ?? [];
@@ -42,7 +42,17 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
     getLastFeatureChange(db, creatorId),
     getAuditPage(db, { creatorId }, 5),
     load("the tip page", () => getPageSummary(db as unknown as Query, creatorId)),
+    // The creators whose page can be copied as a template; the box works without the list.
+    load("the creators to copy from", () =>
+      db<{ id: string; handle: string; custom: boolean }[]>`
+        select id::text as id, handle,
+               (paid_features @> array['pageBuilder']::text[] and page_published is not null) as custom
+        from users where handle is not null and creator_status = 'active' and id <> ${creatorId}
+        order by handle limit 200
+      `,
+    ),
   ]);
+  const copySources = sourcesRead.ok ? sourcesRead.data.map((r) => ({ id: Number(r.id), handle: r.handle, custom: r.custom })) : [];
 
   const closed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
   const status = c.creatorStatus as "pending" | "active" | "suspended";
@@ -157,6 +167,8 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
             editHref={`/admin/creators/${c.id}/page`}
             restoreAction={restoreCreatorPage.bind(null, c.id)}
             resetAction={resetCreatorPage.bind(null, c.id)}
+            copyAction={copyCreatorPage.bind(null, c.id)}
+            copySources={copySources}
           />
         )}
       </section>

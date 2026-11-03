@@ -99,6 +99,7 @@ const DEFAULTS: { [K in BlockType]: () => SettingsByType[K] } = {
     celebrate: true,
     fill: null,
     heading: "",
+    picture: null,
   }),
 };
 

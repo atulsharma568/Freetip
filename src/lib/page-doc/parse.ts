@@ -178,6 +178,7 @@ const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes)
       celebrate: raw.celebrate !== false,
       fill: meterFill(raw.fill, notes),
       heading: cleanText(raw.heading, LIMITS.meterHeading, notes, "The meter heading"),
+      picture: assetRef(raw.picture, notes, "The meter picture"),
     };
   },
 };

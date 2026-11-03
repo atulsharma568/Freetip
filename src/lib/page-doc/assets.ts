@@ -16,7 +16,7 @@ export interface ResolvedAsset {
 }
 
 // Where a file may be used.
-export type AssetUse = "backdrop" | "banner";
+export type AssetUse = "backdrop" | "banner" | "meter";
 
 export const ASSET_LIMITS = {
   // A picture or GIF; a WebM is capped by `media.ts` at 8 MB.
@@ -42,6 +42,8 @@ const KINDS_FOR: Record<AssetUse, readonly AssetKind[]> = {
   backdrop: ["image", "gif", "webm"],
   // A banner is a picture or a GIF; a video stays out of the header.
   banner: ["image", "gif"],
+  // The emblem on the Pressure meter: a picture or a GIF, like a banner.
+  meter: ["image", "gif"],
 };
 
 export const kindsFor = (use: AssetUse): readonly AssetKind[] => KINDS_FOR[use];
@@ -64,6 +66,7 @@ export function usedAssetIds(doc: PageDoc): number[] {
   for (const block of doc.blocks) {
     if (block.type === "backdrop") add(block.settings.asset);
     else if (block.type === "header") add(block.settings.bannerAsset);
+    else if (block.type === "pressureMeter") add(block.settings.picture);
   }
   return ids;
 }
@@ -81,6 +84,10 @@ export function replaceAssetId(doc: PageDoc, from: number, to: number, toKind?: 
     if (block.type === "header" && block.settings.bannerAsset === from && (!toKind || usableFor(toKind, "banner"))) {
       changed = true;
       return { ...block, settings: { ...block.settings, bannerAsset: to } };
+    }
+    if (block.type === "pressureMeter" && block.settings.picture === from && (!toKind || usableFor(toKind, "meter"))) {
+      changed = true;
+      return { ...block, settings: { ...block.settings, picture: to } };
     }
     return block;
   });

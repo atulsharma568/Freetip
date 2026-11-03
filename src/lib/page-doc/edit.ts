@@ -216,7 +216,7 @@ export function setNumber(doc: PageDoc, type: BlockType, key: string, value: num
 // The picture of a block: an id from the library, or null for none. Whether the file fits the place
 // is the editor's picker's job (it lists only files that fit); the page draws the normal look for a
 // file that does not.
-const ASSET_KEYS: Partial<Record<BlockType, string>> = { backdrop: "asset", header: "bannerAsset" };
+const ASSET_KEYS: Partial<Record<BlockType, string>> = { backdrop: "asset", header: "bannerAsset", pressureMeter: "picture" };
 
 export function setAsset(doc: PageDoc, type: BlockType, id: number | null): EditResult {
   const at = indexOf(doc, type);

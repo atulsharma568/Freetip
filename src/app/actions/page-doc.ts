@@ -5,7 +5,8 @@ import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { requireOwner } from "@/lib/owner-auth";
 import type { AdminActionState } from "@/lib/admin/action-state";
-import { discardDraft, publishDraft, resetPage, restorePrevious, saveDraft, type PageResult, type SaveResult } from "@/lib/page-doc/store";
+import { defaultDocFor } from "@/app/[handle]/tip-page-data";
+import { copyPageFrom, discardDraft, publishDraft, resetPage, restorePrevious, saveDraft, type PageResult, type SaveResult } from "@/lib/page-doc/store";
 
 // The owner's controls for a creator's custom tip page: put the previous version back, go back
 // to the normal page (page builder phase 1, from the console) and, for the editor (phase 2), save
@@ -64,6 +65,32 @@ export async function restoreCreatorPage(creatorId: number): Promise<AdminAction
 
 export async function resetCreatorPage(creatorId: number): Promise<AdminActionState> {
   return run(creatorId, resetPage, "Could not reset. Has migration 0051 been run?");
+}
+
+// Copies another creator's tip page into this creator's draft, as a template (see copyPageFrom).
+// The source comes from the form; it is checked as untrusted. Bound to the target creator and
+// handed to ConfirmAction.
+export async function copyCreatorPage(creatorId: number, _prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  const raw = formData.get("source");
+  const sourceId = typeof raw === "string" && /^\d{1,10}$/.test(raw) ? Number(raw) : NaN;
+  if (!validId(creatorId) || !validId(sourceId) || sourceId > 2147483647) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail("The database is not set up.");
+
+  let result: PageResult;
+  try {
+    const [source] = await db<{ handle: string | null; google_id: string }[]>`select handle, google_id from users where id = ${sourceId}`;
+    if (!source) return fail("The creator to copy from was not found.");
+    result = await copyPageFrom(db as unknown as LedgerDb, sourceId, creatorId, defaultDocFor(source.handle ?? "", source));
+  } catch (err) {
+    console.error("Admin: could not copy the tip page (migration 0051 run?)", err);
+    return fail("Could not copy the page. Has migration 0051 been run?");
+  }
+  if (!result.ok) return fail(result.message);
+
+  await refresh(creatorId);
+  return ok(result.message);
 }
 
 // The editor's own actions return plain data to the editor (not form state): the saved document

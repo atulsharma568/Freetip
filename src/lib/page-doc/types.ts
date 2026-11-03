@@ -59,7 +59,8 @@ export interface SettingsByType {
   // their first goal. `levels` are the rank words in fractions of the goal (a linear scale, apart
   // from the amount block's ladder). `show` "percent" keeps every rupee figure off the page and
   // out of what the server sends. `where` is the tip page, OBS or both. `fill` is the bar colour,
-  // none meaning the page accent. An empty heading means "Pressure".
+  // none meaning the page accent. An empty heading means "Pressure". `picture` (an id in
+  // page_assets, a picture or GIF) is a small emblem beside the heading on the tip page.
   pressureMeter: {
     goal: number | null;
     levels: Level[];
@@ -68,6 +69,7 @@ export interface SettingsByType {
     celebrate: boolean;
     fill: string | null;
     heading: string;
+    picture: number | null;
   };
 }
 

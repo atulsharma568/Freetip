@@ -58,4 +58,12 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 
 ## Added later
 
-(we: add new items here as phases are built, for example phase 4, the Pressure meter.)
+## Page builder, phase 5: a meter picture and page copy (steps in `OPERATIONS.md` 7g item 11)
+
+- [ ] In the editor, pick the Pressure meter and give it a picture, then a GIF: does the small square sit well beside the heading on a phone and a laptop? Does the GIF stay still with the phone's reduced-motion setting on?
+- [ ] Remove the picture, and try Replace: does the draft change and does Publish carry it?
+- [ ] On a spare creator with "Custom tip page" ticked, copy another creator's page (Copy another creator's page as a template, on `/admin/creators/<id>`): does the message list what was not copied? Is the real tip page unchanged until you Publish?
+- [ ] Copy over a creator who already has a draft: does the panel warn first, and is the draft replaced?
+- [ ] With the editor already open in another tab, copy a page: does that tab say the draft changed somewhere else (it should, and never overwrite)?
+- [ ] Copy the owner's `acepressure` page to a spare creator: do the words and colours come over, and are the backdrop and banner pictures left out?
+- [ ] Look at the Audit log: one `creator.page_copied` row against the spare creator.

@@ -76,7 +76,7 @@ export function AssetPicker({
       const prepared = await prepareFile(file);
       if (!prepared.ok) return fail(prepared.reason);
       const { file: info } = prepared;
-      if (!kinds.includes(info.kind)) return fail("A banner can be a picture or a GIF, not a video.");
+      if (!kinds.includes(info.kind)) return fail(`${use === "meter" ? "The meter picture" : "A banner"} can be a picture or a GIF, not a video.`);
 
       const name = cleanMediaName(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ")) || "New file";
       const prefix = pageAssetPrefix(library.creatorId);
@@ -146,7 +146,7 @@ export function AssetPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-xs font-semibold text-text">{use === "banner" ? "Banner picture" : "Picture"}</h3>
+        <h3 className="text-xs font-semibold text-text">{use === "banner" ? "Banner picture" : use === "meter" ? "Meter picture" : "Picture"}</h3>
         <span className="numeric text-xs text-muted">
           {library.items.length}/{ASSET_LIMITS.files} files
         </span>
@@ -162,7 +162,7 @@ export function AssetPicker({
               value === null ? "border-accent text-text" : "border-control text-muted hover:text-text"
             }`}
           >
-            {use === "banner" ? "The creator's own banner" : "None"}
+            {use === "banner" ? "The creator's own banner" : use === "meter" ? "No picture" : "None"}
           </button>
         </li>
         {items.map((a) => (
@@ -236,7 +236,7 @@ export function AssetPicker({
         )}
       </div>
       <p className="text-xs text-muted">
-        {use === "banner"
+        {use !== "backdrop"
           ? "A picture or GIF up to 3 MB."
           : "A picture or GIF up to 3 MB, or a WebM video up to 8 MB and 15 seconds."}{" "}
         Clips made with AI tools are usually bigger: compress them first. Replace changes the draft only, and the old file stays in the

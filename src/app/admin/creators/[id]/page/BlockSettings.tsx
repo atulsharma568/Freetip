@@ -23,7 +23,7 @@ const ABOUT: Record<BlockType, string> = {
   send: "The Pay button. What it does, and the amount it shows, are fixed. This block has to stay on the page.",
   strip: "A line of small text under the form.",
   successScreen: "What a fan sees after a tip. It is not part of the preview.",
-  pressureMeter: "One of the creator's goals drawn as a bar, with rank words that follow how full it is. It restarts with the goal's own period (daily, weekly, monthly).",
+  pressureMeter: "One of the creator's goals drawn as a bar, with rank words that follow how full it is. It restarts with the goal's own period (daily, weekly, monthly). A small picture or GIF from the library can sit beside its heading on the tip page.",
 };
 
 // The settings of the picked block, drawn from the field table, or the page colours. A change that
@@ -65,7 +65,7 @@ export function BlockSettings({
   const choices = CHOICE_FIELDS[block.type];
   const ranges = rangeFieldsFor(block.type, block.settings as never);
   const picture =
-    block.type === "header" ? ("banner" as const) : block.type === "backdrop" && (block.settings as Block<"backdrop">["settings"]).style === "media" ? ("backdrop" as const) : null;
+    block.type === "header" ? ("banner" as const) : block.type === "pressureMeter" ? ("meter" as const) : block.type === "backdrop" && (block.settings as Block<"backdrop">["settings"]).style === "media" ? ("backdrop" as const) : null;
   const nothing = fields.length === 0 && choices.length === 0 && ranges.length === 0 && !picture && block.type !== "amount";
 
   return (
@@ -170,7 +170,13 @@ export function BlockSettings({
       {picture && (
         <AssetPicker
           use={picture}
-          value={block.type === "header" ? (block as Block<"header">).settings.bannerAsset : (block as Block<"backdrop">).settings.asset}
+          value={
+            block.type === "header"
+              ? (block as Block<"header">).settings.bannerAsset
+              : block.type === "pressureMeter"
+                ? (block as Block<"pressureMeter">).settings.picture
+                : (block as Block<"backdrop">).settings.asset
+          }
           library={library}
           onPick={(id) => run((d) => setAsset(d, block.type, id))}
           onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}

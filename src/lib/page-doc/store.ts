@@ -3,7 +3,7 @@ import { hasFeature } from "../plans";
 import { usedAssetIds } from "./assets";
 import { LIMITS } from "./blocks";
 import { pageDocOrDefault, parsePageDoc, validateForPublish } from "./parse";
-import type { PageDoc } from "./types";
+import type { Block, PageDoc } from "./types";
 
 // The database half of the tip page document (migration 0051). No site imports, so the tests run
 // it against an in-memory Postgres. Publishing and restoring re-check the creator's
@@ -19,6 +19,9 @@ import type { PageDoc } from "./types";
 //     real previous version out).
 //   - Restore swaps published and previous. Reset empties all three (the normal page).
 //   - Publish, restore and reset each write one audit row against the creator.
+//   - Copy (a page as a template) puts another creator's page into this creator's DRAFT only, with
+//     what belongs to the other creator (their pictures and goal pick) taken out; the owner then
+//     edits and publishes it. It writes one audit row against the target creator.
 
 // A type alias, not an interface: the query helper only accepts rows that have an index signature.
 export type PageRow = {
@@ -247,5 +250,63 @@ export async function resetPage(db: LedgerDb, creatorId: number): Promise<PageRe
     await tx`update users set page_draft = null, page_published = null, page_previous = null where id = ${creatorId}`;
     await audit(tx, "creator.page_reset", creatorId, { published: false, previous: false });
     return ok("Back to the normal page.");
+  });
+}
+
+// A page as a template for another creator. A picture is one creator's own file (it lives under
+// their folder and the page draws it only for them) and a goal id is one creator's own goal, so
+// both are taken out; every word, block, order and colour stays. `removed` names what was taken out,
+// for the message to the owner.
+export function asTemplate(doc: PageDoc): { doc: PageDoc; removed: string[] } {
+  const removed: string[] = [];
+  const note = (what: string) => {
+    if (!removed.includes(what)) removed.push(what);
+  };
+  const blocks = doc.blocks.map((block): Block => {
+    if (block.type === "backdrop" && block.settings.asset !== null) {
+      note("the backdrop picture");
+      return { ...block, settings: { ...block.settings, asset: null } };
+    }
+    if (block.type === "header" && block.settings.bannerAsset !== null) {
+      note("the banner picture");
+      return { ...block, settings: { ...block.settings, bannerAsset: null } };
+    }
+    if (block.type === "pressureMeter" && (block.settings.picture !== null || block.settings.goal !== null)) {
+      if (block.settings.picture !== null) note("the meter picture");
+      if (block.settings.goal !== null) note("the meter's goal pick");
+      return { ...block, settings: { ...block.settings, picture: null, goal: null } };
+    }
+    return block;
+  });
+  return { doc: { ...doc, blocks: structuredClone(blocks) }, removed };
+}
+
+// Puts the page that fans see on the source creator's tip page (their published page while their
+// switch is on, else `sourceFallback`, the normal page) into the target's draft as a template. The
+// target's published page does not change, so nothing reaches fans until the owner publishes. An
+// existing draft of the target is replaced: the caller asks the owner first. Both rows are locked in
+// id order, so two copies the other way round cannot wait on each other.
+export async function copyPageFrom(db: LedgerDb, sourceId: number, targetId: number, sourceFallback: PageDoc): Promise<PageResult> {
+  if (sourceId === targetId) return fail("Pick a different creator to copy from.");
+  return db.begin(async (tx) => {
+    const rows = await tx<(PageRow & { id: number })[]>`
+      select id, paid_features, page_published from users where id in (${sourceId}, ${targetId}) order by id for update
+    `;
+    const source = rows.find((r) => Number(r.id) === sourceId);
+    const target = rows.find((r) => Number(r.id) === targetId);
+    if (!source) return fail("The creator to copy from was not found.");
+    if (!target) return fail("That creator was not found.");
+    if (!hasFeature(target, "pageBuilder")) return fail(SWITCH_OFF);
+    const template = asTemplate(resolvePageDoc(source, sourceFallback));
+    // Read back through the parser, like every stored document.
+    const parsed = parsePageDoc(template.doc);
+    if (!parsed) return fail("That page could not be copied.");
+    await tx`update users set page_draft = ${parsed.doc}::jsonb where id = ${targetId}`;
+    await tx`
+      insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
+      values (null, 'owner', 'creator.page_copied', 'user', ${String(targetId)}, ${{ source_creator_id: sourceId }}::jsonb, 'set by the owner')
+    `;
+    const left = template.removed.length > 0 ? ` Not copied, because they belong to the other creator: ${template.removed.join(", ")}.` : "";
+    return ok(`Copied into the draft. Nothing changes for fans until you publish it.${left}`);
   });
 }

@@ -18,6 +18,7 @@ const settings = (patch: Partial<MeterSettings> = {}): MeterSettings => ({
   celebrate: true,
   fill: null,
   heading: "",
+  picture: null,
   ...patch,
 });
 

@@ -3,6 +3,7 @@ import { ConfirmAction } from "@/components/admin/ConfirmAction";
 import type { AdminAction } from "@/lib/admin/action-state";
 import { fmtIST } from "@/lib/admin/format";
 import type { PageSummary } from "@/lib/page-doc/store";
+import { CopyPageForm, type CopySource } from "./CopyPageForm";
 
 // The owner's view of a creator's custom tip page: whether the paid switch is on, whether a custom
 // page is published, a link to the editor, and the two ways back (swap with the previous version,
@@ -12,11 +13,15 @@ export function TipPageBox({
   editHref,
   restoreAction,
   resetAction,
+  copyAction,
+  copySources,
 }: {
   summary: PageSummary;
   editHref: string;
   restoreAction: AdminAction;
   resetAction: AdminAction;
+  copyAction: AdminAction;
+  copySources: CopySource[];
 }) {
   const rows: [string, string][] = [
     ["Custom tip page", summary.switchOn ? "On" : "Off"],
@@ -49,6 +54,7 @@ export function TipPageBox({
           Edit tip page
         </Link>
       )}
+      {summary.switchOn && copySources.length > 0 && <CopyPageForm sources={copySources} copyAction={copyAction} hasDraft={summary.hasDraft} />}
       {!summary.switchOn && (
         <p className="max-w-2xl text-xs text-muted">
           The switch is off, so fans see the normal page. Tick &ldquo;Custom tip page&rdquo; under Paid features above to
