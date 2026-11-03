@@ -81,6 +81,15 @@ const say = (pg: PGlite, deps: Deps, token: string, user: string, message: strin
   recordMoment(asLedgerDb(pg), deps, { token, user, message, chatId: cid });
 
 test.describe("saving a moment from chat", () => {
+  test("without a YouTube connection the command is paused and saves nothing", async () => {
+    const pg = await freshDatabase();
+    const c = await creator(pg, { refresh: false });
+    const { yt, deps } = setup();
+    yt.videos.set(VIDEO, video());
+    expect(await say(pg, deps, c.token, "@Ravi", "Nice shot")).toMatch(/paused.*Connect YouTube/);
+    expect((await pg.query(`select 1 from stream_timestamps`)).rows).toHaveLength(0);
+  });
+
   test("saves it, counts from the stream's start minus the delay, and answers with the time", async () => {
     const pg = await freshDatabase();
     const c = await creator(pg);
@@ -224,11 +233,13 @@ test.describe("saving a moment from chat", () => {
   });
 });
 
+// `refresh: false` models a creator who disconnects YouTube after the moments were saved.
 async function savedStream(pg: PGlite, deps: Deps, yt: FakeYt, opts: { refresh?: boolean } = {}) {
-  const c = await creator(pg, { refresh: opts.refresh });
+  const c = await creator(pg);
   yt.videos.set(VIDEO, video());
   await say(pg, deps, c.token, "Ravi", "Nice shot");
   await say(pg, deps, c.token, "Asha", "Big fail");
+  if (opts.refresh === false) await pg.query(`update users set yt_refresh_token_enc = null where id = $1`, [c.id]);
   return c;
 }
 
@@ -278,7 +289,7 @@ test.describe("posting the comment", () => {
     expect(u.rows[0]).toEqual({ yt_refresh_token_enc: null, yt_reconnect_needed: true });
   });
 
-  test("a creator who never connected YouTube waits, then is dropped after two days", async () => {
+  test("a creator who disconnected YouTube waits, then is dropped after two days", async () => {
     const pg = await freshDatabase();
     const { yt, deps } = setup();
     await savedStream(pg, deps, yt, { refresh: false });

@@ -166,6 +166,9 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
     return "This timestamp command is not set up. Make a new one in Freetip.";
   }
   if (!planFeatures(creator).timestamps) return "Timestamps are not on for this channel.";
+  // No YouTube connection (never made, taken back with Disconnect, or ended by Google):
+  // the whole feature is paused, so nothing is saved until the creator connects again.
+  if (!creator.yt_refresh_token_enc) return "Timestamps are paused. Connect YouTube in Freetip to turn them back on.";
 
   const user = cleanUser(input.user);
   try {
