@@ -8,12 +8,16 @@ import { CLOSED_EMAIL_DOMAIN } from "@/lib/account-close";
 import { fmtIST } from "@/lib/admin/format";
 import { formatINR, load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
+import type { Query } from "@/lib/accrual";
+import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
 import { setCreatorFeatures } from "@/app/actions/admin";
+import { resetCreatorPage, restoreCreatorPage } from "@/app/actions/page-doc";
 import { CouldNotRead, DatabaseNotSetUp } from "../../_components/Notices";
 import { CreatorActions } from "../../_components/CreatorActions";
 import { PageHeader } from "../../_components/PageHeader";
 import { FeaturesForm } from "./FeaturesForm";
+import { TipPageBox } from "./TipPageBox";
 
 export const dynamic = "force-dynamic";
 
@@ -30,13 +34,14 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, lastChange, audit] = await Promise.all([
+  const [featuresRead, lastChange, audit, pageRead] = await Promise.all([
     load("the paid features", async () => {
       const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
       return f?.paid_features ?? [];
     }),
     getLastFeatureChange(db, creatorId),
     getAuditPage(db, { creatorId }, 5),
+    load("the tip page", () => getPageSummary(db as unknown as Query, creatorId)),
   ]);
 
   const closed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
@@ -132,6 +137,25 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
             lastChanged={
               !lastChange.ok ? "(could not read the audit history)" : lastChange.data ? fmtIST(lastChange.data.at) : null
             }
+          />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Custom tip page</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            A custom page is set up by you for this creator and shown only while the &ldquo;Custom tip page&rdquo; switch
+            above is on. The creator cannot edit it. You can put the previous version back, or go back to the normal page.
+          </p>
+        </div>
+        {!pageRead.ok ? (
+          <CouldNotRead message="Could not read the tip page settings. Run migration 0051 in Neon." detail={pageRead.error} />
+        ) : (
+          <TipPageBox
+            summary={pageRead.data}
+            restoreAction={restoreCreatorPage.bind(null, c.id)}
+            resetAction={resetCreatorPage.bind(null, c.id)}
           />
         )}
       </section>
