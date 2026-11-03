@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { SITE_NAME } from "@/lib/site";
 import { planFeatures } from "@/lib/plans";
-import { secretBoxAvailable } from "@/lib/secret-box";
+import { open, secretBoxAvailable } from "@/lib/secret-box";
+import { nightbotCommand } from "@/lib/ts-command";
 import { replayBufferNeeded } from "@/lib/ts-helper";
 import { youtubeConfigured } from "@/lib/youtube";
 import { formatOffset, offsetSeconds, youtubeMomentLink } from "@/lib/timestamps";
@@ -132,6 +133,16 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
     helper.ready = false;
   }
 
+  // The encrypted copy of the chat command (migration 0049), read apart so the page works before it is run.
+  let currentCommand: string | null = null;
+  try {
+    const [row] = await db<{ enc: string | null }[]>`select ts_token_enc as enc from users where id = ${user.id}`;
+    const token = open(row?.enc);
+    if (token) currentCommand = nightbotCommand(token);
+  } catch (err) {
+    console.error("Timestamps page: could not read the saved command (migration 0049 run?).", err);
+  }
+
   const yt = (await searchParams).yt;
   const notice = yt ? YT_MESSAGES[yt] : undefined;
   const available = youtubeConfigured() && secretBoxAvailable();
@@ -155,6 +166,7 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
           <TimestampsManager
             available={available}
             hasLink={state.hasLink}
+            currentCommand={currentCommand}
             delay={state.delay}
             youtubeConnected={state.youtube}
             reconnectNeeded={state.reconnect}

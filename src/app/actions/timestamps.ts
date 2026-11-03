@@ -11,6 +11,7 @@ import { hashToken } from "@/lib/stream-timestamps";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { planFeatures, type FeatureKey } from "@/lib/plans";
 import { parseDelay } from "@/lib/timestamps";
+import { nightbotCommand } from "@/lib/ts-command";
 import { SITE_URL } from "@/lib/url";
 import { createYouTubeClient } from "@/lib/youtube";
 
@@ -43,10 +44,6 @@ async function creator(feature: FeatureKey | null = "timestamps") {
   return { ok: true as const, db, row };
 }
 
-// The command to paste into Nightbot. Shown once: only the hash is kept.
-const nightbotCommand = (token: string) =>
-  `!addcom !ts $(urlfetch ${SITE_URL}/api/ts/${token}?user=$(user)&chatId=$(chatid)&msg=$(querystring))`;
-
 // Makes (or replaces) the secret address. Replacing kills the old command at once.
 export async function generateTimestampLink(): Promise<TsResult> {
   try {
@@ -54,8 +51,15 @@ export async function generateTimestampLink(): Promise<TsResult> {
     if (!who.ok) return who.error;
     const token = randomBytes(32).toString("base64url");
     await who.db`update users set ts_token_hash = ${hashToken(token)} where id = ${who.row.id}`;
+    // An encrypted copy so the creator can see the command again (migration 0049). Kept
+    // apart so making a command still works before that migration is run.
+    try {
+      await who.db`update users set ts_token_enc = ${secretBoxAvailable() ? seal(token) : null} where id = ${who.row.id}`;
+    } catch (err) {
+      console.error("Timestamps: could not keep a copy of the command (migration 0049 run?).", err);
+    }
     revalidatePath("/dashboard/timestamps");
-    return { status: "ok", message: "Your command is ready. Copy it now: it is not shown again.", command: nightbotCommand(token) };
+    return { status: "ok", message: "Your new command is ready. The old one has stopped working: paste this one into your chat bot.", command: nightbotCommand(token) };
   } catch (err) {
     unstable_rethrow(err);
     console.error("Timestamps: could not make the link (migration 0032 run?).", err);

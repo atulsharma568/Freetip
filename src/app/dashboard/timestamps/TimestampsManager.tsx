@@ -40,6 +40,8 @@ function Msg({ result }: { result: TsResult | null }) {
 export function TimestampsManager(props: {
   available: boolean;
   hasLink: boolean;
+  // The command that works now, when a copy was kept; null for one made before that.
+  currentCommand: string | null;
   delay: number;
   youtubeConnected: boolean;
   reconnectNeeded: boolean;
@@ -129,13 +131,20 @@ export function TimestampsManager(props: {
           <CopyField
             id="ts-command-value"
             value={command}
-            label="Your command. It is shown once, so copy it now."
+            label="Your new command. Paste it into your chat bot now."
             note="It holds your private address, so do not show it on stream."
+          />
+        ) : props.currentCommand ? (
+          <CopyField
+            id="ts-command-current"
+            value={props.currentCommand}
+            label="Your current command. Copy it before you make a new one."
+            note="Making a new command stops this one at once. It holds your private address, so do not show it on stream."
           />
         ) : (
           <p className="text-sm text-muted">
             {props.hasLink
-              ? "You have a command. For safety it cannot be shown again; make a new one if you lost it."
+              ? "You have a command, but it was made before it could be shown again. Make a new one to see it here."
               : "Make your private command, then paste it into your live chat."}
           </p>
         )}
