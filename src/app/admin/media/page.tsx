@@ -65,7 +65,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: P
       <PageHeader
         eyebrow="Alert media"
         title="Creator alert media"
-        note="A creator's first GIF, picture or WebM waits here until you approve it; later files from an approved creator play at once. Look at each one for adult, hateful or copyrighted material and take it down if it breaks the rules. Taking a file down erases it and is kept in the audit history."
+        note="Uploads play at once. A file still marked as waiting is from before that change: approve it to let it play. Look at each one for adult, hateful or copyrighted material and take it down if it breaks the rules. Taking a file down erases it and is kept in the audit history."
       />
 
       <form action="/admin/media" className="flex flex-wrap gap-2">
@@ -141,10 +141,10 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: P
                       {m.review_state === "removed" ? (
                         <span className="text-xs text-muted">File erased</span>
                       ) : m.kind === "webm" ? (
-                        <video src={m.blob_url} controls muted loop preload="metadata" aria-label={`Preview of ${m.name}`} className="max-h-40 w-56 rounded-field bg-ground" />
+                        <video src={m.blob_url} controls muted loop preload="none" aria-label={`Preview of ${m.name}`} className="max-h-40 w-56 rounded-field bg-ground" />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element -- the owner's review of a creator's own upload
-                        <img src={m.blob_url} alt={`Preview of ${m.name}`} className="max-h-40 w-56 rounded-field bg-ground object-contain" />
+                        <img src={m.blob_url} alt={`Preview of ${m.name}`} loading="lazy" decoding="async" className="max-h-40 w-56 rounded-field bg-ground object-contain" />
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted">
@@ -163,7 +163,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: P
                           label="Approve"
                           confirmLabel="Approve file"
                           pendingLabel="Approving…"
-                          description={`“${m.name}” will play on ${m.handle ?? "the creator"}'s alerts, and their later files will go live without review.`}
+                          description={`“${m.name}” will play on ${m.handle ?? "the creator"}'s alerts.`}
                           tone="primary"
                         />
                       )}
@@ -264,7 +264,7 @@ async function PageAssetsSection({ like, idMatch, all }: { like: string; idMatch
                       <span className="text-xs text-muted">File erased</span>
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element -- the owner's own upload, a small preview (the first frame for a GIF or video)
-                      <img src={a.poster_url ?? a.blob_url} alt={`Preview of ${a.name}`} className="max-h-32 w-48 rounded-field bg-ground object-contain" />
+                      <img src={a.poster_url ?? a.blob_url} alt={`Preview of ${a.name}`} loading="lazy" decoding="async" className="max-h-32 w-48 rounded-field bg-ground object-contain" />
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted">{a.review_state === "removed" ? "Removed" : "In the library"}</td>

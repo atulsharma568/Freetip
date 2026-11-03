@@ -25,7 +25,7 @@ const fail = (message: string): AdminActionState => ({ status: "error", message 
 const NO_DB = "The database is not set up.";
 const SAVE_FAILED = "Could not save. The server log has the reason.";
 
-const validId = (n: number) => Number.isSafeInteger(n) && n >= 1;
+const validId = (n: number) => Number.isSafeInteger(n) && n >= 1 && n <= 2147483647;
 
 // The optional reason box on a confirm step (kept short; goes into audit_events.reason).
 function reasonOf(formData: FormData, fallback: string | null = null): string | null {

@@ -31,14 +31,15 @@ export function PinnedManager({ savedRupees, savedSeconds, items }: { savedRupee
   const [min, setMin] = useState(savedRupees);
   const [seconds, setSeconds] = useState(String(savedSeconds));
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+  // The answer shows next to the buttons it belongs to: in the settings tile for Save, in the list tile otherwise.
+  const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string; from: "settings" | "list" } | null>(null);
 
   async function run(key: string, action: () => Promise<PinnedActionResult>) {
     setBusy(key);
     setMessage(null);
     const res = await action();
     setBusy(null);
-    setMessage({ kind: res.status === "error" ? "error" : "ok", text: res.message });
+    setMessage({ kind: res.status === "error" ? "error" : "ok", text: res.message, from: key === "save" ? "settings" : "list" });
     if (res.status === "ok") router.refresh();
   }
 
@@ -79,6 +80,7 @@ export function PinnedManager({ savedRupees, savedSeconds, items }: { savedRupee
           <button type="submit" disabled={busy !== null} className={pillPrimary}>
             {busy === "save" ? "Saving…" : "Save"}
           </button>
+          {message?.from === "settings" && <Msg kind={message.kind} text={message.text} />}
         </form>
         <p className="mt-4 border-t border-line/60 pt-4 text-sm text-muted">
           In OBS, add your alert link as another Browser source and put <span className="numeric text-text">/pinned</span> on
@@ -87,6 +89,11 @@ export function PinnedManager({ savedRupees, savedSeconds, items }: { savedRupee
       </Tile>
 
       <Tile id="pin-list" title="Pinned in the last day">
+        {message?.from === "list" && (
+          <div className="mb-4">
+            <Msg kind={message.kind} text={message.text} />
+          </div>
+        )}
         {live && (
           <div className="mb-4">
             <button type="button" disabled={busy !== null} onClick={() => run("unpin", unpinNow)} className={pillPrimary}>
@@ -112,7 +119,6 @@ export function PinnedManager({ savedRupees, savedSeconds, items }: { savedRupee
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs text-muted">
                     {STATE_TEXT[i.state]}
-                    {i.state === "live" ? `, about ${i.secondsLeft} s left` : ""}
                   </span>
                   {i.state === "ended" && (
                     <button
@@ -130,8 +136,6 @@ export function PinnedManager({ savedRupees, savedSeconds, items }: { savedRupee
           </ul>
         )}
       </Tile>
-
-      <Msg kind={message?.kind} text={message?.text} />
     </div>
   );
 }

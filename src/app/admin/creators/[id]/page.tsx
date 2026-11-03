@@ -30,6 +30,8 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   if (!/^\d{1,12}$/.test(id)) notFound();
   const creatorId = Number(id);
+  // Beyond what the database column holds: no such creator, not a read error.
+  if (creatorId > 2147483647) notFound();
   const db = adminDb();
   if (!db) return <DatabaseNotSetUp />;
   const result = await getCreatorDetail(db, creatorId);

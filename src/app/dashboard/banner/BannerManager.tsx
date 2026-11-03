@@ -40,6 +40,8 @@ export function BannerManager({
   const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+  // The photo buttons answer in their own tile, not in the banner's.
+  const [photoMessage, setPhotoMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
 
   async function run(which: "copy" | "remove") {
     setBusy(which);
@@ -59,14 +61,14 @@ export function BannerManager({
 
   async function runPhoto(which: "photo" | "photo-reset") {
     setBusy(which);
-    setMessage(null);
+    setPhotoMessage(null);
     const res = which === "photo" ? await copyYouTubePhoto() : await removeTipPhoto();
     setBusy(null);
     if (res.status === "error") {
-      setMessage({ kind: "error", text: res.message });
+      setPhotoMessage({ kind: "error", text: res.message });
       return;
     }
-    setMessage({
+    setPhotoMessage({
       kind: "ok",
       text:
         which === "photo"
@@ -206,6 +208,7 @@ export function BannerManager({
             {usingYouTubePhoto ? "Your YouTube channel photo is showing." : "Your Google account photo is showing."} Press
             the button again after you change your photo on YouTube.
           </p>
+          <Msg kind={photoMessage?.kind} text={photoMessage?.text} />
         </div>
       </Tile>
     </div>

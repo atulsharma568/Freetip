@@ -40,7 +40,7 @@ interface CandidateRow extends Omit<TipRow, "id"> {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> },
 ): Promise<Response> {
   const { token } = await params;
@@ -90,6 +90,12 @@ export async function GET(
     skipAt: rows[0].overlay_skip_at?.getTime() ?? 0,
     testAt: rows[0].overlay_test_at?.getTime() ?? 0,
   };
+
+  // Asked while an alert is on screen and another waits: the overlay wants only the
+  // dashboard commands (skip, test), so a Skip is seen at once. Nothing is leased.
+  if (new URL(request.url).searchParams.get("controls") === "1") {
+    return Response.json({ alert: null, controls }, { headers: NO_STORE });
+  }
 
   const mode = rows[0].alert_mode;
   const tips = rows.filter((r): r is CandidateRow & { id: number } => r.id !== null);

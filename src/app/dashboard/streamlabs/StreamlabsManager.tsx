@@ -12,10 +12,13 @@ export function StreamlabsManager({
   available,
   connected,
   reconnectNeeded,
+  switchedOff = false,
 }: {
   available: boolean;
   connected: boolean;
   reconnectNeeded: boolean;
+  // Switched off for this account: only taking the connection away is offered.
+  switchedOff?: boolean;
 }) {
   const [result, setResult] = useState<SlResult | null>(null);
   const [pending, start] = useTransition();
@@ -27,7 +30,7 @@ export function StreamlabsManager({
 
   return (
     <div className="space-y-4">
-      {(!connected || reconnectNeeded) &&
+      {!switchedOff && (!connected || reconnectNeeded) &&
         (available ? (
           <form action="/api/streamlabs/start" method="get" className="space-y-2">
             <button type="submit" className={pillPrimary}>
@@ -43,7 +46,7 @@ export function StreamlabsManager({
 
       {connected && (
         <div className="flex flex-wrap items-center gap-2">
-          {!reconnectNeeded && (
+          {!reconnectNeeded && !switchedOff && (
             <button type="button" className={pillOutline} disabled={pending} onClick={() => run(sendStreamlabsTestAlert)}>
               Send a test alert
             </button>

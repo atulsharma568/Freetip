@@ -442,7 +442,12 @@ export function TipForm({
     closed,
     extraBlocked,
     agreed,
-    setAgreed,
+    // Ticking the box is the sign the fan is about to pay: fetch the payment script now, so it
+    // is ready when Tip is pressed (the longest wait of the flow on a slow phone).
+    setAgreed: (on: boolean) => {
+      if (on) loadRazorpayScript().catch(() => {});
+      setAgreed(on);
+    },
     handlePay,
   };
 

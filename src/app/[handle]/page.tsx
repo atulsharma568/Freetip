@@ -53,7 +53,7 @@ export default async function CreatorPage({ params }: Props) {
   if (creator.creator_status !== "active" && !isOwnPage) {
     return (
       <PageShell slim>
-        <NotReady handle={handle} name={creator.name} />
+        <NotReady handle={handle} name={creator.display_name ?? creator.name} />
       </PageShell>
     );
   }

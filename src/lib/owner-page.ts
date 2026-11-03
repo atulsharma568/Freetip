@@ -1,7 +1,7 @@
 import { isOwnerGoogleId } from "./owner-auth-core";
 import { parseOwnerGoogleIds } from "./owner-auth-core";
 
-// The site owner's own tip page gets its own header (OwnerHero). It is the page of an owner
+// The site owner's own tip page gets its own look (see ownerPageDoc). It is the page of an owner
 // account (OWNER_GOOGLE_IDS) or of a handle listed in OWNER_TIP_HANDLES (default: acepressure),
 // so it works whichever Google account the channel signs in with. Nobody else can switch it on.
 export function isOwnerTipPage(

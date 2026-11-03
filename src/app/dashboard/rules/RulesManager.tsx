@@ -148,6 +148,13 @@ export function RulesManager({
           <button type="submit" disabled={busy || full || !rupees || (!mediaId && !soundId && !(canStay && stay))} className={pillPrimary}>
             {busy ? "Saving…" : "Save rule"}
           </button>
+          {!full && !mediaId && !soundId && !(canStay && stay) && (
+            <p className="text-xs text-muted">
+              Pick {mediaOn ? "a sound, media" : "a sound"}
+              {canStay ? " or a stay length" : ""} to save this rule.
+              {sounds.length === 0 && " You have no sounds yet: add some on the Sounds page."}
+            </p>
+          )}
           <Msg kind={message?.kind} text={message?.text} />
         </form>
       </Tile>

@@ -1229,27 +1229,9 @@ html.menu-open body {
 }
 
 /* The owner's own tip page (src/components/tip/Owner*.tsx). */
-.ap-strip {
-  background:
-    radial-gradient(ellipse at 80% 0%, color-mix(in oklab, var(--color-accent) 30%, transparent), transparent 60%),
-    var(--color-ground);
-}
 .ap-ghost {
   color: transparent;
   -webkit-text-stroke: 1.5px color-mix(in oklab, var(--color-text) 55%, transparent);
-}
-.ap-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  z-index: 1;
-  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
-  opacity: 0.8;
-}
-.ap-bust {
-  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent);
-  mask-image: linear-gradient(to bottom, #000 78%, transparent);
 }
 .ap-fill {
   transition: width 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
@@ -1318,7 +1300,6 @@ html.menu-open body {
   90% { opacity: 0.35; }
   100% { transform: translate3d(-60px, 108vh, 0) rotate(400deg); opacity: 0; }
 }
-@keyframes ap-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent); } 50% { box-shadow: 0 0 0 10px transparent; } }
 @keyframes ap-hot { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 @keyframes ap-gg { from { transform: scale(1.35) skewX(-6deg); opacity: 0; } to { transform: scale(1) skewX(0); opacity: 1; } }
 @keyframes ap-pop { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -1329,7 +1310,6 @@ html.menu-open body {
   .ap-slash { animation: ap-slash-glide 14s ease-in-out infinite alternate; }
   .ap-ember { animation-name: ap-rise; animation-timing-function: linear; animation-iteration-count: infinite; }
   .ap-petal { animation-name: ap-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
-  .ap-ring { animation: ap-ring 2.6s ease-out infinite; }
   .ap-hot { animation: ap-hot 0.7s ease-in-out infinite; }
   .ap-gg { animation: ap-gg 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .ap-pop { animation: ap-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }

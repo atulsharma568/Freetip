@@ -121,7 +121,7 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
         </div>
 
         {!migrated ? (
-          <Msg kind="error" text="Not ready yet: run db/migrations/0032_stream_timestamps.sql in Neon." />
+          <Msg kind="error" text="This is not available right now. Try again later." />
         ) : (
           <TimestampsManager
             available={available}

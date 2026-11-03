@@ -16,7 +16,7 @@ import { copyPageFrom, discardDraft, publishDraft, resetPage, restorePrevious, s
 // saving a draft does not.
 const ok = (message: string): AdminActionState => ({ status: "ok", message });
 const fail = (message: string): AdminActionState => ({ status: "error", message });
-const validId = (n: number) => Number.isSafeInteger(n) && n >= 1;
+const validId = (n: number) => Number.isSafeInteger(n) && n >= 1 && n <= 2147483647;
 
 async function run(
   creatorId: number,

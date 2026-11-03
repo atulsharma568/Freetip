@@ -46,10 +46,13 @@ export function CreatorActions({
         />
       )}
       {creatorStatus === "suspended" && (
-        <ActionForm
+        <ConfirmAction
           action={setCreatorStatus.bind(null, id, "pending")}
           label="Reset to pending"
+          confirmLabel="Reset to pending"
           pendingLabel="Resetting…"
+          description="Their payout setup is reset and they have to start it again."
+          askReason
         />
       )}
       {creatorStatus === "pending" && onboardingState === "submitted" && (

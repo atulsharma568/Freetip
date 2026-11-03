@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
+import { Providers } from "@/components/auth/Providers";
 import "./globals.css";
 import { Analytics } from "@/components/Analytics";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
@@ -43,11 +43,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${mono.variable} ${display.variable}`}
     >
       <body>
-        <SessionProvider>
+        <Providers>
           <SmoothScroll />
           {children}
           <Analytics />
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );

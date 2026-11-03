@@ -158,12 +158,18 @@ export function PageEditor({
 
   // Leaving the editor by a link inside the site (the tab is not closed, so no warning can ask):
   // send the change that was still waiting. Best effort; a save already on its way is left alone.
+  // Kept in a ref: a re-render after Publish gives the action a new identity, and that must
+  // not look like leaving the editor.
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
   useEffect(
     () => () => {
       if (busyRef.current || JSON.stringify(docRef.current) === sentRef.current) return;
-      save(baseRef.current, docRef.current).catch(() => {});
+      saveRef.current(baseRef.current, docRef.current).catch(() => {});
     },
-    [save],
+    [],
   );
 
   // A warning if the tab is closed with a change that is not saved yet.

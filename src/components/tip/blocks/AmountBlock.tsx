@@ -132,7 +132,7 @@ export function AmountBlock({ block, n }: { block: Block<"amount">; n: number })
           <button
             type="button"
             onClick={() => chooseExtra({ kind: "default" })}
-            className="font-semibold text-accent underline underline-offset-2"
+            className="font-semibold text-text underline decoration-accent underline-offset-2"
           >
             Deselect the pick
           </button>

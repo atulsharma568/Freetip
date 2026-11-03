@@ -161,7 +161,7 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
                         {m.name} <span className="numeric ml-2 text-xs text-muted">{ticketNumber(id)}</span>
                       </p>
                       <a
-                        href={`mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent(`Re: your message to Freetip (${ticketNumber(id)})`)}`}
+                        href={`mailto:${encodeURIComponent(m.email).replace(/%40/g, "@")}?subject=${encodeURIComponent(`Re: your message to Freetip (${ticketNumber(id)})`)}`}
                         title={m.email}
                         className="block max-w-full truncate text-sm text-muted transition-colors hover:text-text"
                       >

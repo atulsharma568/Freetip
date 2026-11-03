@@ -1,3 +1,4 @@
+import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
 import { cache, type CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -35,7 +36,10 @@ const load = cache(async (handle: string, videoId: string) => {
     if (creator.creator_status !== "active" || !creator.ts_public || !planFeatures(creator).highlightsPage) return null;
     const stream = await loadStreamHighlights(db as unknown as LedgerDb, Number(creator.id), videoId);
     if (!stream || stream.groups.length === 0) return null;
-    return { name: creator.display_name ?? creator.name ?? handle, stream };
+    return {
+      name: isOwnerTipPage(handle, creator.google_id) ? ownerBrand() : (creator.display_name ?? creator.name ?? handle),
+      stream,
+    };
   } catch (err) {
     console.error("Highlights page: could not load (migration 0033 run?).", err);
     return null;

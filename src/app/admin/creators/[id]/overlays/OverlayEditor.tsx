@@ -86,6 +86,7 @@ export function OverlayEditor({
   const busyRef = useRef(false);
   const [saved, setSaved] = useState(start.source === "draft");
   const [live, setLive] = useState(start.live);
+  const [hasPrevious, setHasPrevious] = useState(start.hasPrevious);
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -148,12 +149,18 @@ export function OverlayEditor({
   }, [dirty, doc, saving, conflict, saveError, save]);
 
   // Leaving by a link inside the site: send the change that was still waiting. Best effort.
+  // Kept in a ref: a re-render after Publish gives the action a new identity, and that must
+  // not look like leaving the editor.
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
   useEffect(
     () => () => {
       if (busyRef.current || JSON.stringify(docRef.current) === sentRef.current) return;
-      save(baseRef.current, docRef.current).catch(() => {});
+      saveRef.current(baseRef.current, docRef.current).catch(() => {});
     },
-    [save],
+    [],
   );
 
   // A warning if the tab is closed with a change that is not saved yet.
@@ -170,7 +177,11 @@ export function OverlayEditor({
       if (kind === "publish") {
         const r = await publish();
         setAsking(null);
-        if (r.ok) setLive(docRef.current);
+        if (r.ok) {
+          setLive(docRef.current);
+          // Publishing always keeps the version it replaced.
+          setHasPrevious(true);
+        }
         setNotice({ ok: r.ok, text: r.message });
       } else if (kind === "swap") {
         const r = await swap();
@@ -207,7 +218,11 @@ export function OverlayEditor({
   // The sample the preview plays, from the last draft that passed the checks.
   const amount = AMOUNTS.find((a) => a.key === amountKey)!;
   const sizeBox = SIZES.find((s) => s.key === sizeKey)!;
-  const style = parts.style && values.style ? resolveOverlayStyle(values.style) : null;
+  // Memoised: a new object every render would restart the preview and queue another sample.
+  const style = useMemo(
+    () => (parts.style && values.style ? resolveOverlayStyle(values.style) : null),
+    [parts.style, values.style],
+  );
   const samples = useMemo<OverlayAlert[]>(
     () => [
       {
@@ -273,8 +288,8 @@ export function OverlayEditor({
               Reload the latest draft
             </button>
           )}
-          {start.hasPrevious && (
-            <button type="button" disabled={working} onClick={() => setAsking(asking === "swap" ? null : "swap")} aria-expanded={asking === "swap"} className={buttonClass("quiet", "md")}>
+          {hasPrevious && (
+            <button type="button" disabled={working || dirty || saving} title={dirty || saving ? "Wait for Draft saved first" : undefined} onClick={() => setAsking(asking === "swap" ? null : "swap")} aria-expanded={asking === "swap"} className={buttonClass("quiet", "md")}>
               Swap with previous version
             </button>
           )}

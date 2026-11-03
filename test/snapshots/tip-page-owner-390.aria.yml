@@ -49,7 +49,7 @@
   - paragraph: 0/50 · tip ₹100 or more for 80
   - switch "Pin my message on stream for 30 seconds"
   - text: Pin my message on stream for 30 seconds
-  - paragraph: For tips of ₹200 or more, and there is no extra fee. AcePressure approves it first and can take it down at any time. Tips are final, so if it is not pinned or is taken down, the tip is not refunded.
+  - paragraph: Available on tips of ₹200 or more, at no extra fee. AcePressure approves it first and can take it down at any time. Tips are final, so if it is not pinned or is taken down, the tip is not refunded.
   - paragraph: Streamer's choice or voice (optional)
   - radiogroup "Streamer's choice or voice (optional)":
     - radio "Streamer's default" [checked]
@@ -78,6 +78,7 @@
     - /url: /refunds
   - text: .
   - button "Tip ₹20" [disabled]
+  - paragraph: Tick the box above to send your tip.
   - paragraph: YouTube / AcePressure @acepressure.gg
 - contentinfo:
   - paragraph:

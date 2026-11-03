@@ -67,7 +67,7 @@ export function OwnerSuccess({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
-      <div className="ap-end relative isolate mx-auto flex min-h-[30rem] max-w-xl flex-col items-center justify-center gap-3 overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface/80 p-6 text-center backdrop-blur-sm sm:p-10">
+      <div className="relative isolate mx-auto flex min-h-[30rem] max-w-xl flex-col items-center justify-center gap-3 overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface/80 p-6 text-center backdrop-blur-sm sm:p-10">
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted">{displayName}</p>
         <Image src="/owner/kitsune.svg" alt="" width={92} height={110} aria-hidden="true" className="ap-pop h-24 w-auto" />
         <h1
@@ -92,7 +92,7 @@ export function OwnerSuccess({
         </p>
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted [overflow-wrap:anywhere]">{line || "Thanks for hanging out."}</p>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-          <button type="button" onClick={onAgain} className={`${pill} border-2 border-accent text-accent hover:bg-accent hover:text-ink`}>
+          <button type="button" onClick={onAgain} className={`${pill} border-2 border-accent text-text hover:bg-accent hover:text-ink`}>
             <ArrowCounterClockwise weight="bold" aria-hidden="true" />
             Tip again
           </button>

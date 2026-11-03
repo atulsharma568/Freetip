@@ -261,20 +261,28 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
     if (!token) return;
     let stopped = false;
     let polling = false;
+    // After a 404 (link replaced, a deploy in between) ask only once a minute, and show
+    // the alerts again as soon as the link answers: a stream can run for hours.
+    let askAgainAt = 0;
     const poll = async () => {
+      if (polling || Date.now() < askAgainAt) return;
       // Hold at most one alert in the queue (plus the one on screen): the server
       // leases what it hands out, so taking more than the stage can show soon would
-      // let the leases run out.
-      if (polling || queue.current.length > 0) return;
+      // let the leases run out. While one waits, still ask for the dashboard
+      // commands, so Skip and Test are seen at once.
+      const controlsOnly = queue.current.length > 0;
       polling = true;
       try {
-        const res = await fetch(`/api/overlay/${token}`, { cache: "no-store" });
+        const res = await fetch(`/api/overlay/${token}${controlsOnly ? "?controls=1" : ""}`, {
+          cache: "no-store",
+        });
         if (res.status === 404) {
           setInvalid(true);
-          stopped = true;
+          askAgainAt = Date.now() + 60000;
           return;
         }
         if (!res.ok) return;
+        setInvalid(false);
         const body = (await res.json()) as {
           alert: OverlayAlert | null;
           controls?: { skipAt: number; testAt: number };
@@ -304,7 +312,7 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
             }
           }
         }
-        if (body.alert) {
+        if (body.alert && !controlsOnly) {
           const alert: QueuedAlert = body.alert;
           if (alert.sound) alert.clip = loadClip(alert.sound, alert.layout?.soundVolume);
           if (alert.media && !(await preloadMedia(alert.media))) alert.media = null;
@@ -329,7 +337,10 @@ export function AlertStage({ token, samples }: { token?: string; samples?: Overl
     const t = setInterval(() => {
       if (!stopped) poll();
     }, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
   }, [token, samples]);
 
   // Play one alert at a time.

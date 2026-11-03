@@ -47,7 +47,11 @@ export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
     if (!follow) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let inflight = false;
     async function poll() {
+      // A tab coming back while a read is on its way must not start a second chain of reads.
+      if (inflight) return;
+      inflight = true;
       clearTimeout(timer);
       try {
         const res = await fetch(`/api/pressure/${encodeURIComponent(handle)}`);
@@ -58,6 +62,8 @@ export function PressureBlock({ block }: { block: Block<"pressureMeter"> }) {
         if (res.ok && !stop) setReading(((await res.json()) as { meter: MeterReading | null }).meter);
       } catch {
         // Keep the last bar on a network blip.
+      } finally {
+        inflight = false;
       }
       if (!stop && document.visibilityState === "visible") timer = setTimeout(poll, POLL_MS);
     }

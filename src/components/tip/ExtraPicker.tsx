@@ -6,6 +6,7 @@ import type { TipRule, TipSound } from "@/app/[handle]/creator";
 import { useWheelScroll } from "@/components/ui/useWheelScroll";
 import { useAudioPreview } from "@/components/ui/useAudioPreview";
 import { FieldNote } from "./FieldNote";
+import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the alert adds besides the card. Three separate sections on the tip page:
 //   1. the streamer's choice (their default sound) or the message read aloud,
@@ -88,6 +89,9 @@ export function ExtraPicker({
 }) {
   const uid = useId();
   const preview = useAudioPreview();
+  // The streamer's pictures and clips follow the same rules as the page backdrop: still on
+  // reduced motion, data saver or a slow network.
+  const motionAllowed = useMotionAllowed();
   const voiceGroup = useRef<HTMLDivElement>(null);
   const voiceLocked = voiceMinPaise !== null && amountPaise < voiceMinPaise;
   const voiceOn = selected.kind === "voice";
@@ -101,7 +105,7 @@ export function ExtraPicker({
       {voiceMinPaise !== null && (
         <div className="space-y-3">
           <p id={`${uid}-voice`} className="text-sm text-muted">
-            Streamer&apos;s choice or voice <span className="text-control">(optional)</span>
+            Streamer&apos;s choice or voice <span className="text-muted">(optional)</span>
           </p>
           <div
             ref={voiceGroup}
@@ -152,7 +156,7 @@ export function ExtraPicker({
       {sounds.length > 0 && (
         <div className="space-y-3">
           <p id={`${uid}-sounds`} className="text-sm text-muted">
-            Soundboard <span className="text-control">(optional, pick one; your message is not read aloud with a sound)</span>
+            Soundboard <span className="text-muted">(optional, pick one; your message is not read aloud with a sound)</span>
           </p>
           <SwipeRow labelledBy={`${uid}-sounds`} twoRows={sounds.length > 1}>
             {sounds.map((s, i) => {
@@ -214,7 +218,7 @@ export function ExtraPicker({
       {rules.length > 0 && (
         <div className="space-y-3">
           <p id={`${uid}-picks`} className="text-sm text-muted">
-            Streamer&apos;s picks <span className="text-control">(a fixed amount, plays on its own with no message)</span>
+            Streamer&apos;s picks <span className="text-muted">(a fixed amount, plays on its own with no message)</span>
           </p>
           <SwipeRow labelledBy={`${uid}-picks`}>
             {rules.map((r, i) => {
@@ -239,19 +243,25 @@ export function ExtraPicker({
                   <span className="relative flex h-24 w-full items-center justify-center overflow-hidden bg-ground">
                     {r.media ? (
                       r.media.kind === "webm" ? (
-                        <video
-                          src={r.media.url}
-                          muted
-                          loop
-                          autoPlay
-                          playsInline
-                          preload="metadata"
-                          aria-hidden="true"
-                          className="size-full object-cover"
-                        />
-                      ) : (
+                        motionAllowed ? (
+                          <video
+                            src={r.media.url}
+                            muted
+                            loop
+                            autoPlay
+                            playsInline
+                            preload="metadata"
+                            aria-hidden="true"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <FilmSlate weight="bold" aria-hidden="true" className="size-8 text-muted" />
+                        )
+                      ) : motionAllowed || !/\.gif(\?|$)/i.test(r.media.url) ? (
                         // eslint-disable-next-line @next/next/no-img-element -- the creator's own upload, kept animated and unoptimised
                         <img src={r.media.url} alt="" loading="lazy" className="size-full object-cover" />
+                      ) : (
+                        <FilmSlate weight="bold" aria-hidden="true" className="size-8 text-muted" />
                       )
                     ) : r.sound ? (
                       <MusicNote weight="bold" aria-hidden="true" className="size-8 text-muted" />

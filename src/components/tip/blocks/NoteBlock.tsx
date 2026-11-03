@@ -54,7 +54,7 @@ export function NoteBlock({ block, n }: { block: Block<"note">; n: number }) {
       </div>
       <div className="space-y-2">
         <label htmlFor="tip-name" className="text-sm text-muted">
-          Your name <span className="text-control">(optional)</span>
+          Your name <span className="text-muted">(optional)</span>
         </label>
         <input
           id="tip-name"
@@ -78,7 +78,7 @@ export function NoteBlock({ block, n }: { block: Block<"note">; n: number }) {
       </div>
       <div className="space-y-2">
         <label htmlFor="tip-message" className="text-sm text-muted">
-          Message <span className="text-control">(optional)</span>
+          Message <span className="text-muted">(optional)</span>
         </label>
         <textarea
           id="tip-message"
@@ -118,7 +118,7 @@ export function NoteBlock({ block, n }: { block: Block<"note">; n: number }) {
             </label>
           </div>
           <p className="text-xs text-muted">
-            For tips of ₹{Math.ceil(pinOffer.minPaise / 100)} or more, and there is no extra fee. {displayName} approves it
+            Available on tips of ₹{Math.ceil(pinOffer.minPaise / 100)} or more, at no extra fee. {displayName} approves it
             first and can take it down at any time. Tips are final, so if it is not pinned or is taken down, the
             tip is not refunded.
           </p>

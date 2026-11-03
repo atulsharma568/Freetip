@@ -10,12 +10,12 @@ function Block({ className }: { className: string }) {
 export default function CreatorLoading() {
   return (
     <PageShell slim>
-      <div className="mx-auto w-full max-w-5xl space-y-8 px-6 pb-24 pt-10">
+      <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-12 sm:px-6">
         <p role="status" className="flex items-center gap-3 text-sm text-muted">
           <TickLoader count={16} duration={1.4} className="text-accent" />
           Loading the tip page
         </p>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-14">
           <Block className="h-80" />
           <Block className="h-96" />
         </div>

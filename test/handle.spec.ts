@@ -185,6 +185,20 @@ test("approval is blocked when the name was taken meanwhile, and the request sta
   expect(await statusOf(pg, id)).toBe("pending");
 });
 
+test("an approval that renamed but stopped before marking the request can be finished", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg, "alpha");
+  await requestHandleChange(db, a.googleId, "beta");
+  const id = Number((await pg.query<{ id: string }>(`select id::text from handle_requests`)).rows[0].id);
+  // The rename went through, then the process stopped: the request is still pending.
+  await pg.query(`update users set handle = 'beta' where id = $1`, [a.id]);
+  await pg.query(`insert into handle_history (old_handle, user_id) values ('alpha', $1)`, [a.id]);
+
+  expect(await approveHandleRequest(db, id)).toEqual({ status: "approved", handle: "beta" });
+  expect(await statusOf(pg, id)).toBe("approved");
+});
+
 test("closing an account erases its handle requests", async () => {
   const pg = await freshDatabase();
   const db = asLedgerDb(pg);

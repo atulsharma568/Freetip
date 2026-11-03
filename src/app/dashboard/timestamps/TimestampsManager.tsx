@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   disconnectYouTube,
   generateEditorLink,
@@ -72,6 +73,7 @@ export function TimestampsManager(props: {
   const [editorResult, setEditorResult] = useState<TsResult | null>(null);
   const [helperToken, setHelperToken] = useState<string | null>(null);
   const [helperResult, setHelperResult] = useState<TsResult | null>(null);
+  const router = useRouter();
   const [pending, start] = useTransition();
 
   const run = (fn: () => Promise<TsResult>, then: (r: TsResult) => void) => start(async () => then(await fn()));
@@ -100,14 +102,16 @@ export function TimestampsManager(props: {
         {props.youtubeConnected ? (
           <div className="space-y-3">
             <p className="text-sm text-text">YouTube is connected.</p>
-            <button
-              type="button"
+            <ConfirmAction
+              prompt="Disconnect YouTube? Comments will no longer be posted for you."
+              confirmLabel="Yes, disconnect"
+              keepLabel="Keep it connected"
               className={outline}
               disabled={pending}
-              onClick={() => run(disconnectYouTube, (r) => { setYtResult(r); if (r.status === "ok") window.location.replace("/dashboard/timestamps"); })}
+              onConfirm={() => run(disconnectYouTube, (r) => { setYtResult(r); if (r.status === "ok") router.refresh(); })}
             >
               Disconnect YouTube
-            </button>
+            </ConfirmAction>
             <Msg result={ytResult} />
           </div>
         ) : props.available ? (
@@ -223,7 +227,7 @@ export function TimestampsManager(props: {
             type="button"
             className={primary}
             disabled={pending || !webhook.trim()}
-            onClick={() => run(() => saveDiscordWebhook(webhook), (r) => { setDiscordResult(r); if (r.status === "ok") { setWebhook(""); window.location.reload(); } })}
+            onClick={() => run(() => saveDiscordWebhook(webhook), (r) => { setDiscordResult(r); if (r.status === "ok") { setWebhook(""); router.refresh(); } })}
           >
             {props.discordConnected ? "Replace" : "Connect Discord"}
           </button>
@@ -232,9 +236,16 @@ export function TimestampsManager(props: {
               <button type="button" className={outline} disabled={pending} onClick={() => run(sendDiscordTest, setDiscordResult)}>
                 Send test message
               </button>
-              <button type="button" className={outline} disabled={pending} onClick={() => run(removeDiscordWebhook, (r) => { setDiscordResult(r); if (r.status === "ok") window.location.reload(); })}>
+              <ConfirmAction
+                prompt="Disconnect Discord? Moments will stop going to your channel."
+                confirmLabel="Yes, disconnect"
+                keepLabel="Keep it connected"
+                className={outline}
+                disabled={pending}
+                onConfirm={() => run(removeDiscordWebhook, (r) => { setDiscordResult(r); if (r.status === "ok") router.refresh(); })}
+              >
                 Disconnect
-              </button>
+              </ConfirmAction>
             </>
           )}
         </div>
@@ -242,7 +253,7 @@ export function TimestampsManager(props: {
       </Tile>
 
       {!props.extras.ready ? (
-        <StatusLine kind="error" text="More options are coming: run db/migrations/0033_timestamp_extras.sql in Neon." />
+        <StatusLine kind="error" text="These options are not available right now. Try again later." />
       ) : (
         <>
           {props.tipPlan && (
@@ -326,14 +337,16 @@ export function TimestampsManager(props: {
                   {props.extras.hasEditorLink || editorLink ? "Make a new link" : "Make an editor link"}
                 </ConfirmAction>
                 {(props.extras.hasEditorLink || editorLink) && (
-                  <button
-                    type="button"
+                  <ConfirmAction
+                    prompt="Remove the editor link? Anyone using it loses access."
+                    confirmLabel="Yes, remove it"
+                    keepLabel="Keep the link"
                     className={outline}
                     disabled={pending}
-                    onClick={() => run(removeEditorLink, (r) => { setEditorResult(r); if (r.status === "ok") { setEditorLink(null); window.location.reload(); } })}
+                    onConfirm={() => run(removeEditorLink, (r) => { setEditorResult(r); if (r.status === "ok") { setEditorLink(null); router.refresh(); } })}
                   >
                     Remove the link
-                  </button>
+                  </ConfirmAction>
                 )}
               </div>
               <Msg result={editorResult} />
@@ -350,7 +363,7 @@ export function TimestampsManager(props: {
                 tells the helper which moments were saved.
               </p>
               {!props.helper.ready ? (
-                <StatusLine kind="error" text="Not ready yet: run db/migrations/0034_clip_helper.sql in Neon." />
+                <StatusLine kind="error" text="This is not available right now. Try again later." />
               ) : (
                 <>
                   <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
@@ -408,14 +421,16 @@ export function TimestampsManager(props: {
                       {props.helper.hasToken || helperToken ? "Make a new token" : "Make a helper token"}
                     </ConfirmAction>
                     {(props.helper.hasToken || helperToken) && (
-                      <button
-                        type="button"
+                      <ConfirmAction
+                        prompt="Remove the token? A helper that is running stops working."
+                        confirmLabel="Yes, remove it"
+                        keepLabel="Keep the token"
                         className={outline}
                         disabled={pending}
-                        onClick={() => run(removeHelperToken, (r) => { setHelperResult(r); if (r.status === "ok") { setHelperToken(null); window.location.reload(); } })}
+                        onConfirm={() => run(removeHelperToken, (r) => { setHelperResult(r); if (r.status === "ok") { setHelperToken(null); router.refresh(); } })}
                       >
                         Remove the token
-                      </button>
+                      </ConfirmAction>
                     )}
                   </div>
                   <Msg result={helperResult} />

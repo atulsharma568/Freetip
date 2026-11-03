@@ -76,6 +76,7 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
             onClick={handlePay}
             disabled={previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
             aria-busy={phase === "creating"}
+            aria-describedby={!agreed && !previewMode && amountPaise >= minTipPaise ? "tip-why" : undefined}
             className="beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-[opacity,transform] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {phase === "creating" ? (
@@ -95,6 +96,11 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
             )}
           </button>
         </Magnetic>
+        {!agreed && !previewMode && amountPaise >= minTipPaise && (
+          <p id="tip-why" className="mt-2 text-center text-xs text-muted">
+            Tick the box above to send your tip.
+          </p>
+        )}
         {!previewMode && amountPaise > 0 && amountPaise < minTipPaise && (
           <p className="mt-2 text-center text-xs text-muted">Minimum tip is ₹{minRupees}</p>
         )}

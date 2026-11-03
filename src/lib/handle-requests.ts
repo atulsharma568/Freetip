@@ -82,7 +82,9 @@ export async function approveHandleRequest(db: LedgerDb, requestId: number): Pro
     role: "owner",
     reason: "approved by the owner",
   });
-  if (renamed.status !== "ok") {
+  // "same" means the account already has the requested handle: an earlier approval renamed it and
+  // then stopped before marking the request. Finish that one instead of leaving it pending.
+  if (renamed.status !== "ok" && renamed.status !== "same") {
     return { status: "blocked", reason: renamed.status === "already_set" ? "same" : renamed.status };
   }
   await db.begin(async (tx) => {
@@ -91,7 +93,7 @@ export async function approveHandleRequest(db: LedgerDb, requestId: number): Pro
       where id = ${requestId} and status = 'pending'
     `;
   });
-  return { status: "approved", handle: renamed.handle };
+  return { status: "approved", handle: req.requested_handle };
 }
 
 export async function rejectHandleRequest(db: LedgerDb, requestId: number, note: string): Promise<DecisionResult> {

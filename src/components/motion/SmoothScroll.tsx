@@ -6,6 +6,8 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 export function SmoothScroll() {
   useEffect(() => {
+    // An OBS overlay never scrolls and runs for hours: no animation-frame loop there.
+    if (window.location.pathname.startsWith("/overlay")) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const lenis = new Lenis({ lerp: 0.1, anchors: true });

@@ -248,3 +248,28 @@ Question asked by the owner: do the competitors pass tip money through their own
 
 - HyperChat and probably SuperTips (supertips.store) do what a manual payout sheet would do: collect into one gateway account and pay creators themselves. They are small and nobody has stopped them yet, but that is not evidence it is allowed.
 - The clean models are creator-owned accounts (StreamTipz, supertip.live) or a licensed aggregator's split product. Two open questions to ask in writing: Razorpay's partner team (can each creator keep their own Razorpay account while we create orders and take a commission, and is there a turnover rule?), and Cashfree (Embedded Payments and Easy Split for a new platform). PayU is a third provider not yet asked.
+
+## Re-check, 2026-11-03 (public pages only, nothing logged into)
+
+Seen on each site's public page today unless marked "inferred". HyperChat and Strimome did not load (client-rendered), so the notes above stand for them.
+
+### Changes to ones already recorded
+
+- SuperTips (`supertips.store/pricing`): prices unchanged (Free 8%, Pro ₹999 a month at 6%). The Free plan now lists 3 business day payouts, no platform branding, one stream goal and a top-10 supporters view. Pro adds YouTube membership detection, a chat bot (up to 50 commands, still marked "Coming Soon" on the home page), stream widgets (goals, polls, timers) and loyalty tracking. "Free until June 2026" is still shown and is stale. The home page now lists custom alert themes and a smart stream recap.
+- StreamTipz (`streamtipz.in`): still 5% on merchant UPI and 7% on personal Amazon Pay UPI, paid from prepaid tokens (1 token = ₹1); says money is never held in escrow. New: BharatPe route, an OBS custom activity dock, supporter receipts (merchant plan only), and a claim of Streamlabs and StreamElements integration. A rival's blog lists ₹149 to ₹399 a month plans for it; that contradicts its own page, so treat it as unreliable.
+- HyperChat: only search snippets (a "Hyperpoints" rewards scheme). Fees and payouts not verified.
+
+### New competitors
+
+- Tips On Stream (`tipsonstream.in`): flat 10%, weekly Sunday payouts, UPI, cards, net banking and PayPal, goal widgets, moderation, TTS.
+- StreamDono (`streamdono.in`): Razorpay; 5% for the first 30 days, then 10%; alerts with TTS, soundboard, goals, leaderboards.
+- SuperStreamer (`superstreamer.in`): Starter ₹0 at 8% plus 2% processing; Premium ₹749 a month at 5% plus 2%; Ultra ₹2,499 a month at 2% plus 2%; payouts about 2 working days; 69 overlays; its own keep-rate figures contradict each other.
+- Stream Alert (`streamalert.in`): an Android app that reads UPI notifications, 0% commission, ₹49 to ₹499 a month, Indic TTS, viewer GIF, voice note or video with approval through Discord, Telegram or web. Its 12,500+ streamers is its own unverified claim.
+- StreamerHub (`streamerhub.in`): direct UPI at 0%, optional Razorpay tipping at 5%, free plan and ₹99 Pro, StreamElements and Streamlabs mirroring; the page contradicts itself on some counts.
+
+
+- Behind on the headline fee against the direct-UPI and subscription models (0% to 5%). Freetip's 5% plus 2.75% is 7.75%. Ahead of the 10% sites. Against SuperStreamer it is better only than Starter (10%); Premium is 7% and Ultra 4%. So any "lowest total cost" claim would be false; the public pages make none and must not start.
+- Ahead: no fan email, UPI and card in one flow, one flat fee with no subscription, Hinglish and regional voices, overlay variety (except SuperStreamer), the page builder.
+- Payout timing: others publish 2 to 3 business days or a weekly day; Freetip promises none (honest, weaker as a pitch; the owner decided this on 2026-10-25).
+- Worth considering: approving tips from Discord or Telegram (approve-before-play exists; only the channel is new). Streamlabs and StreamElements mirroring exists for Streamlabs.
+- Not worth building now: viewer voice-note or video tips (moderation and storage cost; the owner dropped voice notes), chat bots and polls (a different product), membership detection, PayPal and international tips (touches payout rules).

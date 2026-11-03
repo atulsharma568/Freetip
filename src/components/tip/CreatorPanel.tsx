@@ -91,7 +91,7 @@ export function CreatorPanel({
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}
-          {bio && <p className="text-pretty text-lg text-muted">{bio}</p>}
+          {bio && <p className="text-pretty text-lg text-muted [overflow-wrap:anywhere]">{bio}</p>}
         </div>
       </div>
       <ul className="divide-y divide-line/60 rounded-[var(--radius-surface)] border border-line/60">

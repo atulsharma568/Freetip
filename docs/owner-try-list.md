@@ -107,3 +107,27 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 - [ ] Tick two or three creators on `/admin/fees` and use "Apply these rates" then "Put back on the site rates": do the counts in the message and the Audit log match?
 - [ ] Decide the public wording: home, pricing and terms say "5% of every tip". With custom rates that is the standard rate, not everyone's. Say if you want it changed to "standard".
 
+
+## Polish pass after the page builder (2026-11-03)
+
+None of this has been seen in a browser with a real login or in real OBS.
+
+- [ ] Alert box, real OBS: send two tips close together, then press Skip on the dashboard while the first is on screen. Does the first one go away at once (not the second)? Press Test alert while one is on screen: does the test queue behind it?
+- [ ] Alert box, real OBS: replace the alert link in the dashboard while the old OBS source is still running, then wait a minute. Does the old source show the "no longer valid" banner and stay quiet, and does it show alerts again if the link comes back? Is the old banner too loud on a live stream?
+- [ ] OBS alert animations: do slide, zoom and bounce still move (not only fade) in the OBS version your creators run? (OBS 28 to 30 may be too old for them; if they only fade, say so.)
+- [ ] Leave an OBS overlay open for an hour: is there any lag, fan noise or climbing CPU? (The site's smooth-scroll loop and sign-in check no longer run on overlay pages.)
+- [ ] Break an overlay on purpose (a bad token inside the page does not count; a render error does): does it stay empty and recover by itself within seconds instead of putting the site's error page over the stream? Hard to cause; skip if you cannot.
+- [ ] Tip page on a real phone: tick nothing and look under the Tip button. Does it say "Tick the box above to send your tip." and is the Tip button greyed out? Tick it and make a real small tip: does the payment window open noticeably faster than before (the payment script now loads when you tick)?
+- [ ] Tip page: put a GIF or WebM in a streamer's pick, open it with the phone's reduced-motion or data-saver setting on. Does the pick show a still icon instead of moving?
+- [ ] Tip page for `acepressure`: share the link in WhatsApp. Does the preview image say AcePressure in red (not the Google name)? Same for a highlights page link.
+- [ ] Tip page loading: throttle the network in the browser (Slow 3G) and reload. Does the grey placeholder match the real page's width and not jump when the page arrives?
+- [ ] Dashboard, Streamlabs: connect a Streamlabs account, then untick the Streamlabs switch for that creator in `/admin/creators/<id>`. Does the creator still reach `/dashboard/streamlabs` by its address and see only a Disconnect button? After disconnecting, does it go back to the overview?
+- [ ] Dashboard, Timestamps: do Disconnect YouTube, Disconnect Discord, Remove the link and Remove the token each ask first, and does the page keep other half-typed fields (the webhook box) instead of reloading?
+- [ ] Dashboard, Banner: press "Use my YouTube photo" on a phone. Does the answer appear under the button, not in the banner tile above?
+- [ ] Dashboard, Pinned: does Save answer under the Save button, and Take down now answer in the list tile? Does a pinned message show only "Pinned now" with no stale second count?
+- [ ] Dashboard, Rules: with no sounds, does the Save rule button say why it is greyed out?
+- [ ] Admin: Reset to pending on a suspended creator asks first (with an optional reason); an absurdly large creator number in the address shows "not found", not an error.
+- [ ] Admin, handle requests: approve a request, then look at the creator's handle in Neon. (A crash between the rename and the mark is fixed in code and tested, but never seen for real.)
+- [ ] Sign in with a second, non-owner Google account. `/admin/creators/<id>/page`, `/overlays` and `/page-preview/<id>` must show a 404, and a POST to `/api/page-assets/upload` must return 403. Signed out goes to the sign-in page.
+- [ ] Page and overlay editors: type a change and close the tab, or follow a link inside the site, before "Draft saved" shows. Does the change survive? After Publish, does "Swap with previous version" appear at once in the overlay editor (no reload), and is it greyed out while a change is unsaved?
+- [ ] "Revert to published" when nothing was ever published. Publish refused when a picture was taken down in `/admin/media` meanwhile.

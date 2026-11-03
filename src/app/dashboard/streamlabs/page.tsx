@@ -44,7 +44,9 @@ export default async function StreamlabsPage({ searchParams }: { searchParams: P
     { id: string; handle: string | null; paid_features: string[] | null; creator_status: string }[]
   >`select id::text, handle, paid_features, creator_status from users where google_id = ${googleId}`;
   if (!user?.handle) redirect("/dashboard");
-  if (!planFeatures(user).streamlabs) redirect("/dashboard");
+  // Switched off: the page is for nothing but taking a saved connection away, so it opens only
+  // when there is one (a creator can always remove what we hold, whatever the switch says).
+  const switchedOff = !planFeatures(user).streamlabs;
 
   let migrated = true;
   let state: StreamlabsState = {
@@ -63,6 +65,8 @@ export default async function StreamlabsPage({ searchParams }: { searchParams: P
     migrated = false;
   }
 
+  if (switchedOff && !(migrated && state.connected)) redirect("/dashboard");
+
   const sl = (await searchParams).sl;
   const notice = sl ? NOTICES[sl] : undefined;
 
@@ -73,13 +77,14 @@ export default async function StreamlabsPage({ searchParams }: { searchParams: P
         <div className="space-y-3">
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Streamlabs</h1>
           <p className="text-muted">
-            Connect your own Streamlabs account and each paid tip also shows as an alert in your Streamlabs alert box,
-            with the fan&apos;s name, the amount and their message.
+            {switchedOff
+              ? "Streamlabs alerts are switched off for your account, so nothing is sent. Your saved sign-in is still with us until you disconnect it below."
+              : "Connect your own Streamlabs account and each paid tip also shows as an alert in your Streamlabs alert box, with the fan's name, the amount and their message."}
           </p>
         </div>
 
         {!migrated ? (
-          <Msg kind="error" text="Not ready yet: run db/migrations/0041_streamlabs.sql in Neon." />
+          <Msg kind="error" text="This is not available right now. Try again later." />
         ) : (
           <>
             <Msg kind={notice ? (notice.ok ? "ok" : "error") : undefined} text={notice?.text} />
@@ -101,7 +106,8 @@ export default async function StreamlabsPage({ searchParams }: { searchParams: P
                 )}
                 {state.lastError && <p className="text-sm text-muted">Last problem: {state.lastError}</p>}
                 <StreamlabsManager
-                  available={streamlabsConfigured()}
+                  available={streamlabsConfigured() && !switchedOff}
+                  switchedOff={switchedOff}
                   connected={state.connected}
                   reconnectNeeded={state.reconnectNeeded}
                 />

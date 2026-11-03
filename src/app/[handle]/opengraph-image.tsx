@@ -2,6 +2,8 @@ import { OG_SIZE, OG_TYPE, renderOg } from "@/lib/og";
 import { SITE_HOST, SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
 import { safeAccent } from "@/lib/accent";
+import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { ownerPageDoc } from "@/lib/page-doc/defaults";
 import { getCreator, getCreatorAccent } from "./creator";
 
 export const alt = `Tip a creator on ${SITE_NAME}`;
@@ -24,8 +26,10 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
     });
   }
 
-  const name = (creator.display_name ?? creator.name ?? handle).slice(0, 40);
-  const accent = safeAccent(await getCreatorAccent(handle));
+  // The owner's own page carries the brand name and red, as the page itself does.
+  const owner = isOwnerTipPage(handle, creator.google_id);
+  const name = (owner ? ownerBrand() : (creator.display_name ?? creator.name ?? handle)).slice(0, 40);
+  const accent = safeAccent(owner ? ownerPageDoc().theme.accent : await getCreatorAccent(handle));
   return renderOg({
     accent,
     lines: [{ text: "Tip" }, { text: name, accent: true }],

@@ -154,7 +154,7 @@ export function SuccessScreen({
               ref={heading}
               tabIndex={-1}
               data-pop
-              className="text-xl font-semibold outline-none sm:text-2xl"
+              className="text-xl font-semibold outline-none [overflow-wrap:anywhere] sm:text-2xl"
             >
               <span className="sr-only">₹{rupeeText(rupees)}. </span>
               Sent to {displayName}!
