@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/PageShell";
 import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
-import { MIN_TIP_PAISE } from "@/lib/money";
 import { fixturesEnabled } from "@/lib/page-fixtures";
-import { ownerBrand } from "@/lib/owner-page";
 import { findBlock } from "@/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { pageDocOrDefault } from "@/lib/page-doc/parse";
 import { themeFor } from "@/lib/page-doc/theme";
-import { TipPageView, type TipPageData } from "../../[handle]/TipPageView";
+import { TipPageView } from "../../[handle]/TipPageView";
+import { fixtureData } from "./fixture-data";
 import { SuccessFixture } from "./SuccessFixture";
 
 // A test-only tip page with a made-up creator, so the browser tests can look at the real page
@@ -43,32 +42,6 @@ export default async function TipFixturePage({ searchParams }: Props) {
     );
   }
 
-  const data: TipPageData = {
-    handle: "samplecreator",
-    displayName: owner ? ownerBrand() : "Sample Creator",
-    doc,
-    storedAccent: null,
-    pictureUrl: "/owner/kitsune.svg",
-    bannerUrl: null,
-    ytChannelName: "Sample Channel",
-    ytChannelUrl: "https://www.youtube.com/@samplechannel",
-    minTipPaise: Number.isInteger(Number(min)) && Number(min) >= 1 ? Number(min) * 100 : MIN_TIP_PAISE,
-    messageMaxChars: 100,
-    bio: "Streams games and chats with the crew most evenings.",
-    alertMode: "split",
-    sounds: [
-      { id: 1, name: "Airhorn", emoji: "📣", minPaise: 2000, url: "/fixture/airhorn.mp3" },
-      { id: 2, name: "Applause", emoji: "👏", minPaise: 5000, url: "/fixture/applause.mp3" },
-      { id: 3, name: "Fanfare", emoji: "🎺", minPaise: 20000, url: "/fixture/fanfare.mp3" },
-    ],
-    rules: [
-      { id: 1, minPaise: 10000, media: null, sound: { url: "/fixture/pick-one.mp3", name: "Pick one" }, staySeconds: null },
-      { id: 2, minPaise: 50000, media: null, sound: { url: "/fixture/pick-two.mp3", name: "Pick two" }, staySeconds: 12 },
-    ],
-    voiceMinPaise: 5000,
-    pinOffer: { minPaise: 20000, seconds: 30 },
-    previewMode: false,
-    editing: editing === "1",
-  };
+  const data = fixtureData(owner, doc, { editing: editing === "1", min });
   return <TipPageView data={data} />;
 }
