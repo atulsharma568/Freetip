@@ -69,7 +69,15 @@
     - radio "₹500 plays Pick two"
   - heading "Send" [level=2]
   - paragraph: Pay with UPI or a card. You pay exactly the tip, and no account or email is needed.
-  - button "Tip ₹20"
+  - checkbox "I understand this tip is final and non-refundable once shown on stream to Sample Creator (payment errors are still put right). I agree to the Terms & Refund Policy."
+  - text: I understand this tip is final and non-refundable once shown on stream to Sample Creator (payment errors are still put right). I agree to the
+  - link "Terms":
+    - /url: /terms
+  - text: "&"
+  - link "Refund Policy":
+    - /url: /refunds
+  - text: .
+  - button "Tip ₹20" [disabled]
 - contentinfo:
   - paragraph:
     - text: Powered by

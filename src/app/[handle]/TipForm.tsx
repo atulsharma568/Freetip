@@ -157,6 +157,8 @@ export function TipForm({
   const [extra, setExtra] = useState<Extra>({ kind: "default" });
   // Ask for the message to be pinned on stream (only when the creator offers it).
   const [pin, setPin] = useState(false);
+  // The "tip is final, I agree to the Terms and Refund Policy" box; never pre-ticked.
+  const [agreed, setAgreed] = useState(false);
   // A short, debounced sentence for screen readers when the amount changes.
   const [announce, setAnnounce] = useState("");
 
@@ -222,6 +224,7 @@ export function TipForm({
     !previewMode &&
     amountPaise >= minTipPaise &&
     !extraBlocked &&
+    agreed &&
     (phase === "idle" || phase === "error");
 
   function say(rupees: number) {
@@ -292,6 +295,7 @@ export function TipForm({
           voice: extra.kind === "voice",
           ruleId: extra.kind === "rule" ? extra.id : null,
           pin: pinOffer !== null && pin,
+          agreed,
         },
       );
     } catch {
@@ -437,6 +441,8 @@ export function TipForm({
     errorMsg,
     closed,
     extraBlocked,
+    agreed,
+    setAgreed,
     handlePay,
   };
 

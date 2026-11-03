@@ -3,7 +3,7 @@
 import { randomBytes } from "crypto";
 import { getDb } from "@/lib/db";
 import { clientIp, ipKey, takeAttempt } from "@/lib/rate-limit";
-import { tipExtraColumns, type TipExtras } from "@/lib/tip-extras";
+import { agreementError, tipExtraColumns, type TipExtras } from "@/lib/tip-extras";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
@@ -58,6 +58,8 @@ export async function createTipOrder(
   const soundId = extras.soundId ?? null;
   const voice = extras.voice ?? false;
   const ruleId = extras.ruleId ?? null;
+  const notAgreed = agreementError(extras);
+  if (notAgreed) return { status: "error", message: notAgreed };
   if (!Number.isInteger(amountPaise) || amountPaise < 100) {
     return { status: "error", message: "Invalid tip amount" };
   }

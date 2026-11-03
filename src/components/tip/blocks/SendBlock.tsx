@@ -24,6 +24,8 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
     minTipPaise,
     minRupees,
     extraBlocked,
+    agreed,
+    setAgreed,
     handlePay,
     editing,
   } = useTipForm();
@@ -45,12 +47,34 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
 
       {phase === "error" && <FieldNote>{errorMsg}</FieldNote>}
 
+      <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          disabled={previewMode}
+          className="mt-0.5 size-5 shrink-0 cursor-pointer accent-[var(--color-accent)]"
+        />
+        <span>
+          I understand this tip is final and non-refundable once shown on stream to {displayName} (payment errors are
+          still put right). I agree to the{" "}
+          <Link href="/terms" target="_blank" className="text-text underline decoration-line hover:decoration-accent">
+            Terms
+          </Link>{" "}
+          &amp;{" "}
+          <Link href="/refunds" target="_blank" className="text-text underline decoration-line hover:decoration-accent">
+            Refund Policy
+          </Link>
+          .
+        </span>
+      </label>
+
       <div>
         <Magnetic className="w-full" strength={0.1}>
           <button
             type="button"
             onClick={handlePay}
-            disabled={previewMode || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
+            disabled={previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
             aria-busy={phase === "creating"}
             className="beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-[opacity,transform] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >

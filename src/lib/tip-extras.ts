@@ -13,7 +13,16 @@ export type TipExtras = {
   // The creator's alert rule (GIF and/or sound at a fixed amount) the fan tapped; excludes a
   // message, a sound and the voice, and is checked on the server.
   ruleId?: number | null;
+  // The fan ticked the box saying the tip is final and agreeing to the Terms and Refund Policy;
+  // the server refuses an order without it.
+  agreed?: boolean;
 };
+
+// The refusal for an order whose fan did not tick the "tip is final" box, or null when they did.
+// Only a real `true` counts, so a missing, false or stringly value from a script is refused.
+export function agreementError(extras: TipExtras): string | null {
+  return extras.agreed === true ? null : "Please tick the box to confirm you understand this tip is final.";
+}
 
 // The tip_orders columns the extras set. Pure, so the shape is easy to test.
 export function tipExtraColumns(e: {

@@ -82,6 +82,8 @@ export interface TipFormState {
   errorMsg: string;
   closed: boolean;
   extraBlocked: boolean;
+  agreed: boolean;
+  setAgreed: (on: boolean) => void;
   handlePay: () => Promise<void>;
 }
 

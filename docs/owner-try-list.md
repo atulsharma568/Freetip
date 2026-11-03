@@ -82,3 +82,9 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 - [ ] Open the editor in two tabs, change something in one, then the other: does the second say the overlays were changed somewhere else and refuse to overwrite?
 - [ ] Press Test alert several times: does a real alert ever reach the creator's OBS? (It must not.)
 - [ ] Audit log: one `creator.overlay_published` row per Publish and one `creator.overlay_swapped` per Swap.
+
+## The "tip is final" tick box (2026-11-03)
+
+- [ ] Open a creator's tip page on a real phone: is there a tick box above the Tip button, never pre-ticked, with working Terms and Refund Policy links (they open in a new tab)? Is the Tip button greyed out until you tick it?
+- [ ] Tick it and make a real small tip through Razorpay: does the payment open and the tip arrive as before? Untick after a failed payment: does the button grey out again?
+- [ ] Look at the box on the owner page (`acepressure`) and in the editor preview (the box should be disabled there, and the preview says payments are off).
