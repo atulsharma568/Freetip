@@ -68,6 +68,9 @@ export const LIMITS = {
   successLine: 40,
 } as const;
 
+// The Instagram handle that may go into a link: letters, digits, dots and underscores only.
+export const INSTAGRAM_PATTERN = new RegExp(`^[A-Za-z0-9._]{1,${LIMITS.instagram}}$`);
+
 export function isBlockType(value: unknown): value is BlockType {
   return typeof value === "string" && (BLOCK_TYPES as readonly string[]).includes(value);
 }

@@ -1,5 +1,5 @@
 import { inkFor, pairChecks } from "../accent";
-import { ALLOWED_SLOTS, BLOCK_LABELS, LIMITS, PROTECTED, defaultSettings, isBlockType } from "./blocks";
+import { ALLOWED_SLOTS, BLOCK_LABELS, INSTAGRAM_PATTERN, LIMITS, PROTECTED, defaultSettings, isBlockType } from "./blocks";
 import { PAGE_DOC_VERSION, type Block, type BlockType, type Ladder, type PageDoc, type SettingsByType, type Slot, type Theme } from "./types";
 
 // The one place a stored page document is read. It never throws and never gives back something a
@@ -18,7 +18,6 @@ export interface ParsedPage {
 }
 
 const HEX = /^#[0-9a-f]{6}$/;
-const INSTAGRAM = new RegExp(`^[A-Za-z0-9._]{1,${LIMITS.instagram}}$`);
 const CONTROL = /[\u0000-\u001f\u007f]/g;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -79,7 +78,7 @@ const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes)
   backdrop: () => ({ style: "ember" }),
   header: () => ({}),
   creatorLinks: (raw, notes) => {
-    const instagram = typeof raw.instagram === "string" && INSTAGRAM.test(raw.instagram) ? raw.instagram : "";
+    const instagram = typeof raw.instagram === "string" && INSTAGRAM_PATTERN.test(raw.instagram) ? raw.instagram : "";
     if (raw.instagram !== undefined && raw.instagram !== "" && !instagram) notes.add("The Instagram handle was not valid and was removed.");
     return { tagline: cleanText(raw.tagline, LIMITS.tagline, notes, "The tagline"), instagram };
   },
