@@ -22,6 +22,8 @@ export interface TipFormState {
   ytChannelUrl: string | null;
   bio: string | null;
   previewMode: boolean;
+  // True only in the owner's editor preview: blocks then carry `data-block-id` so a click can pick one.
+  editing: boolean;
 
   // The amount.
   presets: number[];
@@ -74,6 +76,9 @@ export interface TipFormState {
   extraBlocked: boolean;
   handlePay: () => Promise<void>;
 }
+
+// The attribute that lets the editor preview tell which block was clicked. Nothing on the real page.
+export const blockAttrs = (editing: boolean, id: string) => (editing ? { "data-block-id": id } : {});
 
 const TipFormContext = createContext<TipFormState | null>(null);
 

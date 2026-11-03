@@ -12,21 +12,23 @@ export function PressureBar({
   amountRupees,
   minRupees,
   ladder,
+  label = "Pressure",
 }: {
   amountRupees: number;
   minRupees: number;
   ladder: Ladder;
+  label?: string;
 }) {
   const f = ladderFraction(amountRupees, minRupees, ladder.topRupees);
   const level = ladderLevel(f, ladder.levels);
   return (
     <div
       role="img"
-      aria-label={`Pressure: ${level}, ₹${amountRupees.toLocaleString("en-IN")}`}
+      aria-label={`${label}: ${level}, ₹${amountRupees.toLocaleString("en-IN")}`}
       className="flex items-center gap-3 pt-1"
     >
-      <span aria-hidden="true" className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted">
-        Pressure
+      <span aria-hidden="true" className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted [overflow-wrap:anywhere]">
+        {label}
       </span>
       <span aria-hidden="true" className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line/60">
         <span
@@ -42,9 +44,10 @@ export function PressureBar({
 }
 
 // The line under the form card, like the strip at the bottom of the stream screens.
-export function OwnerStrip({ left, right }: { left: string; right: string }) {
+export function OwnerStrip({ left, right, blockId }: { left: string; right: string; blockId?: string }) {
   return (
     <p
+      data-block-id={blockId}
       className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line/60 pt-3 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted [overflow-wrap:anywhere]"
     >
       <span>{left}</span>
@@ -55,10 +58,10 @@ export function OwnerStrip({ left, right }: { left: string; right: string }) {
 
 // Under the creator column: a small line of words and an Instagram link. The link is built from
 // the handle alone (the parser only lets a plain handle through), never from a typed address.
-export function OwnerLinks({ tagline, instagram }: { tagline: string; instagram: string }) {
+export function OwnerLinks({ tagline, instagram, blockId }: { tagline: string; instagram: string; blockId?: string }) {
   if (!tagline && !instagram) return null;
   return (
-    <div className="space-y-2 px-1">
+    <div data-block-id={blockId} className="space-y-2 px-1">
       {tagline && (
         <p className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-muted [overflow-wrap:anywhere]">
           <span aria-hidden="true" className="h-px w-6 bg-accent" />

@@ -4,13 +4,14 @@ import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
 import { FieldNote } from "@/components/tip/FieldNote";
 import { StepHeading } from "@/components/tip/StepHeading";
-import { useTipForm } from "@/components/tip/TipFormContext";
+import { blockAttrs, useTipForm } from "@/components/tip/TipFormContext";
+import type { Block } from "@/lib/page-doc/types";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { TickLoader } from "@/components/ui/TickLoader";
 
 // Step 3: the Pay button. What the button does, when it is blocked and its states are the form's.
-export function SendBlock() {
+export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
   const {
     message,
     closed,
@@ -24,11 +25,12 @@ export function SendBlock() {
     minRupees,
     extraBlocked,
     handlePay,
+    editing,
   } = useTipForm();
 
   return (
-    <div className="space-y-4">
-      <StepHeading n={3} title="Send" />
+    <div className="space-y-4" {...blockAttrs(editing, block.id)}>
+      <StepHeading n={n} title={block.settings.heading || "Send"} />
       <p className="text-sm text-muted">
         Pay with UPI or a card. You pay exactly the tip, and no account or email is needed.
       </p>
@@ -63,7 +65,7 @@ export function SendBlock() {
               "Tip (preview only)"
             ) : (
               <>
-                <RollText>{`Tip ₹${amountRupees || "—"}`}</RollText>
+                <RollText>{`${block.settings.buttonLabel || "Tip"} ₹${amountRupees || "—"}`}</RollText>
                 <ArrowRight weight="bold" aria-hidden="true" />
               </>
             )}

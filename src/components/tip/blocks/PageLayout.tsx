@@ -2,7 +2,7 @@
 
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import type { Block, PageDoc, Slot } from "@/lib/page-doc/types";
-import { useTipForm } from "@/components/tip/TipFormContext";
+import { blockAttrs, useTipForm } from "@/components/tip/TipFormContext";
 import { AlertPreviewBlock } from "./AlertPreviewBlock";
 import { AmountBlock } from "./AmountBlock";
 import { CreatorLinksBlock } from "./CreatorLinksBlock";
@@ -18,12 +18,15 @@ const step = (i: number) => ({ "--i": i }) as CSSProperties;
 // whatever sits under the card. Each section keeps the wrappers it had before the page was
 // drawn from blocks, so the DOM order, the tab order and the entrance order are the same.
 export function PageLayout({ doc }: { doc: PageDoc }) {
-  const { announce } = useTipForm();
+  const { announce, editing } = useTipForm();
   const inSlot = (slot: Slot) => doc.blocks.filter((b) => b.slot === slot && b.visible);
   const side = inSlot("side");
   const main = inSlot("main");
   const bottom = inSlot("bottom");
   const preview = side.find((b): b is Block<"alertPreview"> => b.type === "alertPreview");
+  // The three steps are numbered in the order they sit on the page, so a reordered form still
+  // reads 1, 2, 3. (They are protected, so all three are always there.)
+  const stepOf = (id: string) => main.filter((b) => b.type === "amount" || b.type === "note" || b.type === "send").findIndex((b) => b.id === id) + 1;
 
   const sideNodes: ReactNode[] = [];
   for (let i = 0; i < side.length; i++) {
@@ -35,9 +38,9 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
         const links = next?.type === "creatorLinks" ? next : null;
         if (links) i++;
         sideNodes.push(
-          <div key={block.id} className="enter space-y-5" style={step(0)}>
+          <div key={block.id} className="enter space-y-5" style={step(0)} {...blockAttrs(editing, block.id)}>
             <HeaderBlock />
-            {links && <CreatorLinksBlock block={links} />}
+            {links && <CreatorLinksBlock block={links} editing={editing} />}
           </div>,
         );
         break;
@@ -45,20 +48,20 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
       case "creatorLinks":
         sideNodes.push(
           <div key={block.id} className="enter space-y-5" style={step(0)}>
-            <CreatorLinksBlock block={block} />
+            <CreatorLinksBlock block={block} editing={editing} />
           </div>,
         );
         break;
       case "alertPreview":
         sideNodes.push(
-          <section key={block.id} className="enter hidden space-y-3 lg:block" style={step(2)} aria-label="Alert preview">
-            <AlertPreviewBlock />
+          <section key={block.id} className="enter hidden space-y-3 lg:block" style={step(2)} aria-label="Alert preview" {...blockAttrs(editing, block.id)}>
+            <AlertPreviewBlock block={block} />
           </section>,
         );
         break;
       case "qr":
         sideNodes.push(
-          <div key={block.id} className="enter hidden lg:block" style={step(3)}>
+          <div key={block.id} className="enter hidden lg:block" style={step(3)} {...blockAttrs(editing, block.id)}>
             <QrBlock />
           </div>,
         );
@@ -85,26 +88,26 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
               case "amount":
                 return (
                   <Fragment key={block.id}>
-                    <AmountBlock block={block} />
+                    <AmountBlock block={block} n={stepOf(block.id)} />
                     {/* The alert as it will look, between the amount and the note on phones */}
                     {preview && (
-                      <section className="space-y-3 lg:hidden" aria-label="Alert preview">
-                        <AlertPreviewBlock />
+                      <section className="space-y-3 lg:hidden" aria-label="Alert preview" {...blockAttrs(editing, preview.id)}>
+                        <AlertPreviewBlock block={preview} />
                       </section>
                     )}
                   </Fragment>
                 );
               case "note":
-                return <NoteBlock key={block.id} />;
+                return <NoteBlock key={block.id} block={block} n={stepOf(block.id)} />;
               case "send":
-                return <SendBlock key={block.id} />;
+                return <SendBlock key={block.id} block={block} n={stepOf(block.id)} />;
               default:
                 return null;
             }
           })}
         </div>
       </div>
-      {bottom.map((block) => (block.type === "strip" ? <StripBlock key={block.id} block={block} /> : null))}
+      {bottom.map((block) => (block.type === "strip" ? <StripBlock key={block.id} block={block} editing={editing} /> : null))}
     </>
   );
 }

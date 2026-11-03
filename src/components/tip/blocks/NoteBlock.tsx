@@ -3,12 +3,13 @@
 import { ExtraPicker } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
 import { StepHeading } from "@/components/tip/StepHeading";
-import { useTipForm } from "@/components/tip/TipFormContext";
+import { blockAttrs, useTipForm } from "@/components/tip/TipFormContext";
+import type { Block } from "@/lib/page-doc/types";
 import { Switch } from "@/components/ui/Switch";
 
 // Step 2: name, message, the pin offer and the extras (picks, soundboard, voice). The message
 // limit, the anonymous option and what the extras need all come from the form, not the document.
-export function NoteBlock() {
+export function NoteBlock({ block, n }: { block: Block<"note">; n: number }) {
   const {
     anonymous,
     setAnonymous,
@@ -38,12 +39,13 @@ export function NoteBlock() {
     voiceTooPricey,
     amountPaise,
     displayName,
+    editing,
   } = useTipForm();
   const nearLimit = message.length >= messageLimit - 20;
 
   return (
-    <div className="space-y-4">
-      <StepHeading n={2} title="Your note" />
+    <div className="space-y-4" {...blockAttrs(editing, block.id)}>
+      <StepHeading n={n} title={block.settings.heading || "Your note"} />
       <div className="flex items-center gap-3">
         <Switch id="anon-toggle" checked={anonymous} onChange={setAnonymous} />
         <label htmlFor="anon-toggle" className="cursor-pointer select-none text-sm text-text">
@@ -60,7 +62,7 @@ export function NoteBlock() {
           maxLength={50}
           value={tipName}
           onChange={(e) => changeName(e.target.value)}
-          placeholder={anonymous ? "Hidden" : "Riya, Kabir…"}
+          placeholder={anonymous ? "Hidden" : block.settings.namePlaceholder || "Riya, Kabir…"}
           disabled={anonymous}
           autoComplete="off"
           className="h-12 w-full rounded-[var(--radius-field)] border border-control bg-ground px-4 text-base text-text transition-[border-color,opacity] duration-200 placeholder:text-muted focus:border-accent disabled:opacity-40"
@@ -84,7 +86,7 @@ export function NoteBlock() {
           rows={3}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={rulePicked ? "Not needed with a streamer's pick" : "Great stream today!"}
+          placeholder={rulePicked ? "Not needed with a streamer's pick" : block.settings.messagePlaceholder || "Great stream today!"}
           disabled={rulePicked}
           className="w-full resize-none rounded-[var(--radius-field)] border border-control bg-ground px-4 py-3 text-base text-text transition-[border-color,opacity] placeholder:text-muted focus:border-accent disabled:opacity-40"
         />

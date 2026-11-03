@@ -22,6 +22,7 @@ export function OwnerSuccess({
   pinned,
   reference,
   onAgain,
+  line,
 }: {
   amountPaise: number;
   displayName: string;
@@ -32,6 +33,8 @@ export function OwnerSuccess({
   pinned: boolean;
   reference: string;
   onAgain: () => void;
+  // The small line at the bottom; empty or missing is the standard wording.
+  line?: string;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [notice, setNotice] = useState("");
@@ -87,7 +90,7 @@ export function OwnerSuccess({
         <p className="max-w-[34ch] text-pretty text-base text-muted">
           {tipThanksLine(anonymous, alertMessage, alertMode, pinned)}
         </p>
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted">Thanks for hanging out.</p>
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted [overflow-wrap:anywhere]">{line || "Thanks for hanging out."}</p>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
           <button type="button" onClick={onAgain} className={`${pill} border-2 border-accent text-accent hover:bg-accent hover:text-ink`}>
             <ArrowCounterClockwise weight="bold" aria-hidden="true" />

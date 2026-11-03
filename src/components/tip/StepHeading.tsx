@@ -9,7 +9,7 @@ export function StepHeading({ n, title }: { n: number; title: string }) {
       >
         {n}
       </span>
-      <h2 className="text-lg font-semibold text-text">{title}</h2>
+      <h2 className="min-w-0 text-lg font-semibold text-text [overflow-wrap:anywhere]">{title}</h2>
       <span aria-hidden="true" className="h-px flex-1 bg-line/60" />
     </div>
   );

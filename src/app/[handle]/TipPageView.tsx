@@ -31,6 +31,8 @@ export interface TipPageData {
   voiceMinPaise: number | null;
   pinOffer: PinOffer | null;
   previewMode: boolean;
+  // The owner's editor preview only: blocks carry `data-block-id`.
+  editing?: boolean;
 }
 
 export function TipPageView({ data }: { data: TipPageData }) {
@@ -58,6 +60,7 @@ export function TipPageView({ data }: { data: TipPageData }) {
           alertMode={data.alertMode}
           pinOffer={data.pinOffer}
           previewMode={data.previewMode}
+          editing={data.editing}
         />
       </div>
     </PageShell>

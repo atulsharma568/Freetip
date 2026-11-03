@@ -103,6 +103,8 @@ interface Props {
   // How the creator plays alerts, so the success screen only promises what will happen.
   alertMode?: AlertMode;
   previewMode?: boolean;
+  // The owner's editor preview: blocks are marked so a click can pick one. Never set on the real page.
+  editing?: boolean;
   // The creator lets a big enough tip pin its message on stream (paid highlighted messages).
   pinOffer?: PinOffer | null;
   // The page as a document of blocks (parsed already): what is on the page, in what order and
@@ -125,6 +127,7 @@ export function TipForm({
   voiceMinPaise,
   alertMode = "split",
   previewMode = false,
+  editing = false,
   pinOffer = null,
   doc,
   accent,
@@ -376,6 +379,7 @@ export function TipForm({
     ytChannelUrl,
     bio,
     previewMode,
+    editing,
     presets,
     minTipPaise,
     minRupees,

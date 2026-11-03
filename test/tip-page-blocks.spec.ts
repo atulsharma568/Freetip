@@ -200,3 +200,145 @@ test.describe("the tip page is drawn from its document", () => {
     await expect(page.getByRole("heading", { name: /^₹100\. Sent to/ })).toBeVisible();
   });
 });
+
+// Page builder phase 2: the words a block may change, step numbers that follow the order, and the
+// marks the editor preview uses to tell which block was clicked.
+const stepNumber = (page: Page, title: string) =>
+  page.getByRole("heading", { name: title, level: 2 }).locator("xpath=preceding-sibling::span[1]");
+
+function withSettings(doc: PageDoc, type: Block["type"], patch: Record<string, unknown>): PageDoc {
+  return editBlock(doc, type, (b) => (b.settings = { ...b.settings, ...patch } as never));
+}
+
+function moveBefore(doc: PageDoc, type: Block["type"], before: Block["type"]): PageDoc {
+  const moved = doc.blocks.find((b) => b.type === type)!;
+  const rest = doc.blocks.filter((b) => b !== moved);
+  rest.splice(rest.findIndex((b) => b.type === before), 0, moved);
+  return { ...doc, blocks: rest };
+}
+
+test.describe("the words a block may change", () => {
+  test("each new word shows where the standard wording was", async ({ page }) => {
+    let doc = ownerPageDoc();
+    doc = withSettings(doc, "amount", { heading: "Pick a size", barLabel: "Heat" });
+    doc = withSettings(doc, "note", { heading: "Say hi", namePlaceholder: "Your crew name", messagePlaceholder: "Tell us a story" });
+    doc = withSettings(doc, "send", { heading: "Go", buttonLabel: "Boost" });
+    doc = withSettings(doc, "alertPreview", { label: "How it looks" });
+    await openFixture(page, docQuery("owner", doc), 1280);
+    await expect(page.getByRole("heading", { name: "Pick a size", level: 2 })).toBeVisible();
+    await expect(page.getByRole("img", { name: /^Heat: / })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Say hi", level: 2 })).toBeVisible();
+    await expect(page.getByPlaceholder("Your crew name")).toBeVisible();
+    await expect(page.getByPlaceholder("Tell us a story")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Go", level: 2 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Boost ₹/ })).toBeEnabled();
+    await expect(page.getByText("How it looks", { exact: true }).first()).toBeVisible();
+    // The standard words are gone, not shown beside the new ones.
+    await expect(page.getByRole("heading", { name: "Amount", level: 2 })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Tip ₹/ })).toHaveCount(0);
+  });
+
+  test("the button always shows the amount, whatever its word", async ({ page }) => {
+    await openFixture(page, docQuery("default", withSettings(defaultPageDoc(), "send", { buttonLabel: "Boost" })), 1280);
+    await page.locator("label", { hasText: "₹500" }).click();
+    await expect(page.getByRole("button", { name: "Boost ₹500" })).toBeEnabled();
+  });
+
+  test("the sign-off's small line follows the document", async ({ page }) => {
+    const doc = withSettings(ownerPageDoc(), "successScreen", { line: "See you at the next stream." });
+    await openFixture(page, `${docQuery("owner", doc)}&view=success`, 390);
+    await expect(page.getByText("See you at the next stream.")).toBeVisible();
+    await expect(page.getByText("Thanks for hanging out.")).toHaveCount(0);
+  });
+
+  test("a bar whose top is at or below the smallest tip is not drawn", async ({ page }) => {
+    // The smallest tip here is ₹500 and the ladder tops out at ₹100.
+    const doc = withSettings(ownerPageDoc(), "amount", {
+      ladder: { topRupees: 100, levels: [{ upTo: 0.5, name: "Low" }, { upTo: 1, name: "High" }] },
+    });
+    await openFixture(page, `${docQuery("owner", doc)}&min=500`, 1280);
+    await expect(page.getByRole("img", { name: /^Pressure:/ })).toHaveCount(0);
+    await openFixture(page, `${docQuery("owner", doc)}&min=20`, 1280);
+    await expect(page.getByRole("img", { name: /^Pressure:/ })).toBeVisible();
+  });
+
+  test("the longest words in every new field, with no spaces, do not make the page scroll sideways at 320px", async ({ page }) => {
+    const w = (n: number, c: string) => c.repeat(n);
+    let doc = ownerPageDoc();
+    doc = withSettings(doc, "amount", { heading: w(30, "A"), barLabel: w(16, "B") });
+    doc = withSettings(doc, "note", { heading: w(30, "C"), namePlaceholder: w(30, "D"), messagePlaceholder: w(60, "E") });
+    doc = withSettings(doc, "send", { heading: w(30, "F"), buttonLabel: w(12, "G") });
+    doc = withSettings(doc, "alertPreview", { label: w(30, "H") });
+    await openFixture(page, docQuery("owner", doc), 320);
+    await expect(page.getByRole("heading", { name: w(30, "A"), level: 2 })).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth })))
+      .toEqual({ viewport: 320, document: 320 });
+    const success = withSettings(ownerPageDoc(), "successScreen", { line: w(40, "T") });
+    await openFixture(page, `${docQuery("owner", success)}&view=success`, 320);
+    await expect
+      .poll(() => page.evaluate(() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth })))
+      .toEqual({ viewport: 320, document: 320 });
+  });
+});
+
+test.describe("the steps follow the order of the form", () => {
+  test("the standard order reads 1, 2, 3", async ({ page }) => {
+    await openFixture(page, "?page=default", 1280);
+    expect(await stepNumber(page, "Amount").textContent()).toBe("1");
+    expect(await stepNumber(page, "Your note").textContent()).toBe("2");
+    expect(await stepNumber(page, "Send").textContent()).toBe("3");
+  });
+
+  test("a reordered form is renumbered in the order it sits", async ({ page }) => {
+    const doc = moveBefore(defaultPageDoc(), "note", "amount");
+    await openFixture(page, docQuery("default", doc), 1280);
+    expect(await stepNumber(page, "Your note").textContent()).toBe("1");
+    expect(await stepNumber(page, "Amount").textContent()).toBe("2");
+    expect(await stepNumber(page, "Send").textContent()).toBe("3");
+    const note = await page.getByRole("heading", { name: "Your note", level: 2 }).boundingBox();
+    const amount = await page.getByRole("heading", { name: "Amount", level: 2 }).boundingBox();
+    expect(note!.y).toBeLessThan(amount!.y);
+  });
+
+  test("the links sit with the header only while they come straight after it", async ({ page }) => {
+    const split = moveBefore(ownerPageDoc(), "creatorLinks", "qr");
+    // Header, then the alert preview, then the links: the links are no longer beside the header.
+    const doc = { ...split, blocks: [...split.blocks.filter((b) => b.type !== "alertPreview" && b.type !== "creatorLinks")] } as PageDoc;
+    const at = doc.blocks.findIndex((b) => b.type === "header") + 1;
+    doc.blocks.splice(at, 0, ownerPageDoc().blocks.find((b) => b.type === "alertPreview")!, ownerPageDoc().blocks.find((b) => b.type === "creatorLinks")!);
+    await openFixture(page, docQuery("owner", doc), 1280);
+    const preview = await page.getByText("Preview on stream", { exact: true }).first().boundingBox();
+    const links = await page.getByText("Valorant / Live & Highlights").boundingBox();
+    expect(links!.y).toBeGreaterThan(preview!.y);
+  });
+});
+
+test.describe("the owner's editor preview marks the blocks", () => {
+  test("the real page carries no block marks", async ({ page }) => {
+    await openFixture(page, "?page=owner", 1280);
+    await expect(page.locator("[data-block-id]")).toHaveCount(0);
+    expect(await page.content()).not.toContain("data-block-id");
+  });
+
+  test("the preview marks every block that is on the page", async ({ page }) => {
+    await openFixture(page, "?page=owner&editing=1", 1280);
+    const ids = await page.locator("[data-block-id]").evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute("data-block-id")))]);
+    expect(ids.sort()).toEqual(["alertPreview", "amount", "creatorLinks", "header", "note", "qr", "send", "strip"]);
+  });
+
+  test("a click inside the links picks the links, and one in the photo picks the header", async ({ page }) => {
+    await openFixture(page, "?page=owner&editing=1", 1280);
+    const idAt = (selector: string) => page.locator(selector).first().evaluate((el) => el.closest("[data-block-id]")?.getAttribute("data-block-id"));
+    expect(await idAt('a[href*="instagram.com"]')).toBe("creatorLinks");
+    expect(await idAt("h1")).toBe("header");
+  });
+});
+
+test.describe("the page colours reach the page", () => {
+  test("the owner's red fills the Tip button", async ({ page }) => {
+    await openFixture(page, "?page=owner", 1280);
+    const colour = await page.getByRole("button", { name: /^Tip ₹/ }).evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(colour).toBe("rgb(202, 27, 25)");
+  });
+});

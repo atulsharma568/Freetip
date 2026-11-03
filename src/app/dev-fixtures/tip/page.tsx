@@ -14,17 +14,18 @@ import { SuccessFixture } from "./SuccessFixture";
 
 // A test-only tip page with a made-up creator, so the browser tests can look at the real page
 // components without a database. 404 unless PAGE_FIXTURES=1 (only the Playwright config sets it).
-//   /dev-fixtures/tip?page=default|owner&view=form|success&doc=<base64url text>
+//   /dev-fixtures/tip?page=default|owner&view=form|success&doc=<base64url text>&editing=1&min=<rupees>
+// `editing=1` marks the blocks as the owner's editor preview does; `min` sets the smallest tip.
 // `doc` is a page document as text (anything the parser takes); without one, or with one the
 // parser refuses, the page shows its own default document.
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tip page fixture", robots: { index: false, follow: false } };
 
-type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string }> };
+type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string; editing?: string; min?: string }> };
 
 export default async function TipFixturePage({ searchParams }: Props) {
   if (!fixturesEnabled()) notFound();
-  const { page, view, doc: rawDoc } = await searchParams;
+  const { page, view, doc: rawDoc, editing, min } = await searchParams;
   const owner = page === "owner";
   const fallback = owner ? ownerPageDoc() : defaultPageDoc();
   const doc = rawDoc ? pageDocOrDefault(Buffer.from(rawDoc, "base64url").toString("utf8"), fallback) : fallback;
@@ -51,7 +52,7 @@ export default async function TipFixturePage({ searchParams }: Props) {
     bannerUrl: null,
     ytChannelName: "Sample Channel",
     ytChannelUrl: "https://www.youtube.com/@samplechannel",
-    minTipPaise: MIN_TIP_PAISE,
+    minTipPaise: Number.isInteger(Number(min)) && Number(min) >= 1 ? Number(min) * 100 : MIN_TIP_PAISE,
     messageMaxChars: 100,
     bio: "Streams games and chats with the crew most evenings.",
     alertMode: "split",
@@ -67,6 +68,7 @@ export default async function TipFixturePage({ searchParams }: Props) {
     voiceMinPaise: 5000,
     pinOffer: { minPaise: 20000, seconds: 30 },
     previewMode: false,
+    editing: editing === "1",
   };
   return <TipPageView data={data} />;
 }

@@ -3,7 +3,7 @@
 import { PressureBar } from "@/components/tip/OwnerExtras";
 import { StepHeading } from "@/components/tip/StepHeading";
 import { rupeeText } from "@/components/tip/format";
-import { useTipForm } from "@/components/tip/TipFormContext";
+import { blockAttrs, useTipForm } from "@/components/tip/TipFormContext";
 import { tipTier } from "@/lib/tip-tier";
 import type { Block } from "@/lib/page-doc/types";
 
@@ -13,7 +13,7 @@ const chip =
 // Step 1: the amount box, the presets and the custom amount. The minimum, the presets and what a
 // pick does to the amount come from the form; the page document only says whether the rank bar
 // shows and what its words are.
-export function AmountBlock({ block }: { block: Block<"amount"> }) {
+export function AmountBlock({ block, n }: { block: Block<"amount">; n: number }) {
   const {
     amountRupees,
     amountPaise,
@@ -28,13 +28,18 @@ export function AmountBlock({ block }: { block: Block<"amount"> }) {
     pickPreset,
     changeCustom,
     chooseExtra,
+    editing,
   } = useTipForm();
   const digitCount = String(Math.trunc(amountRupees)).length;
   const customBelowMin = selected === "custom" && custom !== "" && amountPaise < minTipPaise;
 
+  const ladder = block.settings.ladder;
+  // A bar whose top is at or below the smallest tip would never move, so it is not drawn.
+  const showBar = ladder !== null && ladder.topRupees > minRupees;
+
   return (
-    <div className="space-y-4">
-      <StepHeading n={1} title="Amount" />
+    <div className="space-y-4" {...blockAttrs(editing, block.id)}>
+      <StepHeading n={n} title={block.settings.heading || "Amount"} />
       <div className="space-y-2 rounded-[var(--radius-surface)] bg-ground px-5 py-6 text-center">
         <p
           key={amountRupees}
@@ -50,8 +55,8 @@ export function AmountBlock({ block }: { block: Block<"amount"> }) {
           ₹{rupeeText(amountRupees)}
         </p>
         <p className="text-sm text-muted">{tipTier(amountRupees)}</p>
-        {block.settings.ladder && (
-          <PressureBar amountRupees={amountRupees} minRupees={minRupees} ladder={block.settings.ladder} />
+        {showBar && (
+          <PressureBar amountRupees={amountRupees} minRupees={minRupees} ladder={ladder} label={block.settings.barLabel || "Pressure"} />
         )}
       </div>
       <div onClickCapture={() => amountLocked && setLockWarning(true)} className="space-y-3">
