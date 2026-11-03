@@ -185,6 +185,10 @@ One paid switch, **YouTube banner on the tip page** (group "Tip page"), puts a b
 3. Tick the switch for a test creator. As that creator open `/dashboard/banner` and press **Use my YouTube banner**; the preview and `/<handle>` show it. **Upload from my computer** sends their own picture (it replaces the old one and the old uploaded file is deleted); **Use my YouTube banner** copies it again after a banner change on YouTube; **Remove the banner** takes it off. Turning the switch off hides the banner at once (the saved link stays and returns if it is turned on again).
 4. What can go wrong: "has no banner yet" (the channel has none, add one in YouTube Studio, Customization, Branding); "could not find your YouTube channel" (the creator signed in with an account that has no channel, sign out and in again); a blank banner (YouTube's picture link stopped working, press Update from YouTube). Only addresses on Google's image hosts are ever saved or drawn.
 
+## 7f. The owner's own tip page
+
+The tip page of the handle `acepressure`, or of any account listed in `OWNER_GOOGLE_IDS`, uses the owner's own look (red, backdrop, pressure bar, sign-off screen). Nothing to set up. Optional Vercel variables: `OWNER_TIP_HANDLES` (comma-separated handles that get it, default `acepressure`; set it if your handle is different) and `OWNER_TIP_BRAND` (the name shown instead of the account's personal name, default `AcePressure`). The colour is fixed in `src/lib/owner-page.ts` and does not depend on the accent saved in the dashboard. The alert on stream (OBS) is separate: set its colour and style on the dashboard Style page. No migration; the YouTube photo on the dashboard and tip page needs migration 0050.
+
 ## 7f. Old Vercel deployments clean-up (set up once)
 
 Every push to `main` makes a Vercel deployment, each with its own copy of the server code, and Vercel's "Functions Storage" fills up (the 1-day retention setting does not remove production deployments). The GitHub job `.github/workflows/vercel-cleanup.yml` deletes the old ones once a day.
