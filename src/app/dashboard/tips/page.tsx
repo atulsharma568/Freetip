@@ -4,7 +4,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { SITE_HOST, SITE_NAME } from "@/lib/site";
-import { FEES } from "@/lib/legal";
+import type { Query } from "@/lib/accrual";
+import { estimateNote, getCreatorRates } from "@/lib/fee-rates";
 import {
   EXPORT_MAX_ROWS,
   TIP_RANGES,
@@ -58,6 +59,8 @@ export default async function TipsPage({
 
   const query = parseTipsQuery(await searchParams);
   const { tips, hasMore } = await loadTips(user.id, query);
+  // Wording only; each tip's own saved rates are what the amounts above use.
+  const rates = (await getCreatorRates(db as unknown as Query, user.id).catch(() => null))?.effective;
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
@@ -185,8 +188,7 @@ export default async function TipsPage({
 
         <p className="text-sm text-muted">
           Only paid tips are listed. The amount you&apos;d keep is an estimate
-          (our {FEES.platformPercent}% and the {FEES.gatewayPercent}% processing
-          charge taken off).
+          {rates ? ` (${estimateNote(rates)}; a tip keeps the rates it was made under)` : ""}.
         </p>
       </div>
     </DashboardShell>

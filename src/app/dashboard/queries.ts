@@ -1,7 +1,5 @@
 import { getDb } from "@/lib/db";
 import {
-  GATEWAY_BPS,
-  PLATFORM_BPS,
   EXPORT_MAX_ROWS,
   TIPS_PAGE_SIZE,
   estimateShare,
@@ -20,7 +18,8 @@ export interface OverviewRow {
 
 // Captured tips only. "Today" starts at midnight in India; the others roll back
 // from now. The share is summed per tip with the same rounding as
-// `estimateShare`, so the strip and the tips list agree.
+// `estimateShare` and at the rates each tip was charged at (saved on the order), so the strip and
+// the tips list agree and a later change of rate leaves earlier tips alone.
 export async function loadOverview(creatorId: number): Promise<OverviewRow[]> {
   const db = getDb();
   if (!db) return [];
@@ -29,8 +28,8 @@ export async function loadOverview(creatorId: number): Promise<OverviewRow[]> {
       select captured_at,
              gross_amount_minor as gross,
              gross_amount_minor
-               - ((gross_amount_minor * ${PLATFORM_BPS}::bigint + 5000) / 10000)
-               - ((gross_amount_minor * ${GATEWAY_BPS}::bigint + 5000) / 10000) as share
+               - ((gross_amount_minor * platform_bps::bigint + 5000) / 10000)
+               - ((gross_amount_minor * processing_bps::bigint + 5000) / 10000) as share
       from tip_orders
       where creator_id = ${creatorId}
         and status = 'captured'
@@ -112,6 +111,8 @@ type DbTip = {
   fan_message: string | null;
   message_status: "pending" | "approved" | "rejected";
   gross_amount_minor: string;
+  platform_bps: number;
+  processing_bps: number;
 };
 
 function selectTips(
@@ -125,7 +126,7 @@ function selectTips(
   const days = range === "7d" ? 7 : range === "30d" ? 30 : null;
   return db<DbTip[]>`
     select id::int as id, captured_at, fan_name, fan_message, message_status,
-           gross_amount_minor
+           gross_amount_minor, platform_bps, processing_bps
     from tip_orders
     where creator_id = ${creatorId}
       and status = 'captured'
@@ -147,7 +148,7 @@ function toTipRow(r: DbTip): TipRow {
     capturedAt: r.captured_at,
     name: r.fan_name?.trim() || "Anonymous",
     amountPaise: gross,
-    sharePaise: estimateShare(gross),
+    sharePaise: estimateShare(gross, { platformBps: r.platform_bps, processingBps: r.processing_bps }),
     message: text && !rejected ? text : null,
     messageStatus: r.message_status,
     rejected: rejected && text !== "",
@@ -189,8 +190,10 @@ export async function loadTipsForExport(
 export async function loadRecapStreams(creatorId: number): Promise<StreamRecap[]> {
   const db = getDb();
   if (!db) return [];
-  const rows = await db<{ captured_at: Date; fan_name: string | null; gross_amount_minor: string }[]>`
-    select captured_at, fan_name, gross_amount_minor
+  const rows = await db<
+    { captured_at: Date; fan_name: string | null; gross_amount_minor: string; platform_bps: number; processing_bps: number }[]
+  >`
+    select captured_at, fan_name, gross_amount_minor, platform_bps, processing_bps
     from tip_orders
     where creator_id = ${creatorId}
       and status = 'captured'
@@ -203,6 +206,7 @@ export async function loadRecapStreams(creatorId: number): Promise<StreamRecap[]
     capturedAt: r.captured_at,
     name: r.fan_name,
     amountPaise: Number(r.gross_amount_minor),
+    rates: { platformBps: r.platform_bps, processingBps: r.processing_bps },
   }));
   return groupStreams(tips).slice(0, RECAP_MAX_STREAMS);
 }

@@ -125,8 +125,8 @@ test.describe("posting a captured tip", () => {
       `select fee_type, amount_minor::text, source, rule_version from fee_lines order by fee_type`,
     );
     expect(fees.rows).toEqual([
-      { fee_type: "gateway_fee", amount_minor: "275", source: "accrual", rule_version: "2026-10-30.2" },
-      { fee_type: "platform_fee", amount_minor: "500", source: "accrual", rule_version: "2026-10-30.2" },
+      { fee_type: "gateway_fee", amount_minor: "275", source: "accrual", rule_version: "2026-11-03.1" },
+      { fee_type: "platform_fee", amount_minor: "500", source: "accrual", rule_version: "2026-11-03.1" },
     ]);
   });
 

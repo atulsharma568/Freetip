@@ -97,3 +97,13 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 ## Textured backdrop on the creator dashboard and owner console (2026-11-03)
 
 - [ ] Open `/dashboard` and any `/admin` page on a laptop and a phone: is the faint dot grid, lime glow and grain pleasant and does it stay behind the cards without making any text harder to read?
+
+## Fee rates per creator (2026-11-03, run migration 0054 BEFORE the deploy)
+
+- [ ] Run `0054_creator_fee_rates.sql` in Neon, deploy, then open `/admin/creators` and your own creator page: does the **Fee rates** box say you pay no fees (0% + 0%) and keep ₹100.00 of a ₹100 tip? Does the Audit log show one `creator.fee_rates_changed` row for your account?
+- [ ] Open `/admin/fees`: does it show the site rates (5% + 2.75%), how many creators follow them, and your account under "No fees"?
+- [ ] On a spare test creator, give them their own rates (for example 3 and 1) in their Fee rates box, send a small real tip to them and one to your own page, then check `/admin/finance/payments`: your tip should show no platform fee and no processing charge, and the test creator's the 3% and 1% amounts. The creator's own dashboard "you'd keep" line should name their rates.
+- [ ] Change the site rates (for example to 4 and 2) on `/admin/fees`: after the two-step confirm, tips made before the change must keep their old amounts in the books; a new tip to a creator on the site rates uses the new ones.
+- [ ] Tick two or three creators on `/admin/fees` and use "Apply these rates" then "Put back on the site rates": do the counts in the message and the Audit log match?
+- [ ] Decide the public wording: home, pricing and terms say "5% of every tip". With custom rates that is the standard rate, not everyone's. Say if you want it changed to "standard".
+

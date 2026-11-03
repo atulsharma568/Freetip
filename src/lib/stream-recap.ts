@@ -1,4 +1,5 @@
 import { estimateShare, formatRupees } from "./earnings";
+import type { FeeRates } from "./money";
 
 // Post-stream recap. We never learn when a creator goes live, only when tips
 // arrive, so a "stream" here is a run of paid tips with no gap longer than
@@ -16,6 +17,8 @@ export interface RecapTip {
   // The fan's name as typed; null or blank is an anonymous tip.
   name: string | null;
   amountPaise: number;
+  // The rates the tip was charged at; the standard pair when not given.
+  rates?: FeeRates;
 }
 
 export interface RecapSupporter {
@@ -54,7 +57,7 @@ function summarise(tips: RecapTip[], now: Date): StreamRecap {
   for (const t of tips) {
     const shown = t.name?.trim() || "";
     grossPaise += t.amountPaise;
-    sharePaise += estimateShare(t.amountPaise);
+    sharePaise += estimateShare(t.amountPaise, t.rates);
     if (t.amountPaise > biggest.amountPaise) {
       biggest = { name: shown || "Anonymous", amountPaise: t.amountPaise };
     }

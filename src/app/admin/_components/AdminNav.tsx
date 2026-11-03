@@ -15,6 +15,7 @@ import {
   Gear,
   Heartbeat,
   MagnifyingGlass,
+  Percent,
   Receipt,
   Scales,
   Sparkle,
@@ -46,6 +47,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/admin/finance", label: "Finance", icon: Coins },
       { href: "/admin/finance/creators", label: "Creator earnings", icon: ChartBar },
+      { href: "/admin/fees", label: "Fee rates", icon: Percent },
       { href: "/admin/finance/balances", label: "Balances", icon: Scales },
       { href: "/admin/finance/payments", label: "Payment ledger", icon: Receipt },
       { href: "/admin/finance/settlements", label: "Settlements", icon: Bank },

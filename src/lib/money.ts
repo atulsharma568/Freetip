@@ -3,15 +3,44 @@
 // paise (integers); anything a database hands back as a string goes through
 // `toPaise` once, at the edge.
 //
-// A tip is split into our platform fee and a flat processing charge (owner's
-// choice, 2026-10-30), each worked in basis points and rounded half up to the
-// paise. The creator keeps what is left. `RULE_VERSION` is saved with every fee
-// line so a later change of rate never rewrites an old tip.
-export const RULE_VERSION = "2026-10-30.2";
+// A tip is split into our platform fee and a processing charge (owner's choice,
+// 2026-10-30), each worked in basis points and rounded half up to the paise. The
+// creator keeps what is left. The rates are the owner's to set (2026-11-03): a
+// site-wide standard (5% and 2.75% until the owner changes it) and, per creator,
+// an optional pair of their own. The pair a tip is charged at is saved on the
+// order when it is created (`tip_orders.platform_bps`, `processing_bps`), so a
+// later change of rate never rewrites an old tip. `RULE_VERSION` is saved with
+// every fee line.
+export const RULE_VERSION = "2026-11-03.1";
+// The standard rates, used when nothing else is set (and the rate every tip made
+// before the owner could change them was charged at).
 export const PLATFORM_BPS = 500; // 5%
 // The smallest tip, the same for every creator (owner, 2026-11-01).
 export const MIN_TIP_PAISE = 2000;
 export const PROCESSING_BPS = 275; // 2.75%, shown as Freetip's processing charge
+
+// The highest the owner can set, so a slip of the finger (50 for 5) is refused. Together they
+// can never take more than 40% of a tip, so the creator's share cannot go below nothing.
+export const MAX_PLATFORM_BPS = 3000; // 30%
+export const MAX_PROCESSING_BPS = 1000; // 10%
+
+export interface FeeRates {
+  platformBps: number;
+  processingBps: number;
+}
+
+export const STANDARD_RATES: FeeRates = { platformBps: PLATFORM_BPS, processingBps: PROCESSING_BPS };
+
+export function checkRates(rates: FeeRates): FeeRates {
+  const { platformBps, processingBps } = rates;
+  if (!Number.isInteger(platformBps) || platformBps < 0 || platformBps > MAX_PLATFORM_BPS) {
+    throw new RangeError(`The platform fee is outside 0 to ${MAX_PLATFORM_BPS / 100}%: ${platformBps} basis points`);
+  }
+  if (!Number.isInteger(processingBps) || processingBps < 0 || processingBps > MAX_PROCESSING_BPS) {
+    throw new RangeError(`The processing charge is outside 0 to ${MAX_PROCESSING_BPS / 100}%: ${processingBps} basis points`);
+  }
+  return rates;
+}
 
 const cut = (paise: number, bps: number) => Math.floor((paise * bps + 5000) / 10000);
 
@@ -28,12 +57,13 @@ export interface TipSplit {
   creatorSharePaise: number;
 }
 
-export function splitTip(grossPaise: number): TipSplit {
+export function splitTip(grossPaise: number, rates: FeeRates = STANDARD_RATES): TipSplit {
   if (!Number.isSafeInteger(grossPaise) || grossPaise <= 0) {
     throw new RangeError(`A tip must be a positive whole number of paise: ${grossPaise}`);
   }
-  const platformFeePaise = cut(grossPaise, PLATFORM_BPS);
-  const processingPaise = cut(grossPaise, PROCESSING_BPS);
+  checkRates(rates);
+  const platformFeePaise = cut(grossPaise, rates.platformBps);
+  const processingPaise = cut(grossPaise, rates.processingBps);
   return {
     grossPaise,
     platformFeePaise,
@@ -80,9 +110,9 @@ export interface FeeLineDraft {
   bps: number;
 }
 
-export function feeLines(split: TipSplit): FeeLineDraft[] {
+export function feeLines(split: TipSplit, rates: FeeRates = STANDARD_RATES): FeeLineDraft[] {
   return [
-    { feeType: "platform_fee" as const, amountPaise: split.platformFeePaise, bps: PLATFORM_BPS },
-    { feeType: "gateway_fee" as const, amountPaise: split.processingPaise, bps: PROCESSING_BPS },
+    { feeType: "platform_fee" as const, amountPaise: split.platformFeePaise, bps: rates.platformBps },
+    { feeType: "gateway_fee" as const, amountPaise: split.processingPaise, bps: rates.processingBps },
   ].filter((l) => l.amountPaise > 0);
 }

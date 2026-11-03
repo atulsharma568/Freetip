@@ -1,4 +1,4 @@
-import { RULE_VERSION, capturePosting, feeLines, splitTip, toPaise } from "./money";
+import { RULE_VERSION, capturePosting, checkRates, feeLines, splitTip, toPaise } from "./money";
 
 // Writes what a captured tip is worth into the books: one balanced ledger
 // transaction (what Razorpay owes us, what we owe the creator, our fee, the
@@ -46,6 +46,8 @@ interface Facts extends Row {
   tip_status: string;
   provider_status: string | null;
   livemode: boolean | null;
+  platform_bps: number;
+  processing_bps: number;
 }
 
 export async function postCaptureAccrual(
@@ -64,7 +66,9 @@ export async function postCaptureAccrual(
              t.currency                 as tip_currency,
              t.status                   as tip_status,
              pa.provider_status         as provider_status,
-             pa.livemode                as livemode
+             pa.livemode                as livemode,
+             t.platform_bps             as platform_bps,
+             t.processing_bps           as processing_bps
         from payment_attempts pa
         join tip_orders t on t.id = pa.tip_order_id
        where pa.provider_payment_ref = ${paymentRef}
@@ -93,7 +97,11 @@ export async function postCaptureAccrual(
       return { status: "skipped", reason: "amount_mismatch" } as const;
     }
 
-    const split = splitTip(gross);
+    // The rates this tip was charged at, copied onto the order when it was made (so a later change
+    // of rate never reaches it). A pair outside the allowed range throws here, loudly, rather than
+    // posting an odd amount; the sweep tries again once it is fixed.
+    const rates = checkRates({ platformBps: facts.platform_bps, processingBps: facts.processing_bps });
+    const split = splitTip(gross, rates);
     const key = captureKey(paymentRef);
 
     const [header] = await tx<{ id: string }[]>`
@@ -120,7 +128,7 @@ export async function postCaptureAccrual(
       `;
     }
 
-    for (const fee of feeLines(split)) {
+    for (const fee of feeLines(split, rates)) {
       await tx`
         insert into fee_lines
           (tip_order_id, payment_attempt_id, creator_id, fee_type, amount_minor, currency,

@@ -1,18 +1,18 @@
-import { PROCESSING_BPS, splitTip } from "./money";
+import { PROCESSING_BPS, STANDARD_RATES, splitTip, type FeeRates } from "./money";
 
 export { PLATFORM_BPS } from "./money";
 
-// What a creator would keep from a captured tip, as an estimate: our 5% and
-// the flat processing charge, each rounded half up to the paise by `splitTip`
-// (money.ts), the same rule the pricing page's worked example uses. The rates
-// are exported in basis points for the dashboard's SQL, which does the same
-// half-up integer maths so the database and the browser agree. It is only ever
-// shown as an estimate; real figures come from the payout engine once it
-// exists.
+// What a creator would keep from a captured tip, as an estimate: our platform fee and
+// the processing charge, each rounded half up to the paise by `splitTip` (money.ts),
+// the same rule the pricing page's worked example uses. `rates` is the pair the tip
+// was charged at (saved on the order); without it the standard pair is used. The
+// dashboard's SQL reads the same saved pair and does the same half-up integer maths,
+// so the database and the browser agree. It is only ever shown as an estimate; real
+// figures come from the books.
 export const GATEWAY_BPS = PROCESSING_BPS;
 
-export function estimateShare(grossPaise: number): number {
-  return splitTip(grossPaise).creatorSharePaise;
+export function estimateShare(grossPaise: number, rates: FeeRates = STANDARD_RATES): number {
+  return splitTip(grossPaise, rates).creatorSharePaise;
 }
 
 export function formatRupees(paise: number): string {

@@ -4,7 +4,9 @@ import { randomBytes } from "crypto";
 import { getDb } from "@/lib/db";
 import { clientIp, ipKey, takeAttempt } from "@/lib/rate-limit";
 import { agreementError, tipExtraColumns, type TipExtras } from "@/lib/tip-extras";
-import { MIN_TIP_PAISE } from "@/lib/money";
+import type { Query } from "@/lib/accrual";
+import { getCreatorRates } from "@/lib/fee-rates";
+import { MIN_TIP_PAISE, type FeeRates } from "@/lib/money";
 import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { findBlockedWord, parseBannedWords } from "@/lib/message-filter";
 import { checkPick } from "@/lib/sounds";
@@ -225,6 +227,17 @@ export async function createTipOrder(
     pin = true;
   }
 
+  // The rates this tip is charged at, worked out now and saved on the order, so a later change of
+  // rate never reaches it: the creator's own pair, or the site-wide one the owner set. Read before
+  // the Razorpay order is made, so a database problem here leaves nothing half done.
+  let rates: FeeRates;
+  try {
+    rates = (await getCreatorRates(db as unknown as Query, creator.id)).effective;
+  } catch (err) {
+    console.error("Tip: could not read the fee rates.", err);
+    return { status: "error", message: "Service unavailable. Try again shortly." };
+  }
+
   const publicReference = `tip_${randomBytes(8).toString("hex")}`;
 
   // Create Razorpay order.
@@ -283,7 +296,7 @@ export async function createTipOrder(
            ${storedName}, ${storedMessage}, ${anonymous}, 'payment_pending')
         returning id
       `;
-      const columns = tipExtraColumns({ soundId, voice, pin, ruleId });
+      const columns = tipExtraColumns({ soundId, voice, pin, ruleId, rates });
       if (Object.keys(columns).length > 0) {
         await tx`update tip_orders set ${tx(columns)} where id = ${orders[0].id}`;
       }

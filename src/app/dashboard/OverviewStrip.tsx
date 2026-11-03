@@ -1,5 +1,6 @@
 import { formatRupees } from "@/lib/earnings";
-import { FEES } from "@/lib/legal";
+import { estimateNote } from "@/lib/fee-rates";
+import { STANDARD_RATES, type FeeRates } from "@/lib/money";
 import type { OverviewKey, OverviewRow } from "./queries";
 import { CopyButton } from "./parts/CopyButton";
 import { MoneyReels } from "./parts/MoneyReels";
@@ -17,7 +18,16 @@ const ORDER: OverviewKey[] = ["today", "7d", "30d", "all"];
 // labelled as one on every tile. There is deliberately no balance or "paid
 // out" figure: payouts are not built, so there is nothing real to show. The
 // amounts roll in on odometer reels (the zeros too, before the first tip).
-export function OverviewStrip({ rows, shareUrl }: { rows: OverviewRow[]; shareUrl: string }) {
+export function OverviewStrip({
+  rows,
+  shareUrl,
+  rates = STANDARD_RATES,
+}: {
+  rows: OverviewRow[];
+  shareUrl: string;
+  // The creator's own rates today, for the line under the tiles.
+  rates?: FeeRates;
+}) {
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const noTips = (byKey.get("all")?.count ?? 0) === 0;
   return (
@@ -56,8 +66,8 @@ export function OverviewStrip({ rows, shareUrl }: { rows: OverviewRow[]; shareUr
         </div>
       )}
       <p className="text-sm text-muted">
-        The amount you&apos;d keep is an estimate: each tip less our {FEES.platformPercent}% and the{" "}
-        {FEES.gatewayPercent}% processing charge. Payouts have not started yet, so there is no balance to show.
+        The amount you&apos;d keep is an estimate: {estimateNote(rates)}. Payouts have not started yet, so there is no
+        balance to show.
       </p>
     </section>
   );

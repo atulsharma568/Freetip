@@ -4,6 +4,8 @@ import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getAuditPage, getLastFeatureChange } from "@/lib/admin/audit-queries";
 import { getCreatorDetail } from "@/lib/admin/creator-detail";
+import { getFeeHistory } from "@/lib/admin/fee-queries";
+import { describeSetting, getCreatorRates } from "@/lib/fee-rates";
 import { CLOSED_EMAIL_DOMAIN } from "@/lib/account-close";
 import { fmtIST } from "@/lib/admin/format";
 import { formatINR, load } from "@/lib/admin/result";
@@ -12,10 +14,12 @@ import type { Query } from "@/lib/accrual";
 import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
 import { setCreatorFeatures } from "@/app/actions/admin";
+import { setCreatorFeeRates } from "@/app/actions/fees";
 import { copyCreatorPage, resetCreatorPage, restoreCreatorPage } from "@/app/actions/page-doc";
 import { CouldNotRead, DatabaseNotSetUp } from "../../_components/Notices";
 import { CreatorActions } from "../../_components/CreatorActions";
 import { PageHeader } from "../../_components/PageHeader";
+import { FeeRatesBox } from "./FeeRatesBox";
 import { FeaturesForm } from "./FeaturesForm";
 import { TipPageBox } from "./TipPageBox";
 
@@ -34,7 +38,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, lastChange, audit, pageRead, sourcesRead] = await Promise.all([
+  const [featuresRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
     load("the paid features", async () => {
       const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
       return f?.paid_features ?? [];
@@ -42,6 +46,8 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
     getLastFeatureChange(db, creatorId),
     getAuditPage(db, { creatorId }, 5),
     load("the tip page", () => getPageSummary(db as unknown as Query, creatorId)),
+    load("the fee rates", () => getCreatorRates(db, creatorId)),
+    getFeeHistory(db, creatorId),
     // The creators whose page can be copied as a template; the box works without the list.
     load("the creators to copy from", () =>
       db<{ id: string; handle: string; custom: boolean }[]>`
@@ -127,6 +133,40 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           </div>
         ))}
       </dl>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Fee rates</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            What this creator pays out of each tip: our platform fee and the processing charge. By default every creator follows the
+            site rates, which you change for everyone on the{" "}
+            <Link href="/admin/fees" className="underline">
+              Fee rates
+            </Link>{" "}
+            page. Fans always pay exactly the tip.
+          </p>
+        </div>
+        {!ratesRead.ok ? (
+          <CouldNotRead message="Could not read the fee rates. Run migration 0054 in Neon." detail={ratesRead.error} />
+        ) : (
+          <FeeRatesBox
+            key={`${ratesRead.data.site.platformBps}-${ratesRead.data.site.processingBps}-${ratesRead.data.override?.platformBps}-${ratesRead.data.override?.processingBps}`}
+            action={setCreatorFeeRates.bind(null, c.id)}
+            site={ratesRead.data.site}
+            override={ratesRead.data.override}
+            history={
+              feeHistory.ok
+                ? feeHistory.data.map((h) => ({
+                    at: fmtIST(h.at),
+                    from: describeSetting(h.before),
+                    to: describeSetting(h.after),
+                    reason: h.reason,
+                  }))
+                : []
+            }
+          />
+        )}
+      </section>
 
       <section className="space-y-3">
         <div className="space-y-1">

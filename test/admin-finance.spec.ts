@@ -71,7 +71,7 @@ async function tip(pg: PGlite, o: TipOptions = {}) {
 
 // What the money rules say each tip is worth, summed.
 function expected(grosses: number[]) {
-  const parts = grosses.map(splitTip);
+  const parts = grosses.map((g) => splitTip(g));
   const sum = (pick: (s: ReturnType<typeof splitTip>) => number) => parts.reduce((n, s) => n + pick(s), 0);
   return {
     gross: sum((s) => s.grossPaise),

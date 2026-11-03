@@ -27,6 +27,8 @@ import { MessageQueue, type PendingMessage } from "./MessageQueue";
 import type { AlertMode } from "@/lib/alerts";
 import { ttsAvailable } from "@/lib/tts";
 import { getTtsFloorPaise } from "@/lib/site-settings";
+import { getCreatorRates } from "@/lib/fee-rates";
+import { STANDARD_RATES, type FeeRates } from "@/lib/money";
 import { parseRepeat, parseTimezone } from "@/lib/goal";
 import { loadGoalProgress } from "@/lib/goal-progress";
 import type { Query } from "@/lib/accrual";
@@ -261,6 +263,17 @@ async function readLatestTipId(db: Db, userId: number): Promise<number> {
   return latest?.id ?? 0;
 }
 
+// The creator's own rates today, for the line under the earnings tiles. Only wording: if they cannot
+// be read the standard pair is shown, and the books never use this.
+async function readRates(db: Db, userId: number): Promise<FeeRates> {
+  try {
+    return (await getCreatorRates(db as unknown as Query, userId)).effective;
+  } catch (err) {
+    console.error("Dashboard: could not read the fee rates (migration 0054 run?).", err);
+    return STANDARD_RATES;
+  }
+}
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/signin");
@@ -326,6 +339,7 @@ export default async function DashboardPage() {
     latestTipId,
     overview,
     daily,
+    rates,
   ] = await Promise.all([
     readBannedWords(db, user.id),
     readVoiceGender(db, user.id),
@@ -338,6 +352,7 @@ export default async function DashboardPage() {
     readLatestTipId(db, user.id),
     loadOverview(user.id),
     loadDailyTips(user.id, 30),
+    readRates(db, user.id),
   ]);
 
   const step = nextStep({
@@ -378,7 +393,7 @@ export default async function DashboardPage() {
           <Reveal>
             <Group id="today" title="Today">
               <NextStepCard step={step} handle={handle} suspended={suspended} />
-              <OverviewStrip rows={overview} shareUrl={shareUrl} />
+              <OverviewStrip rows={overview} shareUrl={shareUrl} rates={rates} />
               <div className={`grid items-start gap-4 ${showQueue ? "lg:grid-cols-2" : ""}`}>
                 {daily.length > 0 && <DailyChart days={daily} shareUrl={shareUrl} />}
                 {showQueue && (

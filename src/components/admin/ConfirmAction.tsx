@@ -22,6 +22,7 @@ export function ConfirmAction({
   typeToConfirm,
   askReason = false,
   hidden,
+  disabled = false,
 }: {
   action: AdminAction;
   label: string;
@@ -33,6 +34,8 @@ export function ConfirmAction({
   typeToConfirm?: string;
   askReason?: boolean;
   hidden?: Record<string, string>;
+  // The first button cannot be pressed (for example while the form above it is not valid).
+  disabled?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, ADMIN_IDLE);
   // The state the panel was opened under. A new "ok" result closes it (the thing is
@@ -58,6 +61,7 @@ export function ConfirmAction({
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
+        disabled={disabled}
         onClick={() => (open ? close() : setOpenedUnder(state))}
         className={buttonClass(tone, size)}
       >

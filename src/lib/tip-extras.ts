@@ -1,3 +1,6 @@
+import { sameRates } from "./fee-rates";
+import { STANDARD_RATES, type FeeRates } from "./money";
+
 // What a fan can attach to a tip besides the amount, name and message. Each field is
 // written only when it is set, so every plain tip works before the migration that
 // added its column has been run. New paid features (media, voice notes, highlights)
@@ -25,13 +28,21 @@ export function agreementError(extras: TipExtras): string | null {
 }
 
 // The tip_orders columns the extras set. Pure, so the shape is easy to test.
+// `rates` is the pair the tip is charged at (the creator's own, or the site's): it is written only
+// when it is not the standard pair, because the columns default to the standard pair, so a creator
+// on standard rates tips fine even before migration 0054 has been run.
 export function tipExtraColumns(e: {
   soundId: number | null;
   voice: boolean;
   pin?: boolean;
   ruleId?: number | null;
+  rates?: FeeRates;
 }): Record<string, number | boolean | string> {
   const columns: Record<string, number | boolean | string> = {};
+  if (e.rates && !sameRates(e.rates, STANDARD_RATES)) {
+    columns.platform_bps = e.rates.platformBps;
+    columns.processing_bps = e.rates.processingBps;
+  }
   if (e.pin) columns.highlight = true;
   if (e.ruleId != null) columns.alert_rule_id = e.ruleId;
   if (e.soundId !== null) columns.sound_id = e.soundId;
