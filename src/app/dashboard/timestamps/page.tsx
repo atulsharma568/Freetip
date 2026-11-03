@@ -7,6 +7,7 @@ import { planFeatures } from "@/lib/plans";
 import { secretBoxAvailable } from "@/lib/secret-box";
 import { replayBufferNeeded } from "@/lib/ts-helper";
 import { youtubeConfigured } from "@/lib/youtube";
+import { formatOffset, offsetSeconds, youtubeMomentLink } from "@/lib/timestamps";
 import { DashboardNav } from "../DashboardNav";
 import { TimestampsManager } from "./TimestampsManager";
 import { DashboardShell } from "../parts/DashboardShell";
@@ -43,7 +44,17 @@ const REASONS: Record<string, string> = {
   interrupted: "stopped half way, not retried",
 };
 
-type StreamRow = { video_id: string; title: string | null; state: string; reason: string | null; n: number };
+type StreamRow = {
+  video_id: string;
+  title: string | null;
+  state: string;
+  reason: string | null;
+  n: number;
+  started_at: Date | null;
+};
+type MomentRow = { video_id: string; title: string | null; created_at: Date; delay_seconds: number };
+
+const MOMENTS_SHOWN = 20;
 
 export default async function TimestampsPage({ searchParams }: { searchParams: Promise<{ yt?: string }> }) {
   const session = await auth();
@@ -64,6 +75,7 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
   let migrated = true;
   let state = { hasLink: false, delay: 22, youtube: false, reconnect: false, discord: false };
   let streams: StreamRow[] = [];
+  let moments: MomentRow[] = [];
   try {
     const [row] = await db<
       { has_link: boolean; delay: number; yt: boolean; reconnect: boolean; discord: boolean }[]
@@ -75,11 +87,19 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
     `;
     state = { hasLink: row.has_link, delay: row.delay, youtube: row.yt, reconnect: row.reconnect, discord: row.discord };
     streams = await db<StreamRow[]>`
-      select s.video_id, s.title, s.state, s.reason,
+      select s.video_id, s.title, s.state, s.reason, s.started_at,
              (select count(*)::int from stream_timestamps m where m.video_id = s.video_id) as n
         from timestamp_streams s where s.creator_id = ${user.id}
        order by s.created_at desc limit 10
     `;
+    if (streams.length) {
+      moments = await db<MomentRow[]>`
+        select video_id, title, created_at, delay_seconds
+          from stream_timestamps
+         where creator_id = ${user.id} and video_id in ${db(streams.map((s) => s.video_id))}
+         order by created_at asc limit 500
+      `;
+    }
   } catch (err) {
     console.error("Timestamps page: could not read the data (migration 0032 run?).", err);
     migrated = false;
@@ -188,6 +208,29 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
                         {s.n} {s.n === 1 ? "moment" : "moments"}
                         {s.reason ? `, ${REASONS[s.reason] ?? s.reason}` : ""}
                       </span>
+                      {s.started_at && (
+                        <ul className="mt-2 space-y-1">
+                          {moments
+                            .filter((m) => m.video_id === s.video_id)
+                            .slice(0, MOMENTS_SHOWN)
+                            .map((m) => {
+                              const at = offsetSeconds(m.created_at, s.started_at as Date, m.delay_seconds);
+                              return (
+                                <li key={`${m.created_at}-${m.title}`} className="truncate text-xs">
+                                  <a
+                                    href={youtubeMomentLink(s.video_id, at)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-text underline-offset-4 hover:underline"
+                                  >
+                                    {formatOffset(at)}
+                                  </a>
+                                  {m.title ? <span className="text-muted"> {m.title}</span> : null}
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      )}
                     </div>
                     <span className="flex shrink-0 flex-col items-end gap-1 text-xs text-muted">
                       {extras.isPublic && s.n > 0 && (
