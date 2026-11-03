@@ -41,6 +41,25 @@ export function moveBlock(doc: PageDoc, type: BlockType, direction: "up" | "down
   return done({ ...doc, blocks });
 }
 
+// Moves a block to where another block of the same section is (the drop of a drag). Another
+// section, or the same place, changes nothing.
+export function moveBlockTo(doc: PageDoc, type: BlockType, target: BlockType): EditResult {
+  const from = indexOf(doc, type);
+  const to = indexOf(doc, target);
+  if (from < 0 || to < 0) return refuse(doc, "That block is not on the page.");
+  if (doc.blocks[from].slot !== doc.blocks[to].slot) return refuse(doc, "A block can only move inside its own section.");
+  // The number of places between them is fixed before the first step: each step moves the
+  // target too, so comparing again would send the block back.
+  // They are counted among the blocks of their own section only (other sections may lie between
+  // them in the list).
+  const section = doc.blocks.filter((b) => b.slot === doc.blocks[from].slot).map((b) => b.type);
+  const distance = Math.abs(section.indexOf(type) - section.indexOf(target));
+  const direction = section.indexOf(type) < section.indexOf(target) ? "down" : "up";
+  let next = doc;
+  for (let step = 0; step < distance; step++) next = moveBlock(next, type, direction).doc;
+  return next === doc ? refuse(doc) : done(next);
+}
+
 export function setVisible(doc: PageDoc, type: BlockType, visible: boolean): EditResult {
   const at = indexOf(doc, type);
   if (at < 0) return refuse(doc, "That block is not on the page.");

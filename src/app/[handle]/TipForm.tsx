@@ -429,8 +429,8 @@ export function TipForm({
 
   return (
     <div ref={containerRef} className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
-      {/* Preview banner for the creator */}
-      {previewMode && (
+      {/* Preview banner for the creator (not in the owner's editor preview, where the page may well be live) */}
+      {previewMode && !editing && (
         <div className="enter mb-8 space-y-1 rounded-[var(--radius-surface)] border border-line/60 bg-surface px-5 py-4">
           <p className="text-sm font-semibold text-text">Preview: your page isn&apos;t live yet.</p>
           <p className="text-sm text-muted">This is exactly what fans will see once you go live.</p>

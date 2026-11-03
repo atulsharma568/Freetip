@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PROTECTED } from "../src/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
-import { moveBlock, resetBlock, setChoice, setLadder, setText, setTheme, setVisible, validateLadder, type EditResult } from "../src/lib/page-doc/edit";
+import { moveBlock, moveBlockTo, resetBlock, setChoice, setLadder, setText, setTheme, setVisible, validateLadder, type EditResult } from "../src/lib/page-doc/edit";
 import { TEXT_FIELDS, CHOICE_FIELDS } from "../src/lib/page-doc/fields";
 import { ONE_PIECE_LADDER } from "../src/lib/page-doc/ladder";
 import { parsePageDoc } from "../src/lib/page-doc/parse";
@@ -48,6 +48,31 @@ test.describe("moving blocks", () => {
     setTheme(doc, "#ca1b19", "#f6f6f1");
     setLadder(doc, ONE_PIECE_LADDER);
     expect(frozen(doc)).toBe(before);
+  });
+});
+
+test.describe("dropping a block on another", () => {
+  test("it takes that block's place, inside the section", () => {
+    const doc = defaultPageDoc();
+    expect(order(moveBlockTo(doc, "send", "amount").doc, "main")).toEqual(["send", "amount", "note"]);
+    expect(order(moveBlockTo(doc, "amount", "send").doc, "main")).toEqual(["note", "send", "amount"]);
+    expect(order(moveBlockTo(doc, "qr", "header").doc, "side")).toEqual(["qr", "header", "alertPreview"]);
+  });
+
+  test("blocks of other sections between them do not change the count", () => {
+    // Side and main blocks interleaved in the list, as an older or hand-written document may be.
+    const base = defaultPageDoc();
+    const b = (t: BlockType) => base.blocks.find((x) => x.type === t)!;
+    const mixed: PageDoc = { ...base, blocks: [b("amount"), b("header"), b("note"), b("qr"), b("send")] };
+    expect(order(moveBlockTo(mixed, "send", "amount").doc, "main")).toEqual(["send", "amount", "note"]);
+    expect(order(moveBlockTo(mixed, "amount", "send").doc, "main")).toEqual(["note", "send", "amount"]);
+  });
+
+  test("another section, the same block, or a missing block changes nothing", () => {
+    const doc = defaultPageDoc();
+    expect(moveBlockTo(doc, "qr", "amount")).toMatchObject({ changed: false, problems: ["A block can only move inside its own section."] });
+    expect(moveBlockTo(doc, "qr", "qr")).toMatchObject({ changed: false, problems: [] });
+    expect(moveBlockTo(doc, "strip", "qr").changed).toBe(false);
   });
 });
 
