@@ -93,3 +93,7 @@ See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert stu
 
 - [ ] Give the Pressure meter a picture in the editor, show it "In OBS" or "Both", Publish, then open the OBS link plus `/pressure` in real OBS: does the small picture sit before the heading, not too big or blurry? Try a GIF: does it move?
 - [ ] Remove the picture from the meter and Publish: does the OBS bar go back to words only within about a minute?
+
+## Textured backdrop on the creator dashboard and owner console (2026-11-03)
+
+- [ ] Open `/dashboard` and any `/admin` page on a laptop and a phone: is the faint dot grid, lime glow and grain pleasant and does it stay behind the cards without making any text harder to read?

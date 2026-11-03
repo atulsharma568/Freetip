@@ -2,7 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
-## Current state (2026-11-03, a picture on the OBS Pressure meter)
+## Current state (2026-11-03, textured backdrop on the dashboard and owner console)
+
+Built, no migration: `src/components/AppBackdrop.tsx` (a fixed, still backdrop: dot grid, two soft lime glows, grain, vignette; CSS `.app-*` in `globals.css`) sits in `src/app/dashboard/layout.tsx` and `src/app/admin/layout.tsx` (the admin root lost its opaque `bg-ground` so the backdrop shows). Lint, type check and build pass; not yet seen in a browser.
+
+## Earlier state (2026-11-03, a picture on the OBS Pressure meter)
 
 - **Built; NO migration; nothing changes in OBS until the owner publishes a page whose meter has a picture and is shown in OBS.** The meter's existing picture (the `picture` setting) is now also drawn in the OBS bar, as a small square before the heading. The OBS endpoint (`/api/overlay/<token>/pressure`) adds `settings.picture`, the file address, only when the meter is shown in OBS, the reading exists, and the file is live (approved, in the creator's own Blob folder) and fits (picture or GIF); a missing file, a taken-down file, a video or a missing table (0052 not run) gives `null` and the bar draws without it. The tip page answer never carries the address. A GIF plays animated in OBS (the owner's own source; the reduced-motion rule is for fans' devices). If the file fails to load the image hides itself.
 - **Checked here:** type check and lint pass; `test/pressure-routes.spec.ts` has a new spec (address reaches OBS only, not the tip page answer; a video, a taken-down file and an unknown id give none) and the OBS body test now expects the new key; the pressure logic specs pass (27). `npm run build` passes; the browser suite was not run.

@@ -1338,3 +1338,28 @@ html.menu-open body {
   .ap-fill { transition: none; }
   .ap-ember, .ap-petal { display: none; }
 }
+
+/* Backdrop for the creator dashboard and owner console (AppBackdrop): the site's near-black with
+   lime, static, text stays on solid surfaces so nothing here touches contrast. */
+.app-glow { position: absolute; border-radius: 9999px; filter: blur(80px); }
+.app-glow-a {
+  top: -18vmax; left: -12vmax; width: 52vmax; height: 52vmax;
+  background: color-mix(in oklab, var(--color-accent) 11%, transparent);
+}
+.app-glow-b {
+  bottom: -22vmax; right: -14vmax; width: 56vmax; height: 56vmax;
+  background: color-mix(in oklab, var(--color-accent) 7%, transparent);
+}
+.app-dots {
+  background-image: radial-gradient(color-mix(in oklab, var(--color-text) 14%, transparent) 1px, transparent 1.2px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 85%);
+}
+.app-grain {
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.app-vignette {
+  background: radial-gradient(ellipse at 50% 40%, transparent 50%, color-mix(in oklab, black 45%, transparent) 100%);
+}

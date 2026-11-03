@@ -4,6 +4,7 @@ import { badgesFrom, getQueue } from "@/lib/admin/queue";
 import { razorpayKeyMode } from "@/lib/admin/key-mode";
 import { adminDb } from "@/lib/admin/server-db";
 import { TONE_BADGE, TONE_MARK } from "@/components/admin/tones";
+import { AppBackdrop } from "@/components/AppBackdrop";
 import { requireOwner } from "@/lib/owner-auth";
 import { AdminNav } from "./_components/AdminNav";
 
@@ -24,7 +25,8 @@ export default async function AdminLayout({
   const keyMode = razorpayKeyMode();
 
   return (
-    <div className="min-h-dvh bg-ground text-text">
+    <div className="min-h-dvh text-text">
+      <AppBackdrop />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink"
