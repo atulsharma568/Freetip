@@ -2,6 +2,10 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-03, alert-design pages grouped in the menu)
+
+- The dashboard menu had Style, Text, Motion and Layout as four entries. It now has **Look** (Style + Layout) and **Words and motion** (Text + Motion), each with a second row of tabs (`AlertSubNav.tsx`) on its pages. The pages, their addresses, saving and the four paid switches are unchanged; a group opens on its first page that is switched on and the tab row hides when only one of the pair is on. Not yet seen in a browser.
+
 ## Current state (2026-11-03, motion preview shows the way out)
 
 - The `/dashboard/motion` preview used the normal card length (6 seconds and more), so the leaving animation came long after the card appeared and looked missing. The preview card now stays 4.5 seconds (`previewMs` on the sample, used only by `showMs` in `AlertStage.tsx`), so both the way in and the way out play, then it repeats. The real overlay is unchanged. Not yet seen in a browser.

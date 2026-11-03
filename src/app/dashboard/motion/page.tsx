@@ -10,6 +10,7 @@ import { baseColours, resolveAlertText } from "@/lib/alert-text";
 import { resolveAlertMotion } from "@/lib/alert-motion";
 import { OVERLAY_FONT_CLASSES } from "@/components/overlay/fonts";
 import { DashboardNav } from "../DashboardNav";
+import { AlertSubNav } from "../AlertSubNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { MotionManager } from "./MotionManager";
 
@@ -72,6 +73,7 @@ export default async function AlertMotionPage() {
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="motion" />
+          <AlertSubNav current="motion" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert motion</h1>
           <p className="text-pretty text-base text-muted">
             Choose how the alert card comes in and leaves, how long it stays and the pause before the

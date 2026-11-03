@@ -11,6 +11,7 @@ import { resolveAlertLayout } from "@/lib/alert-layout";
 import type { AlertMedia, MediaKind } from "@/lib/media";
 import { OVERLAY_FONT_CLASSES } from "@/components/overlay/fonts";
 import { DashboardNav } from "../DashboardNav";
+import { AlertSubNav } from "../AlertSubNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { LayoutManager } from "./LayoutManager";
 
@@ -87,6 +88,7 @@ export default async function AlertLayoutPage() {
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="layout" />
+          <AlertSubNav current="layout" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert volume and layout</h1>
           <p className="text-pretty text-base text-muted">
             Turn the alert sounds and the spoken voice down to suit your stream, and put the picture

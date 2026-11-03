@@ -9,10 +9,8 @@ const LINKS = [
   { key: "media", href: "/dashboard/media", label: "Media" },
   { key: "rules", href: "/dashboard/rules", label: "Tip page picks" },
   { key: "variations", href: "/dashboard/variations", label: "Automatic tiers" },
-  { key: "style", href: "/dashboard/style", label: "Style" },
-  { key: "text", href: "/dashboard/text", label: "Text" },
-  { key: "motion", href: "/dashboard/motion", label: "Motion" },
-  { key: "layout", href: "/dashboard/layout", label: "Layout" },
+  { key: "look", href: "/dashboard/style", label: "Look" },
+  { key: "words", href: "/dashboard/text", label: "Words and motion" },
   { key: "banner", href: "/dashboard/banner", label: "Banner" },
   { key: "pinned", href: "/dashboard/pinned", label: "Pinned" },
   { key: "fans", href: "/dashboard/fans", label: "Fans" },
@@ -21,14 +19,20 @@ const LINKS = [
 ] as const;
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
-// overview page, below the numbers. Timestamps, Media, Rules, Style and Fans show only for creators they are
+// overview page, below the numbers. Timestamps, Media, Rules, Look, Words and motion and Fans show only for creators they are
 // switched on for.
 export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "pinned" | "fans" | "timestamps" | "streamlabs" }) {
   const features = await getSessionFeatures();
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "media" || features.customAlertMedia) &&
-      (l.key !== "rules" || features.alertRules) && (l.key !== "variations" || features.alertVariations) && (l.key !== "style" || features.overlayThemes) && (l.key !== "text" || features.alertText) && (l.key !== "motion" || features.alertMotion) && (l.key !== "layout" || features.alertLayout) && (l.key !== "banner" || features.tipBanner) && (l.key !== "pinned" || features.highlightedMessages) &&
+      (l.key !== "rules" || features.alertRules) && (l.key !== "variations" || features.alertVariations) && (l.key !== "look" || features.overlayThemes || features.alertLayout) && (l.key !== "words" || features.alertText || features.alertMotion) && (l.key !== "banner" || features.tipBanner) && (l.key !== "pinned" || features.highlightedMessages) &&
       (l.key !== "fans" || features.fanLevels || features.fanCrm || features.birthdayMessage) && (l.key !== "streamlabs" || features.streamlabs),
   );
-  return <SlidingNav items={links.map((l) => ({ ...l }))} current={current} label="Dashboard" />;
+  // Each group's link opens its first page that is switched on.
+  const items = links.map((l) => ({
+    ...l,
+    href: l.key === "look" && !features.overlayThemes ? "/dashboard/layout" : l.key === "words" && !features.alertText ? "/dashboard/motion" : l.href,
+  }));
+  const group = current === "style" || current === "layout" ? "look" : current === "text" || current === "motion" ? "words" : current;
+  return <SlidingNav items={items} current={group} label="Dashboard" />;
 }

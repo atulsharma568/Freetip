@@ -8,6 +8,7 @@ import { safeAccent } from "@/lib/accent";
 import { safeFont, safeTheme } from "@/lib/overlay-themes";
 import { OVERLAY_FONT_CLASSES } from "@/components/overlay/fonts";
 import { DashboardNav } from "../DashboardNav";
+import { AlertSubNav } from "../AlertSubNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { StyleManager } from "./StyleManager";
 
@@ -46,6 +47,7 @@ export default async function StylePage() {
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
         <div className="space-y-4">
           <DashboardNav current="style" />
+          <AlertSubNav current="style" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert style</h1>
           <p className="text-pretty text-base text-muted">
             Pick how the alert card looks on your stream. Your accent colour still colours it. A tip
