@@ -200,3 +200,51 @@ Ideas worth taking (all switched off by default; the owner turns them on per cre
 - A TEST badge on test alerts and warnings never to show the overlay link on stream: built 2026-11-01 (phase 1 polish; TEST pill in `AlertStage.tsx`, warning in `OverlayTile.tsx`).
 
 Not taken for now: international tips in USD, EUR and GBP (their code shows a 7% fee, a ₹200 cap and a separate 7-day settlement; it touches the same money rules as our payout engine), settle-on-demand (blocked by the aggregation question in `docs/rules-check.md`), a public streamer directory, and fan accounts with a follow list.
+
+## How competitors move money to creators (deeper public pass, 2026-11-03)
+
+Question asked by the owner: do the competitors pass tip money through their own gateway account, or do creators receive it directly? Three research agents read only public material (public pages, the JavaScript each site serves to every visitor, public legal text, public repos and registries). No logins, no account sign-ups, no calls to any backend. Nothing is confirmed by the competitors themselves; each claim is marked CONFIRMED (read directly), INFERRED or NOT VISIBLE.
+
+### Two different "SuperTips" (do not blend them)
+
+- **SuperTips, supertips.store** (also supertips.in): operated by Untested Technology Ventures LLP (Indore). This is the 8% free plan, 6% Pro at ₹999 a month product in the section above. The Pro "free until June 2026" notice is still shown in November 2026.
+- **SuperTip, supertip.live**: operator not named, India-only, waitlist, Razorpay. It sits behind a bot check, so it was read only through search-tool summaries of its cached pages (second hand: re-read it in a browser before relying on it). `docs/rules-check.md` cites this one.
+- `supertip.gg` is a US, Stripe-based product by another company and is unrelated.
+
+### Answers
+
+| Product | How money reaches creators | Confidence |
+|---|---|---|
+| HyperChat (hyperchat.space, Streamheart Private Limited) | Pass-through. One Razorpay account for all creators (its own public repo docs say a single `primary` account), no Route, split or linked-account code found. Creators give bank details and a required PAN, and HyperChat pays them itself. Its repo says payouts are "out of scope" of the app, so they are probably manual (INFERRED). | About 85% on "collected centrally"; about 65% on "payouts are manual" |
+| SuperTips (supertips.store) | Probably a pass-through. The public checkout uses one hard-coded Razorpay key for every creator (a test-mode key in the build), the order comes from their server, and there is a Cashfree branch. Terms say earnings are "settled to the creator's registered bank account on a regular schedule". Whether payouts are manual, by API, or by Route/Easy Split set server-side is NOT VISIBLE. | Low to medium |
+| SuperTip (supertip.live) | The creator's own connected payment account (Razorpay): "does not hold the funds", "Direct Settlement Architecture", creator does their own KYC and tax. Whether "connected" means pasted keys, Razorpay partner OAuth or Route is NOT VISIBLE. Second-hand only. | Medium |
+| StreamTipz | Creator's own UPI or merchant ID; platform fee from prepaid Alert Tokens (see above). | Confirmed on its site |
+| Coffee & Toffee (timewheel.co.in) | Razorpay Route linked accounts, release 2 days after payment (7 in the first month), creator pays Razorpay's fee. Its legal basis and Route eligibility were not found. | Confirmed on its site |
+
+### HyperChat details
+
+- Entity: Streamheart Private Limited, CIN U62099UP2025PTC235918, incorporated 4 November 2025, ₹10,000 paid-up capital (registry listing). The terms carry earlier dates, so earlier operation was probably by an individual.
+- Terms: payouts monthly and "not guaranteed"; HyperChat may withhold a month's payout if the streamer starts using another tipping platform without telling it (a soft exclusivity lock-in). Tips are final. Chargebacks are not mentioned. Its About page says it does not process or store financial transactions and is not a settlement facilitator, which does not match collecting tips and paying creators out.
+- Fee percentage, payout day, minimum, hold length and payout rail: NOT VISIBLE. A `₹299 monthly subscription` tag in the homepage HTML is unexplained.
+- Creator KYC today: PAN and bank details only. Document, selfie and AML checks are planned in its repo, not live.
+- **Correction:** the prices listed above (text ₹40, voice ₹150, sound ₹30, media ₹100) are per-creator settings or client fallbacks (the creator the first pass read had text ₹40, voice ₹80, sound ₹300, media ₹20). Do not quote them as HyperChat's prices. "Cashfree appears once" is a logo-list entry only.
+- Its terms ban building tools on its alert data (liquidated damages of ₹25,000 to ₹50,000 a day). Do not copy clauses like these or the payout-withholding lock-in.
+
+### SuperTips (supertips.store) details
+
+- Fees: 8% free, 6% on Pro at ₹999 a month; the pricing page promises "3 business day payouts", while the terms say "a regular schedule". No minimum payout is published. Terms allow delaying, withholding or reversing settlements for fraud, chargebacks or violations.
+- Creators need Google sign-in, YouTube channel verification and a valid bank account. No PAN, GST or document KYC is mentioned publicly (it may sit behind the login).
+- Fan form: email required for guests, ₹20 to ₹25,000, UPI only, card listed as "coming next". All tips final; a chargeback without contacting support "may result in permanent suspension".
+- Operator registry details (LLPIN, GST, directors) were not found.
+
+### Providers and rules (from the payout-models pass)
+
+- Razorpay Route: published gate is domestic turnover above ₹40 lakh plus a use-case review (the owner's own Razorpay reply says the same; RazorpayX needs ₹1.5 crore). Razorpay's Technology Partner (OAuth) programme lets a platform act on each creator's own Razorpay account; no turnover text is published, and where settlements land was not found.
+- Cashfree Easy Split: "marketplaces and multi-vendor platforms", no turnover test published, but "settlement options depend on configuration and eligibility". Cashfree Embedded Payments gives each creator their own merchant ID, and the platform can mark up the fee; no formal criteria published. PayU split settlements and Paytm split settlement also publish no turnover test (not confirmed to accept a zero-turnover platform).
+- RBI Payment Aggregator Directions (15 September 2025): no clause found that exempts a pure agent, a commission agent or "the tip is our own revenue"; one law-firm article says a platform that takes payments into its normal account and pays vendors less commission is an unlicensed aggregator and that the length of the hold is irrelevant. Whether tips count as a sale by the creator is unresolved.
+- Razorpay's merchant terms (via a third-party archive) bar letting third parties use the service, limit marketplace payments to onboarded sellers, and let Razorpay suspend settlement at once. No documented freeze of a small tipping platform was found.
+- Easebuzz declined by phone on 2026-11-03 (it does not onboard social media platforms).
+
+
+- HyperChat and probably SuperTips (supertips.store) do what a manual payout sheet would do: collect into one gateway account and pay creators themselves. They are small and nobody has stopped them yet, but that is not evidence it is allowed.
+- The clean models are creator-owned accounts (StreamTipz, supertip.live) or a licensed aggregator's split product. Two open questions to ask in writing: Razorpay's partner team (can each creator keep their own Razorpay account while we create orders and take a commission, and is there a turnover rule?), and Cashfree (Embedded Payments and Easy Split for a new platform). PayU is a third provider not yet asked.
