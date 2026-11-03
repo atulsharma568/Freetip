@@ -43,7 +43,7 @@ function arrowKeys(event: KeyboardEvent<HTMLElement>, group: HTMLElement | null)
 
 // A row that scrolls sideways: a swipe on a phone or touchpad, the mouse wheel on a
 // laptop or PC. Each tile snaps into place.
-function SwipeRow({ labelledBy, children }: { labelledBy: string; children: ReactNode }) {
+function SwipeRow({ labelledBy, twoRows = false, children }: { labelledBy: string; twoRows?: boolean; children: ReactNode }) {
   const row = useRef<HTMLDivElement>(null);
   useWheelScroll(row);
   return (
@@ -53,7 +53,9 @@ function SwipeRow({ labelledBy, children }: { labelledBy: string; children: Reac
       role="radiogroup"
       aria-labelledby={labelledBy}
       onKeyDown={(e) => arrowKeys(e, row.current)}
-      className="relative -mx-1 flex snap-x snap-proximity gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
+      className={`relative -mx-1 snap-x snap-proximity gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] ${
+        twoRows ? "grid grid-flow-col grid-rows-2 auto-cols-[15rem]" : "flex"
+      }`}
     >
       {children}
     </div>
@@ -152,7 +154,7 @@ export function ExtraPicker({
           <p id={`${uid}-sounds`} className="text-sm text-muted">
             Soundboard <span className="text-control">(optional, pick one; your message is not read aloud with a sound)</span>
           </p>
-          <SwipeRow labelledBy={`${uid}-sounds`}>
+          <SwipeRow labelledBy={`${uid}-sounds`} twoRows={sounds.length > 1}>
             {sounds.map((s, i) => {
               const on = selected.kind === "sound" && selected.id === s.id;
               const locked = amountPaise < s.minPaise;
@@ -169,7 +171,7 @@ export function ExtraPicker({
                     onClick={() => {
                       if (!locked) toggle({ kind: "sound", id: s.id }, on);
                     }}
-                    className={`${tile} ${tileState(on, locked)}`}
+                    className={`${tile} min-w-0 flex-1 ${tileState(on, locked)}`}
                   >
                     {s.emoji ? (
                       <span aria-hidden="true" className="w-4 shrink-0 text-center">
