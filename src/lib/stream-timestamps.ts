@@ -70,7 +70,10 @@ async function liveVideoId(creator: Creator, deps: Deps): Promise<string | null>
   const hit = liveCache.get(creator.id);
   if (hit && hit.until > now) return hit.videoId;
   const refresh = deps.unseal(creator.yt_refresh_token_enc);
-  if (!refresh) return null;
+  if (!refresh) {
+    console.error(`Timestamps: creator ${creator.id} has no usable YouTube token (not connected, or YT_TOKEN_KEY changed).`);
+    return null;
+  }
   const access = await deps.yt.refreshAccessToken(refresh);
   if (!access.ok) return null;
   const videoId = await deps.yt.activeBroadcast(access.accessToken);
@@ -177,7 +180,7 @@ export async function recordMoment(db: LedgerDb, deps: Deps, input: MomentInput)
 
   try {
     const videoId = await resolveVideoId(creator, input.chatId, deps);
-    if (!videoId || !isVideoId(videoId)) return "Could not tell which stream this is. Is it live?";
+    if (!videoId || !isVideoId(videoId)) return "Could not tell which stream this is. Is it live? If it is, reconnect YouTube in Freetip.";
 
     const ensured = await ensureStream(db, deps, creator, videoId);
     if (ensured.stream === null) return ensured.error;

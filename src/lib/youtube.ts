@@ -104,6 +104,7 @@ export function createYouTubeClient(env: NodeJS.ProcessEnv = process.env, doFetc
         });
         const json = (await res.json().catch(() => ({}))) as { access_token?: string; error?: string };
         if (res.ok && json.access_token) return { ok: true, accessToken: json.access_token };
+        console.error(`YouTube: token refresh answered ${res.status} (${json.error ?? "no reason"}).`);
         return { ok: false, reason: json.error === "invalid_grant" ? "invalid_grant" : "failed" };
       } catch (err) {
         console.error("YouTube: token refresh failed.", err);
@@ -148,10 +149,17 @@ export function createYouTubeClient(env: NodeJS.ProcessEnv = process.env, doFetc
         url.searchParams.set("mine", "true");
         url.searchParams.set("broadcastStatus", "active");
         const res = await doFetch(url, { headers: { Authorization: `Bearer ${accessToken}` }, signal: signal() });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          const body = (await res.text().catch(() => "")).slice(0, 300);
+          console.error(`YouTube: liveBroadcasts.list answered ${res.status}. ${body}`);
+          return null;
+        }
         const json = (await res.json()) as { items?: { id?: string }[] };
-        return json.items?.[0]?.id ?? null;
-      } catch {
+        const id = json.items?.[0]?.id ?? null;
+        if (!id) console.error("YouTube: liveBroadcasts.list found no active broadcast (is the stream fully live, not in preview?).");
+        return id;
+      } catch (err) {
+        console.error("YouTube: liveBroadcasts.list failed.", err);
         return null;
       }
     },
