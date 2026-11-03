@@ -151,9 +151,14 @@ async function readAccent(db: Db, userId: number): Promise<string | null> {
   }
 }
 
-// Which extra overlays are switched on for this creator (migration 0035).
-async function readExtraOverlays(db: Db, userId: number): Promise<{ path: string; label: string }[]> {
+// Which extra overlays are switched on for this creator (migration 0035), and whether the owner
+// has switched on a custom tip page for them (the dashboard only mentions it, never edits it).
+async function readExtraOverlays(
+  db: Db,
+  userId: number,
+): Promise<{ extras: { path: string; label: string }[]; customPage: boolean }> {
   const extras: { path: string; label: string }[] = [];
+  let customPage = false;
   try {
     const [found] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${userId}`;
     const f = planFeatures(found);
@@ -161,10 +166,11 @@ async function readExtraOverlays(db: Db, userId: number): Promise<{ path: string
     if (f.topSupporter) extras.push({ path: "/top", label: "Top supporter" });
     if (f.recentSupporters) extras.push({ path: "/recent", label: "Recent supporters" });
     if (f.highlightedMessages) extras.push({ path: "/pinned", label: "Pinned message" });
+    customPage = f.pageBuilder;
   } catch (err) {
     console.error("Dashboard: could not read the paid features.", err);
   }
-  return extras;
+  return { extras, customPage };
 }
 
 // The goal bars (migrations 0018, 0027, 0028): each goal's progress and the finished periods.
@@ -313,7 +319,7 @@ export default async function DashboardPage() {
     { regionalVoices, voiceLang },
     { handleChanged, handleRequest },
     accent,
-    extras,
+    { extras, customPage },
     { goalViews, goalHistory },
     pending,
     latestTipId,
@@ -437,6 +443,15 @@ export default async function DashboardPage() {
                       {SITE_HOST}/{handle}
                     </Link>
                     <StatusBadge status={user.creator_status} />
+                    {customPage && (
+                      <p className="text-sm text-muted">
+                        Your custom tip page is set up by Freetip. To change it, send a message through the{" "}
+                        <Link href="/contact" className="text-text underline decoration-line underline-offset-4 hover:decoration-accent">
+                          contact form
+                        </Link>
+                        .
+                      </p>
+                    )}
                     <div className="border-t border-line/60 pt-4">
                       <RenameHandle current={handle} used={handleChanged} request={handleRequest} />
                     </div>

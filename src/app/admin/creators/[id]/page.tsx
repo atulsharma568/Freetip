@@ -146,7 +146,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           <h2 className="text-sm font-semibold text-text">Custom tip page</h2>
           <p className="max-w-2xl text-xs text-muted">
             A custom page is set up by you for this creator and shown only while the &ldquo;Custom tip page&rdquo; switch
-            above is on. The creator cannot edit it. You can put the previous version back, or go back to the normal page.
+            above is on. The creator cannot edit it. Open the editor to change it, swap it with the previous version, or go back to the normal page.
           </p>
         </div>
         {!pageRead.ok ? (
@@ -154,6 +154,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
         ) : (
           <TipPageBox
             summary={pageRead.data}
+            editHref={`/admin/creators/${c.id}/page`}
             restoreAction={restoreCreatorPage.bind(null, c.id)}
             resetAction={resetCreatorPage.bind(null, c.id)}
           />
