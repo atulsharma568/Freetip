@@ -8,7 +8,7 @@ Not known to us: what the channel streams and its look (the public YouTube page 
 
 ## 1. Owner: in `/admin/creators/<id>` (Paid features box)
 
-Run migrations 0045 to 0048 and 0050 in Neon first (`OPERATIONS.md` section 3), then deploy, then tick every built switch for this creator:
+Run migrations 0045 to 0048 and 0050 in Neon first (`OPERATIONS.md` section 5), then deploy, then tick every built switch for this creator:
 
 - Tip page: Banner on the tip page (also covers the YouTube photo).
 - Alert box: Custom alert media, Tip page picks, Regional language voices, Overlay themes and fonts, Paid highlighted messages, Alert text and colours, Alert animations and timing, Automatic tiers by tip size, Alert volume and layout.
