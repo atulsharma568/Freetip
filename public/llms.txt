@@ -1,0 +1,18 @@
+# Freetip
+
+> Freetip lets Indian YouTube streamers take tips from fans by UPI or card. Fans need no account and no email. Streamers get a short link, OBS alerts and text-to-speech.
+
+## Pages
+
+- [Home](https://freetip.in/): what Freetip is and how it works
+- [Pricing](https://freetip.in/pricing): the 5% fee and the flat 2.75% processing charge
+- [About](https://freetip.in/about): who runs Freetip
+- [Contact](https://freetip.in/contact): the contact form and grievance details
+
+## Policies
+
+- [Terms](https://freetip.in/terms)
+- [Privacy](https://freetip.in/privacy)
+- [Refunds](https://freetip.in/refunds)
+- [Delivery](https://freetip.in/delivery)
+- [Community guidelines](https://freetip.in/community-guidelines)

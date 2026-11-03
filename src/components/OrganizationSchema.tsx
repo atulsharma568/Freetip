@@ -3,10 +3,11 @@ import { SITE_NAME } from "@/lib/site";
 import { INDEXABLE, SITE_URL } from "@/lib/url";
 
 // Organization data (JSON-LD) for search engines. Nothing is written until the
-// real domain is set and the operator's legal name and email are filled in
-// (src/lib/legal.ts), so no placeholder or guessed detail is ever published.
+// real domain is set and the operator's legal name is filled in
+// (src/lib/legal.ts). The contact point is the contact form page; an email is
+// added only if one is set, so no placeholder or guessed detail is published.
 export function organizationData() {
-  if (!INDEXABLE || !OPERATOR.legalName || !OPERATOR.supportEmail) return null;
+  if (!INDEXABLE || !OPERATOR.legalName) return null;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -19,7 +20,8 @@ export function organizationData() {
       {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: OPERATOR.supportEmail,
+        url: `${SITE_URL}/contact`,
+        ...(OPERATOR.supportEmail && { email: OPERATOR.supportEmail }),
         ...(OPERATOR.phone && { telephone: OPERATOR.phone }),
         areaServed: "IN",
         availableLanguage: ["English", "Hindi"],
