@@ -66,6 +66,7 @@ export function SlidingNav({
     <nav
       ref={box}
       aria-label={label}
+      data-lenis-prevent
       onPointerLeave={() => setHovered(null)}
       className="group/nav relative flex max-w-full select-none items-center gap-0.5 overflow-x-auto rounded-full border border-control p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >

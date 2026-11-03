@@ -132,7 +132,7 @@ export function AdminNav({ badges }: { badges: Record<string, number> }) {
   const waiting = Object.values(badges).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="space-y-3 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:w-60 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:pr-1">
+    <div data-lenis-prevent className="space-y-3 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:w-60 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:pr-1">
       <CreatorFinder />
 
       <nav aria-label="Owner console">

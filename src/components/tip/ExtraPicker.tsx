@@ -49,6 +49,7 @@ function SwipeRow({ labelledBy, children }: { labelledBy: string; children: Reac
   return (
     <div
       ref={row}
+      data-lenis-prevent
       role="radiogroup"
       aria-labelledby={labelledBy}
       onKeyDown={(e) => arrowKeys(e, row.current)}
