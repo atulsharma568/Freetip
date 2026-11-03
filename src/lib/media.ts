@@ -12,8 +12,8 @@ export const MEDIA_WEBM_MAX_BYTES = 8 * 1024 * 1024;
 // A WebM's length cannot be read cheaply on the server: the browser checks it and
 // the overlay hard-caps playback at this many milliseconds whatever the file says.
 export const MEDIA_WEBM_MAX_MS = 10_000;
-export const MAX_MEDIA_PER_CREATOR = 20;
-export const MAX_MEDIA_BYTES_PER_CREATOR = 40 * 1024 * 1024;
+export const MAX_MEDIA_PER_CREATOR = 2; // for now: keeps storage small; more can be a paid extra later
+export const MAX_MEDIA_BYTES_PER_CREATOR = 8 * 1024 * 1024;
 export const MEDIA_NAME_MAX = 40;
 export const MEDIA_MAX_SIDE = 4096;
 

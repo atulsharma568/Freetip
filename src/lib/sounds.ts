@@ -11,8 +11,8 @@ export const SOUND_MIN_MS = 100;
 export const SOUND_NAME_MAX = 40;
 export const SOUND_EMOJI_MAX = 8;
 export const SOUND_MAX_MIN_RUPEES = 10_000;
-export const MAX_SOUNDS_PER_CREATOR = 30;
-export const MAX_SOUND_BYTES_PER_CREATOR = 60 * 1024 * 1024;
+export const MAX_SOUNDS_PER_CREATOR = 2; // for now: keeps storage small; more can be a paid extra later
+export const MAX_SOUND_BYTES_PER_CREATOR = 10 * 1024 * 1024;
 // Sounds are repaired to at most this rate, which keeps 30 s of stereo near 5 MB.
 export const SOUND_SAMPLE_RATE = 44_100;
 
