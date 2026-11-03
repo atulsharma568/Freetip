@@ -3,17 +3,16 @@
 import Image from "next/image";
 import { isUploadedBannerUrl } from "@/lib/tip-banner";
 
-// The owner's own tip page header (shown only on the owner's page, see `isOwnerTipPage`): a
-// full-width stage with the channel banner, a stacked wordmark and a pressure gauge whose needle
-// follows the amount being chosen. The tip form underneath is the shared one.
+// The owner's own tip page header (shown only on the owner's page, see `isOwnerTipPage`): a slim
+// strip with the channel banner, the photo, the name and a thin pressure bar that fills as the
+// amount goes up. The tip form underneath is the shared one.
 
-const SWEEP = 240; // degrees of dial, from -120 to +120
-const MARKS = [20, 100, 500, 1000, 5000];
+const TOP_RUPEES = 5000;
 
-// Where an amount sits on the dial: a log scale, so ₹20 and ₹5,000 both fit.
-function fraction(amount: number, low: number, high: number): number {
+// Where an amount sits on the bar: a log scale, so ₹20 and ₹5,000 both fit.
+function fraction(amount: number, low: number): number {
   if (!(amount > low)) return 0;
-  return Math.min(1, Math.log(amount / low) / Math.log(high / low));
+  return Math.min(1, Math.log(amount / low) / Math.log(TOP_RUPEES / low));
 }
 
 const LEVELS = [
@@ -24,21 +23,10 @@ const LEVELS = [
   { upTo: 1.01, name: "Redline" },
 ];
 
-function polar(cx: number, cy: number, r: number, deg: number) {
-  const a = ((deg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-}
-
-function arc(cx: number, cy: number, r: number, from: number, to: number) {
-  const s = polar(cx, cy, r, from);
-  const e = polar(cx, cy, r, to);
-  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
-}
-
-// "AcePressure" stacks as "Ace" over "Pressure"; a name with spaces stacks word by word.
-function wordmarkLines(name: string): string[] {
-  const lines = name.replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
-  return lines.length ? lines.slice(0, 3) : [name];
+// "AcePressure" splits into "Ace" and "Pressure"; a name with spaces splits at the first space.
+function splitName(name: string): [string, string] {
+  const parts = name.replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? [parts[0], parts.slice(1).join(" ")] : [name, ""];
 }
 
 export function OwnerHero({
@@ -62,140 +50,101 @@ export function OwnerHero({
   minRupees: number;
   previewMode: boolean;
 }) {
-  const low = Math.max(1, minRupees);
-  const f = fraction(amountRupees, low, 5000);
+  const f = fraction(amountRupees, Math.max(1, minRupees));
   const level = LEVELS.find((l) => f < l.upTo)?.name ?? "Redline";
-  const angle = -SWEEP / 2 + f * SWEEP;
-  const lines = wordmarkLines(displayName);
-  const marks = MARKS.filter((m) => m >= low).slice(0, 5);
+  const [first, rest] = splitName(displayName);
+  // A one-word brand such as "AcePressure" stays one word, only the second half is lime.
+  const gap = /\s/.test(displayName.trim()) ? " " : "";
 
   return (
     <section
       aria-label="Creator"
-      className="ap-stage relative isolate overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-ground"
+      className="relative isolate overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface/80 backdrop-blur-sm"
     >
-      {bannerUrl && (
-        <Image
-          src={bannerUrl}
-          alt=""
-          fill
-          priority
-          unoptimized={isUploadedBannerUrl(bannerUrl)}
-          sizes="100vw"
-          className="-z-20 object-cover opacity-45"
-        />
-      )}
-      <div aria-hidden="true" className="ap-grid absolute inset-0 -z-10" />
-      <div aria-hidden="true" className="ap-glow absolute -right-24 -top-24 -z-10 size-[28rem] rounded-full" />
+      <div className="relative h-28 sm:h-36" aria-hidden="true">
+        {bannerUrl ? (
+          <Image
+            src={bannerUrl}
+            alt=""
+            fill
+            priority
+            unoptimized={isUploadedBannerUrl(bannerUrl)}
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            className="object-cover"
+          />
+        ) : (
+          <div className="ap-strip absolute inset-0" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/10 to-transparent" />
+      </div>
 
-      <div className="grid gap-8 px-5 py-10 sm:px-10 sm:py-14 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:items-center">
-        <div className="space-y-6">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-ground/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
+      <div className="space-y-4 px-5 pb-5 sm:px-8 sm:pb-6">
+        <div className="-mt-12 flex flex-wrap items-end gap-x-5 gap-y-3 sm:-mt-14">
+          <span className="ap-ring relative inline-block shrink-0 rounded-full border-2 border-accent bg-ground p-1.5">
+            {pictureUrl ? (
+              <Image
+                src={pictureUrl}
+                alt={`${displayName}'s profile photo`}
+                loading="eager"
+                width={96}
+                height={96}
+                className="block size-20 rounded-full sm:size-24"
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="display grid size-20 place-items-center rounded-full bg-accent text-4xl text-ink sm:size-24"
+              >
+                {[...displayName][0]?.toUpperCase() ?? "F"}
+              </span>
+            )}
+          </span>
+          <div className="order-3 min-w-0 basis-full pb-1 sm:order-2 sm:flex-1 sm:basis-0">
+            <h1 className="display break-words text-[clamp(2.25rem,8vw,3.75rem)] leading-[0.95]">
+              {first}
+              {rest && <span className="text-accent">{gap}{rest}</span>}
+            </h1>
+          </div>
+          <p className="order-2 ml-auto inline-flex items-center gap-2 rounded-full border border-line bg-ground/70 px-3 py-1 text-xs font-medium text-muted sm:order-3 sm:ml-0">
             <span aria-hidden="true" className="live-dot" />
             {previewMode ? "Preview" : "Tips open"}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="ap-ring inline-block shrink-0 rounded-full border-2 border-accent p-1.5">
-              {pictureUrl ? (
-                <Image
-                  src={pictureUrl}
-                  alt={`${displayName}'s profile photo`}
-                  loading="eager"
-                  width={96}
-                  height={96}
-                  className="block size-20 rounded-full sm:size-24"
-                />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="display grid size-20 place-items-center rounded-full bg-accent text-4xl text-ink sm:size-24"
-                >
-                  {[...displayName][0]?.toUpperCase() ?? "F"}
-                </span>
-              )}
-            </span>
+        </div>
+
+        {(bio || (ytChannelName && ytChannelUrl)) && (
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+            {bio && <p className="max-w-xl text-pretty text-base text-muted">{bio}</p>}
             {ytChannelName && ytChannelUrl && (
               <a
                 href={ytChannelUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-0 truncate rounded-full border border-line bg-ground/70 px-4 py-2 text-sm text-text backdrop-blur transition-colors hover:border-muted"
+                className="truncate text-sm text-muted transition-colors hover:text-text"
               >
                 {ytChannelName}
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
             )}
           </div>
-          <h1 className="display break-words text-[clamp(3.25rem,13vw,7.5rem)] leading-[0.9]">
-            {lines.map((line, i) => (
-              <span key={line + i} className={`block ${i === lines.length - 1 && lines.length > 1 ? "text-accent" : ""}`}>
-                {line}
-              </span>
-            ))}
-          </h1>
-          {bio && <p className="max-w-md text-pretty text-lg text-muted">{bio}</p>}
-        </div>
+        )}
 
-        <div className="mx-auto w-full max-w-sm">
-          <svg
-            viewBox="0 0 300 250"
-            role="img"
-            aria-label={`Pressure gauge: ${level}, ₹${amountRupees.toLocaleString("en-IN")}`}
-            className="w-full"
-          >
-            <path d={arc(150, 140, 120, -SWEEP / 2, SWEEP / 2)} fill="none" stroke="var(--color-line)" strokeWidth="14" strokeLinecap="round" />
-            {f > 0 && (
-              <path
-                d={arc(150, 140, 120, -SWEEP / 2, angle)}
-                fill="none"
-                stroke="var(--color-accent)"
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-            )}
-            {Array.from({ length: 25 }, (_, i) => {
-              const d = -SWEEP / 2 + (i / 24) * SWEEP;
-              const big = i % 6 === 0;
-              const a = polar(150, 140, big ? 96 : 102, d);
-              const b = polar(150, 140, 108, d);
-              return (
-                <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--color-control)" strokeWidth={big ? 3 : 1.5} />
-              );
-            })}
-            {marks.map((m) => {
-              const d = -SWEEP / 2 + fraction(m, low, 5000) * SWEEP;
-              const p = polar(150, 140, 80, d);
-              return (
-                <text key={m} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" className="numeric" fill="var(--color-muted)" fontSize="11">
-                  {m >= 1000 ? `${m / 1000}k` : m}
-                </text>
-              );
-            })}
-            <g className={`ap-needle ${f >= 0.95 ? "ap-shake" : ""}`} style={{ transform: `rotate(${angle}deg)`, transformOrigin: "150px 140px" }}>
-              <polygon points="146,140 154,140 150,52" fill="var(--color-accent)" />
-            </g>
-            <circle cx="150" cy="140" r="12" fill="var(--color-ground)" stroke="var(--color-accent)" strokeWidth="3" />
-            <text x="150" y="196" textAnchor="middle" className="numeric" fill="var(--color-text)" fontSize="30" fontWeight="600">
-              ₹{amountRupees.toLocaleString("en-IN")}
-            </text>
-            <text x="150" y="222" textAnchor="middle" fill="var(--color-accent)" fontSize="14" fontWeight="600" letterSpacing="3">
-              {level.toUpperCase()}
-            </text>
-          </svg>
-        </div>
-      </div>
-
-      <div aria-hidden="true" className="ap-ticker border-t border-line/60 bg-ground/70 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-muted">
-        <div className="ap-ticker-track">
-          {Array.from({ length: 2 }, (_, k) => (
-            <span key={k} className="flex shrink-0 gap-8 pr-8">
-              {Array.from({ length: 6 }, (_, i) => (
-                <span key={i}>
-                  {displayName} <span className="text-accent">●</span> Send pressure <span className="text-accent">●</span>
-                </span>
-              ))}
-            </span>
-          ))}
+        <div
+          role="img"
+          aria-label={`Pressure: ${level}, ₹${amountRupees.toLocaleString("en-IN")}`}
+          className="flex items-center gap-3"
+        >
+          <span aria-hidden="true" className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-muted">
+            Pressure
+          </span>
+          <span aria-hidden="true" className="relative h-2 flex-1 overflow-hidden rounded-full bg-line/60">
+            <span
+              className={`ap-fill absolute inset-y-0 left-0 rounded-full bg-accent ${f >= 0.95 ? "ap-hot" : ""}`}
+              style={{ width: `${Math.max(3, f * 100)}%` }}
+            />
+          </span>
+          <span aria-hidden="true" className="w-24 text-right text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-accent">
+            {level}
+          </span>
         </div>
       </div>
     </section>

@@ -24,3 +24,9 @@ test.describe("which tip page is the owner's", () => {
     expect(isOwnerTipPage("ace2", "g1", env({ OWNER_TIP_HANDLES: "ace2" }))).toBe(true);
   });
 });
+
+test("the owner's page shows the brand, which can be changed", async () => {
+  const { ownerBrand } = await import("../src/lib/owner-page");
+  expect(ownerBrand(env({}))).toBe("AcePressure");
+  expect(ownerBrand(env({ OWNER_TIP_BRAND: " Ace " }))).toBe("Ace");
+});

@@ -16,3 +16,9 @@ export function isOwnerTipPage(
   if (handles.includes(handle.toLowerCase())) return true;
   return isOwnerGoogleId(googleId, parseOwnerGoogleIds(env.OWNER_GOOGLE_IDS ?? env.OWNER_GOOGLE_ID));
 }
+
+// The name the owner's page shows: the brand, not the account's display name (which is a
+// personal name). Set OWNER_TIP_BRAND to change it.
+export function ownerBrand(env: NodeJS.ProcessEnv = process.env): string {
+  return env.OWNER_TIP_BRAND?.trim() || "AcePressure";
+}

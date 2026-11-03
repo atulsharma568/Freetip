@@ -8,7 +8,8 @@ import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
-import { isOwnerTipPage } from "@/lib/owner-page";
+import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: `${handle}: ${SITE_NAME}`, robots: { index: false } };
   }
 
-  const displayName = creator.display_name ?? creator.name ?? handle;
+  const displayName = isOwnerTipPage(handle, creator.google_id) ? ownerBrand() : (creator.display_name ?? creator.name ?? handle);
   const title = `Tip ${displayName} | ${SITE_NAME}`;
   const description = `Send a tip to ${displayName} on ${SITE_NAME}. No fan account or email needed.`;
   return {
@@ -62,7 +63,8 @@ export default async function CreatorPage({ params }: Props) {
     );
   }
 
-  const displayName = creator.display_name ?? creator.name ?? handle;
+  const ownerPage = isOwnerTipPage(handle, creator.google_id);
+  const displayName = ownerPage ? ownerBrand() : (creator.display_name ?? creator.name ?? handle);
   const [sounds, rules, pinOffer, bannerUrl, tipPhoto] = await Promise.all([
     getTipSounds(handle),
     getTipRules(handle),
@@ -80,6 +82,7 @@ export default async function CreatorPage({ params }: Props) {
   return (
     <PageShell slim>
       <div className="contents" style={themeStyle}>
+      {ownerPage && <OwnerBackdrop />}
       <TipForm
         accent={safeAccent(storedAccent)}
         sounds={sounds}
@@ -96,7 +99,7 @@ export default async function CreatorPage({ params }: Props) {
         bio={creator.bio}
         alertMode={creator.alert_mode}
         pinOffer={pinOffer}
-        variant={isOwnerTipPage(handle, creator.google_id) ? "owner" : "default"}
+        variant={ownerPage ? "owner" : "default"}
         previewMode={creator.creator_status !== "active"}
       />
       </div>
