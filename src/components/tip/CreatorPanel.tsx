@@ -17,24 +17,42 @@ const PERKS = [
 export function CreatorPanel({
   displayName,
   pictureUrl,
+  bannerUrl = null,
   ytChannelName,
   ytChannelUrl,
   bio,
   previewMode,
+  headingAs: Heading = "h1",
 }: {
   displayName: string;
   pictureUrl: string | null;
+  // The creator's YouTube banner (paid), drawn behind their photo; null is the plain header.
+  bannerUrl?: string | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   bio: string | null;
   previewMode: boolean;
+  // The tip page's one h1; the dashboard preview sits under its own h1, so it passes "h3".
+  headingAs?: "h1" | "h3";
 }) {
   // A channel with the same name as the display name would just repeat it.
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   return (
     <section className="space-y-6" aria-label="Creator">
       <div className="space-y-4">
-        <span className="inline-block rounded-full border-2 border-accent p-1.5">
+        {bannerUrl && (
+          <div className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface">
+            <Image
+              src={bannerUrl}
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 1024px) 400px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        )}
+        <span className={`inline-block rounded-full border-2 border-accent p-1.5 ${bannerUrl ? "relative z-10 -mt-14 ml-4 bg-ground sm:-mt-16" : ""}`}>
           {pictureUrl ? (
             <Image
               src={pictureUrl}
@@ -58,7 +76,7 @@ export function CreatorPanel({
             <span aria-hidden="true" className="live-dot" />
             {previewMode ? "Preview" : "Tips open"}
           </p>
-          <h1 className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</h1>
+          <Heading className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</Heading>
           {showChannel && (
             <a
               href={ytChannelUrl}

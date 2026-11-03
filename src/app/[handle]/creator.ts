@@ -4,6 +4,7 @@ import { hasFeature } from "@/lib/plans";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { playable, type MediaKind, type ReviewState } from "@/lib/media";
 import { pinOffer, type PinOffer } from "@/lib/pinned";
+import { safeBannerUrl } from "@/lib/tip-banner";
 
 export interface CreatorRow {
   google_id: string;
@@ -79,6 +80,22 @@ export const getCreatorAccent = cache(async (handle: string): Promise<string | n
     return rows[0]?.accent ?? null;
   } catch (err) {
     console.error("Tip page: could not read the accent colour.", err);
+    return null;
+  }
+});
+
+// The creator's YouTube banner for the top of the tip page: the paid switch is on and the saved
+// address is one of Google's image hosts. Read apart (migrations 0035 and 0048) so the page
+// still loads before they are run.
+export const getTipBanner = cache(async (handle: string): Promise<string | null> => {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    const [row] = await db<{ paid_features: string[] | null; tip_banner_url: string | null }[]>`
+      select paid_features, tip_banner_url from users where handle = ${handle}
+    `;
+    return row && hasFeature(row, "tipBanner") ? safeBannerUrl(row.tip_banner_url) : null;
+  } catch {
     return null;
   }
 });

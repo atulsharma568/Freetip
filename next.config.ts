@@ -10,8 +10,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
-    // Creator avatars are Google account photos.
-    remotePatterns: [{ protocol: "https", hostname: "*.googleusercontent.com" }],
+    // Creator avatars are Google account photos; a creator's YouTube banner is on the same hosts.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.googleusercontent.com" },
+      { protocol: "https", hostname: "*.ggpht.com" },
+    ],
   },
   // Old and alternate addresses go to the main domain (empty until it is set).
   async redirects() {

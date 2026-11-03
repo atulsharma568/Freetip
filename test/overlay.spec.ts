@@ -178,6 +178,8 @@ test.describe("OBS overlay routes", () => {
           }),
       );
       await page.route(MEDIA_URL, (route) => route.fulfill({ status: 200, contentType: "image/gif", body: PIXEL_GIF }));
+      // The mobile project is portrait, where the picture stays above the card by design.
+      await page.setViewportSize({ width: 1280, height: 720 });
       await page.goto(`/overlay/${TOKEN}`);
       await expect(page.getByRole("status")).toContainText("great stream");
       await expect(page.locator(`.ov-stack.ov-side-${side}`)).toHaveCount(1);

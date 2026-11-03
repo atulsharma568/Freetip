@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipRules, getTipSounds } from "./creator";
+import { getBirthdayOffered, getCreator, getCreatorAccent, getPinOffer, getTipBanner, getTipRules, getTipSounds } from "./creator";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { PageShell } from "@/components/PageShell";
@@ -62,11 +62,12 @@ export default async function CreatorPage({ params }: Props) {
   }
 
   const displayName = creator.display_name ?? creator.name ?? handle;
-  const [sounds, rules, birthdayOffered, pinOffer] = await Promise.all([
+  const [sounds, rules, birthdayOffered, pinOffer, bannerUrl] = await Promise.all([
     getTipSounds(handle),
     getTipRules(handle),
     getBirthdayOffered(handle),
     getPinOffer(handle),
+    getTipBanner(handle),
   ]);
   // The voice is offered only when the site switch and the creator both have it on.
   const voiceMinPaise =
@@ -86,6 +87,7 @@ export default async function CreatorPage({ params }: Props) {
         handle={handle}
         displayName={displayName}
         pictureUrl={creator.picture_url}
+        bannerUrl={bannerUrl}
         ytChannelName={creator.yt_channel_name}
         ytChannelUrl={creator.yt_channel_url}
         minTipPaise={MIN_TIP_PAISE}

@@ -17,6 +17,10 @@ const CHIP = "inline-flex min-h-11 items-center rounded-full border px-4 text-sm
 const CHIP_OFF = "border-control text-text hover:border-muted";
 const CHIP_ON = "border-accent bg-accent font-semibold text-ink";
 
+// Shown in the preview when the creator has no picture of their own (or no media switch), so
+// the left, right and above choices can still be seen. A sample, never played on a stream.
+const EXAMPLE_MEDIA: AlertMedia = { url: "/example-alert.gif", kind: "gif", placement: "above", durationMs: null };
+
 // "" is the normal volume.
 const VOLUMES = [
   { value: "", label: "Normal" },
@@ -68,7 +72,7 @@ export function LayoutManager({
         message: "Loved the last clutch, play ranked tomorrow too.",
         theme: { theme, font },
         text,
-        media,
+        media: media ?? EXAMPLE_MEDIA,
         layout: draft,
       },
     ],
@@ -127,11 +131,11 @@ export function LayoutManager({
           </div>
           <p className="text-xs text-muted">
             A sample alert on a landscape screen, not a real tip.{" "}
-            {mediaOn
-              ? media
-                ? "It uses your first picture. Volume is not played here."
-                : "Upload a picture or GIF on the Media page to see it beside the card. Volume is not played here."
-              : "The picture side needs custom alert media, which is not switched on for your account. Volume is not played here."}
+            {media
+              ? "The picture is your first one from the Media page. Volume is not played here."
+              : mediaOn
+                ? "The picture is an example GIF. Upload your own on the Media page and it shows here instead. Volume is not played here."
+                : "The picture is an example GIF; showing your own needs custom alert media, which is not switched on for your account. Volume is not played here."}
           </p>
         </div>
       </Tile>

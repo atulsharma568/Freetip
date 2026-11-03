@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Cake,
+  Image as ImageIcon,
   ChartBar,
   ChatCircleText,
   Eye,
@@ -37,6 +38,7 @@ const ICONS: Record<string, Icon> = {
   qr: QrCode,
   settings: SlidersHorizontal,
   preview: Eye,
+  banner: ImageIcon,
   "card-style": Palette,
   font: TextAa,
   "add-sounds": MusicNotes,

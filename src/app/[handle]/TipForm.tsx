@@ -16,6 +16,7 @@ import { AlertCard } from "@/components/tip/AlertCard";
 import { CreatorPanel, QrTile } from "@/components/tip/CreatorPanel";
 import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
+import { StepHeading } from "@/components/tip/StepHeading";
 import { SuccessScreen } from "@/components/tip/SuccessScreen";
 import { rupeeText } from "@/components/tip/format";
 import type { TipRule, TipSound } from "./creator";
@@ -89,21 +90,6 @@ function writeName(name: string) {
 
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
-function StepHeading({ n, title }: { n: number; title: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="numeric grid size-7 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-ink"
-      >
-        {n}
-      </span>
-      <h2 className="text-lg font-semibold text-text">{title}</h2>
-      <span aria-hidden="true" className="h-px flex-1 bg-line/60" />
-    </div>
-  );
-}
-
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 type Phase = "idle" | "creating" | "checkout" | "success" | "error";
@@ -113,6 +99,8 @@ interface Props {
   handle: string;
   displayName: string;
   pictureUrl: string | null;
+  // The creator's YouTube banner (paid), drawn behind their photo; null shows no banner.
+  bannerUrl?: string | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   minTipPaise: number;
@@ -137,6 +125,7 @@ export function TipForm({
   handle,
   displayName,
   pictureUrl,
+  bannerUrl = null,
   ytChannelName,
   ytChannelUrl,
   minTipPaise,
@@ -427,6 +416,7 @@ export function TipForm({
             <CreatorPanel
               displayName={displayName}
               pictureUrl={pictureUrl}
+              bannerUrl={bannerUrl}
               ytChannelName={ytChannelName}
               ytChannelUrl={ytChannelUrl}
               bio={bio}

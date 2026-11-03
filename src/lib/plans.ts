@@ -33,12 +33,14 @@ export type FeatureKey =
   | "alertText"
   | "alertMotion"
   | "alertVariations"
-  | "alertLayout";
+  | "alertLayout"
+  // The tip page itself.
+  | "tipBanner";
 
 export type FeatureInfo = {
   key: FeatureKey;
   label: string;
-  group: "Stream timestamps" | "OBS overlays" | "Alert box" | "Fans" | "Planned, not built yet";
+  group: "Stream timestamps" | "OBS overlays" | "Alert box" | "Fans" | "Tip page" | "Planned, not built yet";
   description: string;
   // false: listed in the admin page but cannot be switched on, because nothing exists yet.
   built: boolean;
@@ -203,6 +205,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Alert volume and layout",
     group: "Alert box",
     description: "The creator sets a master volume for alert sounds and the spoken voice (only quieter than normal, never louder) and can put the picture left or right of the card instead of above it (/dashboard/layout). The side layout needs custom alert media and applies on landscape screens only.",
+    built: true,
+  },
+  {
+    key: "tipBanner",
+    label: "YouTube banner on the tip page",
+    group: "Tip page",
+    description: "The creator's own YouTube channel banner shows behind their photo at the top of their tip page. They copy it from YouTube with one button and can remove it (/dashboard/banner). Needs YT_DATA_API_KEY.",
     built: true,
   },
 ];
