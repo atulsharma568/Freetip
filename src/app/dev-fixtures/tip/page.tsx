@@ -14,17 +14,20 @@ import { SuccessFixture } from "./SuccessFixture";
 // A test-only tip page with a made-up creator, so the browser tests can look at the real page
 // components without a database. 404 unless PAGE_FIXTURES=1 (only the Playwright config sets it).
 //   /dev-fixtures/tip?page=default|owner&view=form|success&doc=<base64url text>&editing=1&min=<rupees>
+//     &meter=<percent>&mtitle=<goal title>
 // `editing=1` marks the blocks as the owner's editor preview does; `min` sets the smallest tip.
+// `meter` is how full the made-up weekly goal (₹1,000) is, in percent, for a document that has a
+// Pressure meter block; without it that goal is empty. `mtitle` renames the goal.
 // `doc` is a page document as text (anything the parser takes); without one, or with one the
 // parser refuses, the page shows its own default document.
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tip page fixture", robots: { index: false, follow: false } };
 
-type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string; editing?: string; min?: string }> };
+type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string; editing?: string; min?: string; meter?: string; mtitle?: string }> };
 
 export default async function TipFixturePage({ searchParams }: Props) {
   if (!fixturesEnabled()) notFound();
-  const { page, view, doc: rawDoc, editing, min } = await searchParams;
+  const { page, view, doc: rawDoc, editing, min, meter, mtitle } = await searchParams;
   const owner = page === "owner";
   const fallback = owner ? ownerPageDoc() : defaultPageDoc();
   const doc = rawDoc ? pageDocOrDefault(Buffer.from(rawDoc, "base64url").toString("utf8"), fallback) : fallback;
@@ -42,6 +45,6 @@ export default async function TipFixturePage({ searchParams }: Props) {
     );
   }
 
-  const data = fixtureData(owner, doc, { editing: editing === "1", min });
+  const data = fixtureData(owner, doc, { editing: editing === "1", min, meter, mtitle });
   return <TipPageView data={data} />;
 }

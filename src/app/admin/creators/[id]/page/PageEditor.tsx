@@ -11,6 +11,7 @@ import type { AssetListItem } from "@/lib/page-doc/asset-store";
 import { usedAssetIds } from "@/lib/page-doc/assets";
 import { BlockList, type Selection } from "./BlockList";
 import { BlockSettings } from "./BlockSettings";
+import type { EditorGoal } from "./MeterSettings";
 import type { AssetLibrary } from "./AssetPicker";
 import { PreviewFrame, type PreviewView } from "./PreviewFrame";
 
@@ -54,6 +55,8 @@ export function PageEditor({
   library: libraryStart,
   addAsset,
   removeAsset,
+  goals,
+  meterSwitchOn,
 }: {
   start: EditorStart;
   previewSrc: string;
@@ -65,6 +68,9 @@ export function PageEditor({
   library: LibraryStart;
   addAsset: AssetLibrary["add"];
   removeAsset: (assetId: number) => Promise<PageAssetResult>;
+  // The creator's goals (for the Pressure meter's goal picker) and whether the meter switch is on.
+  goals: EditorGoal[];
+  meterSwitchOn: boolean;
 }) {
   const [doc, setDoc] = useState(start.doc);
   const docRef = useRef(start.doc);
@@ -187,12 +193,12 @@ export function PageEditor({
     else if (r.problems[0]) setAnnounce(r.problems[0]);
   }
 
-  function addBackdrop() {
-    const r = run((d) => addBlock(d, "backdrop"));
+  function add(type: "backdrop" | "pressureMeter") {
+    const r = run((d) => addBlock(d, type));
     if (r.changed) {
-      setSelected("backdrop");
-      setAnnounce("Added a picture backdrop behind the page.");
-    }
+      setSelected(type);
+      setAnnounce(type === "backdrop" ? "Added a picture backdrop behind the page." : "Added a Pressure meter under the header.");
+    } else if (r.problems[0]) setAnnounce(r.problems[0]);
   }
 
   async function doPublish() {
@@ -337,9 +343,9 @@ export function PageEditor({
 
       <div className="hidden items-start gap-6 lg:grid lg:grid-cols-[21rem_minmax(0,1fr)]">
         <div className="max-h-[calc(100dvh-2rem)] space-y-6 overflow-y-auto pr-1 lg:sticky lg:top-4">
-          <BlockList doc={doc} selected={selected} onSelect={setSelected} onMove={move} onDrop={drop} onVisible={visible} onAddBackdrop={addBackdrop} />
+          <BlockList doc={doc} selected={selected} onSelect={setSelected} onMove={move} onDrop={drop} onVisible={visible} onAdd={add} meterSwitchOn={meterSwitchOn} />
           <hr className="border-control" />
-          <BlockSettings doc={doc} selected={selected} run={run} library={library} />
+          <BlockSettings doc={doc} selected={selected} run={run} library={library} goals={goals} meterSwitchOn={meterSwitchOn} />
         </div>
         <PreviewFrame
           src={previewSrc}

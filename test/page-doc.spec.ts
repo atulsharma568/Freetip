@@ -434,3 +434,73 @@ test.describe("the colour rule: ink on accent 4.5 to 1, accent on the page 3 to 
     for (const preset of ACCENT_PRESETS) expect(pairChecks(preset.hex, inkFor(preset.hex)).ok, preset.id).toBe(true);
   });
 });
+
+test.describe("the Pressure meter block (phase 4)", () => {
+  const withMeter = (settings: Record<string, unknown> | undefined, slot = "side") =>
+    parsePageDoc(withBlocks([block("header", { slot: "side" }), block("pressureMeter", { slot, settings }), block("amount"), block("note"), block("send")]));
+  const meter = (settings?: Record<string, unknown>) => find(withMeter(settings)!.doc, "pressureMeter")!.settings;
+
+  test("it is in no default document, and a page without it is unchanged", () => {
+    for (const doc of [defaultPageDoc(), ownerPageDoc()]) expect(doc.blocks.some((b) => b.type === "pressureMeter")).toBe(false);
+    expect(parsePageDoc(minimal)?.doc).toEqual(minimal);
+  });
+
+  test("empty settings give the standard meter", () => {
+    expect(meter({})).toEqual({
+      goal: null,
+      levels: ONE_PIECE_LADDER.levels,
+      show: "rupees",
+      where: "both",
+      celebrate: true,
+      fill: null,
+      heading: "",
+    });
+  });
+
+  test("it can only sit in the left column, and it is not protected", () => {
+    expect(find(withMeter({}, "main")!.doc, "pressureMeter")?.slot).toBe("side");
+    expect(parsePageDoc(withBlocks([block("header", { slot: "side" }), block("pressureMeter", { visible: false, slot: "side" }), block("amount"), block("note"), block("send")]))!.repairedProtected).toEqual([]);
+  });
+
+  test("a goal id that is not a positive whole number is dropped with a note", () => {
+    for (const goal of ["7", -1, 0, 1.5, "x", {}, true]) {
+      const parsed = withMeter({ goal })!;
+      expect(find(parsed.doc, "pressureMeter")!.settings.goal, String(goal)).toBeNull();
+      expect(parsed.notes.some((n) => /goal/.test(n)), String(goal)).toBe(true);
+    }
+    expect(meter({ goal: 12 }).goal).toBe(12);
+  });
+
+  test("bad rank words are put back to standard, good ones are kept", () => {
+    const bad = [
+      [],
+      [{ upTo: 1, name: "Only" }],
+      [{ upTo: 0.5, name: "A" }, { upTo: 0.4, name: "B" }, { upTo: 1, name: "C" }],
+      [{ upTo: 0.5, name: "A" }, { upTo: 0.9, name: "B" }],
+      [{ upTo: 0.5, name: "" }, { upTo: 1, name: "B" }],
+      "words",
+    ];
+    for (const levels of bad) expect(meter({ levels }).levels, JSON.stringify(levels)).toEqual(ONE_PIECE_LADDER.levels);
+    const good = [{ upTo: 0.5, name: "Warm" }, { upTo: 1, name: "Hot" }];
+    expect(meter({ levels: good }).levels).toEqual(good);
+  });
+
+  test("unknown show and where fall back, and celebrate is off only when it is false", () => {
+    expect(meter({ show: "all", where: "everywhere" })).toMatchObject({ show: "rupees", where: "both" });
+    expect(meter({ show: "percent", where: "obs" })).toMatchObject({ show: "percent", where: "obs" });
+    expect(meter({ celebrate: false }).celebrate).toBe(false);
+    expect(meter({ celebrate: "no" }).celebrate).toBe(true);
+  });
+
+  test("a bar colour must be valid and visible on the page ground", () => {
+    expect(meter({ fill: "#ff3366" }).fill).toBe("#ff3366");
+    expect(meter({ fill: "#FF3366" }).fill).toBe("#ff3366");
+    expect(meter({ fill: "red" }).fill).toBeNull();
+    expect(meter({ fill: "#222222" }).fill).toBeNull();
+    expect(withMeter({ fill: "#222222" })!.notes.some((n) => /too dark/.test(n))).toBe(true);
+  });
+
+  test("the heading is cut at its limit", () => {
+    expect(meter({ heading: "x".repeat(40) }).heading).toBe("x".repeat(LIMITS.meterHeading));
+  });
+});

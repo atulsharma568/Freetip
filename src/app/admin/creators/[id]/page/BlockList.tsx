@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, DotsSixVertical, Eye, EyeSlash, ImageSquare, Palette } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, Gauge, DotsSixVertical, Eye, EyeSlash, ImageSquare, Palette } from "@phosphor-icons/react";
 import { BLOCK_LABELS, PROTECTED } from "@/lib/page-doc/blocks";
 import type { Block, BlockType, PageDoc, Slot } from "@/lib/page-doc/types";
 
@@ -28,7 +28,8 @@ export function BlockList({
   onMove,
   onDrop,
   onVisible,
-  onAddBackdrop,
+  onAdd,
+  meterSwitchOn,
 }: {
   doc: PageDoc;
   selected: Selection;
@@ -36,7 +37,9 @@ export function BlockList({
   onMove: (type: BlockType, direction: "up" | "down") => void;
   onDrop: (type: BlockType, target: BlockType) => void;
   onVisible: (type: BlockType, visible: boolean) => void;
-  onAddBackdrop: () => void;
+  onAdd: (type: "backdrop" | "pressureMeter") => void;
+  // Whether the creator has the "Pressure meter" switch, which is what lets the meter be added.
+  meterSwitchOn: boolean;
 }) {
   const [dragging, setDragging] = useState<Block | null>(null);
 
@@ -52,11 +55,20 @@ export function BlockList({
         Page colours
       </button>
       {!doc.blocks.some((b) => b.type === "backdrop") && (
-        <button type="button" onClick={onAddBackdrop} className={`${pick("backdrop")} w-full`}>
+        <button type="button" onClick={() => onAdd("backdrop")} className={`${pick("backdrop")} w-full`}>
           <ImageSquare aria-hidden="true" className="shrink-0" />
           Add a picture or video behind the page
         </button>
       )}
+      {!doc.blocks.some((b) => b.type === "pressureMeter") &&
+        (meterSwitchOn ? (
+          <button type="button" onClick={() => onAdd("pressureMeter")} className={`${pick("pressureMeter")} w-full`}>
+            <Gauge aria-hidden="true" className="shrink-0" />
+            Add a Pressure meter
+          </button>
+        ) : (
+          <p className="px-2 text-xs text-muted">To add a Pressure meter, switch on &ldquo;Pressure meter&rdquo; for this creator first (under Paid features).</p>
+        ))}
       {SECTIONS.map(({ slot, label }) => {
         const blocks = doc.blocks.filter((b) => b.slot === slot);
         if (blocks.length === 0) return null;

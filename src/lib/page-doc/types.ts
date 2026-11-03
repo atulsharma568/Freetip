@@ -21,7 +21,8 @@ export type BlockType =
   | "note"
   | "send"
   | "strip"
-  | "successScreen";
+  | "successScreen"
+  | "pressureMeter";
 
 // A rank on the amount bar: the word shows while the bar is below `upTo` (0 to 1).
 export interface Level {
@@ -54,6 +55,20 @@ export interface SettingsByType {
   send: { heading: string; buttonLabel: string };
   strip: { left: string; right: string };
   successScreen: { style: "default" | "owner"; line: string };
+  // A creator's goal drawn as a bar (phase 4). `goal` is a goal id of the creator, none meaning
+  // their first goal. `levels` are the rank words in fractions of the goal (a linear scale, apart
+  // from the amount block's ladder). `show` "percent" keeps every rupee figure off the page and
+  // out of what the server sends. `where` is the tip page, OBS or both. `fill` is the bar colour,
+  // none meaning the page accent. An empty heading means "Pressure".
+  pressureMeter: {
+    goal: number | null;
+    levels: Level[];
+    show: "rupees" | "percent";
+    where: "both" | "page" | "obs";
+    celebrate: boolean;
+    fill: string | null;
+    heading: string;
+  };
 }
 
 export type Block<T extends BlockType = BlockType> = {

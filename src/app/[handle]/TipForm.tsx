@@ -12,6 +12,7 @@ import type { Extra } from "@/components/tip/ExtraPicker";
 import { TipFormProvider, type Phase, type TipFormState } from "@/components/tip/TipFormContext";
 import { rupeeText } from "@/components/tip/format";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { MeterReading } from "@/lib/page-doc/pressure";
 import { findBlock } from "@/lib/page-doc/blocks";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
@@ -113,6 +114,9 @@ interface Props {
   doc: PageDoc;
   // The pictures of the library the document uses, by id. Blocks only draw them.
   assets?: Record<number, ResolvedAsset>;
+  // The Pressure meter: drawn only when `meterOn`; `meter` is its first reading (null: no goal).
+  meterOn?: boolean;
+  meter?: MeterReading | null;
 }
 
 export function TipForm({
@@ -134,6 +138,8 @@ export function TipForm({
   pinOffer = null,
   doc,
   assets = {},
+  meterOn = false,
+  meter = null,
   accent,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -385,6 +391,8 @@ export function TipForm({
     bio,
     previewMode,
     editing,
+    meterOn,
+    meter,
     presets,
     minTipPaise,
     minRupees,

@@ -5,6 +5,8 @@ import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
 import { findBlock } from "@/lib/page-doc/blocks";
 import { themeFor } from "@/lib/page-doc/theme";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { GoalProgress } from "@/lib/goal-progress";
+import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
 import { TipForm } from "./TipForm";
@@ -21,6 +23,13 @@ export interface TipPageData {
   // The pictures the document may draw, by id: only what the document uses on the real page, every
   // live file of the creator in the owner's editor preview. Empty when there are none.
   assets: Record<number, ResolvedAsset>;
+  // The Pressure meter: whether the page draws one, and its first reading (null: no goal). Left
+  // out, no meter is drawn.
+  meterOn?: boolean;
+  meter?: MeterReading | null;
+  // The owner's editor preview only: every goal of the creator, so a meter added or changed in the
+  // draft can be drawn at once, without a reload.
+  meterGoals?: GoalProgress[];
   storedAccent: string | null;
   pictureUrl: string | null;
   bannerUrl: string | null;
@@ -49,6 +58,8 @@ export function TipPageView({ data }: { data: TipPageData }) {
         <TipForm
           doc={data.doc}
           assets={data.assets}
+          meterOn={data.meterOn}
+          meter={data.meter}
           accent={accent}
           sounds={data.sounds}
           rules={data.rules}

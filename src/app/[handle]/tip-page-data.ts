@@ -6,9 +6,12 @@ import type { Query } from "@/lib/accrual";
 import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
 import { usedAssetIds } from "@/lib/page-doc/assets";
 import { loadPageAssets, resolveAssets } from "@/lib/page-doc/asset-store";
+import { loadGoalProgress, type GoalProgress } from "@/lib/goal-progress";
+import { loadMeterReading, type MeterReading } from "@/lib/page-doc/pressure";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { resolvePageDoc } from "@/lib/page-doc/store";
 import type { PageDoc } from "@/lib/page-doc/types";
+import { hasFeature } from "@/lib/plans";
 import { ttsAvailable } from "@/lib/tts";
 import { effectiveTtsMinPaise, getTtsFloorPaise } from "@/lib/site-settings";
 
@@ -55,11 +58,16 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   // instead, so a file just uploaded can be drawn before it is saved into the draft.
   const assets = await pageAssets(creator.id, doc, options.editing === true);
 
+  const { meterOn, meter, meterGoals } = await pageMeter(creator.id, doc, pageRow, options.editing === true);
+
   return {
     handle,
     displayName,
     doc,
     assets,
+    meterOn,
+    meter,
+    meterGoals,
     storedAccent,
     pictureUrl: tipPhoto ?? creator.picture_url,
     bannerUrl,
@@ -92,4 +100,31 @@ async function pageAssets(creatorId: number, doc: PageDoc, all: boolean) {
   }
   const ids = usedAssetIds(doc);
   return ids.length === 0 ? {} : loadPageAssets(db as unknown as Query, creatorId, ids);
+}
+
+// The Pressure meter's first reading, read with the page so it is in the served HTML. Only when
+// the document has a visible meter that shows on the page, and both switches are on: otherwise no
+// query is made. A failed read is logged and the meter is left out. The owner's editor preview
+// gets every goal of the creator instead and works the reading out itself from the live draft.
+async function pageMeter(creatorId: number, doc: PageDoc, pageRow: Parameters<typeof hasFeature>[0], editing: boolean) {
+  const none: { meterOn: boolean; meter: MeterReading | null; meterGoals?: GoalProgress[] } = { meterOn: false, meter: null };
+  const db = getDb();
+  if (!db) return none;
+  if (editing) {
+    try {
+      return { ...none, meterGoals: await loadGoalProgress(db as unknown as Query, creatorId) };
+    } catch (err) {
+      console.error("Page preview: could not read the goals.", err);
+      return { ...none, meterGoals: [] };
+    }
+  }
+  const block = doc.blocks.find((b) => b.type === "pressureMeter");
+  if (!block || block.type !== "pressureMeter" || !block.visible || block.settings.where === "obs") return none;
+  if (!hasFeature(pageRow, "pressureMeter")) return none;
+  try {
+    return { ...none, meterOn: true, meter: await loadMeterReading(db as unknown as Query, creatorId, block.settings) };
+  } catch (err) {
+    console.error("Tip page: could not read the Pressure meter.", err);
+    return none;
+  }
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { PageEditor, type EditorStart } from "@/app/admin/creators/[id]/page/PageEditor";
+import { FIXTURE_GOALS } from "../tip/fixture-data";
 import { usedAssetIds } from "@/lib/page-doc/assets";
 import type { AssetListItem } from "@/lib/page-doc/asset-store";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
@@ -40,7 +41,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The editor with its three server calls replaced by an in-memory copy of the store's rules, so
 // the browser can test the whole editor without a database.
-export function EditorFixture({ owner }: { owner: boolean }) {
+export function EditorFixture({ owner, meterSwitchOn = true }: { owner: boolean; meterSwitchOn?: boolean }) {
   const { start, control, save, publish, discard, remove, add } = useMemo(() => {
     const doc = owner ? ownerPageDoc() : defaultPageDoc();
     const start: EditorStart = { doc, base: null, published: null, source: "default", fallback: doc };
@@ -102,7 +103,7 @@ export function EditorFixture({ owner }: { owner: boolean }) {
         <Link href="/dev-fixtures/tip?page=default" className="mb-4 inline-block text-sm text-muted underline">
           Leave the editor (test)
         </Link>
-        <PageEditor start={start} previewSrc={`/dev-fixtures/preview?page=${owner ? "owner" : "default"}`} creatorName="Sample Creator" save={save} publish={publish} discard={discard} creatorId={1} library={{ items: LIBRARY, error: null }} addAsset={add} removeAsset={remove} />
+        <PageEditor start={start} previewSrc={`/dev-fixtures/preview?page=${owner ? "owner" : "default"}`} creatorName="Sample Creator" save={save} publish={publish} discard={discard} creatorId={1} library={{ items: LIBRARY, error: null }} addAsset={add} removeAsset={remove} goals={FIXTURE_GOALS.map((g) => ({ id: g.id, title: g.title, repeat: g.repeat }))} meterSwitchOn={meterSwitchOn} />
       </div>
     </div>
   );

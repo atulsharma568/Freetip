@@ -35,7 +35,8 @@ export type FeatureKey =
   | "alertLayout"
   // The tip page itself.
   | "tipBanner"
-  | "pageBuilder";
+  | "pageBuilder"
+  | "pressureMeter";
 
 export type FeatureInfo = {
   key: FeatureKey;
@@ -213,6 +214,14 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Tip page",
     description: "The owner publishes a custom tip page for this creator from the owner console (a done-for-you page); the creator never edits it. Nothing changes on their page until one is published, and switching this off puts the normal page back at once.",
     built: true,
+  },
+  {
+    key: "pressureMeter",
+    label: "Pressure meter",
+    group: "Tip page",
+    description: "The creator's goal (daily, weekly, monthly or never repeating) drawn as a bar with rank words, as a block on their tip page and as an OBS overlay (alert link + /pressure). The owner adds and sets it in the page editor. Needs \"Custom tip page\"; switching either off removes the meter at once.",
+    built: true,
+    needs: ["pageBuilder"],
   },
 ];
 

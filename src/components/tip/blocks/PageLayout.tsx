@@ -8,6 +8,7 @@ import { AmountBlock } from "./AmountBlock";
 import { CreatorLinksBlock } from "./CreatorLinksBlock";
 import { HeaderBlock } from "./HeaderBlock";
 import { NoteBlock } from "./NoteBlock";
+import { PressureBlock } from "./PressureBlock";
 import { QrBlock } from "./QrBlock";
 import { SendBlock } from "./SendBlock";
 import { StripBlock } from "./StripBlock";
@@ -18,7 +19,7 @@ const step = (i: number) => ({ "--i": i }) as CSSProperties;
 // whatever sits under the card. Each section keeps the wrappers it had before the page was
 // drawn from blocks, so the DOM order, the tab order and the entrance order are the same.
 export function PageLayout({ doc }: { doc: PageDoc }) {
-  const { announce, editing } = useTipForm();
+  const { announce, editing, meterOn } = useTipForm();
   const inSlot = (slot: Slot) => doc.blocks.filter((b) => b.slot === slot && b.visible);
   const side = inSlot("side");
   const main = inSlot("main");
@@ -51,6 +52,16 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
             <CreatorLinksBlock block={block} editing={editing} />
           </div>,
         );
+        break;
+      case "pressureMeter":
+        // Left out where the owner set it for OBS only, or while the switches are off.
+        if (meterOn && block.settings.where !== "obs") {
+          sideNodes.push(
+            <div key={block.id} className="enter empty:hidden" style={step(1)}>
+              <PressureBlock block={block} />
+            </div>,
+          );
+        }
         break;
       case "alertPreview":
         sideNodes.push(

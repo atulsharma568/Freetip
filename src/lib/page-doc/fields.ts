@@ -61,6 +61,7 @@ export const RANGE_FIELDS: { [K in BlockType]: RangeField[] } = {
   send: [],
   strip: [],
   successScreen: [],
+  pressureMeter: [],
 };
 
 export const TEXT_FIELDS: { [K in BlockType]: TextField[] } = {
@@ -93,6 +94,7 @@ export const TEXT_FIELDS: { [K in BlockType]: TextField[] } = {
     // The normal thank-you screen has no small line; only the sign-off style does.
     { key: "line", label: "Small line at the bottom", max: LIMITS.successLine, standard: "Thanks for hanging out.", when: (s) => s.style === "owner" },
   ],
+  pressureMeter: [{ key: "heading", label: "Heading", max: LIMITS.meterHeading, standard: "Pressure" }],
 };
 
 export const CHOICE_FIELDS: { [K in BlockType]: ChoiceField[] } = {
@@ -121,6 +123,25 @@ export const CHOICE_FIELDS: { [K in BlockType]: ChoiceField[] } = {
       options: [
         { value: "default", label: "Normal" },
         { value: "owner", label: "Sign-off (GG, see you soon)" },
+      ],
+    },
+  ],
+  pressureMeter: [
+    {
+      key: "show",
+      label: "Numbers",
+      options: [
+        { value: "rupees", label: "Rupees raised and the goal" },
+        { value: "percent", label: "Only a percent" },
+      ],
+    },
+    {
+      key: "where",
+      label: "Shown",
+      options: [
+        { value: "both", label: "On the tip page and in OBS" },
+        { value: "page", label: "On the tip page only" },
+        { value: "obs", label: "In OBS only" },
       ],
     },
   ],

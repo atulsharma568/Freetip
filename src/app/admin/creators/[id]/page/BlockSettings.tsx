@@ -10,6 +10,7 @@ import { AssetPicker, type AssetLibrary } from "./AssetPicker";
 import type { Selection } from "./BlockList";
 import { ColourEditor } from "./ColourEditor";
 import { LadderEditor } from "./LadderEditor";
+import { MeterSettings, type EditorGoal } from "./MeterSettings";
 
 const ABOUT: Record<BlockType, string> = {
   backdrop: "What sits behind the whole page: the smoke, slashes and embers, or a picture, GIF or video from the library. Use the eye in the list to turn it off.",
@@ -22,6 +23,7 @@ const ABOUT: Record<BlockType, string> = {
   send: "The Pay button. What it does, and the amount it shows, are fixed. This block has to stay on the page.",
   strip: "A line of small text under the form.",
   successScreen: "What a fan sees after a tip. It is not part of the preview.",
+  pressureMeter: "One of the creator's goals drawn as a bar, with rank words that follow how full it is. It restarts with the goal's own period (daily, weekly, monthly).",
 };
 
 // The settings of the picked block, drawn from the field table, or the page colours. A change that
@@ -31,11 +33,15 @@ export function BlockSettings({
   selected,
   run,
   library,
+  goals,
+  meterSwitchOn,
 }: {
   doc: PageDoc;
   selected: Selection;
   run: <R extends EditResult>(change: (doc: PageDoc) => R) => R;
   library: AssetLibrary;
+  goals: EditorGoal[];
+  meterSwitchOn: boolean;
 }) {
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
 
@@ -174,6 +180,8 @@ export function BlockSettings({
       {block.type === "amount" && (
         <LadderEditor ladder={(block as Block<"amount">).settings.ladder} onChange={(ladder) => run((d) => setLadder(d, ladder))} />
       )}
+
+      {block.type === "pressureMeter" && <MeterSettings block={block as Block<"pressureMeter">} goals={goals} switchOn={meterSwitchOn} run={run} />}
 
       {nothing && <p className="text-xs text-muted">There is nothing to edit in this block.</p>}
 

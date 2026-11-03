@@ -1,4 +1,4 @@
-import { inkFor, pairChecks } from "../accent";
+import { GROUND, MIN_GROUND_CONTRAST, contrast, inkFor, pairChecks } from "../accent";
 import { ASSET_LIMITS, cleanAssetId } from "./assets";
 import { ALLOWED_SLOTS, BLOCK_LABELS, INSTAGRAM_PATTERN, LIMITS, PROTECTED, defaultSettings, isBlockType } from "./blocks";
 import { PAGE_DOC_VERSION, type Block, type BlockType, type Ladder, type PageDoc, type SettingsByType, type Slot, type Theme } from "./types";
@@ -50,6 +50,23 @@ function hex(v: unknown): string | null {
   return HEX.test(lower) ? lower : null;
 }
 
+// The rank words of a ladder or a meter: 2 to 8 of them, each ending higher than the one before,
+// the last at 1. Null (and the caller says so) when anything is wrong.
+function parseLevels(raw: unknown, notes: Notes): Ladder["levels"] | null {
+  if (!Array.isArray(raw) || raw.length < LIMITS.levels.min || raw.length > LIMITS.levels.max) return null;
+  const out: Ladder["levels"] = [];
+  let previous = 0;
+  for (const level of raw) {
+    if (!isObject(level)) return null;
+    const upTo = level.upTo;
+    const name = cleanText(level.name, LIMITS.levelName, notes, "A rank name");
+    if (typeof upTo !== "number" || !Number.isFinite(upTo) || upTo <= previous || upTo > 1 || !name) return null;
+    out.push({ upTo, name });
+    previous = upTo;
+  }
+  return out[out.length - 1].upTo === 1 ? out : null;
+}
+
 function parseLadder(raw: unknown, notes: Notes): Ladder | null {
   if (raw === undefined || raw === null) return null;
   const dropped = () => {
@@ -59,20 +76,23 @@ function parseLadder(raw: unknown, notes: Notes): Ladder | null {
   if (!isObject(raw)) return dropped();
   const top = raw.topRupees;
   if (typeof top !== "number" || !Number.isFinite(top) || top < LIMITS.topRupees.min || top > LIMITS.topRupees.max) return dropped();
-  const levels = raw.levels;
-  if (!Array.isArray(levels) || levels.length < LIMITS.levels.min || levels.length > LIMITS.levels.max) return dropped();
-  const out: Ladder["levels"] = [];
-  let previous = 0;
-  for (const level of levels) {
-    if (!isObject(level)) return dropped();
-    const upTo = level.upTo;
-    const name = cleanText(level.name, LIMITS.levelName, notes, "A rank name");
-    if (typeof upTo !== "number" || !Number.isFinite(upTo) || upTo <= previous || upTo > 1 || !name) return dropped();
-    out.push({ upTo, name });
-    previous = upTo;
+  const levels = parseLevels(raw.levels, notes);
+  return levels ? { topRupees: top, levels } : dropped();
+}
+
+// The meter's bar colour: a #rrggbb colour that can be seen on the page ground, else none.
+function meterFill(v: unknown, notes: Notes): string | null {
+  if (v === undefined || v === null) return null;
+  const colour = hex(v);
+  if (!colour) {
+    notes.add("The meter colour was not a valid #rrggbb colour and was removed.");
+    return null;
   }
-  if (out[out.length - 1].upTo !== 1) return dropped();
-  return { topRupees: top, levels: out };
+  if (contrast(colour, GROUND) < MIN_GROUND_CONTRAST) {
+    notes.add("The meter colour is too dark to see on the page and was removed.");
+    return null;
+  }
+  return colour;
 }
 
 // A picture reference: a whole number id, or nothing. Whether the file exists, is the creator's
@@ -95,6 +115,15 @@ function cleanDim(v: unknown, notes: Notes): number {
   const n = Math.round(v);
   if (n < min || n > max) notes.add(`The darkening of the backdrop was kept between ${min} and ${max}.`);
   return Math.min(max, Math.max(min, n));
+}
+
+// A goal id: a positive whole number, or none (the creator's first goal). Whether it is one of
+// the creator's own goals is checked when the meter is read (see pressure.ts).
+function goalRef(v: unknown, notes: Notes): number | null {
+  if (v === undefined || v === null) return null;
+  const id = cleanAssetId(v);
+  if (id === null) notes.add("The meter's goal was not valid, so the first goal is used.");
+  return id;
 }
 
 const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes) => SettingsByType[K] } = {
@@ -133,6 +162,24 @@ const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes)
     style: raw.style === "owner" ? "owner" : "default",
     line: cleanText(raw.line, LIMITS.successLine, notes, "The thank-you line"),
   }),
+  pressureMeter: (raw, notes) => {
+    const standard = defaultSettings("pressureMeter");
+    let levels = standard.levels;
+    if (raw.levels !== undefined && raw.levels !== null) {
+      const read = parseLevels(raw.levels, notes);
+      if (read) levels = read;
+      else notes.add("The meter's rank words were not valid and were put back to standard.");
+    }
+    return {
+      goal: goalRef(raw.goal, notes),
+      levels,
+      show: raw.show === "percent" ? "percent" : "rupees",
+      where: raw.where === "page" || raw.where === "obs" ? raw.where : "both",
+      celebrate: raw.celebrate !== false,
+      fill: meterFill(raw.fill, notes),
+      heading: cleanText(raw.heading, LIMITS.meterHeading, notes, "The meter heading"),
+    };
+  },
 };
 
 function parseSettings<T extends BlockType>(type: T, raw: unknown, notes: Notes): SettingsByType[T] {

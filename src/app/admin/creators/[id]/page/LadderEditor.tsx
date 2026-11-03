@@ -25,7 +25,18 @@ function toLadder(top: string, rows: Row[]): Ladder {
 // The words under the amount bar: where the bar is full, and each rank with the share of the bar
 // it runs up to. A ladder is applied to the draft only when it is valid; until then the page keeps
 // the last good one and the reasons are shown here.
-export function LadderEditor({ ladder, onChange }: { ladder: Ladder | null; onChange: (ladder: Ladder | null) => void }) {
+// The Pressure meter has its own words (variant "meter"): always on, no rupee top, measured in
+// percent of the goal. It is given a ladder whose top is a stand-in (100) that is never shown.
+export function LadderEditor({
+  ladder,
+  onChange,
+  variant = "amount",
+}: {
+  ladder: Ladder | null;
+  onChange: (ladder: Ladder | null) => void;
+  variant?: "amount" | "meter";
+}) {
+  const meter = variant === "meter";
   const [top, setTop] = useState(String(ladder?.topRupees ?? ONE_PIECE_LADDER.topRupees));
   const [rows, setRows] = useState<Row[]>(toRows(ladder ?? ONE_PIECE_LADDER));
   const [problems, setProblems] = useState<string[]>([]);
@@ -84,22 +95,26 @@ export function LadderEditor({ ladder, onChange }: { ladder: Ladder | null; onCh
 
   return (
     <fieldset className="space-y-3 rounded-surface border border-control p-3">
-      <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">Rank bar</legend>
-      <label className="flex items-center gap-3 text-sm text-text">
-        <input type="checkbox" checked={ladder !== null} onChange={(e) => setBar(e.target.checked)} className="size-4 accent-[var(--color-accent)]" />
-        Show the rank bar under the amount
-      </label>
+      <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{meter ? "Rank words" : "Rank bar"}</legend>
+      {!meter && (
+        <label className="flex items-center gap-3 text-sm text-text">
+          <input type="checkbox" checked={ladder !== null} onChange={(e) => setBar(e.target.checked)} className="size-4 accent-[var(--color-accent)]" />
+          Show the rank bar under the amount
+        </label>
+      )}
       {ladder !== null && (
         <>
-          <label className="block space-y-1 text-xs text-muted">
-            The bar is full at (₹)
-            <input
-              inputMode="numeric"
-              value={top}
-              onChange={(e) => apply(e.target.value.replace(/[^0-9]/g, ""), rows)}
-              className={`${FIELD_CLASS} numeric block w-full`}
-            />
-          </label>
+          {!meter && (
+            <label className="block space-y-1 text-xs text-muted">
+              The bar is full at (₹)
+              <input
+                inputMode="numeric"
+                value={top}
+                onChange={(e) => apply(e.target.value.replace(/[^0-9]/g, ""), rows)}
+                className={`${FIELD_CLASS} numeric block w-full`}
+              />
+            </label>
+          )}
           <ol className="space-y-2">
             {rows.map((row, i) => {
               const last = i === rows.length - 1;

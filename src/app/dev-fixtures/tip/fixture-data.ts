@@ -1,6 +1,8 @@
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { ownerBrand } from "@/lib/owner-page";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { GoalProgress } from "@/lib/goal-progress";
+import { meterReading, pickGoal } from "@/lib/page-doc/meter-reading";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipPageData } from "../../[handle]/TipPageView";
 
@@ -14,12 +16,45 @@ export const FIXTURE_ASSETS: Record<number, ResolvedAsset> = {
   3: { id: 3, kind: "webm", url: "/fixture/loop.webm", posterUrl: "/owner/kitsune.svg" },
 };
 
-export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: boolean; min?: string } = {}): TipPageData {
+// The made-up creator's goals for the editor preview: a weekly one 62% full and a daily one 25% full.
+export const FIXTURE_GOALS: GoalProgress[] = [
+  { id: 1, title: "New mic", repeat: "weekly", timezone: "Asia/Kolkata", carryOver: false, targetPaise: 100000, carryPaise: 0, effectiveTargetPaise: 100000, raisedPaise: 62000, since: "2026-11-02T00:00:00.000Z" },
+  { id: 2, title: "Daily push", repeat: "daily", timezone: "Asia/Kolkata", carryOver: false, targetPaise: 50000, carryPaise: 0, effectiveTargetPaise: 50000, raisedPaise: 12500, since: "2026-11-05T00:00:00.000Z" },
+];
+
+// The made-up goal behind the fixture's Pressure meter: a weekly goal of ₹1,000, `percent` full.
+function fixtureMeter(doc: PageDoc, percent: string | undefined, title: string | undefined): Pick<TipPageData, "meterOn" | "meter"> {
+  const block = doc.blocks.find((b) => b.type === "pressureMeter");
+  if (!block || block.type !== "pressureMeter" || !block.visible || block.settings.where === "obs") return { meterOn: false, meter: null };
+  const pct = Math.min(500, Math.max(0, Math.round(Number(percent) || 0)));
+  const goal = pickGoal(
+    [
+      {
+        id: 1,
+        title: (title ?? "").slice(0, 60) || "New mic",
+        repeat: "weekly",
+        timezone: "Asia/Kolkata",
+        carryOver: false,
+        targetPaise: 100000,
+        carryPaise: 0,
+        effectiveTargetPaise: 100000,
+        raisedPaise: pct * 1000,
+        since: "2026-11-02T00:00:00.000Z",
+      },
+    ],
+    block.settings.goal,
+  );
+  return { meterOn: true, meter: goal ? meterReading(goal, block.settings) : null };
+}
+
+export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: boolean; min?: string; meter?: string; mtitle?: string } = {}): TipPageData {
   return {
+    ...fixtureMeter(doc, options.meter, options.mtitle),
     handle: "samplecreator",
     displayName: owner ? ownerBrand() : "Sample Creator",
     doc,
     assets: FIXTURE_ASSETS,
+    ...(options.editing ? { meterGoals: FIXTURE_GOALS } : {}),
     storedAccent: null,
     pictureUrl: "/owner/kitsune.svg",
     bannerUrl: null,

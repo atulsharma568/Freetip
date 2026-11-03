@@ -8,6 +8,8 @@ import { load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import type { Query } from "@/lib/accrual";
 import { requireOwner } from "@/lib/owner-auth";
+import { hasFeature } from "@/lib/plans";
+import { parseRepeat } from "@/lib/goal";
 import { listAssets } from "@/lib/page-doc/asset-store";
 import { loadDraft } from "@/lib/page-doc/store";
 import { CouldNotRead, DatabaseNotSetUp } from "../../../_components/Notices";
@@ -26,8 +28,8 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
   const db = adminDb();
   if (!db) return <DatabaseNotSetUp />;
 
-  const [row] = await db<{ handle: string | null; google_id: string; name: string | null; display_name: string | null; email: string }[]>`
-    select handle, google_id, name, display_name, email from users where id = ${creatorId}
+  const [row] = await db<{ handle: string | null; google_id: string; name: string | null; display_name: string | null; email: string; paid_features: string[] | null }[]>`
+    select handle, google_id, name, display_name, email, paid_features from users where id = ${creatorId}
   `;
   if (!row) notFound();
   const name = row.display_name ?? row.name ?? row.email;
@@ -51,6 +53,12 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
   const library = pictures.ok
     ? { items: pictures.data, error: null }
     : { items: [], error: "The pictures could not be read. Run migration 0052 in Neon, then reload." };
+
+  // The creator's goals, for the Pressure meter's goal picker. The editor works without them.
+  const goalRows = await load("the goals", () =>
+    db<{ id: string; title: string; repeat: string }[]>`select id::text as id, title, repeat from goals where creator_id = ${creatorId} order by id`,
+  );
+  const goals = goalRows.ok ? goalRows.data.map((g) => ({ id: Number(g.id), title: g.title, repeat: parseRepeat(g.repeat) })) : [];
 
   const blocked = !state.switchOn
     ? 'Switch on "Custom tip page" for this creator first, under Paid features on their page.'
@@ -85,6 +93,8 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
           library={library}
           addAsset={addPageAsset.bind(null, creatorId)}
           removeAsset={removePageAsset.bind(null, creatorId)}
+          goals={goals}
+          meterSwitchOn={hasFeature(row, "pressureMeter")}
         />
       )}
     </div>

@@ -439,3 +439,93 @@ test.describe("pictures", () => {
     void status;
   });
 });
+
+test.describe("the Pressure meter in the editor (phase 4)", () => {
+  const meter = (page: Page) => frame(page).getByTestId("pressure-meter");
+  async function addMeter(page: Page, query = "") {
+    await open(page, query);
+    await ready(page);
+    await page.getByRole("button", { name: "Add a Pressure meter" }).click();
+  }
+
+  test("adding it shows the creator's first goal in the preview at once, under the header, and saves the draft", async ({ page }) => {
+    await addMeter(page);
+    await expect(meter(page)).toContainText("62%");
+    await expect(meter(page)).toContainText("Warlord");
+    await expect(meter(page)).toContainText("Pressure · this week");
+    await expect(page.getByRole("heading", { name: "Pressure meter" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add a Pressure meter" })).toHaveCount(0);
+    // It sits in the left column, before the alert preview.
+    const order = await list(page).getByRole("region", { name: "Left column (on top on a phone)" }).locator("li").allInnerTexts();
+    expect(order.findIndex((t) => t.startsWith("Pressure meter"))).toBeLessThan(order.findIndex((t) => t.startsWith("Alert preview")));
+    await expect.poll(() => fixture(page, (f) => f.saves.length)).toBeGreaterThan(0);
+    expect(await fixture(page, (f) => JSON.stringify(f.saves[f.saves.length - 1]))).toContain('"pressureMeter"');
+  });
+
+  test("another goal, other words, a percent and a colour all show in the preview", async ({ page }) => {
+    await addMeter(page);
+    await page.getByLabel("Which goal").selectOption({ label: "Daily push (daily)" });
+    await expect(meter(page)).toContainText("Daily push");
+    await expect(meter(page)).toContainText("25%");
+    await expect(meter(page)).toContainText("Pressure · today");
+    await expect(meter(page)).toContainText("₹125 of ₹500");
+
+    await rank(page, 2).fill("Warm");
+    await expect(meter(page)).toContainText("Warm");
+
+    await page.getByLabel("Numbers").selectOption("percent");
+    await expect(meter(page)).not.toContainText("₹");
+
+    await page.getByLabel("Bar colour").fill("#ff3366");
+    await expect(meter(page).getByRole("progressbar").locator("span")).toHaveCSS("background-color", "rgb(255, 51, 102)");
+    await page.getByRole("button", { name: "Use the page colour" }).click();
+    await expect(page.getByRole("button", { name: "Use the page colour" })).toHaveCount(0);
+
+    await page.getByLabel(/^Heading/).fill("Heat");
+    await expect(meter(page)).toContainText("Heat · today");
+  });
+
+  test("a colour too dark to see is refused with the reason, and the page keeps the last one", async ({ page }) => {
+    await addMeter(page);
+    await page.getByLabel("Bar colour").fill("#ff3366");
+    await page.getByLabel("Bar colour").fill("#222222");
+    await expect(page.getByRole("alert").filter({ hasText: "needs 3" })).toBeVisible();
+    await expect(meter(page).getByRole("progressbar").locator("span")).toHaveCSS("background-color", "rgb(255, 51, 102)");
+  });
+
+  test("bad rank words are refused and the page keeps the last good ones", async ({ page }) => {
+    await addMeter(page);
+    await rank(page, 1).fill("");
+    await expect(page.getByRole("alert").filter({ hasText: "needs a word" })).toBeVisible();
+    await expect(meter(page)).toContainText("Warlord");
+  });
+
+  test("hidden, or set for OBS only, it leaves the preview and the editor says why", async ({ page }) => {
+    await addMeter(page);
+    await page.getByLabel("Shown").selectOption("obs");
+    await expect(meter(page)).toHaveCount(0);
+    await expect(page.getByText("Set for OBS only")).toBeVisible();
+    await page.getByLabel("Shown").selectOption("both");
+    await expect(meter(page)).toBeVisible();
+    await page.getByRole("button", { name: "Hide Pressure meter" }).click();
+    await expect(meter(page)).toHaveCount(0);
+    await expect(page.getByText("The meter is hidden")).toBeVisible();
+    await page.getByRole("button", { name: "Show Pressure meter" }).click();
+    await expect(meter(page)).toBeVisible();
+    // The page still has its pay blocks throughout.
+    await expect(frame(page).getByRole("heading", { name: "Send", level: 2 })).toBeVisible();
+  });
+
+  test("without the meter switch the editor cannot add one, and says what to do", async ({ page }) => {
+    await open(page, "?meter=off");
+    await ready(page);
+    await expect(page.getByRole("button", { name: "Add a Pressure meter" })).toHaveCount(0);
+    await expect(list(page).getByText(/switch on .Pressure meter. for this creator first/i)).toBeVisible();
+  });
+
+  test("the OBS link and the goal hints are written out", async ({ page }) => {
+    await addMeter(page);
+    await expect(page.getByText("/pressure", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("The words “today”, “this week” or “this month” follow the goal's own period.")).toBeVisible();
+  });
+});

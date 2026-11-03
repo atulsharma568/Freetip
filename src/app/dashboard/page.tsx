@@ -166,6 +166,7 @@ async function readExtraOverlays(
     if (f.topSupporter) extras.push({ path: "/top", label: "Top supporter" });
     if (f.recentSupporters) extras.push({ path: "/recent", label: "Recent supporters" });
     if (f.highlightedMessages) extras.push({ path: "/pinned", label: "Pinned message" });
+    if (f.pressureMeter) extras.push({ path: "/pressure", label: "Pressure meter" });
     customPage = f.pageBuilder;
   } catch (err) {
     console.error("Dashboard: could not read the paid features.", err);

@@ -1,8 +1,8 @@
-import { inkFor, pairChecks } from "../accent";
+import { GROUND, MIN_GROUND_CONTRAST, contrast, inkFor, pairChecks } from "../accent";
 import { cleanAssetId, replaceAssetId, usedAssetIds, type AssetKind } from "./assets";
 import { ALLOWED_SLOTS, BLOCK_LABELS, LIMITS, PROTECTED, defaultSettings } from "./blocks";
 import { findChoiceField, findRangeField, findTextField } from "./fields";
-import type { Block, BlockType, Ladder, PageDoc } from "./types";
+import type { Block, BlockType, Ladder, Level, PageDoc } from "./types";
 
 // The editor's changes to a document, as pure functions. Each one returns a new document and a
 // list of plain-English problems; it never changes the one it is given and never throws. A change
@@ -100,13 +100,9 @@ export function setChoice(doc: PageDoc, type: BlockType, key: string, value: str
   return done(withSettings(doc, at, { [key]: value }));
 }
 
-// Everything wrong with a ladder, in plain English. Empty means the parser will keep it as it is.
-export function validateLadder(ladder: Ladder): string[] {
+// Everything wrong with rank words, in plain English. Empty means the parser will keep them.
+export function validateLevels(levels: readonly Level[]): string[] {
   const problems: string[] = [];
-  const { topRupees, levels } = ladder;
-  if (!Number.isFinite(topRupees) || topRupees < LIMITS.topRupees.min || topRupees > LIMITS.topRupees.max) {
-    problems.push(`The top of the bar must be between ₹${LIMITS.topRupees.min} and ₹${LIMITS.topRupees.max.toLocaleString("en-IN")}.`);
-  }
   if (levels.length < LIMITS.levels.min || levels.length > LIMITS.levels.max) {
     problems.push(`Use ${LIMITS.levels.min} to ${LIMITS.levels.max} rank words.`);
   }
@@ -121,6 +117,16 @@ export function validateLadder(ladder: Ladder): string[] {
   });
   if (levels.length > 0 && levels[levels.length - 1].upTo !== 1) problems.push("The last rank must end at 100%.");
   return problems;
+}
+
+// Everything wrong with a ladder, in plain English. Empty means the parser will keep it as it is.
+export function validateLadder(ladder: Ladder): string[] {
+  const problems: string[] = [];
+  const { topRupees } = ladder;
+  if (!Number.isFinite(topRupees) || topRupees < LIMITS.topRupees.min || topRupees > LIMITS.topRupees.max) {
+    problems.push(`The top of the bar must be between ₹${LIMITS.topRupees.min} and ₹${LIMITS.topRupees.max.toLocaleString("en-IN")}.`);
+  }
+  return [...problems, ...validateLevels(ladder.levels)];
 }
 
 // Puts a ladder on the amount block, or takes the bar away with null.
@@ -174,13 +180,25 @@ export function resetBlock(doc: PageDoc, type: BlockType): EditResult {
 
 // Puts a block the page does not have yet back on it (the owner's backdrop, for a creator whose
 // page had none). Only a type that is missing can be added, in its own section: first for the
-// backdrop (it sits behind everything), last otherwise. A backdrop added this way is the picture
+// backdrop (it sits behind everything), under the header and links for the Pressure meter, last
+// otherwise. A backdrop added this way is the picture
 // kind, because the smoke and embers are the owner's own look.
 export function addBlock(doc: PageDoc, type: BlockType): EditResult {
   if (indexOf(doc, type) >= 0) return refuse(doc, `The page already has a ${BLOCK_LABELS[type]} block.`);
   const settings = type === "backdrop" ? { ...defaultSettings("backdrop"), style: "media" as const } : defaultSettings(type);
   const added = { id: type, type, visible: true, slot: ALLOWED_SLOTS[type][0], settings } as Block;
-  return done({ ...doc, blocks: type === "backdrop" ? [added, ...doc.blocks] : [...doc.blocks, added] });
+  if (type === "backdrop") return done({ ...doc, blocks: [added, ...doc.blocks] });
+  if (type === "pressureMeter") {
+    // Under the header and the links, before the alert preview.
+    let after = -1;
+    doc.blocks.forEach((b, i) => {
+      if (b.type === "header" || b.type === "creatorLinks") after = i;
+    });
+    const blocks = doc.blocks.slice();
+    blocks.splice(after + 1, 0, added);
+    return done({ ...doc, blocks });
+  }
+  return done({ ...doc, blocks: [...doc.blocks, added] });
 }
 
 // Sets one number on a slider, kept inside the field's own range.
@@ -218,4 +236,53 @@ export function swapAsset(doc: PageDoc, from: number, to: number, toKind?: Asset
   const out = replaceAssetId(doc, from, to, toKind);
   if (out.changed) return done(out.doc);
   return usedAssetIds(doc).includes(from) ? refuse(doc, "The new file cannot be used where the old one was.") : refuse(doc);
+}
+
+// The Pressure meter's own settings (the words and the text and choice fields go through setText
+// and setChoice like any block's). Each of these refuses a value the parser would change.
+
+function meterAt(doc: PageDoc): number {
+  return indexOf(doc, "pressureMeter");
+}
+
+const NO_METER = "The page has no Pressure meter.";
+
+// A goal of the creator by id, or null for "the first goal". Whether the id is the creator's own
+// is the picker's job (it lists only theirs) and the reading's (it ignores any other).
+export function setMeterGoal(doc: PageDoc, goal: number | null): EditResult {
+  const at = meterAt(doc);
+  if (at < 0) return refuse(doc, NO_METER);
+  if (goal !== null && cleanAssetId(goal) === null) return refuse(doc, "That goal is not valid.");
+  if ((doc.blocks[at].settings as Record<string, unknown>).goal === goal) return refuse(doc);
+  return done(withSettings(doc, at, { goal }));
+}
+
+export function setMeterLevels(doc: PageDoc, levels: readonly Level[]): EditResult {
+  const at = meterAt(doc);
+  if (at < 0) return refuse(doc, NO_METER);
+  const problems = validateLevels(levels);
+  if (problems.length > 0) return refuse(doc, ...problems);
+  return done(withSettings(doc, at, { levels: levels.map((l) => ({ upTo: l.upTo, name: l.name })) }));
+}
+
+export function setMeterCelebrate(doc: PageDoc, celebrate: boolean): EditResult {
+  const at = meterAt(doc);
+  if (at < 0) return refuse(doc, NO_METER);
+  if ((doc.blocks[at].settings as Record<string, unknown>).celebrate === celebrate) return refuse(doc);
+  return done(withSettings(doc, at, { celebrate }));
+}
+
+// The bar colour, or null for the page accent. It has to be seen on the page ground (3 to 1).
+export function setMeterFill(doc: PageDoc, fill: string | null): EditResult {
+  const at = meterAt(doc);
+  if (at < 0) return refuse(doc, NO_METER);
+  let value: string | null = null;
+  if (fill !== null) {
+    value = fill.trim().toLowerCase();
+    if (!HEX.test(value)) return refuse(doc, "Colours are written as #rrggbb.");
+    const ratio = contrast(value, GROUND);
+    if (ratio < MIN_GROUND_CONTRAST) return refuse(doc, `This colour on the page is ${ratio.toFixed(1)} to 1; it needs ${MIN_GROUND_CONTRAST}.`);
+  }
+  if ((doc.blocks[at].settings as Record<string, unknown>).fill === value) return refuse(doc);
+  return done(withSettings(doc, at, { fill: value }));
 }

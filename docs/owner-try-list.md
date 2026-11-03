@@ -35,6 +35,23 @@ Things only the owner can check, kept so they can be tried together at the end. 
 - [ ] Check Lighthouse (pagespeed.web.dev) on a page that uses a backdrop; note the numbers.
 - [ ] Is the "keeps the page readable" darkening enough for your pictures? Say if the default (40%) should change.
 
+## Page builder, phase 4: the Pressure meter
+
+- [ ] In `/admin/creators/<id>`, Paid features, tick "Pressure meter" (next to "Custom tip page") for a test creator who has a goal. Is there nothing to run in Neon? (There is no migration.)
+- [ ] In the editor press "Add a Pressure meter". Is it under the header and links? Does the preview show the goal's real numbers?
+- [ ] Pick a different goal (the creator needs two): does the title, percent and "today / this week / this month" change?
+- [ ] Change a rank word and the heading; try a bar colour that is too dark (it should be refused with a reason).
+- [ ] Set "Numbers" to "Only a percent": no rupee amount should show anywhere on the page.
+- [ ] Publish, then open the real tip page on a phone with the goal empty, about half full, and full. Does "Goal reached" look right? Is the bar readable on the page colour?
+- [ ] Send a small real tip: does the bar on an already open page move within about 30 seconds?
+- [ ] Add the alert link with `/pressure` at the end as a Browser source in real OBS. Does it show over the stream? Does it move within a few seconds of a tip? Does it flash once when the goal is reached (and not when OBS loads with the goal already full)?
+- [ ] Try OBS on a vertical canvas, and a long goal title.
+- [ ] Set "Shown" to "In OBS only", then "On the tip page only", and Publish each time: does the other place go empty?
+- [ ] Hide the meter (the eye) and Publish: do both places go away? Untick "Pressure meter" for the creator: does the page lose it at once?
+- [ ] A daily goal over midnight in India: does it restart from empty?
+- [ ] With the phone's reduced-motion setting on, is the bar still fine (no sliding)?
+- [ ] Check Lighthouse (pagespeed.web.dev) on a page that has the meter; note the numbers.
+
 ## Older items still waiting (from earlier work)
 
 See the "Owner to do" lines in `docs/next-steps.md` and `PROGRESS.md` (alert studio in real OBS, the owner's `acepressure` page on a phone and a laptop, a real small tip and the sign-off, the voice with real emoji, the Streamlabs bridge with a real account, and so on).

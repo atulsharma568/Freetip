@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TipPageView, type TipPageData } from "@/app/[handle]/TipPageView";
+import { meterReading, pickGoal } from "@/lib/page-doc/meter-reading";
 import { MSG_READY, MSG_SELECT, readDocMessage, readSelectMessage } from "@/lib/page-doc/preview-message";
 import type { BlockType } from "@/lib/page-doc/types";
 
@@ -45,7 +46,16 @@ export function PreviewHost({ data }: { data: TipPageData }) {
         [data-block-id]:hover { outline: 1px dashed #4da3ff; outline-offset: 4px; cursor: pointer; }
         ${selected ? `[data-block-id="${selected}"] { outline: 2px solid #4da3ff; outline-offset: 4px; }` : ""}
       `}</style>
-      <TipPageView data={{ ...data, doc, previewMode: true, editing: true }} />
+      <TipPageView data={{ ...data, doc, ...meterFor(doc, data), previewMode: true, editing: true }} />
     </div>
   );
+}
+
+// The meter the draft shows, worked out from the live draft and the creator's goals, so adding the
+// meter or changing its goal or words shows at once. Drawn only where the draft says the tip page.
+function meterFor(doc: TipPageData["doc"], data: TipPageData): Pick<TipPageData, "meterOn" | "meter"> {
+  const block = doc.blocks.find((b) => b.type === "pressureMeter");
+  if (!block || block.type !== "pressureMeter" || !block.visible || block.settings.where === "obs") return { meterOn: false, meter: null };
+  const goal = pickGoal(data.meterGoals ?? [], block.settings.goal);
+  return { meterOn: true, meter: goal ? meterReading(goal, block.settings) : null };
 }

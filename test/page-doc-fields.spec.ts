@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { BLOCK_TYPES, defaultSettings } from "../src/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
+import { addBlock } from "../src/lib/page-doc/edit";
 import { CHOICE_FIELDS, RANGE_FIELDS, TEXT_FIELDS, textFieldsFor } from "../src/lib/page-doc/fields";
 import { parsePageDoc } from "../src/lib/page-doc/parse";
 import type { Block, BlockType, PageDoc } from "../src/lib/page-doc/types";
@@ -10,8 +11,9 @@ import type { Block, BlockType, PageDoc } from "../src/lib/page-doc/types";
 
 // Settings the table does not list as a text or choice field, because they have their own editor
 // or are not editable.
-// The pictures are chosen in the library picker, the rank bar has its own editor.
-const OTHER = new Set(["ladder", "asset", "bannerAsset"]);
+// The pictures are chosen in the library picker, the rank bar has its own editor, and the meter's
+// goal, rank words, colour and celebration have theirs.
+const OTHER = new Set(["ladder", "asset", "bannerAsset", "goal", "levels", "fill", "celebrate"]);
 
 const withSetting = (doc: PageDoc, type: BlockType, patch: Record<string, unknown>): PageDoc => ({
   ...doc,
@@ -24,7 +26,8 @@ test.describe("the field table agrees with the parser", () => {
       for (const field of TEXT_FIELDS[type]) {
         // A handle may hold only some characters, so test it with letters it allows.
         const long = "a".repeat(field.max + 25);
-        const base = type === "creatorLinks" || type === "strip" || type === "successScreen" ? ownerPageDoc() : defaultPageDoc();
+        const base =
+          type === "creatorLinks" || type === "strip" || type === "successScreen" ? ownerPageDoc() : type === "pressureMeter" ? addBlock(defaultPageDoc(), type).doc : defaultPageDoc();
         const patch = { [field.key]: long, ...(type === "successScreen" ? { style: "owner" } : {}) };
         const parsed = parsePageDoc(withSetting(base, type, patch))!;
         const block = parsed.doc.blocks.find((b) => b.type === type)!;

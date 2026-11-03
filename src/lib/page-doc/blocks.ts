@@ -1,3 +1,4 @@
+import { ONE_PIECE_LADDER } from "./ladder";
 import type { Block, BlockType, PageDoc, SettingsByType, Slot } from "./types";
 
 // What each block type is allowed to be. Pure data, so a later phase widens it by editing a table.
@@ -13,6 +14,7 @@ export const BLOCK_TYPES: readonly BlockType[] = [
   "send",
   "strip",
   "successScreen",
+  "pressureMeter",
 ];
 
 // Where a block may sit. The first entry is its own section, where it goes when the stored one is
@@ -28,6 +30,7 @@ export const ALLOWED_SLOTS: Record<BlockType, readonly Slot[]> = {
   send: ["main"],
   strip: ["bottom"],
   successScreen: ["success"],
+  pressureMeter: ["side"],
 };
 
 // The blocks a fan pays with, and the header that says who they are paying. They can be restyled
@@ -47,6 +50,7 @@ export const BLOCK_LABELS: Record<BlockType, string> = {
   send: "Send",
   strip: "Strip",
   successScreen: "Thank-you screen",
+  pressureMeter: "Pressure meter",
 };
 
 export const LIMITS = {
@@ -66,6 +70,7 @@ export const LIMITS = {
   buttonLabel: 12,
   previewLabel: 30,
   successLine: 40,
+  meterHeading: 16,
 } as const;
 
 // The Instagram handle that may go into a link: letters, digits, dots and underscores only.
@@ -86,6 +91,15 @@ const DEFAULTS: { [K in BlockType]: () => SettingsByType[K] } = {
   send: () => ({ heading: "", buttonLabel: "" }),
   strip: () => ({ left: "", right: "" }),
   successScreen: () => ({ style: "default", line: "" }),
+  pressureMeter: () => ({
+    goal: null,
+    levels: ONE_PIECE_LADDER.levels.map((l) => ({ ...l })),
+    show: "rupees",
+    where: "both",
+    celebrate: true,
+    fill: null,
+    heading: "",
+  }),
 };
 
 // A fresh settings object for a type, with everything at its normal value.

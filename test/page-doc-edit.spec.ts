@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { PROTECTED } from "../src/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
-import { moveBlock, moveBlockTo, resetBlock, setChoice, setLadder, setText, setTheme, setVisible, validateLadder, type EditResult } from "../src/lib/page-doc/edit";
+import { addBlock, moveBlock, moveBlockTo, resetBlock, setChoice, setLadder, setMeterCelebrate, setMeterFill, setMeterGoal, setMeterLevels, setText, setTheme, setVisible, validateLadder, type EditResult } from "../src/lib/page-doc/edit";
 import { TEXT_FIELDS, CHOICE_FIELDS } from "../src/lib/page-doc/fields";
 import { ONE_PIECE_LADDER } from "../src/lib/page-doc/ladder";
 import { parsePageDoc } from "../src/lib/page-doc/parse";
@@ -232,5 +232,61 @@ test.describe("any sequence of changes stays a clean document", () => {
 test.describe("the tables", () => {
   test("every choice field has at least two options", () => {
     for (const type of Object.keys(CHOICE_FIELDS) as BlockType[]) for (const f of CHOICE_FIELDS[type]) expect(f.options.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+test.describe("the Pressure meter edits (phase 4)", () => {
+  const withMeter = () => addBlock(defaultPageDoc(), "pressureMeter").doc;
+
+  test("the meter can be added once, in the left column, and hidden", () => {
+    const r = addBlock(defaultPageDoc(), "pressureMeter");
+    expect(r).toMatchObject({ changed: true, problems: [] });
+    expect(find(r.doc, "pressureMeter")).toMatchObject({ slot: "side", visible: true });
+    expect(addBlock(r.doc, "pressureMeter")).toMatchObject({ changed: false });
+    expect(setVisible(r.doc, "pressureMeter", false)).toMatchObject({ changed: true });
+    expect(parsePageDoc(r.doc)!.notes).toEqual([]);
+  });
+
+  test("goal, celebrate and the two choices change one thing each", () => {
+    const doc = withMeter();
+    expect(find(setMeterGoal(doc, 4).doc, "pressureMeter").settings.goal).toBe(4);
+    expect(setMeterGoal(doc, null)).toMatchObject({ changed: false });
+    expect(setMeterGoal(doc, -2)).toMatchObject({ changed: false });
+    expect(setMeterGoal(doc, -2).problems).toHaveLength(1);
+    expect(find(setMeterCelebrate(doc, false).doc, "pressureMeter").settings.celebrate).toBe(false);
+    expect(find(setChoice(doc, "pressureMeter", "show", "percent").doc, "pressureMeter").settings.show).toBe("percent");
+    expect(find(setChoice(doc, "pressureMeter", "where", "obs").doc, "pressureMeter").settings.where).toBe("obs");
+    expect(setChoice(doc, "pressureMeter", "where", "nowhere")).toMatchObject({ changed: false });
+    expect(find(setText(doc, "pressureMeter", "heading", "Heat").doc, "pressureMeter").settings.heading).toBe("Heat");
+    expect(setText(doc, "pressureMeter", "heading", "x".repeat(40)).problems).toHaveLength(1);
+  });
+
+  test("rank words are refused when the parser would change them", () => {
+    const doc = withMeter();
+    const good = [{ upTo: 0.4, name: "Low" }, { upTo: 1, name: "High" }];
+    expect(find(setMeterLevels(doc, good).doc, "pressureMeter").settings.levels).toEqual(good);
+    for (const bad of [[], [{ upTo: 0.5, name: "A" }], [{ upTo: 0.6, name: "A" }, { upTo: 0.5, name: "B" }, { upTo: 1, name: "C" }], [{ upTo: 1, name: " " }, { upTo: 1, name: "B" }]]) {
+      const r = setMeterLevels(doc, bad);
+      expect(r.changed).toBe(false);
+      expect(r.problems.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("the bar colour is checked, and null goes back to the page accent", () => {
+    const doc = withMeter();
+    const set = setMeterFill(doc, "#FFAA00");
+    expect(find(set.doc, "pressureMeter").settings.fill).toBe("#ffaa00");
+    expect(setMeterFill(doc, "#222222")).toMatchObject({ changed: false });
+    expect(setMeterFill(doc, "#222222").problems[0]).toMatch(/needs 3/);
+    expect(setMeterFill(doc, "gold").problems[0]).toMatch(/#rrggbb/);
+    expect(find(setMeterFill(set.doc, null).doc, "pressureMeter").settings.fill).toBeNull();
+  });
+
+  test("a page without the meter refuses every meter change", () => {
+    const doc = defaultPageDoc();
+    for (const r of [setMeterGoal(doc, 1), setMeterLevels(doc, [{ upTo: 1, name: "A" }, { upTo: 1, name: "B" }]), setMeterCelebrate(doc, false), setMeterFill(doc, "#ffaa00")]) {
+      expect(r).toMatchObject({ changed: false });
+      expect(r.problems.length).toBeGreaterThan(0);
+    }
   });
 });

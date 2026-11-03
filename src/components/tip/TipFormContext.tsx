@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import type { TipRule, TipSound } from "@/app/[handle]/creator";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { PinOffer } from "@/lib/pinned";
 import type { nextMessageStep } from "@/lib/message-limit";
 import type { Extra } from "@/components/tip/ExtraPicker";
@@ -27,6 +28,10 @@ export interface TipFormState {
   previewMode: boolean;
   // True only in the owner's editor preview: blocks then carry `data-block-id` so a click can pick one.
   editing: boolean;
+  // The Pressure meter: whether the page may draw one (both switches on, or the owner's editor)
+  // and its first reading, null while the creator has no goal.
+  meterOn: boolean;
+  meter: MeterReading | null;
 
   // The amount.
   presets: number[];

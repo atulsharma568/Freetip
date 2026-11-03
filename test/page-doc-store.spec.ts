@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { planFeatures, sanitizeFeatureKeys } from "../src/lib/plans";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
+import { addBlock } from "../src/lib/page-doc/edit";
 import { discardDraft, getPageSummary, loadDraft, loadPageRow, publishDraft, resetPage, resolvePageDoc, restorePrevious, saveDraft } from "../src/lib/page-doc/store";
 import type { Block, PageDoc } from "../src/lib/page-doc/types";
 import { asLedgerDb, freshDatabase, readMigration } from "./helpers/pg";
@@ -118,6 +119,28 @@ test.describe("publishing a draft", () => {
     const result = await publishDraft(asLedgerDb(pg), id);
     expect(result.ok).toBe(false);
     expect((await columns(pg, id)).page_published).toBeNull();
+  });
+
+  test("a Pressure meter is published only while the meter switch is on", async () => {
+    const withMeter = addBlock(normal, "pressureMeter").doc;
+    const pg = await freshDatabase();
+    const off = await creator(pg, ["pageBuilder"]);
+    await setColumn(pg, off, "page_draft", withMeter);
+    const refused = await publishDraft(asLedgerDb(pg), off);
+    expect(refused).toMatchObject({ ok: false });
+    expect(refused.message).toMatch(/Pressure meter/);
+    expect((await columns(pg, off)).page_published).toBeNull();
+    expect(await auditRows(pg, off)).toEqual([]);
+
+    const on = await creator(pg, ["pageBuilder", "pressureMeter"]);
+    await setColumn(pg, on, "page_draft", withMeter);
+    expect((await publishDraft(asLedgerDb(pg), on)).ok).toBe(true);
+    expect((await columns(pg, on)).page_published).toEqual(withMeter);
+
+    // The meter switch alone is not enough: it needs the page switch.
+    const noPage = await creator(pg, ["pressureMeter"]);
+    await setColumn(pg, noPage, "page_draft", withMeter);
+    expect((await publishDraft(asLedgerDb(pg), noPage)).ok).toBe(false);
   });
 
   test("a good draft becomes the published page and the old one is kept one step back", async () => {
