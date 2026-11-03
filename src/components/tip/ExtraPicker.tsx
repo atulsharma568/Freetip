@@ -53,7 +53,7 @@ function SwipeRow({ labelledBy, children }: { labelledBy: string; children: Reac
       role="radiogroup"
       aria-labelledby={labelledBy}
       onKeyDown={(e) => arrowKeys(e, row.current)}
-      className="-mx-1 flex snap-x snap-proximity gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
+      className="relative -mx-1 flex snap-x snap-proximity gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
     >
       {children}
     </div>
