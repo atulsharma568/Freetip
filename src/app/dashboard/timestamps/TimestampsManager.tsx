@@ -286,7 +286,7 @@ export function TimestampsManager(props: {
               <p className="text-sm text-muted">
                 Give each stream a public page of its moments. Every time is a link that opens the video at
                 that second, with a button to tip you. It shows times and what was typed, never a viewer&apos;s
-                name. The link for each stream appears under Recent streams.
+                name. The link for each stream appears on the All streams page.
               </p>
               <Toggle id="ts-public-on" checked={isPublic} onChange={setIsPublic}>
                 Make highlights pages public
