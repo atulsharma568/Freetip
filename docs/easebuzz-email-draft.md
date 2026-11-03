@@ -1,4 +1,4 @@
-# Draft email to Easebuzz (owner to fill the brackets and send)
+# Draft email to Easebuzz (CLOSED 2026-11-03: Easebuzz declined by phone, they do not onboard social media platforms; kept for reference only)
 
 **Where to send** (from https://easebuzz.in/contact/, checked 2026-11-01): there is no public sales email.
 
