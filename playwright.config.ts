@@ -48,6 +48,8 @@ export default defineConfig({
       DATABASE_URL: "",
       WAITLIST_SALT: "",
       CRON_SECRET: "",
+      // Turns on the test-only /dev-fixtures/tip route (404 everywhere else, never set in Vercel).
+      PAGE_FIXTURES: "1",
     } as Record<string, string>,
   },
 });

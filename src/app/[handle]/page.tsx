@@ -7,9 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
-import { TipForm } from "./TipForm";
+import { TipPageView } from "./TipPageView";
 import { isOwnerTipPage, ownerBrand, OWNER_ACCENT, ownerThemeStyle } from "@/lib/owner-page";
-import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
 import { HANDLE_PATTERN } from "@/lib/waitlist";
@@ -81,29 +80,27 @@ export default async function CreatorPage({ params }: Props) {
   const themeStyle = ownerPage ? ownerThemeStyle : accentStyle(storedAccent);
 
   return (
-    <PageShell slim>
-      <div className="contents" style={themeStyle}>
-      {ownerPage && <OwnerBackdrop />}
-      <TipForm
-        accent={ownerPage ? OWNER_ACCENT : safeAccent(storedAccent)}
-        sounds={sounds}
-        rules={rules}
-        voiceMinPaise={voiceMinPaise}
-        handle={handle}
-        displayName={displayName}
-        pictureUrl={tipPhoto ?? creator.picture_url}
-        bannerUrl={bannerUrl}
-        ytChannelName={creator.yt_channel_name}
-        ytChannelUrl={creator.yt_channel_url}
-        minTipPaise={MIN_TIP_PAISE}
-        messageMaxChars={creator.message_max_chars}
-        bio={creator.bio}
-        alertMode={creator.alert_mode}
-        pinOffer={pinOffer}
-        variant={ownerPage ? "owner" : "default"}
-        previewMode={creator.creator_status !== "active"}
-      />
-      </div>
-    </PageShell>
+    <TipPageView
+      data={{
+        handle,
+        displayName,
+        ownerPage,
+        accent: ownerPage ? OWNER_ACCENT : safeAccent(storedAccent),
+        themeStyle,
+        pictureUrl: tipPhoto ?? creator.picture_url,
+        bannerUrl,
+        ytChannelName: creator.yt_channel_name,
+        ytChannelUrl: creator.yt_channel_url,
+        minTipPaise: MIN_TIP_PAISE,
+        messageMaxChars: creator.message_max_chars,
+        bio: creator.bio,
+        alertMode: creator.alert_mode,
+        sounds,
+        rules,
+        voiceMinPaise,
+        pinOffer,
+        previewMode: creator.creator_status !== "active",
+      }}
+    />
   );
 }

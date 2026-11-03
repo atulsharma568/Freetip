@@ -1,0 +1,87 @@
+- link "Skip to content":
+  - /url: "#main"
+- main:
+  - region "Creator":
+    - img "Sample Creator's profile photo"
+    - paragraph: Tips open
+    - heading "Sample Creator" [level=1]
+    - link "Sample Channel (opens in a new tab)":
+      - /url: https://www.youtube.com/@samplechannel
+    - paragraph: Streams games and chats with the crew most evenings.
+    - list:
+      - listitem: UPI and cards
+      - listitem: No account or email needed
+      - listitem: Shows as an alert on their stream
+  - region "Alert preview":
+    - paragraph: Preview on stream
+    - paragraph: Your message may appear on stream.
+  - img "QR code for freetip.in/samplecreator":
+    - img
+  - paragraph: Scan to tip from your phone
+  - paragraph: freetip.in/samplecreator
+  - status
+  - heading "Amount" [level=2]
+  - paragraph: A quick thank-you
+  - group "Choose an amount in rupees":
+    - text: Choose an amount in rupees
+    - radio "₹20" [checked]
+    - text: ₹20
+    - radio "₹50"
+    - text: ₹50
+    - radio "₹100"
+    - text: ₹100
+    - radio "₹200"
+    - text: ₹200
+    - radio "₹500"
+    - text: ₹500
+    - radio "Custom"
+    - text: Custom
+  - paragraph: Minimum ₹20
+  - heading "Your note" [level=2]
+  - switch "Tip anonymously"
+  - text: Tip anonymously Your name (optional)
+  - textbox "Your name (optional)":
+    - /placeholder: Riya, Kabir…
+  - switch "Remember my name on this device"
+  - text: Remember my name on this device Message (optional)
+  - textbox "Message (optional)":
+    - /placeholder: Great stream today!
+  - paragraph: 0/50 · tip ₹100 or more for 80
+  - switch "Pin my message on stream for 30 seconds"
+  - text: Pin my message on stream for 30 seconds
+  - paragraph: For tips of ₹200 or more, and there is no extra fee. Sample Creator approves it first and can take it down at any time. Tips are final, so if it is not pinned or is taken down, the tip is not refunded.
+  - paragraph: Streamer's choice or voice (optional)
+  - radiogroup "Streamer's choice or voice (optional)":
+    - radio "Streamer's default" [checked]
+    - radio "Read my message aloud ₹50+ Tip ₹50 or more to have your message read aloud." [disabled]
+  - paragraph: Soundboard (optional, pick one; your message is not read aloud with a sound)
+  - radiogroup "Soundboard (optional, pick one; your message is not read aloud with a sound)":
+    - radio "Airhorn ₹20+"
+    - button "Preview Airhorn"
+    - radio "Applause ₹50+ Tip ₹50 or more to play Applause." [disabled]
+    - button "Preview Applause"
+    - radio "Fanfare ₹200+ Tip ₹200 or more to play Fanfare." [disabled]
+    - button "Preview Fanfare"
+  - paragraph: Swipe sideways, or scroll, for more sounds.
+  - paragraph: Streamer's picks (a fixed amount, plays on its own with no message)
+  - radiogroup "Streamer's picks (a fixed amount, plays on its own with no message)":
+    - radio "₹100 plays Pick one"
+    - radio "₹500 plays Pick two"
+  - heading "Send" [level=2]
+  - paragraph: Pay with UPI or a card. You pay exactly the tip, and no account or email is needed.
+  - button "Tip ₹20"
+- contentinfo:
+  - paragraph:
+    - text: Powered by
+    - link "Freetip":
+      - /url: /
+  - navigation "Legal":
+    - link "Terms":
+      - /url: /terms
+    - link "Privacy":
+      - /url: /privacy
+    - link "Refunds":
+      - /url: /refunds
+    - link "Contact and grievances":
+      - /url: /contact
+- alert

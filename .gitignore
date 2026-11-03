@@ -79,3 +79,6 @@ credentials*.json
 
 # local tooling, kept on disk only
 
+
+# Screenshots of today's tip pages for the page builder gate (local only; see test/gate)
+/test-baseline/

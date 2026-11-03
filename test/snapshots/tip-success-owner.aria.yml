@@ -1,0 +1,26 @@
+- link "Skip to content":
+  - /url: "#main"
+- main:
+  - paragraph: AcePressure
+  - heading "GG . ₹100 sent to AcePressure." [level=1]
+  - paragraph: Your tip shows on stream now. Your message shows once they approve it.
+  - paragraph: Thanks for hanging out.
+  - button "Tip again"
+  - button "Copy the link"
+  - paragraph
+  - paragraph: Reference order_sample
+- contentinfo:
+  - paragraph:
+    - text: Powered by
+    - link "Freetip":
+      - /url: /
+  - navigation "Legal":
+    - link "Terms":
+      - /url: /terms
+    - link "Privacy":
+      - /url: /privacy
+    - link "Refunds":
+      - /url: /refunds
+    - link "Contact and grievances":
+      - /url: /contact
+- alert
