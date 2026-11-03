@@ -23,9 +23,13 @@ export function ownerBrand(env: NodeJS.ProcessEnv = process.env): string {
   return env.OWNER_TIP_BRAND?.trim() || "AcePressure";
 }
 
-// The owner's page is crimson, the channel's colour (the banner's red is darker, too dim for
-// text on black; this one is bright enough for both). It does not depend on the saved accent.
-export const OWNER_ACCENT = "#ec3d4e";
+// The owner's page is the red of the collar on the avatar. It is too deep to pass the 4.5:1 rule
+// for small text on black (about 3.3:1), which the shared accent check enforces, so the page sets
+// its colours directly: this red for fills, the ring, the bar, buttons and the big amount, and
+// light ink on it (5.4:1). Small text on this page stays white or grey.
+export const OWNER_ACCENT = "#ca1b19";
+export const OWNER_INK = "#f6f6f1";
+export const ownerThemeStyle: Record<string, string> = { "--color-accent": OWNER_ACCENT, "--color-ink": OWNER_INK };
 
 // Words only the owner's page uses.
 export const OWNER_COPY = {

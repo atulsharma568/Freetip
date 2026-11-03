@@ -8,7 +8,7 @@ import { accentStyle, safeAccent } from "@/lib/accent";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import { isClosedGoogleId } from "@/lib/account-close";
 import { TipForm } from "./TipForm";
-import { isOwnerTipPage, ownerBrand, OWNER_ACCENT } from "@/lib/owner-page";
+import { isOwnerTipPage, ownerBrand, OWNER_ACCENT, ownerThemeStyle } from "@/lib/owner-page";
 import { OwnerBackdrop } from "@/components/tip/OwnerBackdrop";
 import { NotReady } from "./NotReady";
 import { SITE_NAME } from "@/lib/site";
@@ -76,16 +76,16 @@ export default async function CreatorPage({ params }: Props) {
   const voiceMinPaise =
     ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
 
-  // The owner's page is always the channel's crimson, whatever accent is saved.
-  const storedAccent = ownerPage ? OWNER_ACCENT : await getCreatorAccent(handle);
-  const themeStyle = accentStyle(storedAccent);
+  // The owner's page is always the channel's red, whatever accent is saved.
+  const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
+  const themeStyle = ownerPage ? ownerThemeStyle : accentStyle(storedAccent);
 
   return (
     <PageShell slim>
       <div className="contents" style={themeStyle}>
       {ownerPage && <OwnerBackdrop />}
       <TipForm
-        accent={safeAccent(storedAccent)}
+        accent={ownerPage ? OWNER_ACCENT : safeAccent(storedAccent)}
         sounds={sounds}
         rules={rules}
         voiceMinPaise={voiceMinPaise}

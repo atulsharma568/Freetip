@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { isOwnerTipPage, OWNER_ACCENT, pressureFraction, pressureLevel } from "../src/lib/owner-page";
-import { isReadable, safeAccent } from "../src/lib/accent";
+import { isOwnerTipPage, OWNER_ACCENT, OWNER_INK, ownerThemeStyle, pressureFraction, pressureLevel } from "../src/lib/owner-page";
+import { contrast } from "../src/lib/accent";
 
 // Only the owner's own tip page gets the custom header.
 const env = (o: Record<string, string>) => o as unknown as NodeJS.ProcessEnv;
@@ -32,9 +32,10 @@ test("the owner's page shows the brand, which can be changed", async () => {
   expect(ownerBrand(env({ OWNER_TIP_BRAND: " Ace " }))).toBe("Ace");
 });
 
-test("the owner's crimson is readable, so it is not swapped for the default colour", () => {
-  expect(isReadable(OWNER_ACCENT)).toBe(true);
-  expect(safeAccent(OWNER_ACCENT)).toBe(OWNER_ACCENT);
+test("light ink on the owner's red reads well, and the red is the avatar collar's", () => {
+  expect(OWNER_ACCENT).toBe("#ca1b19");
+  expect(contrast(OWNER_ACCENT, OWNER_INK)).toBeGreaterThanOrEqual(4.5);
+  expect(ownerThemeStyle["--color-accent"]).toBe(OWNER_ACCENT);
 });
 
 test.describe("the pressure bar", () => {

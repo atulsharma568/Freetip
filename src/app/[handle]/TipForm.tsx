@@ -14,7 +14,7 @@ import { messageLimitFor, nextMessageStep } from "@/lib/message-limit";
 import { tipTier } from "@/lib/tip-tier";
 import { AlertCard } from "@/components/tip/AlertCard";
 import { CreatorPanel, QrTile } from "@/components/tip/CreatorPanel";
-import { OwnerHero, OwnerStrip, PressureBar } from "@/components/tip/OwnerHero";
+import { OwnerLinks, OwnerStrip, PressureBar } from "@/components/tip/OwnerExtras";
 import { OwnerSuccess } from "@/components/tip/OwnerSuccess";
 import { ExtraPicker, type Extra } from "@/components/tip/ExtraPicker";
 import { FieldNote } from "@/components/tip/FieldNote";
@@ -118,8 +118,8 @@ interface Props {
   previewMode?: boolean;
   // The creator lets a big enough tip pin its message on stream (paid highlighted messages).
   pinOffer?: PinOffer | null;
-  // "owner" is the site owner's own page: a full-width header with a pressure gauge instead of the
-  // creator column. The form and every payment rule underneath are the same.
+  // "owner" is the site owner's own page: the same layout with a pressure bar, its own sign-off
+  // screen and a few small extras. The form and every payment rule are the same.
   variant?: "default" | "owner";
 }
 
@@ -403,36 +403,21 @@ export function TipForm({
         </div>
       )}
 
-      {variant === "owner" && (
-        <div className="enter mb-10" style={step(0)}>
-          <OwnerHero
-            displayName={displayName}
-            pictureUrl={pictureUrl}
-            bannerUrl={bannerUrl}
-            bio={bio}
-            ytChannelName={ytChannelName}
-            ytChannelUrl={ytChannelUrl}
-            previewMode={previewMode}
-          />
-        </div>
-      )}
-
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-14">
         {/* Left on wide screens (sticky), above the form on phones */}
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">
-          {variant === "default" && (
-            <div className="enter" style={step(0)}>
-              <CreatorPanel
-                displayName={displayName}
-                pictureUrl={pictureUrl}
-                bannerUrl={bannerUrl}
-                ytChannelName={ytChannelName}
-                ytChannelUrl={ytChannelUrl}
-                bio={bio}
-                previewMode={previewMode}
-              />
-            </div>
-          )}
+          <div className="enter space-y-5" style={step(0)}>
+            <CreatorPanel
+              displayName={displayName}
+              pictureUrl={pictureUrl}
+              bannerUrl={bannerUrl}
+              ytChannelName={ytChannelName}
+              ytChannelUrl={ytChannelUrl}
+              bio={bio}
+              previewMode={previewMode}
+            />
+            {variant === "owner" && <OwnerLinks />}
+          </div>
 
           <section
             className="enter hidden space-y-3 lg:block"
