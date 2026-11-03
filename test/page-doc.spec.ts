@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ACCENT_PRESETS, DEFAULT_ACCENT, inkFor } from "../src/lib/accent";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, inkFor, pairChecks } from "../src/lib/accent";
 import { LIMITS } from "../src/lib/page-doc/blocks";
 import { defaultPageDoc, ownerPageDoc } from "../src/lib/page-doc/defaults";
 import { ONE_PIECE_LADDER, ladderFraction, ladderLevel } from "../src/lib/page-doc/ladder";
@@ -15,9 +15,10 @@ const block = (type: string, extra: Record<string, unknown> = {}) => ({ id: type
 const minimal: PageDoc = {
   version: 1,
   blocks: [
-    { id: "amount", type: "amount", visible: true, slot: "main", settings: { ladder: null } },
-    { id: "note", type: "note", visible: true, slot: "main", settings: {} },
-    { id: "send", type: "send", visible: true, slot: "main", settings: {} },
+    { id: "header", type: "header", visible: true, slot: "side", settings: {} },
+    { id: "amount", type: "amount", visible: true, slot: "main", settings: { ladder: null, heading: "", barLabel: "" } },
+    { id: "note", type: "note", visible: true, slot: "main", settings: { heading: "", namePlaceholder: "", messagePlaceholder: "" } },
+    { id: "send", type: "send", visible: true, slot: "main", settings: { heading: "", buttonLabel: "" } },
   ],
   theme: {},
 };
@@ -47,7 +48,7 @@ test.describe("reading a stored page document", () => {
     const parsed = parsePageDoc(
       withBlocks([block("amount"), block("sparkles"), block("note"), block("note", { settings: { x: 1 } }), block("send")]),
     );
-    expect(typesOf(parsed!.doc)).toEqual(["amount", "note", "send"]);
+    expect(typesOf(parsed!.doc)).toEqual(["header", "amount", "note", "send"]);
   });
 
   test("a block in a section it may not use goes to its own section", () => {
@@ -70,12 +71,26 @@ test.describe("reading a stored page document", () => {
 });
 
 test.describe("the pay blocks are always on the page", () => {
-  test("amount, note and send are visible and present, and the repair is reported", () => {
+  test("header, amount, note and send are visible and present, and the repair is reported", () => {
     const parsed = parsePageDoc(withBlocks([block("amount"), block("send", { visible: false })]))!;
-    expect(typesOf(parsed.doc)).toEqual(["amount", "send", "note"]);
+    expect(typesOf(parsed.doc)).toEqual(["header", "amount", "send", "note"]);
     expect(parsed.doc.blocks.every((b) => b.visible)).toBe(true);
     expect(find(parsed.doc, "note")?.slot).toBe("main");
-    expect(parsed.repairedProtected).toEqual(["note", "send"]);
+    expect(find(parsed.doc, "header")?.slot).toBe("side");
+    expect(parsed.repairedProtected).toEqual(["header", "note", "send"]);
+  });
+
+  test("a hidden header is shown again and is first in its section", () => {
+    const parsed = parsePageDoc(
+      withBlocks([block("qr", { slot: "side" }), block("header", { slot: "side", visible: false }), block("amount"), block("note"), block("send")]),
+    )!;
+    expect(find(parsed.doc, "header")?.visible).toBe(true);
+    expect(parsed.repairedProtected).toEqual(["header"]);
+  });
+
+  test("a missing header goes first, ahead of the other side blocks", () => {
+    const parsed = parsePageDoc(withBlocks([block("qr", { slot: "side" }), block("amount"), block("note"), block("send")]))!;
+    expect(typesOf(parsed.doc)[0]).toBe("header");
   });
 
   test("a clean document reports no repair", () => {
@@ -83,9 +98,11 @@ test.describe("the pay blocks are always on the page", () => {
   });
 
   test("publishing refuses a draft with a hidden or missing pay block", () => {
-    const message = "The amount, note and send blocks must stay on the page.";
-    expect(validateForPublish(withBlocks([block("amount"), block("note"), block("send", { visible: false })]))).toEqual({ ok: false, message });
-    expect(validateForPublish(withBlocks([block("amount"), block("send")]))).toEqual({ ok: false, message });
+    const message = "The header, amount, note and send blocks must stay on the page.";
+    const header = block("header", { slot: "side" });
+    expect(validateForPublish(withBlocks([header, block("amount"), block("note"), block("send", { visible: false })]))).toEqual({ ok: false, message });
+    expect(validateForPublish(withBlocks([header, block("amount"), block("send")]))).toEqual({ ok: false, message });
+    expect(validateForPublish(withBlocks([block("amount"), block("note"), block("send")]))).toEqual({ ok: false, message });
   });
 
   test("publishing refuses something that is not a page, and accepts a clean draft", () => {
@@ -292,5 +309,128 @@ test.describe("the page's colours", () => {
   test("a document accent without ink gets the ink the page would choose", () => {
     const doc = { ...defaultPageDoc(), theme: { accent: "#ca1b19" } };
     expect(themeFor(doc, null).style).toEqual({ "--color-accent": "#ca1b19", "--color-ink": inkFor("#ca1b19") });
+  });
+});
+
+// Page builder phase 2: the words a block may change, the notes, and the colour rule.
+test.describe("the words a block may change", () => {
+  // One block with the given settings, the other pay blocks plain.
+  const one = <T extends Block["type"]>(type: T, settings: unknown, slot = "main") => {
+    const plain = ["header", "amount", "note", "send"].map((t) => block(t, { slot: t === "header" ? "side" : "main" }));
+    const target = block(type, { settings, slot });
+    const blocks = plain.some((b) => b.type === type) ? plain.map((b) => (b.type === type ? target : b)) : [...plain, target];
+    return find(parsePageDoc(withBlocks(blocks))!.doc, type)!.settings;
+  };
+
+  test("every word is empty in both default documents", () => {
+    for (const make of [defaultPageDoc, ownerPageDoc]) {
+      const doc = make();
+      expect(find(doc, "amount")!.settings).toMatchObject({ heading: "", barLabel: "" });
+      expect(find(doc, "note")!.settings).toEqual({ heading: "", namePlaceholder: "", messagePlaceholder: "" });
+      expect(find(doc, "send")!.settings).toEqual({ heading: "", buttonLabel: "" });
+      expect(find(doc, "alertPreview")!.settings).toEqual({ label: "" });
+      expect(find(doc, "successScreen")!.settings.line).toBe("");
+    }
+  });
+
+  test("a document written before the words existed reads with them empty", () => {
+    const doc = parsePageDoc(withBlocks([block("header", { slot: "side" }), block("amount", { settings: { ladder: null } }), block("note"), block("send")]))!;
+    expect(find(doc.doc, "amount")!.settings).toEqual({ ladder: null, heading: "", barLabel: "" });
+    expect(doc.notes).toEqual([]);
+  });
+
+  test("each word is kept, and cut at its limit by whole characters", () => {
+    expect(one("amount", { ladder: null, heading: "Pick", barLabel: "Heat" })).toMatchObject({ heading: "Pick", barLabel: "Heat" });
+    expect(one("amount", { ladder: null, heading: "ऐ".repeat(80) })).toMatchObject({ heading: "ऐ".repeat(LIMITS.heading) });
+    expect(one("amount", { barLabel: "b".repeat(80) })).toMatchObject({ barLabel: "b".repeat(LIMITS.barLabel) });
+    expect(one("note", { heading: "h".repeat(80), namePlaceholder: "n".repeat(80), messagePlaceholder: "m".repeat(200) })).toEqual({
+      heading: "h".repeat(LIMITS.heading),
+      namePlaceholder: "n".repeat(LIMITS.namePlaceholder),
+      messagePlaceholder: "m".repeat(LIMITS.messagePlaceholder),
+    });
+    expect(one("send", { heading: "Go", buttonLabel: "b".repeat(40) })).toEqual({ heading: "Go", buttonLabel: "b".repeat(LIMITS.buttonLabel) });
+    expect(one("alertPreview", { label: "l".repeat(90) }, "side")).toEqual({ label: "l".repeat(LIMITS.previewLabel) });
+    expect(one("successScreen", { style: "owner", line: "t".repeat(90) }, "success")).toEqual({ style: "owner", line: "t".repeat(LIMITS.successLine) });
+  });
+
+  test("control characters are removed and words that are not text become empty", () => {
+    expect(one("send", { heading: "Se\u0000nd\n", buttonLabel: 5 })).toEqual({ heading: "Send", buttonLabel: "" });
+  });
+});
+
+test.describe("what the parser tells the owner", () => {
+  const notesOf = (blocks: unknown[], theme: unknown = {}) => parsePageDoc(withBlocks(blocks, theme))!.notes;
+  const pay = [block("header", { slot: "side" }), block("amount"), block("note"), block("send")];
+
+  test("a clean document has no notes, and neither do the two default documents", () => {
+    expect(parsePageDoc(minimal)!.notes).toEqual([]);
+    expect(parsePageDoc(defaultPageDoc())!.notes).toEqual([]);
+    expect(parsePageDoc(ownerPageDoc())!.notes).toEqual([]);
+  });
+
+  test("a cut word says which and how far", () => {
+    expect(notesOf([...pay, block("creatorLinks", { slot: "side", settings: { tagline: "x".repeat(90), instagram: "" } })])).toEqual([
+      `The tagline was cut to ${LIMITS.tagline} letters.`,
+    ]);
+  });
+
+  test("a bad Instagram handle, a bad ladder and a word that is not text are reported", () => {
+    const notes = notesOf([
+      block("header", { slot: "side" }),
+      block("amount", { settings: { ladder: { topRupees: 5, levels: [] }, heading: 7 } }),
+      block("note"),
+      block("send"),
+      block("creatorLinks", { slot: "side", settings: { tagline: "", instagram: "a/b" } }),
+    ]);
+    expect(notes).toContain("The Instagram handle was not valid and was removed.");
+    expect(notes).toContain("The rank words were not valid, so the bar was removed.");
+    expect(notes).toContain("The amount heading was not text and was removed.");
+  });
+
+  test("removed, duplicated, misplaced and repaired blocks are reported", () => {
+    const notes = notesOf([
+      block("sparkles"),
+      block("header", { slot: "side" }),
+      block("amount"),
+      block("amount"),
+      block("note", { visible: false }),
+      block("strip", { slot: "main", settings: { left: "a", right: "b" } }),
+    ]);
+    expect(notes).toEqual([
+      "A block that does not exist was removed.",
+      "A second Amount block was removed.",
+      "The Note block cannot be hidden, so it was shown again.",
+      "The Strip block was moved back to its own section.",
+      "The Send block was missing, so it was added back.",
+    ]);
+  });
+
+  test("a colour pair that is dropped says why, with the ratios", () => {
+    expect(notesOf(pay, { accent: "#444444", ink: "#555555" })[0]).toMatch(/^The page colours were dropped: the text on the colour is 1\.\d to 1 \(needs 4\.5\)/);
+    expect(notesOf(pay, { accent: "red" })).toEqual(["The page colours were dropped: the accent is not a valid #rrggbb colour."]);
+    expect(notesOf(pay, { ink: "#f6f6f1" })).toEqual(["The page colours were dropped: the accent is not a valid #rrggbb colour."]);
+  });
+});
+
+test.describe("the colour rule: ink on accent 4.5 to 1, accent on the page 3 to 1", () => {
+  const theme = (accent: string, ink?: string) => parsePageDoc(withBlocks([block("header", { slot: "side" }), block("amount"), block("note"), block("send")], ink ? { accent, ink } : { accent }))!.doc.theme;
+
+  test("the owner's red passes with light ink (it must stay allowed)", () => {
+    const checks = pairChecks("#ca1b19", "#f6f6f1");
+    expect(checks.accentOnGround).toBeGreaterThanOrEqual(3);
+    expect(checks.inkOnAccent).toBeGreaterThanOrEqual(4.5);
+    expect(theme("#ca1b19", "#f6f6f1")).toEqual({ accent: "#ca1b19", ink: "#f6f6f1" });
+  });
+
+  test("an accent that is too dark for the page is dropped even when its ink reads", () => {
+    // Light ink reads on a very dark accent, but the accent itself disappears on the dark page.
+    const checks = pairChecks("#2a2a2a", "#f6f6f1");
+    expect(checks.inkOnAccent).toBeGreaterThanOrEqual(4.5);
+    expect(checks.accentOnGround).toBeLessThan(3);
+    expect(theme("#2a2a2a", "#f6f6f1")).toEqual({});
+  });
+
+  test("every preset passes both checks", () => {
+    for (const preset of ACCENT_PRESETS) expect(pairChecks(preset.hex, inkFor(preset.hex)).ok, preset.id).toBe(true);
   });
 });

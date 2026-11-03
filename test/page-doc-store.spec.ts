@@ -106,7 +106,7 @@ test.describe("publishing a draft", () => {
     await setColumn(pg, id, "page_published", normal);
     await setColumn(pg, id, "page_draft", withHiddenSend(owner));
     const result = await publishDraft(asLedgerDb(pg), id);
-    expect(result).toEqual({ ok: false, message: "The amount, note and send blocks must stay on the page." });
+    expect(result).toEqual({ ok: false, message: "The header, amount, note and send blocks must stay on the page." });
     expect((await columns(pg, id)).page_published).toEqual(normal);
     expect(await auditRows(pg, id)).toEqual([]);
   });

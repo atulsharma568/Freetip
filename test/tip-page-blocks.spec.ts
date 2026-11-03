@@ -131,6 +131,7 @@ test.describe("the tip page is drawn from its document", () => {
       "amount",
       (b) =>
         (b.settings = {
+          ...b.settings,
           ladder: {
             topRupees: 1000,
             levels: [
@@ -147,7 +148,7 @@ test.describe("the tip page is drawn from its document", () => {
   });
 
   test("a document without an amount ladder has no bar", async ({ page }) => {
-    await openFixture(page, docQuery("owner", editBlock(ownerPageDoc(), "amount", (b) => (b.settings = { ladder: null }))), 1280);
+    await openFixture(page, docQuery("owner", editBlock(ownerPageDoc(), "amount", (b) => (b.settings = { ...b.settings, ladder: null }))), 1280);
     await expect(page.getByRole("img", { name: /^Pressure:/ })).toHaveCount(0);
   });
 
@@ -174,6 +175,7 @@ test.describe("the tip page is drawn from its document", () => {
     editBlock(doc, "strip", (b) => (b.settings = { left: long(40, "M"), right: long(40, "N") }));
     editBlock(doc, "amount", (b) => {
       b.settings = {
+        ...b.settings,
         ladder: {
           topRupees: 5000,
           levels: [
@@ -191,7 +193,7 @@ test.describe("the tip page is drawn from its document", () => {
   });
 
   test("the sign-off after a tip follows the document's success style", async ({ page }) => {
-    const owner = editBlock(defaultPageDoc(), "successScreen", (b) => (b.settings = { style: "owner" }));
+    const owner = editBlock(defaultPageDoc(), "successScreen", (b) => (b.settings = { ...b.settings, style: "owner" }));
     await openFixture(page, `${docQuery("default", owner)}&view=success`, 390);
     await expect(page.getByRole("heading", { name: /^GG/ })).toBeVisible();
     await openFixture(page, `${docQuery("owner", defaultPageDoc())}&view=success`, 390);

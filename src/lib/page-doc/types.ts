@@ -35,18 +35,21 @@ export interface Ladder {
   levels: Level[];
 }
 
+// Words a block may change are plain text, empty by default. Empty means the standard wording,
+// which stays in the component, so a document that sets nothing looks exactly as before.
 export interface SettingsByType {
   backdrop: { style: "ember" };
   header: Record<string, never>;
   creatorLinks: { tagline: string; instagram: string };
-  alertPreview: Record<string, never>;
+  alertPreview: { label: string };
   qr: Record<string, never>;
   // A null ladder means no bar in the amount box.
-  amount: { ladder: Ladder | null };
-  note: Record<string, never>;
-  send: Record<string, never>;
+  amount: { ladder: Ladder | null; heading: string; barLabel: string };
+  note: { heading: string; namePlaceholder: string; messagePlaceholder: string };
+  // The amount is always added after the button label; it is not a setting.
+  send: { heading: string; buttonLabel: string };
   strip: { left: string; right: string };
-  successScreen: { style: "default" | "owner" };
+  successScreen: { style: "default" | "owner"; line: string };
 }
 
 export type Block<T extends BlockType = BlockType> = {

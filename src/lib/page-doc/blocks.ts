@@ -30,9 +30,24 @@ export const ALLOWED_SLOTS: Record<BlockType, readonly Slot[]> = {
   successScreen: ["success"],
 };
 
-// The blocks a fan pays with. They can be restyled and re-worded but never hidden or removed:
-// the page must always be payable.
-export const PROTECTED: readonly BlockType[] = ["amount", "note", "send"];
+// The blocks a fan pays with, and the header that says who they are paying. They can be restyled
+// and re-worded but never hidden or removed: the page must always be payable.
+// The header is protected too: without it a page could lose the creator's name and its only h1.
+export const PROTECTED: readonly BlockType[] = ["header", "amount", "note", "send"];
+
+// The names the owner sees, in notes and in the editor.
+export const BLOCK_LABELS: Record<BlockType, string> = {
+  backdrop: "Backdrop",
+  header: "Header",
+  creatorLinks: "Links",
+  alertPreview: "Alert preview",
+  qr: "QR code",
+  amount: "Amount",
+  note: "Note",
+  send: "Send",
+  strip: "Strip",
+  successScreen: "Thank-you screen",
+};
 
 export const LIMITS = {
   blocks: 30,
@@ -44,6 +59,13 @@ export const LIMITS = {
   levels: { min: 2, max: 8 },
   topRupees: { min: 100, max: 100_000 },
   instagram: 30,
+  heading: 30,
+  barLabel: 16,
+  namePlaceholder: 30,
+  messagePlaceholder: 60,
+  buttonLabel: 12,
+  previewLabel: 30,
+  successLine: 40,
 } as const;
 
 export function isBlockType(value: unknown): value is BlockType {
@@ -54,13 +76,13 @@ const DEFAULTS: { [K in BlockType]: () => SettingsByType[K] } = {
   backdrop: () => ({ style: "ember" }),
   header: () => ({}),
   creatorLinks: () => ({ tagline: "", instagram: "" }),
-  alertPreview: () => ({}),
+  alertPreview: () => ({ label: "" }),
   qr: () => ({}),
-  amount: () => ({ ladder: null }),
-  note: () => ({}),
-  send: () => ({}),
+  amount: () => ({ ladder: null, heading: "", barLabel: "" }),
+  note: () => ({ heading: "", namePlaceholder: "", messagePlaceholder: "" }),
+  send: () => ({ heading: "", buttonLabel: "" }),
   strip: () => ({ left: "", right: "" }),
-  successScreen: () => ({ style: "default" }),
+  successScreen: () => ({ style: "default", line: "" }),
 };
 
 // A fresh settings object for a type, with everything at its normal value.

@@ -29,7 +29,7 @@ export const ACCENT_PRESETS: readonly AccentPreset[] = [
 const HEX = /^#[0-9a-f]{6}$/;
 
 // The page's dark ground and the two inks used on top of an accent fill.
-const GROUND = "#0f100c";
+export const GROUND = "#0f100c";
 const INK_DARK = "#14170a";
 const INK_LIGHT = "#f6f6f1";
 
@@ -52,6 +52,18 @@ export function contrast(a: string, b: string): number {
 // The ink to put on an accent fill: dark, unless dark is the weaker choice.
 export function inkFor(accent: string): string {
   return contrast(accent, INK_DARK) >= contrast(accent, INK_LIGHT) ? INK_DARK : INK_LIGHT;
+}
+
+// What a page document's colour pair must satisfy: the ink on the accent like small text (4.5 to
+// 1), and the accent on the page ground like large text, fills and focus rings (3 to 1; small
+// text on the page stays white or grey, so the owner's red passes).
+export const MIN_INK_CONTRAST = 4.5;
+export const MIN_GROUND_CONTRAST = 3;
+
+export function pairChecks(accent: string, ink: string): { inkOnAccent: number; accentOnGround: number; ok: boolean } {
+  const inkOnAccent = contrast(accent, ink);
+  const accentOnGround = contrast(accent, GROUND);
+  return { inkOnAccent, accentOnGround, ok: inkOnAccent >= MIN_INK_CONTRAST && accentOnGround >= MIN_GROUND_CONTRAST };
 }
 
 // Readable both as a fill and as text on the page ground.
