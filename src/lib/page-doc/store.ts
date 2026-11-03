@@ -1,6 +1,7 @@
 import type { LedgerDb, Query } from "../accrual";
 import { hasFeature } from "../plans";
-import { pageDocOrDefault, validateForPublish } from "./parse";
+import { LIMITS } from "./blocks";
+import { pageDocOrDefault, parsePageDoc, validateForPublish } from "./parse";
 import type { PageDoc } from "./types";
 
 // The database half of the tip page document (migration 0051). No site imports, so the tests run
@@ -9,8 +10,12 @@ import type { PageDoc } from "./types";
 //
 // Rules in one place:
 //   - A published document is shown only while the creator's `pageBuilder` switch is on.
-//   - Publish copies the draft to published and the old published to previous, in ONE statement.
-//     A draft that is not a page, or hides or drops a pay block, is refused.
+//   - Saving a draft stores the document as the parser cleaned it, and only if the draft in the
+//     database is still the one the editor last saw (see saveDraft).
+//   - Publish stores the cleaned draft as published and the old published as previous, in ONE
+//     statement. A draft that is not a page, or hides or drops a protected block, is refused, and
+//     so is a draft that is already the published page (a double click would otherwise push the
+//     real previous version out).
 //   - Restore swaps published and previous. Reset empties all three (the normal page).
 //   - Publish, restore and reset each write one audit row against the creator.
 
@@ -72,23 +77,34 @@ export interface PageSummary {
   hasDraft: boolean;
   hasPublished: boolean;
   hasPrevious: boolean;
+  // A published document is stored but the parser cannot read it, so fans see the normal page.
+  publishedUnreadable: boolean;
+  // When the owner last published, restored or reset this creator's page (from the audit log).
+  lastChange: Date | null;
 }
 
 // What the owner console shows for a creator. Throws when the columns are missing, so the page can
 // say "run migration 0051".
 export async function getPageSummary(db: Query, creatorId: number): Promise<PageSummary> {
-  const [row] = await db<(Pick<Columns, "paid_features"> & { has_draft: boolean; has_published: boolean; has_previous: boolean })[]>`
-    select paid_features,
+  const [row] = await db<(Pick<Columns, "paid_features" | "page_published"> & { has_draft: boolean; has_previous: boolean })[]>`
+    select paid_features, page_published,
            page_draft is not null as has_draft,
-           page_published is not null as has_published,
            page_previous is not null as has_previous
     from users where id = ${creatorId}
   `;
+  const [change] = await db<{ at: Date | null }[]>`
+    select max(created_at) as at from audit_events
+    where entity_type = 'user' and entity_ref = ${String(creatorId)}
+      and action in ('creator.page_published', 'creator.page_restored', 'creator.page_reset')
+  `;
+  const hasPublished = row?.page_published != null;
   return {
     switchOn: !!row && hasFeature(row, "pageBuilder"),
     hasDraft: !!row?.has_draft,
-    hasPublished: !!row?.has_published,
+    hasPublished,
     hasPrevious: !!row?.has_previous,
+    publishedUnreadable: hasPublished && parsePageDoc(row?.page_published) === null,
+    lastChange: change?.at ?? null,
   };
 }
 
@@ -100,9 +116,96 @@ export async function publishDraft(db: LedgerDb, creatorId: number): Promise<Pag
     if (row.page_draft == null) return fail("There is no draft to publish.");
     const checked = validateForPublish(row.page_draft);
     if (!checked.ok) return fail(checked.message);
-    await tx`update users set page_previous = page_published, page_published = page_draft where id = ${creatorId}`;
+    // The cleaned document is what is published, not the raw draft.
+    const [same] = await tx<{ same: boolean }[]>`select page_published is not distinct from ${checked.doc}::jsonb as same from users where id = ${creatorId}`;
+    if (same?.same) return fail("The published page is already this draft.");
+    await tx`update users set page_previous = page_published, page_published = ${checked.doc}::jsonb where id = ${creatorId}`;
     await audit(tx, "creator.page_published", creatorId, { published: true, previous: row.page_published != null });
     return ok("Published.");
+  });
+}
+
+// What the editor opens with.
+//   doc       the page to edit: the saved draft, else the published page, else `fallback`
+//   base      the draft exactly as stored (null when there is none); the editor sends it back with
+//             every save, and a save goes through only if the stored draft still equals it
+//   published the published page as the parser reads it, or null (nothing, or not readable)
+export interface DraftState {
+  switchOn: boolean;
+  doc: PageDoc;
+  base: unknown;
+  published: PageDoc | null;
+  source: "draft" | "published" | "default";
+}
+
+function asJson(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw ?? null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// Throws when the columns are missing, so the page can say "run migration 0051".
+export async function loadDraft(db: Query, creatorId: number, fallback: PageDoc): Promise<DraftState | null> {
+  const [row] = await db<Pick<Columns, "paid_features" | "page_draft" | "page_published">[]>`
+    select paid_features, page_draft, page_published from users where id = ${creatorId}
+  `;
+  if (!row) return null;
+  const draft = parsePageDoc(row.page_draft);
+  const published = parsePageDoc(row.page_published);
+  return {
+    switchOn: hasFeature(row, "pageBuilder"),
+    doc: draft?.doc ?? published?.doc ?? fallback,
+    base: asJson(row.page_draft),
+    published: published?.doc ?? null,
+    source: draft ? "draft" : published ? "published" : "default",
+  };
+}
+
+export type SaveResult =
+  | { ok: true; doc: PageDoc; notes: string[] }
+  // `conflict` means the draft in the database is no longer the one the editor started from.
+  | { ok: false; message: string; conflict: boolean };
+
+const saveFail = (message: string, conflict = false): SaveResult => ({ ok: false, message, conflict });
+
+const isJsonObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+// Saves the draft. `base` is the draft the editor last received (null if there was none) and
+// `next` is the new one. The cleaned document is stored and sent back with what was changed. If
+// the stored draft is no longer `base` (another tab saved, or an old tab is open) nothing is
+// written and `conflict` is true. No audit row: only publish, restore and reset are audited.
+export async function saveDraft(db: LedgerDb, creatorId: number, base: unknown, next: unknown): Promise<SaveResult> {
+  if (base !== null && !isJsonObject(base)) return saveFail("This draft could not be matched with the saved one. Reload the page.", true);
+  const size = JSON.stringify(next ?? null)?.length ?? 0;
+  if (size > LIMITS.raw) return saveFail("This draft is too big.");
+  const parsed = parsePageDoc(next);
+  if (!parsed) return saveFail("This draft is not a page.");
+  return db.begin(async (tx) => {
+    const row = await lockRow(tx, creatorId);
+    if (!row) return saveFail("That creator was not found.");
+    if (!hasFeature(row, "pageBuilder")) return saveFail(SWITCH_OFF);
+    const updated = await tx<{ id: number }[]>`
+      update users set page_draft = ${parsed.doc}::jsonb
+      where id = ${creatorId} and page_draft is not distinct from ${base}::jsonb
+      returning id
+    `;
+    if (updated.length === 0) return saveFail("This page was changed somewhere else. Reload to see the latest draft.", true);
+    return { ok: true as const, doc: parsed.doc, notes: parsed.notes };
+  });
+}
+
+// Throws away the unsaved-to-published draft: no draft means "the same as the published page".
+// Allowed whatever the switch says, like reset.
+export async function discardDraft(db: LedgerDb, creatorId: number): Promise<PageResult> {
+  return db.begin(async (tx) => {
+    const row = await lockRow(tx, creatorId);
+    if (!row) return fail("That creator was not found.");
+    if (row.page_draft == null) return ok("There was no draft.");
+    await tx`update users set page_draft = null where id = ${creatorId}`;
+    return ok("The draft is gone.");
   });
 }
 
