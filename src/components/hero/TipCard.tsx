@@ -306,7 +306,6 @@ export function TipCard({
         onFocusCapture={stopDemo}
         className="relative overflow-hidden rounded-surface border border-line/60 bg-surface p-5 sm:p-6"
       >
-        <p className="mb-3 text-sm text-muted">Sample page. No payment is taken.</p>
         <header className="flex items-center gap-3">
           <span className="inline-block shrink-0 rounded-full border-2 border-accent p-1">
             <span
@@ -317,9 +316,9 @@ export function TipCard({
             </span>
           </span>
           <div className="min-w-0 space-y-1">
-            <p className="inline-flex items-center gap-2 rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">
-              <span aria-hidden="true" className="live-dot" />
-              Tips open
+            <p className="flex items-start gap-2 text-xs font-medium text-muted">
+              <span aria-hidden="true" className="live-dot mt-1 shrink-0" />
+              Sample page. No payment is taken.
             </p>
             <p className="truncate font-semibold leading-tight">{SAMPLE_CREATOR_NAME}</p>
             <p className="numeric truncate text-sm text-muted">
@@ -331,7 +330,7 @@ export function TipCard({
         <form
           onSubmit={onSubmit}
           inert={paid || sending}
-          className="mt-5 space-y-5"
+          className="mt-5 space-y-4"
           autoComplete="off"
         >
           {/* 01 Amount */}
@@ -399,7 +398,6 @@ export function TipCard({
                 />
               </div>
             )}
-            <p className="text-xs text-muted">Minimum ₹{MIN_AMOUNT}</p>
           </div>
 
           {/* 02 Your note */}
@@ -427,9 +425,14 @@ export function TipCard({
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="sample-message" className="text-sm text-muted">
-                Message <span className="text-control">(optional)</span>
-              </label>
+              <div className="flex items-baseline justify-between gap-3">
+                <label htmlFor="sample-message" className="text-sm text-muted">
+                  Message <span className="text-control">(optional)</span>
+                </label>
+                <p className="numeric text-xs text-muted">
+                  {messageLength}/{MESSAGE_MAX}
+                </p>
+              </div>
               <textarea
                 id="sample-message"
                 ref={messageRef}
@@ -440,9 +443,6 @@ export function TipCard({
                 placeholder="Great stream today!"
                 className="w-full resize-none rounded-field border border-control bg-ground px-4 py-3 text-base text-text placeholder:text-muted focus-visible:border-accent"
               />
-              <p className="numeric text-right text-xs text-muted">
-                {messageLength}/{MESSAGE_MAX}
-              </p>
             </div>
           </div>
 
@@ -450,7 +450,7 @@ export function TipCard({
           <div className="space-y-3">
             <StepHeading n={3} title="Send" />
             <p className="text-sm text-muted">
-              Pay with UPI or a card. You pay exactly the tip, and no account or email is needed.
+              Pay with UPI or a card. You pay exactly the tip. No account or email needed.
             </p>
             <button
               type="submit"
