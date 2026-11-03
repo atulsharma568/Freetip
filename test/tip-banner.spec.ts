@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { fetchChannelBanner, safeBannerUrl } from "../src/lib/tip-banner";
+import { BANNER_MAX_BYTES, fetchChannelBanner, safeBannerUrl } from "../src/lib/tip-banner";
+import { checkMediaFile } from "../src/lib/media";
 import { planFeatures, sanitizeFeatureKeys } from "../src/lib/plans";
 
 // The YouTube banner behind the photo on the tip page (paid feature "tipBanner").
@@ -85,4 +86,14 @@ test("the switch is off by default and can be stored once built", () => {
   expect(planFeatures(null).tipBanner).toBe(false);
   expect(planFeatures({ paid_features: ["tipBanner"] }).tipBanner).toBe(true);
   expect(sanitizeFeatureKeys(["tipBanner", "nonsense"])).toEqual(["tipBanner"]);
+});
+
+test("a banner may be bigger than an alert picture, up to its own limit", () => {
+  const gif = new Uint8Array(32);
+  gif.set([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x40, 0x06, 0xf4, 0x01]);
+  const mb = 1024 * 1024;
+  expect(checkMediaFile(gif, 5 * mb).ok).toBe(false);
+  expect(checkMediaFile(gif, 5 * mb, BANNER_MAX_BYTES).ok).toBe(true);
+  expect(checkMediaFile(gif, BANNER_MAX_BYTES, BANNER_MAX_BYTES).ok).toBe(true);
+  expect(checkMediaFile(gif, BANNER_MAX_BYTES + 1, BANNER_MAX_BYTES).ok).toBe(false);
 });

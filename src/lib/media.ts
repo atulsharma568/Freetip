@@ -113,16 +113,19 @@ export function sniffMedia(bytes: Uint8Array): Sniffed | null {
 
 // The server's check of a saved file, from its bytes and size. Returns the reason
 // when it is refused, or what it is when it passes.
+// `imageMaxBytes` lets a caller with its own limit (the tip page banner) raise the picture limit.
 export function checkMediaFile(
   bytes: Uint8Array,
   sizeBytes: number,
+  imageMaxBytes: number = MEDIA_IMAGE_MAX_BYTES,
 ): { ok: true; sniffed: Sniffed } | { ok: false; reason: string } {
   const sniffed = sniffMedia(bytes);
   if (!sniffed) return { ok: false, reason: "That file is not a GIF, PNG, JPG, WebP or WebM." };
-  if (sizeBytes < 1 || sizeBytes > maxBytesFor(sniffed.kind)) {
+  const limit = sniffed.kind === "webm" ? MEDIA_WEBM_MAX_BYTES : imageMaxBytes;
+  if (sizeBytes < 1 || sizeBytes > limit) {
     return {
       ok: false,
-      reason: sniffed.kind === "webm" ? "A WebM can be at most 8 MB." : "An image or GIF can be at most 3 MB.",
+      reason: sniffed.kind === "webm" ? "A WebM can be at most 8 MB." : `An image or GIF can be at most ${Math.round(imageMaxBytes / (1024 * 1024))} MB.`,
     };
   }
   const { width, height } = sniffed;

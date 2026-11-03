@@ -8,7 +8,8 @@
 // so a bad row can never point the tip page at someone else's server.
 import { BLOB_HOST_SUFFIX, type MediaKind } from "./media";
 
-export const BANNER_MAX_BYTES = 3 * 1024 * 1024;
+// Bigger than an alert picture (3 MB) because an animated banner is a wide GIF or WebP.
+export const BANNER_MAX_BYTES = 6 * 1024 * 1024;
 export const BANNER_UPLOAD_KINDS: readonly MediaKind[] = ["gif", "image"];
 export const BANNER_UPLOAD_TYPES = ["image/gif", "image/png", "image/jpeg", "image/webp"] as const;
 

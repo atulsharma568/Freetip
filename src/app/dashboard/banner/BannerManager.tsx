@@ -61,13 +61,13 @@ export function BannerManager({
     if (!file) return;
     setMessage(null);
     const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-    const checked = checkMediaFile(head, file.size);
+    const checked = checkMediaFile(head, file.size, BANNER_MAX_BYTES);
     if (!checked.ok) {
       setMessage({ kind: "error", text: checked.reason });
     } else if (!BANNER_UPLOAD_KINDS.includes(checked.sniffed.kind)) {
       setMessage({ kind: "error", text: "A banner must be a picture or a GIF, not a video." });
     } else if (file.size > BANNER_MAX_BYTES) {
-      setMessage({ kind: "error", text: "The picture is over 3 MB." });
+      setMessage({ kind: "error", text: "The picture is over 6 MB." });
     } else {
       setBusy("upload");
       try {
@@ -152,7 +152,7 @@ export function BannerManager({
           </div>
           <p className="text-xs text-muted">
             Or use any picture you like, including an animated GIF or WebP: PNG, JPG, GIF or WebP, up to
-            3 MB. A wide picture works best (about 1600 by 500 pixels); the middle is what fits. Only
+            6 MB. A wide picture works best (about 1600 by 500 pixels; the middle is what fits). For an animated banner, an animated WebP is usually much smaller than a GIF. Only
             upload what you made or have the right to use.
             {!uploadsReady && " Uploads are not set up on this site yet."}
           </p>

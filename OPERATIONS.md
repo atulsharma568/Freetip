@@ -176,7 +176,7 @@ If something looks wrong: the alert always falls back to the normal card (bad st
 
 ## 7e. Tip page banner (set up once)
 
-One paid switch, **YouTube banner on the tip page** (group "Tip page"), puts a banner behind the creator's photo at the top of their tip page: their own YouTube channel banner, or a picture or animated GIF or WebP they upload from their computer (up to 3 MB; uploads need the Vercel Blob store, `BLOB_READ_WRITE_TOKEN`, the same one the soundboard uses). OFF for everyone until you tick it for a creator in `/admin/creators/<id>`. No plan or price on the site.
+One paid switch, **YouTube banner on the tip page** (group "Tip page"), puts a banner behind the creator's photo at the top of their tip page: their own YouTube channel banner, or a picture or animated GIF or WebP they upload from their computer (up to 6 MB; uploads need the Vercel Blob store, `BLOB_READ_WRITE_TOKEN`, the same one the soundboard uses). OFF for everyone until you tick it for a creator in `/admin/creators/<id>`. No plan or price on the site.
 
 1. Run `0048_tip_banner.sql` in Neon (SQL Editor) BEFORE the deploy.
 2. `YT_DATA_API_KEY` must be set in Vercel (the same key stream timestamps use; nothing new to create). Without it the button says reading the banner is not set up.

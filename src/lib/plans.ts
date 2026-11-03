@@ -211,7 +211,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     key: "tipBanner",
     label: "Banner on the tip page",
     group: "Tip page",
-    description: "A banner shows behind the creator's photo at the top of their tip page: their own YouTube channel banner (one button, needs YT_DATA_API_KEY) or a picture or animated GIF or WebP they upload from their computer (up to 3 MB, needs the Blob store); they can remove it any time (/dashboard/banner).",
+    description: "A banner shows behind the creator's photo at the top of their tip page: their own YouTube channel banner (one button, needs YT_DATA_API_KEY) or a picture or animated GIF or WebP they upload from their computer (up to 6 MB, needs the Blob store); they can remove it any time (/dashboard/banner).",
     built: true,
   },
 ];

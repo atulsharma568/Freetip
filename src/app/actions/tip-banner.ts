@@ -101,7 +101,7 @@ export async function removeTipBanner(): Promise<TipBannerActionResult> {
 
 // Saves a banner the browser has uploaded. The file is fetched and its first bytes checked
 // again here, so nothing the page claims about its type or size is trusted: a still picture or
-// an animated GIF or WebP, at most 3 MB.
+// an animated GIF or WebP, at most 6 MB.
 export async function saveUploadedBanner(input: { url: string }): Promise<TipBannerActionResult> {
   const ctx = await owner();
   if (!ctx) return { status: "error", message: "Sign in again to change your tip page banner." };
@@ -121,15 +121,15 @@ export async function saveUploadedBanner(input: { url: string }): Promise<TipBan
   try {
     const res = await fetch(input.url, { cache: "no-store", signal: AbortSignal.timeout(20_000) });
     if (!res.ok) return reject("The uploaded file could not be read back. Try again.");
-    if (Number(res.headers.get("content-length") ?? 0) > BANNER_MAX_BYTES) return reject("The picture is over 3 MB.");
+    if (Number(res.headers.get("content-length") ?? 0) > BANNER_MAX_BYTES) return reject("The picture is over 6 MB.");
     bytes = new Uint8Array(await res.arrayBuffer());
   } catch {
     return reject("The uploaded file could not be read back. Try again.");
   }
-  const checked = checkMediaFile(bytes, bytes.length);
+  const checked = checkMediaFile(bytes, bytes.length, BANNER_MAX_BYTES);
   if (!checked.ok) return reject(checked.reason);
   if (!BANNER_UPLOAD_KINDS.includes(checked.sniffed.kind)) return reject("A banner must be a picture or a GIF, not a video.");
-  if (bytes.length > BANNER_MAX_BYTES) return reject("The picture is over 3 MB.");
+  if (bytes.length > BANNER_MAX_BYTES) return reject("The picture is over 6 MB.");
 
   const before = await currentBanner(ctx.db, ctx.row.id);
   try {
