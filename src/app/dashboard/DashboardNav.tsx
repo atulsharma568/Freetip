@@ -5,6 +5,7 @@ import { SlidingNav } from "./parts/SlidingNav";
 const LINKS = [
   { key: "overview", href: "/dashboard", label: "Overview" },
   { key: "tips", href: "/dashboard/tips", label: "Tips" },
+  { key: "earnings", href: "/dashboard/earnings", label: "Earnings" },
   { key: "recap", href: "/dashboard/recap", label: "Recap" },
   { key: "sounds", href: "/dashboard/sounds", label: "Sounds and media" },
   { key: "tippage", href: "/dashboard/rules", label: "Tip page" },
@@ -39,7 +40,7 @@ const GROUP_OF: Record<string, PageGroup> = { sounds: "sounds", media: "sounds",
 // Section links shared by the dashboard pages. Alerts and settings stay on the
 // overview page, below the numbers. Timestamps, Tip page, Look, Words and motion and Fans show only for creators they are
 // switched on for.
-export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "decor" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
+export async function DashboardNav({ current }: { current: "overview" | "tips" | "earnings" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "decor" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
   const features = await getSessionFeatures();
   const ownerPage = await getSessionIsOwnerPage();
   const onTabs = (g: PageGroup) => PAGE_GROUPS[g].filter((t) => t.feature === null || (t.feature === "owner" ? ownerPage : features[t.feature]));
