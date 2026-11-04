@@ -143,3 +143,4 @@ None of this has been seen in a browser with a real login or in real OBS.
 - [ ] A creator with nothing switched on sees no "Pinned messages" row; switch it on in `/admin` and it appears.
 - [ ] Read the wording of each feature line and say what to change.
 
+- [ ] Dashboard menu: open Sounds and media, then Tip page; with Media, Pinned, Picks, Automatic tiers or Banner switched on, a second row of tabs appears under the menu and works on a phone.

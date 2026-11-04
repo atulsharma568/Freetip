@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard menu cut from 15 links to 11)
+
+- **Done; NO migration, nothing to run.** `src/app/dashboard/DashboardNav.tsx` now groups pages the way the alert pages already did: **Sounds and media** (Sounds, Media, Pinned) and **Tip page** (Picks, Automatic tiers, Banner). Each page keeps its own switch; a group's menu link opens its first page that is switched on, and a second row of tabs shows when two or more are on. No page file changed (the nav draws the second row itself). The Tip page entry is hidden when none of its three switches is on; Sounds and media always shows. "Tip page picks" is now called "Picks" inside the group, and the old "Media" and "Banner" menu names are tab names.
+- **Verified:** `tsc`, `eslint`, `npm run build`; no test used the old link names. **Not seen in a browser** (the Playwright browser would not download here): the second tab row on a phone and the lime pill moving between groups.
+- **Still open from the polish list:** names that do not match between menu and page headings (check the headings of Rules, Variations, Sounds, Media against the new labels), unsaved-edit warnings on the alert studio forms, native radios.
+
 ## Current state (2026-11-04, where AcePressure's page builder stands; summary only, no code changed)
 
 - **What was decided (owner, 2026-11-03):** nothing on the owner's page stays hardcoded. Every part of the tip page is a block the owner edits with a live preview and replaceable uploads (animated backgrounds included), switched on per creator (`pageBuilder` shown as "Custom tip page", and `pressureMeter`) so the same page can later be given to a paying creator on request. **Only the owner edits**, at `/admin/creators/<id>/page`; creators get no editor and no uploads. The Pressure meter (tip page block and OBS overlay) follows whichever goal the creator chose (daily, weekly, monthly or never repeating) and has no period logic of its own. Design: `docs/specs/2026-11-03-page-builder-design.md`.
