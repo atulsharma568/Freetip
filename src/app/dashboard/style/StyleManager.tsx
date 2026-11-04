@@ -8,6 +8,7 @@ import { inkFor } from "@/lib/accent";
 import { FONTS, THEMES, type FontKey, type ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
+import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillPrimary } from "../parts/styles";
 
 const CHIP = "inline-flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors duration-150";
@@ -60,6 +61,7 @@ export function StyleManager({
     [amount, theme, font],
   );
   const changed = theme !== savedTheme || font !== savedFont;
+  useUnsavedWarning(changed);
 
   async function save() {
     setBusy(true);

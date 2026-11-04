@@ -6,6 +6,7 @@ import { deleteRule, saveRule } from "@/app/actions/alert-rules";
 import { RULE_MAX_RUPEES, STAY_CHOICES, STAY_MIN_RUPEES } from "@/lib/alert-rules";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
+import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { ConfirmAction } from "../parts/ConfirmAction";
 import { SelectField } from "../parts/Controls";
 import { EmptyState } from "../parts/EmptyState";
@@ -51,6 +52,8 @@ export function RulesManager({
   const [stay, setStay] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+  // An unsaved new pick counts as an edit; the fields empty again once it is saved.
+  useUnsavedWarning(Boolean(rupees || mediaId || soundId || stay));
 
   const canStay = Number(rupees) >= STAY_MIN_RUPEES;
 

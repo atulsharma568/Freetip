@@ -17,6 +17,7 @@ import type { AlertText } from "@/lib/alert-text";
 import type { FontKey, ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
+import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillOutline, pillPrimary } from "../parts/styles";
 
 const CHIP = "inline-flex min-h-11 items-center rounded-full border px-4 text-sm transition-colors duration-150";
@@ -76,6 +77,7 @@ export function MotionManager({
   const draft = parsed.ok ? parsed.value : null;
   const problem = parsed.ok ? null : parsed.message;
   const same = JSON.stringify(draft) === JSON.stringify(saved);
+  useUnsavedWarning(!same);
 
   const sizeBox = SIZES.find((s) => s.key === sizeKey)!;
   const samples = useMemo<OverlayAlert[]>(

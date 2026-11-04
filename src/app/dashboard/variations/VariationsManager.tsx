@@ -12,6 +12,7 @@ import type { AlertMedia } from "@/lib/media";
 import type { FontKey, ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
+import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { ConfirmAction } from "../parts/ConfirmAction";
 import { SelectField } from "../parts/Controls";
 import { EmptyState } from "../parts/EmptyState";
@@ -91,6 +92,8 @@ export function VariationsManager({
   const [sizeKey, setSizeKey] = useState<(typeof SIZES)[number]["key"]>("landscape");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+  // An unsaved new tier counts as an edit; the fields empty again once it is saved.
+  useUnsavedWarning(Boolean(rupees || mediaId || soundId || headline || stay));
 
   const base = useMemo(() => baseColours(theme, accent), [theme, accent]);
   const canStay = Number(rupees) >= STAY_MIN_RUPEES;
