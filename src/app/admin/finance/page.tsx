@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
-import { getFinanceSummary, formatINR, type FinanceSummary } from "@/lib/admin/finance-queries";
-import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
+import { getFinanceSummary, getTurnover, formatINR, type FinanceSummary, type Turnover } from "@/lib/admin/finance-queries";
+import { financialYearIST, parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
 import {
@@ -32,7 +32,9 @@ export default async function AdminFinancePage({
   const range = rangeFromPreset(preset);
 
   const db = adminDb();
-  const result = db ? await getFinanceSummary(db, range) : null;
+  const [result, turnover] = db
+    ? await Promise.all([getFinanceSummary(db, range), getTurnover(db, financialYearIST())])
+    : [null, null];
 
   return (
     <div className="space-y-8">
@@ -53,13 +55,13 @@ export default async function AdminFinancePage({
       ) : !result.ok ? (
         <CouldNotRead detail={result.error} />
       ) : (
-        <FinanceBody summary={result.data} />
+        <FinanceBody summary={result.data} turnover={turnover} />
       )}
     </div>
   );
 }
 
-function FinanceBody({ summary }: { summary: FinanceSummary }) {
+function FinanceBody({ summary, turnover }: { summary: FinanceSummary; turnover: Awaited<ReturnType<typeof getTurnover>> | null }) {
   const { notPosted } = summary;
   const noLiveTips =
     summary.tipsCapturedCount === 0 && notPosted.count === 0 && summary.owedToCreatorsMinor === 0;
@@ -84,6 +86,8 @@ function FinanceBody({ summary }: { summary: FinanceSummary }) {
           />
         </div>
       </section>
+
+      <TurnoverSection turnover={turnover} />
 
       <section className="space-y-3">
         <Heading>Posted to the books, this period</Heading>
@@ -155,5 +159,31 @@ function FinanceBody({ summary }: { summary: FinanceSummary }) {
         />
       )}
     </>
+  );
+}
+
+// How close we are to the GST registration trigger, for the financial year so far. Not tied to
+// the date range above.
+function TurnoverSection({ turnover }: { turnover: Awaited<ReturnType<typeof getTurnover>> | null }) {
+  if (!turnover) return null;
+  if (!turnover.ok) return <CouldNotRead detail={turnover.error} />;
+  const t: Turnover = turnover.data;
+  const pct = Math.min(100, Math.round((t.countedMinor / t.triggerMinor) * 100));
+  const word =
+    t.countedMinor >= t.triggerMinor
+      ? "The trigger is reached. Register for GST within 30 days of the day it was crossed."
+      : pct >= 80
+        ? "Close to the trigger. Start the GST registration paperwork now."
+        : "Below the trigger. No registration is needed yet.";
+  return (
+    <section className="space-y-3">
+      <Heading>GST trigger, {t.yearLabel} so far</Heading>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Gross tips" value={formatINR(t.grossTipsMinor)} note="Live tips captured this financial year (the cautious reading)." />
+        <MetricCard label="Our fees and charges" value={formatINR(t.feesMinor)} note="Platform fee plus the processing charge, on the ledger. Plan sales will be added once plans can be bought." />
+        <MetricCard label="Counted against the trigger" value={`${pct}%`} sub={`${formatINR(t.countedMinor)} of ${formatINR(t.triggerMinor)}`} accent={pct >= 80} note="The larger of the two figures above." />
+      </div>
+      <p className="max-w-2xl text-sm text-muted">{word} A reading of public sources, not an accountant&rsquo;s advice; see docs/rules-check.md section 2.</p>
+    </section>
   );
 }

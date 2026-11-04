@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, GST trigger figure on the finance page)
+
+- **Built; NO migration, nothing to run.** `/admin/finance` has a "GST trigger, FY 2026-27 so far" block: gross live tips captured this Indian financial year (1 April to 31 March, IST), our fees (platform fee plus the processing charge, posted to the ledger in the year), and the larger of the two as a percent of ₹15 lakh with a plain sentence (below the trigger; close, from 80%; reached, register within 30 days). It does not follow the date picker above it. Code: `financialYearIST` in `src/lib/admin/date-range.ts`, `getTurnover` and `GST_TRIGGER_MINOR` in `src/lib/admin/finance-queries.ts`. Test-mode tips and earlier years stay out. Plan sales are not added yet (nothing can be bought); add them to `feesMinor` when plan orders exist.
+- **Verified:** `tsc`, `eslint`, build, `test/admin-finance.spec.ts` (12 passed, 3 new: year boundaries in IST, a year's live tips and fees with test-mode and last-year tips left out, empty and failed reads). **Not seen in a browser** with a real owner login.
+- **Still open:** native radios (polish list); Part 2, the PayU purchase (needs the owner's keys and prices).
+
 ## Current state (2026-11-04, dashboard menu cut from 15 links to 11)
 
 - **Done; NO migration, nothing to run.** `src/app/dashboard/DashboardNav.tsx` now groups pages the way the alert pages already did: **Sounds and media** (Sounds, Media, Pinned) and **Tip page** (Picks, Automatic tiers, Banner). Each page keeps its own switch; a group's menu link opens its first page that is switched on, and a second row of tabs shows when two or more are on. No page file changed (the nav draws the second row itself). The Tip page entry is hidden when none of its three switches is on; Sounds and media always shows. "Tip page picks" is now called "Picks" inside the group, and the old "Media" and "Banner" menu names are tab names.

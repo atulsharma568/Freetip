@@ -170,3 +170,55 @@ export function getFinanceSummary(db: LedgerDb, range: DateRange): Promise<Loade
     };
   });
 }
+
+// The GST registration trigger (docs/rules-check.md section 2): register when the larger of
+// (our fees plus plan sales) and gross tips reaches this much in a financial year. It is set
+// below the ₹20 lakh legal limit to leave time, because registration is due within 30 days.
+export const GST_TRIGGER_MINOR = 1_500_000_00;
+
+export interface Turnover {
+  yearLabel: string;
+  // Live tips captured in the financial year, gross.
+  grossTipsMinor: number;
+  // Our fee plus the processing charge we keep, posted to the ledger in the year. Plan sales
+  // will be added here once plans can be bought (none can yet).
+  feesMinor: number;
+  triggerMinor: number;
+  // The larger of the two, which is the figure the trigger is tested against.
+  countedMinor: number;
+}
+
+export function getTurnover(db: LedgerDb, year: DateRange): Promise<Loaded<Turnover>> {
+  return load("the turnover figure", async () => {
+    const from = iso(year.from);
+    const to = iso(year.to);
+    const [tipRows, feeRows] = await Promise.all([
+      db<{ gross: string }[]>`
+        select coalesce(sum(t.gross_amount_minor), 0)::text as gross
+          from tip_orders t
+         where t.status = 'captured'
+           and t.captured_at >= ${from}::timestamptz
+           and t.captured_at <  ${to}::timestamptz
+           and exists (select 1 from payment_attempts pa where pa.tip_order_id = t.id and pa.livemode is true)
+      `,
+      db<{ fees: string }[]>`
+        select coalesce(sum(e.credit_minor - e.debit_minor), 0)::text as fees
+          from ledger_entries e
+          join ledger_accounts a      on a.id  = e.account_id
+          join ledger_transactions lt on lt.id = e.ledger_transaction_id
+         where a.code in ('platform_fee_revenue', 'gateway_fee_expense')
+           and lt.effective_at >= ${from}::timestamptz
+           and lt.effective_at <  ${to}::timestamptz
+      `,
+    ]);
+    const grossTipsMinor = toWhole(tipRows[0]?.gross ?? "0");
+    const feesMinor = toWhole(feeRows[0]?.fees ?? "0");
+    return {
+      yearLabel: year.label,
+      grossTipsMinor,
+      feesMinor,
+      triggerMinor: GST_TRIGGER_MINOR,
+      countedMinor: Math.max(grossTipsMinor, feesMinor),
+    };
+  });
+}

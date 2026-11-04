@@ -2,12 +2,14 @@ import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { postCaptureAccrual, postMissingAccruals, type LedgerDb } from "../src/lib/accrual";
 import { splitTip } from "../src/lib/money";
-import { rangeAllTime, type DateRange } from "../src/lib/admin/date-range";
+import { financialYearIST, rangeAllTime, type DateRange } from "../src/lib/admin/date-range";
 import { getCreatorEarnings } from "../src/lib/admin/creator-queries";
 import {
   getFinanceSummary,
   getNotPosted,
   getTestModeTipCount,
+  getTurnover,
+  GST_TRIGGER_MINOR,
 } from "../src/lib/admin/finance-queries";
 import {
   getPayments,
@@ -400,5 +402,49 @@ test.describe("the payments list", () => {
     // The totals cover the rows listed, no more.
     expect(list.totals.tipCount).toBe(2);
     expect(list.totals.grossMinor).toBe(20000);
+  });
+});
+
+test.describe("the GST trigger figure", () => {
+  test("the financial year runs 1 April to 31 March in IST", () => {
+    // 31 March 2027, 20:00 UTC is already 1 April 01:30 IST, so it is in FY 2027-28.
+    const fy = financialYearIST(new Date("2027-03-31T20:00:00Z"));
+    expect(fy.label).toBe("FY 2027-28");
+    expect(fy.from.toISOString()).toBe("2027-03-31T18:30:00.000Z");
+    expect(fy.to.toISOString()).toBe("2028-03-31T18:30:00.000Z");
+    // Just before, still FY 2026-27.
+    expect(financialYearIST(new Date("2027-03-31T18:29:00Z")).label).toBe("FY 2026-27");
+    // January belongs to the year that began the previous April.
+    expect(financialYearIST(new Date("2027-01-15T00:00:00Z")).label).toBe("FY 2026-27");
+  });
+
+  test("counts live tips and posted fees of this year only, and takes the larger figure", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const year = financialYearIST();
+    await tip(pg, { gross: 10000 });
+    await tip(pg, { gross: 20000 });
+    // Test mode and an earlier financial year stay out.
+    await tip(pg, { gross: 90000, livemode: false });
+    const old = new Date(year.from.getTime() - 30 * 86400000).toISOString();
+    await tip(pg, { gross: 50000, capturedAt: old });
+    await postMissingAccruals(db);
+
+    const t = data(await getTurnover(db, year));
+    const e = expected([10000, 20000]);
+    expect(t.grossTipsMinor).toBe(30000);
+    expect(t.feesMinor).toBe(e.fee + e.processing);
+    expect(t.countedMinor).toBe(30000);
+    expect(t.triggerMinor).toBe(GST_TRIGGER_MINOR);
+    expect(t.yearLabel).toBe(year.label);
+  });
+
+  test("an empty database is zero and a failed read says so", async () => {
+    const pg = await freshDatabase();
+    const t = data(await getTurnover(asLedgerDb(pg), financialYearIST()));
+    expect(t.countedMinor).toBe(0);
+    const broken = (() => Promise.reject(new Error("down"))) as unknown as LedgerDb;
+    const r = await silently(() => getTurnover(broken, financialYearIST()));
+    expect(r.ok).toBe(false);
   });
 });

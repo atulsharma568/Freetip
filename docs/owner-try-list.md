@@ -145,3 +145,4 @@ None of this has been seen in a browser with a real login or in real OBS.
 
 - [ ] Dashboard menu: open Sounds and media, then Tip page; with Media, Pinned, Picks, Automatic tiers or Banner switched on, a second row of tabs appears under the menu and works on a phone.
 - [ ] Alert studio forms (Style, Layout, Text, Motion) and the Picks and Automatic tiers add forms: change something without saving, then reload or close the tab; the browser asks first. After Save it does not ask.
+- [ ] `/admin/finance`: the "GST trigger" block shows this financial year's tips and fees against ₹15 lakh, in plain rupees, and the percent looks right for what you know you have taken.

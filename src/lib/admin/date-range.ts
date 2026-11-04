@@ -85,3 +85,12 @@ export function parsePreset(value: string | undefined): RangePreset {
     ? (value as RangePreset)
     : "this_month";
 }
+
+// The Indian financial year (1 April to 31 March, IST) that contains `at`.
+export function financialYearIST(at: Date = new Date()): DateRange {
+  const ist = new Date(at.getTime() + IST_OFFSET_MS);
+  const startYear = ist.getUTCMonth() >= 3 ? ist.getUTCFullYear() : ist.getUTCFullYear() - 1;
+  const from = new Date(Date.UTC(startYear, 3, 1) - IST_OFFSET_MS);
+  const to = new Date(Date.UTC(startYear + 1, 3, 1) - IST_OFFSET_MS);
+  return { from, to, label: `FY ${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}` };
+}
