@@ -5,8 +5,9 @@ import { SlidingNav, type NavItem } from "./SlidingNav";
 
 const ITEMS: NavItem[] = [
   { key: "today", href: "#today", label: "Today" },
+  { key: "share", href: "#share", label: "Share" },
   { key: "stream", href: "#stream", label: "Stream" },
-  { key: "account", href: "#account", label: "Account" },
+  { key: "setup", href: "#setup", label: "Settings" },
 ];
 
 // The sticky row under the header that jumps between the three groups on the

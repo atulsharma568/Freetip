@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard overview regrouped into Today, Share, Stream, Settings; NO migration)
+
+- **Done, owner chose "Share / Stream / Settings":** the overview's "Account" group is gone. **Share** holds the payout onboarding gate (while pending), Your tip page and Your QR code side by side; **Stream** is unchanged; **Settings** (group id `setup`) holds Tip page settings, a new tile "Your link name" with the handle rename (moved out of Your tip page) and Close account. The sticky section rail is now Today, Share, Stream, Settings (`SectionRail.tsx`). The `#tip-page`, `#alerts`, `#payout` and `#queue` anchors still exist. Display only.
+- **Verified:** `tsc`, `eslint`, `test/handle.spec.ts` and `test/account-close.spec.ts` (22 passed; they test the database, not the layout). **Not seen:** the page in a browser with a real login, at phone width especially.
+- **Next, one at a time:** Tips and Earnings repeating figures, page widths, then the admin items.
+
 ## Current state (2026-11-04, dashboard menu names match the page headings; NO migration)
 
 - **Done, owner chose to rename the menu:** "Look" is now "Alert style" and "Words and motion" is now "Alert text" in the dashboard menu (`DashboardNav.tsx`, `OPERATIONS.md` 7 item on grouping). Headings, addresses and switches unchanged. The public FAQ line about payouts stays as it is (owner). Type check and lint pass; not seen in a browser.

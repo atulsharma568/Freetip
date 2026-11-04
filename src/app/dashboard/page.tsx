@@ -404,6 +404,44 @@ export default async function DashboardPage() {
               </div>
             </Group>
 
+            <Group id="share" title="Share">
+              {/* Payout onboarding gate: shown while pending */}
+              {user.creator_status === "pending" && (
+                <PayoutOnboarding
+                  state={user.onboarding_state}
+                  initialLegalName={user.legal_name ?? user.name ?? ""}
+                  initialUpiVpa={user.upi_vpa ?? ""}
+                />
+              )}
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                <div className="min-w-0">
+                  <Tile id="tip-page" title="Your tip page">
+                    <Link
+                      href={`/${handle}`}
+                      className="numeric block break-all text-lg font-semibold text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
+                    >
+                      {SITE_HOST}/{handle}
+                    </Link>
+                    <StatusBadge status={user.creator_status} />
+                    {customPage && (
+                      <p className="text-sm text-muted">
+                        Your custom tip page is set up by Freetip. To change it, send a message through the{" "}
+                        <Link href="/contact" className="text-text underline decoration-line underline-offset-4 hover:decoration-accent">
+                          contact form
+                        </Link>
+                        .
+                      </p>
+                    )}
+                  </Tile>
+                </div>
+                <div className="min-w-0">
+                  <Tile id="qr" title="Your QR code">
+                    <CreatorQR url={shareUrl} handle={handle} />
+                  </Tile>
+                </div>
+              </div>
+            </Group>
+
             <Group id="stream" title="Stream">
               <div className="grid items-start gap-4 lg:grid-cols-2">
                 <div className="min-w-0 space-y-4">
@@ -440,42 +478,8 @@ export default async function DashboardPage() {
               </div>
             </Group>
 
-            <Group id="account" title="Account">
+            <Group id="setup" title="Settings">
               <div className="grid items-start gap-4 lg:grid-cols-2">
-                <div className="min-w-0 space-y-4">
-                  {/* Payout onboarding gate: shown while pending */}
-                  {user.creator_status === "pending" && (
-                    <PayoutOnboarding
-                      state={user.onboarding_state}
-                      initialLegalName={user.legal_name ?? user.name ?? ""}
-                      initialUpiVpa={user.upi_vpa ?? ""}
-                    />
-                  )}
-                  <Tile id="tip-page" title="Your tip page">
-                    <Link
-                      href={`/${handle}`}
-                      className="numeric block break-all text-lg font-semibold text-text underline decoration-line underline-offset-4 transition-colors hover:decoration-accent"
-                    >
-                      {SITE_HOST}/{handle}
-                    </Link>
-                    <StatusBadge status={user.creator_status} />
-                    {customPage && (
-                      <p className="text-sm text-muted">
-                        Your custom tip page is set up by Freetip. To change it, send a message through the{" "}
-                        <Link href="/contact" className="text-text underline decoration-line underline-offset-4 hover:decoration-accent">
-                          contact form
-                        </Link>
-                        .
-                      </p>
-                    )}
-                    <div className="border-t border-line/60 pt-4">
-                      <RenameHandle current={handle} used={handleChanged} request={handleRequest} />
-                    </div>
-                  </Tile>
-                  <Tile id="qr" title="Your QR code">
-                    <CreatorQR url={shareUrl} handle={handle} />
-                  </Tile>
-                </div>
                 {/* Tip page settings: available regardless of activation status */}
                 <Tile id="settings" title="Tip page settings" className="min-w-0">
                   <p className="text-sm text-muted">Changes apply the next time someone loads your tip page.</p>
@@ -496,6 +500,11 @@ export default async function DashboardPage() {
                     voiceLang={voiceLang ?? ""}
                   />
                 </Tile>
+                <div className="min-w-0 space-y-4">
+                  <Tile id="handle" title="Your link name">
+                    <RenameHandle current={handle} used={handleChanged} request={handleRequest} />
+                  </Tile>
+                </div>
               </div>
               <CloseAccount />
             </Group>
