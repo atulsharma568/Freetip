@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, stale admin wording fixed; NO migration)
+
+- **Done:** the admin overview note no longer says payouts are not built (they are paid by hand from Payouts to pay); the features page's "Planned, not built yet" is now "Dropped, not built" (only Fan voice notes, dropped by the owner 2026-11-01). The reconciliation line "settlement reports ... not built yet" is still true and stays. `tsc` and `eslint` pass.
+- **Dashboard and admin cleanup from the 2026-11-04 audit is finished** except what the owner chose to leave (the public FAQ line, per-plan quotas).
+
 ## Current state (2026-11-04, admin creator page grouped under four headings; NO migration)
 
 - **Done, owner chose four headings plus a jump row:** `/admin/creators/<id>` keeps all nine boxes unchanged but orders them as **Account** (status and actions, details), **Plans and features** (Plans bought, Plan orders, Paid features, Custom tip page), **Money** (Fee rates, Payouts, Latest tips) and **History** (audit events), with a row of jump links at the top. Also fixed stale text: the Payouts box said "The site does not send payouts yet", now "No payout requests yet." `tsc` and `eslint` pass; not seen in a browser with a real login.

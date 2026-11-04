@@ -137,9 +137,9 @@ export default async function AdminFeaturesPage({ searchParams }: { searchParams
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-text">Planned, not built yet</h2>
+            <h2 className="text-sm font-semibold text-text">Dropped, not built</h2>
             <p className="max-w-2xl text-xs text-muted">
-              These cannot be switched on. {PLANNED.map((f) => f.label).join(", ")}.
+              You decided not to build these, so they cannot be switched on. {PLANNED.map((f) => f.label).join(", ")}.
             </p>
           </section>
         </>

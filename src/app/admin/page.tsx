@@ -31,7 +31,7 @@ export default async function AdminOverviewPage() {
       <PageHeader
         eyebrow="Owner console"
         title="Needs you today"
-        note="Figures count live Razorpay payments only; test-mode payments are not counted. Nothing here moves money: creator payouts are not built yet."
+        note="Figures count live Razorpay payments only; test-mode payments are not counted. Nothing here moves money: creator payouts are paid by hand from Payouts to pay."
       />
 
       <section aria-labelledby="waiting-heading" className="space-y-3">
