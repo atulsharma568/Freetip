@@ -6,12 +6,13 @@ import { load, toWhole, type Loaded } from "./result";
 // count, plus search and paging. A closed account (emptied in place, kept for the
 // records) only shows under "All".
 
-export type CreatorTab = "awaiting" | "pending" | "submitted" | "suspended" | "all";
+export type CreatorTab = "awaiting" | "pending" | "submitted" | "active" | "suspended" | "all";
 
 export const CREATOR_TABS: { key: CreatorTab; label: string }[] = [
   { key: "awaiting", label: "Awaiting action" },
   { key: "pending", label: "Pending approval" },
   { key: "submitted", label: "Submitted payout setup" },
+  { key: "active", label: "Active creators" },
   { key: "suspended", label: "Suspended" },
   { key: "all", label: "All" },
 ];
@@ -64,11 +65,12 @@ export function getCreatorList(
     const page = Math.max(1, Math.floor(opts.page));
     const offset = (page - 1) * pageSize;
 
-    const [c] = await db<{ awaiting: string; pending: string; submitted: string; suspended: string; all: string }[]>`
+    const [c] = await db<{ awaiting: string; pending: string; submitted: string; active: string; suspended: string; all: string }[]>`
       select count(*) filter (where email not like ${closedLike}
                                 and (creator_status = 'pending' or onboarding_state = 'submitted'))::text as awaiting,
              count(*) filter (where email not like ${closedLike} and creator_status = 'pending')::text as pending,
              count(*) filter (where email not like ${closedLike} and onboarding_state = 'submitted')::text as submitted,
+             count(*) filter (where email not like ${closedLike} and creator_status = 'active')::text as active,
              count(*) filter (where email not like ${closedLike} and creator_status = 'suspended')::text as suspended,
              count(*)::text as "all"
         from users
@@ -79,6 +81,7 @@ export function getCreatorList(
       awaiting: toWhole(c.awaiting),
       pending: toWhole(c.pending),
       submitted: toWhole(c.submitted),
+      active: toWhole(c.active),
       suspended: toWhole(c.suspended),
       all: toWhole(c.all),
     };
@@ -105,6 +108,7 @@ export function getCreatorList(
                   and ((${opts.tab} = 'awaiting' and (creator_status = 'pending' or onboarding_state = 'submitted'))
                     or (${opts.tab} = 'pending' and creator_status = 'pending')
                     or (${opts.tab} = 'submitted' and onboarding_state = 'submitted')
+                    or (${opts.tab} = 'active' and creator_status = 'active')
                     or (${opts.tab} = 'suspended' and creator_status = 'suspended'))))
        order by created_at desc, id desc
        limit ${pageSize} offset ${offset}

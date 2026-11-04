@@ -1031,3 +1031,4 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - 2026-11-04: the Effects tab preview now shows the YouTube channel photo (the same one the dashboard and tip page use while the banner switch is on) instead of the Google account photo; no migration.
 - 2026-11-04: four new banner effects drawn in our own CSS (Spider crawl, Storm, Neon glitch, Falling petals), listed in the Effects tab and the page editor; no migration; lint, type check and build pass; the browser tests could not run here (Chromium would not install) so the looks are unseen.
 - 2026-11-04: the preview on the Words and Motion dashboard pages is no longer pinned to the screen; it is a normal block at the top of the page and scrolls away (Layout and Style still pin theirs).
+- 2026-11-04: admin Creators page has a new "Active creators" tab (approved creators, closed accounts left out) with its own count; no migration.

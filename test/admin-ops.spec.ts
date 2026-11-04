@@ -119,7 +119,7 @@ test("creators tabs count what needs a decision; closed accounts only show under
 
   const r = await getCreatorList(db, { q: "", tab: "awaiting", page: 1 });
   if (!r.ok) throw new Error(r.error);
-  expect(r.data.counts).toEqual({ awaiting: 3, pending: 2, submitted: 2, suspended: 1, all: 6 });
+  expect(r.data.counts).toEqual({ awaiting: 3, pending: 2, submitted: 2, active: 2, suspended: 1, all: 6 });
   expect(r.data.total).toBe(3);
   expect(r.data.rows).toHaveLength(3);
 
@@ -128,6 +128,9 @@ test("creators tabs count what needs a decision; closed accounts only show under
   expect(all.data.total).toBe(6);
   expect(all.data.rows).toHaveLength(4);
   expect(all.data.rows.some((c) => c.closed)).toBe(true);
+
+  const active = await getCreatorList(db, { q: "", tab: "active", page: 1 });
+  expect(active.ok && active.data.total).toBe(2);
 
   const searched = await getCreatorList(db, { q: "zebraunique", tab: "all", page: 1 });
   expect(searched.ok && searched.data.total).toBe(1);
