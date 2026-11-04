@@ -131,3 +131,8 @@ None of this has been seen in a browser with a real login or in real OBS.
 - [ ] Sign in with a second, non-owner Google account. `/admin/creators/<id>/page`, `/overlays` and `/page-preview/<id>` must show a 404, and a POST to `/api/page-assets/upload` must return 403. Signed out goes to the sign-in page.
 - [ ] Page and overlay editors: type a change and close the tab, or follow a link inside the site, before "Draft saved" shows. Does the change survive? After Publish, does "Swap with previous version" appear at once in the overlay editor (no reload), and is it greyed out while a change is unsaved?
 - [ ] "Revert to published" when nothing was ever published. Publish refused when a picture was taken down in `/admin/media` meanwhile.
+
+## Switched-off pages (2026-11-04)
+
+- [ ] For a test creator with the Timestamps switch OFF but a YouTube or Discord connection saved: `/dashboard/timestamps` opens with only the remove buttons; removing works; with nothing saved it goes back to the overview.
+- [ ] Same for Alert media OFF with a stored file (Delete only, no upload) and Tip page banner OFF with a saved banner (Remove only; the tip page shows no banner behind the photo).

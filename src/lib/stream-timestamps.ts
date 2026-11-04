@@ -321,6 +321,7 @@ type QueuedStream = {
   age_hours: number;
   yt_channel_id: string | null;
   yt_refresh_token_enc: string | null;
+  paid_features: string[] | null;
 };
 
 async function setState(db: LedgerDb, videoId: string, state: string, reason: string | null, extra: { commentId?: string } = {}) {
@@ -350,7 +351,7 @@ export async function postDueComments(db: LedgerDb, deps: Deps, budgetMs = 240_0
   const queued = await db<QueuedStream[]>`
     select s.video_id, s.creator_id::text, s.state, s.started_at, s.title, s.attempts,
            extract(epoch from (now() - s.created_at)) / 3600 as age_hours,
-           u.yt_channel_id, u.yt_refresh_token_enc
+           u.yt_channel_id, u.yt_refresh_token_enc, u.paid_features
       from timestamp_streams s join users u on u.id = s.creator_id
      where s.state = 'queued'
      order by s.created_at
@@ -365,6 +366,12 @@ export async function postDueComments(db: LedgerDb, deps: Deps, budgetMs = 240_0
     for (const stream of batch) {
       if (Date.now() > deadline) return summary;
       summary.checked += 1;
+      // Switched off after the moments were saved: nothing is posted for this creator.
+      if (!planFeatures(stream).timestamps) {
+        await setState(db, stream.video_id, "skipped", "switched_off");
+        summary.skipped += 1;
+        continue;
+      }
       const stale = Number(stream.age_hours) > GIVE_UP_HOURS;
       const giveUp = async (reason: string) => {
         if (stale) {

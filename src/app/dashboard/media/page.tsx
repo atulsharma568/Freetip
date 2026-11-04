@@ -26,9 +26,11 @@ export default async function MediaPage() {
   >`
     select id, handle, creator_status, paid_features from users where google_id = ${googleId}
   `;
-  // Files belong to a tip page, so there is nothing to manage until there is a link; and
-  // the page does not exist for a creator the owner has not switched the feature on for.
-  if (!user?.handle || !hasFeature(user, "customAlertMedia")) redirect("/dashboard");
+  // Files belong to a tip page, so there is nothing to manage until there is a link.
+  if (!user?.handle) redirect("/dashboard");
+  // Switched off: the page is for nothing but deleting stored files, so it opens only when
+  // there are some (a creator can always remove what we hold, whatever the switch says).
+  const switchedOff = !hasFeature(user, "customAlertMedia");
 
   const rows = await db<
     {
@@ -48,6 +50,8 @@ export default async function MediaPage() {
     where creator_id = ${user.id}
     order by created_at, id
   `;
+
+  if (switchedOff && rows.length === 0) redirect("/dashboard");
 
   const files: MediaRow[] = rows.map((r) => ({
     // bigint columns come back as strings; the actions need real numbers.
@@ -71,10 +75,9 @@ export default async function MediaPage() {
           <DashboardNav current="media" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Alert media</h1>
           <p className="text-pretty text-base text-muted">
-            Upload a GIF, picture or short WebM clip to play with your OBS alert. Choose where it
-            shows: above the card, behind its text or across the whole screen. With several files
-            switched on, they take turns. Files never play sound, so a tip&apos;s own sound or voice
-            stays clear.
+            {switchedOff
+              ? "Alert media is switched off for your account, so none of these files play. They are still stored until you delete them below."
+              : "Upload a GIF, picture or short WebM clip to play with your OBS alert. Choose where it shows: above the card, behind its text or across the whole screen. With several files switched on, they take turns. Files never play sound, so a tip's own sound or voice stays clear."}
           </p>
         </div>
 
@@ -86,6 +89,7 @@ export default async function MediaPage() {
           maxFiles={MAX_MEDIA_PER_CREATOR}
           fileCount={counted.length}
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
+          readOnly={switchedOff}
         />
       </div>
     </DashboardShell>

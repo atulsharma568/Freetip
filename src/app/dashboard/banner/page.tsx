@@ -41,7 +41,10 @@ export default async function BannerPage() {
            yt_channel_name, yt_channel_url, bio
     from users where google_id = ${googleId}
   `;
-  if (!user?.handle || !hasFeature(user, "tipBanner")) redirect("/dashboard");
+  if (!user?.handle) redirect("/dashboard");
+  // Switched off: the page is for nothing but removing a saved banner or photo, so it opens only
+  // when one is saved (a creator can always remove what we hold, whatever the switch says).
+  const switchedOff = !hasFeature(user, "tipBanner");
 
   // The saved banner sits in a column from migration 0048; before it is run the page still
   // opens, with no banner, and saving says so.
@@ -62,6 +65,8 @@ export default async function BannerPage() {
     console.error("Banner page: could not read the saved photo (migration 0050 run?).", err);
   }
 
+  if (switchedOff && !saved && !savedPhoto) redirect("/dashboard");
+
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
@@ -69,9 +74,9 @@ export default async function BannerPage() {
           <DashboardNav current="banner" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Tip page banner</h1>
           <p className="text-pretty text-base text-muted">
-            Show a banner behind your photo at the top of your tip page: your YouTube channel banner, or
-            a picture or animated GIF you upload. A YouTube banner is copied when you press the button,
-            so press it again after you change it on YouTube.
+            {switchedOff
+              ? "The tip page banner is switched off for your account, so fans do not see it. What is still saved for you is below."
+              : "Show a banner behind your photo at the top of your tip page: your YouTube channel banner, or a picture or animated GIF you upload. A YouTube banner is copied when you press the button, so press it again after you change it on YouTube."}
           </p>
         </div>
 
@@ -87,6 +92,7 @@ export default async function BannerPage() {
           bio={user.bio}
           creatorId={user.id}
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
+          readOnly={switchedOff}
         />
       </div>
     </DashboardShell>

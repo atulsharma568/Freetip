@@ -273,6 +273,19 @@ test.describe("posting the comment", () => {
     expect(yt.posted).toHaveLength(1);
   });
 
+  test("a stream saved before Timestamps was switched off gets no comment", async () => {
+    const pg = await freshDatabase();
+    const { yt, deps } = setup();
+    const c = await savedStream(pg, deps, yt);
+    yt.videos.set(VIDEO, video({ isLive: false }));
+    await pg.query(`update users set paid_features = '{}' where id = $1`, [c.id]);
+
+    const res = await postDueComments(asLedgerDb(pg), deps);
+    expect(res).toMatchObject({ posted: 0, skipped: 1 });
+    expect(yt.posted).toHaveLength(0);
+    expect(await stateOf(pg)).toMatchObject({ state: "skipped", reason: "switched_off" });
+  });
+
   test("an expired Google permission asks the creator to reconnect and keeps the stream waiting", async () => {
     const pg = await freshDatabase();
     const { yt, deps } = setup();

@@ -23,6 +23,7 @@ export function BannerManager({
   bio,
   creatorId,
   uploadsReady,
+  readOnly = false,
 }: {
   saved: string | null;
   handle: string;
@@ -35,6 +36,8 @@ export function BannerManager({
   bio: string | null;
   creatorId: number;
   uploadsReady: boolean;
+  // Switched off for this account: nothing shows on the tip page, so only removing is offered.
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | null>(null);
@@ -115,6 +118,7 @@ export function BannerManager({
 
   return (
     <div className="space-y-6">
+      {!readOnly && (
       <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div data-testid="banner-preview" style={style as CSSProperties} className="rounded-surface border border-line bg-ground p-5">
@@ -135,15 +139,18 @@ export function BannerManager({
           </p>
         </div>
       </Tile>
+      )}
 
+      {(!readOnly || saved) && (
       <Tile id="banner" level={2} title="Your banner">
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            Copy the public banner of your YouTube channel (we keep a link to it and never change anything
-            on your channel), or upload your own picture from your computer. YouTube banners are wide, so
-            the middle of the picture is what fits behind your photo.
+            {readOnly
+              ? "A banner is still saved for you, but it is not shown on your tip page. Remove it to delete our saved link."
+              : "Copy the public banner of your YouTube channel (we keep a link to it and never change anything on your channel), or upload your own picture from your computer. YouTube banners are wide, so the middle of the picture is what fits behind your photo."}
           </p>
           <div className="flex flex-wrap items-center gap-3">
+            {!readOnly && (<>
             <label
               className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                 !uploadsReady || busy !== null ? "pointer-events-none opacity-50" : ""
@@ -162,6 +169,7 @@ export function BannerManager({
             <button type="button" onClick={() => run("copy")} disabled={busy !== null} className={pillPrimary}>
               {busy === "copy" ? "Reading YouTube…" : "Use my YouTube banner"}
             </button>
+            </>)}
             {saved && (
               <button
                 type="button"
@@ -173,26 +181,33 @@ export function BannerManager({
               </button>
             )}
           </div>
+          {!readOnly && (
           <p className="text-xs text-muted">
             Or use any picture you like, including an animated GIF or WebP: PNG, JPG, GIF or WebP, up to
             6 MB. A wide picture works best (about 1600 by 500 pixels; the middle is what fits). For an animated banner, an animated WebP is usually much smaller than a GIF. Only
             upload what you made or have the right to use.
             {!uploadsReady && " Uploads are not set up on this site yet."}
           </p>
+          )}
           <Msg kind={message?.kind} text={message?.text} />
         </div>
       </Tile>
+      )}
 
+      {(!readOnly || usingYouTubePhoto) && (
       <Tile id="photo" level={2} title="Your photo">
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            The round photo on your tip page is your Google account photo. If your YouTube channel has a
-            different one, copy it here (we keep a link to it and never change anything on your channel).
+            {readOnly
+              ? "A YouTube photo is still saved for you, but your tip page shows your Google account photo. Remove it to delete our saved link."
+              : "The round photo on your tip page is your Google account photo. If your YouTube channel has a different one, copy it here (we keep a link to it and never change anything on your channel)."}
           </p>
           <div className="flex flex-wrap items-center gap-3">
+            {!readOnly && (
             <button type="button" onClick={() => runPhoto("photo")} disabled={busy !== null} className={pillPrimary}>
               {busy === "photo" ? "Reading YouTube…" : "Use my YouTube photo"}
             </button>
+            )}
             {usingYouTubePhoto && (
               <button
                 type="button"
@@ -204,13 +219,16 @@ export function BannerManager({
               </button>
             )}
           </div>
+          {!readOnly && (
           <p className="text-xs text-muted">
             {usingYouTubePhoto ? "Your YouTube channel photo is showing." : "Your Google account photo is showing."} Press
             the button again after you change your photo on YouTube.
           </p>
+          )}
           <Msg kind={photoMessage?.kind} text={photoMessage?.text} />
         </div>
       </Tile>
+      )}
     </div>
   );
 }

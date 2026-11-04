@@ -11,6 +11,7 @@ import { replayBufferNeeded } from "@/lib/ts-helper";
 import { youtubeConfigured } from "@/lib/youtube";
 import { DashboardNav } from "../DashboardNav";
 import { TimestampsManager } from "./TimestampsManager";
+import { TimestampsCleanup } from "./TimestampsCleanup";
 import { DashboardShell } from "../parts/DashboardShell";
 import { Msg } from "../parts/Msg";
 import { pillOutline } from "../parts/styles";
@@ -42,7 +43,55 @@ export default async function TimestampsPage({ searchParams }: { searchParams: P
   `;
   if (!user?.handle) redirect("/dashboard");
   const features = planFeatures(user);
-  if (!features.timestamps) redirect("/dashboard");
+  if (!features.timestamps) {
+    // Switched off: the page is for nothing but taking back what we hold, so it opens only
+    // when something is stored (a creator can always remove it, whatever the switch says).
+    // Each group of columns is read apart, so a migration not yet run only hides its own button.
+    const held = { youtube: false, discord: false, editorLink: false, helperToken: false };
+    try {
+      const [row] = await db<{ yt: boolean; discord: boolean }[]>`
+        select yt_refresh_token_enc is not null as yt, discord_webhook_enc is not null as discord
+          from users where id = ${user.id}
+      `;
+      held.youtube = !!row?.yt;
+      held.discord = !!row?.discord;
+    } catch (err) {
+      console.error("Timestamps page (switched off): could not read the connections (migration 0032 run?).", err);
+    }
+    try {
+      const [row] = await db<{ editor: boolean }[]>`
+        select ts_editor_token_hash is not null as editor from users where id = ${user.id}
+      `;
+      held.editorLink = !!row?.editor;
+    } catch (err) {
+      console.error("Timestamps page (switched off): could not read the editor link (migration 0033 run?).", err);
+    }
+    try {
+      const [row] = await db<{ helper: boolean }[]>`
+        select ts_helper_token_hash is not null as helper from users where id = ${user.id}
+      `;
+      held.helperToken = !!row?.helper;
+    } catch (err) {
+      console.error("Timestamps page (switched off): could not read the helper token (migration 0034 run?).", err);
+    }
+    if (!Object.values(held).some(Boolean)) redirect("/dashboard");
+
+    return (
+      <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
+        <div className="mx-auto w-full max-w-2xl space-y-8 px-6 pb-24 pt-4">
+          <DashboardNav current="timestamps" />
+          <div className="space-y-3">
+            <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Stream timestamps</h1>
+            <p className="text-muted">
+              Stream timestamps are switched off for your account, so nothing is posted or sent. What we still
+              hold for you is listed below, and you can take it away at any time.
+            </p>
+          </div>
+          <TimestampsCleanup {...held} />
+        </div>
+      </DashboardShell>
+    );
+  }
 
   let migrated = true;
   let state = { hasLink: false, delay: 22, youtube: false, reconnect: false, discord: false };

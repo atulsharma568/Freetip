@@ -44,6 +44,8 @@ interface Props {
   maxFiles: number;
   fileCount: number;
   uploadsReady: boolean;
+  // Switched off for this account: the files are listed with Delete only, no upload or settings.
+  readOnly?: boolean;
 }
 
 interface Progress {
@@ -107,7 +109,7 @@ function measure(file: File, kind: MediaKind): Promise<{ width: number | null; h
   });
 }
 
-export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, fileCount, uploadsReady }: Props) {
+export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, fileCount, uploadsReady, readOnly = false }: Props) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
@@ -180,12 +182,13 @@ export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, 
 
   return (
     <div className="space-y-6">
-      {!uploadsReady && (
+      {!readOnly && !uploadsReady && (
         <p role="alert" className="rounded-surface border border-line/60 bg-surface p-5 text-sm text-muted">
           Uploads are not switched on yet. They need a storage setting that the site owner adds.
         </p>
       )}
 
+      {!readOnly && (
       <Tile id="add-media" level={2} title="Add files">
         <p className="text-sm text-muted">
           GIF, PNG, JPG or WebP up to 3 MB, or a WebM clip up to 8 MB and {MEDIA_WEBM_MAX_MS / 1000} seconds.
@@ -232,8 +235,9 @@ export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, 
           )}
         </div>
       </Tile>
+      )}
 
-      {waiting && (
+      {waiting && !readOnly && (
         <p role="status" className="rounded-surface border border-line/60 bg-surface p-5 text-sm text-muted">
           A file is waiting for Freetip to look at it. It plays on your alerts once it is approved.
         </p>
@@ -268,7 +272,7 @@ export function MediaManager({ creatorId, files, usedBytes, maxBytes, maxFiles, 
           <h2 className="text-sm font-medium uppercase tracking-widest text-muted">Your files</h2>
           <ul className="space-y-3">
             {files.map((f) => (
-              <MediaItem key={`${f.id}-${f.name}-${f.placement}-${f.enabled}-${f.state}`} file={f} onChanged={() => router.refresh()} />
+              <MediaItem key={`${f.id}-${f.name}-${f.placement}-${f.enabled}-${f.state}`} file={f} readOnly={readOnly} onChanged={() => router.refresh()} />
             ))}
           </ul>
         </div>
@@ -284,7 +288,7 @@ function StateBadge({ file }: { file: MediaRow }) {
   return <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink">Playing</span>;
 }
 
-function MediaItem({ file, onChanged }: { file: MediaRow; onChanged: () => void }) {
+function MediaItem({ file, readOnly, onChanged }: { file: MediaRow; readOnly: boolean; onChanged: () => void }) {
   const [name, setName] = useState(file.name);
   const [placement, setPlacement] = useState<MediaPlacement>(file.placement);
   const [enabled, setEnabled] = useState(file.enabled);
@@ -329,7 +333,7 @@ function MediaItem({ file, onChanged }: { file: MediaRow; onChanged: () => void 
             aria-label="File name"
             value={name}
             maxLength={MEDIA_NAME_MAX}
-            disabled={gone}
+            disabled={gone || readOnly}
             onChange={(e) => setName(e.target.value)}
             className={`${field} w-full`}
           />
@@ -343,7 +347,7 @@ function MediaItem({ file, onChanged }: { file: MediaRow; onChanged: () => void 
         </div>
       </div>
 
-      {!gone && (
+      {!gone && !readOnly && (
         <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
           <label className="space-y-1">
             <span className="text-xs uppercase tracking-widest text-muted">Where it shows</span>
