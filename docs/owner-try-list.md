@@ -136,3 +136,10 @@ None of this has been seen in a browser with a real login or in real OBS.
 
 - [ ] For a test creator with the Timestamps switch OFF but a YouTube or Discord connection saved: `/dashboard/timestamps` opens with only the remove buttons; removing works; with nothing saved it goes back to the overview.
 - [ ] Same for Alert media OFF with a stored file (Delete only, no upload) and Tip page banner OFF with a saved banner (Remove only; the tip page shows no banner behind the photo).
+
+## Paid features page (2026-11-04)
+
+- [ ] Signed in as a creator: "Paid features" is the last link in the dashboard menu; the page lists the features in groups, ticks the ones on for you with an Open link, and says "In the paid plan" for the rest.
+- [ ] A creator with nothing switched on sees no "Pinned messages" row; switch it on in `/admin` and it appears.
+- [ ] Read the wording of each feature line and say what to change.
+

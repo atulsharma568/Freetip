@@ -77,6 +77,14 @@ test.describe("creator dashboard routes", () => {
     }
   });
 
+  test("the paid features page and the pages that can remove stored data send signed-out visitors to sign-in", async ({ request }) => {
+    for (const path of ["/dashboard/plans", "/dashboard/timestamps", "/dashboard/media", "/dashboard/banner"]) {
+      const response = await request.get(path, { maxRedirects: 0 });
+      expect(response.status(), path).toBe(307);
+      expect(response.headers().location, path).toMatch(/\/signin$/);
+    }
+  });
+
   test("the Streamlabs queue cron refuses a call without the secret", async ({ request }) => {
     const response = await request.get("/api/cron/streamlabs-outbox");
 

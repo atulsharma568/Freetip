@@ -16,12 +16,13 @@ const LINKS = [
   { key: "fans", href: "/dashboard/fans", label: "Fans" },
   { key: "timestamps", href: "/dashboard/timestamps", label: "Timestamps" },
   { key: "streamlabs", href: "/dashboard/streamlabs", label: "Streamlabs" },
+  { key: "plans", href: "/dashboard/plans", label: "Paid features" },
 ] as const;
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
 // overview page, below the numbers. Timestamps, Media, Rules, Look, Words and motion and Fans show only for creators they are
 // switched on for.
-export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "pinned" | "fans" | "timestamps" | "streamlabs" }) {
+export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
   const features = await getSessionFeatures();
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "media" || features.customAlertMedia) &&

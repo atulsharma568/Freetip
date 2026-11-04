@@ -273,3 +273,22 @@ Seen on each site's public page today unless marked "inferred". HyperChat and St
 - Payout timing: others publish 2 to 3 business days or a weekly day; Freetip promises none (honest, weaker as a pitch; the owner decided this on 2026-10-25).
 - Worth considering: approving tips from Discord or Telegram (approve-before-play exists; only the channel is new). Streamlabs and StreamElements mirroring exists for Streamlabs.
 - Not worth building now: viewer voice-note or video tips (moderation and storage cost; the owner dropped voice notes), chat bots and polls (a different product), membership detection, PayPal and international tips (touches payout rules).
+
+## Subscription prices, public pages only (2026-11-04)
+
+For the paid plan. Public pricing pages and review sites, no logins; re-check before quoting. Indian competitors mostly sell monthly only; where a yearly price exists the discount is 17% to 42%.
+
+| Site | Monthly | Yearly | Note |
+|---|---|---|---|
+| Stream Alert (`streamalert.in`) | ₹49 / ₹249 / ₹499 | "Save 17%" toggle, no yearly amount shown | 50 / 500 / unlimited alerts a month; tip page and Indic voice only on ₹499; 5-day trial |
+| SuperStreamer (`superstreamer.in`) | ₹749 (5% fee), ₹2,499 (2% fee) | none shown | Free Starter at 8% plus 2%; billed monthly via Razorpay |
+| SuperTips (`supertips.store`) | ₹999 (6% fee) | none found | Free plan at 8%; Pro "free until June 2026" notice still shown |
+| DonatorApp | ₹499 | none found | second-hand (a rival's blog) |
+| StreamerHub | ₹99 Pro | not checked | from the 2026-11-03 pass |
+| Streamlabs Ultra | $27 | $189 (about 42% off) | 7-day refund window; promo ended 1 Nov 2026 |
+| Ko-fi Gold | $12 | no longer offered to new users | creators are told they no longer need Gold |
+| Buy Me a Coffee | no paid plan | none | 5% fee plus card processing |
+| StreamElements | free | free | earns from a processing fee (about 2.9%, June 2026); layoffs and sale talks reported May 2026 |
+
+Reading: the Indian mid tier is ₹249 to ₹499 a month; ₹749 and above buys a lower fee, which Freetip does not sell. Freetip keeps the same fee on every plan, so its plan is features only and should sit near ₹299 with a yearly price about 30% lower. **No price is decided**: the owner said (2026-11-04) they will give the numbers later; `src/lib/pricing.ts` holds them and shows "price will be announced" until they are set. Suggested to the owner, not adopted: ₹299 a month or ₹2,499 a year, and an early plan of ₹149 a month or ₹1,299 a year for the first 50 creators, kept while they keep renewing.
+

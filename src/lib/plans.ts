@@ -1,8 +1,9 @@
 // Which paid features a creator has. The owner decides per creator: in
 // /admin/creators/<id> they tick the features that creator is paying for, and the
 // keys are stored in `users.paid_features` (migration 0035). Nothing is on by default.
-// No plan name or price is shown anywhere on the site; a creator whose feature is off
-// simply does not see it.
+// No plan name or price is shown on the public site. A signed-in creator sees the list in
+// /dashboard/plans (wording in plan-catalogue.ts, prices in pricing.ts); a feature that is off
+// has no page of its own for them.
 //
 // Every gated feature asks `planFeatures(row)`, so this file is the one place that
 // knows what a feature is called and whether it exists yet.
