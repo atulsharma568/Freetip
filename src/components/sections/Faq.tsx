@@ -23,7 +23,7 @@ const ITEMS = [
   },
   {
     q: "What does it cost?",
-    a: `We take ${FEES.platformPercent}% of every tip, plus a minimal processing fee, both out of your payout. Fans pay exactly the amount they choose, with nothing added. Creators can also buy an optional paid plan, Starter or Creator, for extra features. A plan is an extra only: it does not change the fee on tips. ${PLANS_SENTENCE}`,
+    a: `We take ${FEES.platformPercent}% of every tip, plus a ${FEES.gatewayPercent}% payment processing fee, both out of your payout. Fans pay exactly the amount they choose, with nothing added. Creators can also buy an optional paid plan, Starter or Creator, for extra features. A plan is an extra only: it does not change the fee on tips. ${PLANS_SENTENCE}`,
   },
   {
     q: "Is there an extra charge on large tips?",

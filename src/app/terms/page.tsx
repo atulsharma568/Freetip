@@ -151,7 +151,8 @@ const SECTIONS: LegalSection[] = [
       <>
         <ul>
           <li>
-            <strong>Our fee:</strong> {FEES.platformPercent}% of every tip.
+            <strong>Our fee:</strong> {FEES.platformPercent}% of every tip, plus a{" "}
+            {FEES.gatewayPercent}% payment processing fee, both taken from the creator’s payout.
             There is no sign-up fee, and nothing to pay to receive tips or to
             use the OBS alert, sounds, goals or the recap.
           </li>

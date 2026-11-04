@@ -39,7 +39,7 @@ const SECTIONS: LegalSection[] = [
       <ul>
         <li>
           Plain pricing, the same on every page: fans pay exactly the tip, and
-          creators pay our {FEES.platformPercent}% fee and a minimal processing fee
+          creators pay our {FEES.platformPercent}% fee and a {FEES.gatewayPercent}% payment processing fee
           from their payout.
         </li>
         <li>Fans stay private: an optional name, an anonymous option, no account.</li>

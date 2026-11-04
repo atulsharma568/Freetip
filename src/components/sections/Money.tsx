@@ -88,7 +88,7 @@ export function Money() {
           </span>
           <h3 className="display text-[clamp(2.25rem,4vw,3rem)]">Our fee</h3>
           <RevealWords className="mt-4 max-w-[34ch] text-pretty text-xl font-medium text-text md:text-2xl">
-            {`We take ${FEES.platformPercent}% of every tip, plus a minimal processing fee. Fans pay exactly the tip.`}
+            {`We take ${FEES.platformPercent}% of every tip, plus a ${FEES.gatewayPercent}% payment processing fee. Fans pay exactly the tip.`}
           </RevealWords>
           <p className="mt-8 text-sm text-muted">
             <Link href="/pricing" className="link-line text-text">

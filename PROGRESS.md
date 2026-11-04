@@ -2,6 +2,15 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, public fee wording shows 5% ours + 3% payment processing fee; NO migration, nothing to run)
+
+- **Owner's decision:** show 5% as Freetip's fee and the rest as a payment processing fee, named plainly, with what the creator keeps; say nothing about Razorpay's own charge or our margin. Public pages now read "5% of every tip, plus a 3% payment processing fee" (home fee tile, FAQ, pricing page with a worked ₹100 example, about, Terms) and the home "Get paid" sample lists the fee, the processing fee and what reaches the bank. The numbers come from `FEES` in `src/lib/legal.ts`, so a rate change is still made in `money.ts`.
+- **Terms version:** the Terms and pricing text changed, so `TERMS_VERSION` is "4 November 2026, text 4" and its fingerprint is pinned in `test/legal-version.spec.ts`.
+- **Dropped:** the "custom crimson banner for AcePressure" open question (never built; owner, 2026-11-04: not without a reference).
+- **Next (owner's decision, one step at a time):** manual creator payouts: admin view of tip, our share and the amount to pay; a creator payout request (minimum, timing) that notifies the owner. Razorpay, Cashfree and Easebuzz are treated as not answering.
+- **Checks:** type check, build, lint, fees-copy and legal-version tests pass.
+- 2026-11-04 (log): fee wording changed.
+
 ## Current state (2026-11-04, migration 0057 run by the owner; docs only)
 
 - **Done (owner):** `0057_plan_order_hardening.sql` is run in Neon, so the PayU code pushed earlier today (plan order hardening, `plan_orders.checked_at`) has its database columns and the paid-plans page and `/admin/plan-orders` can read them. Migrations 0055, 0056, 0057 and 0058 are now all run; nothing is left to run for the code on `main`.

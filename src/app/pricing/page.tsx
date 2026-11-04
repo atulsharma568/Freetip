@@ -7,9 +7,9 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
-  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`,
+  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a ${FEES.gatewayPercent}% payment processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`,
   alternates: { canonical: "/pricing" },
-  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`, url: "/pricing" },
+  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a ${FEES.gatewayPercent}% payment processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`, url: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 
@@ -33,9 +33,15 @@ const SECTIONS: LegalSection[] = [
           approval or QR code.
         </p>
         <p>
-          We also charge a minimal processing fee on each tip. It is deducted
-          from the creator’s payout as well. Fans pay exactly the amount they
-          choose; nothing is added at checkout.
+          We also charge a {FEES.gatewayPercent}% payment processing fee on each
+          tip. It is deducted from the creator’s payout as well. Fans pay exactly
+          the amount they choose; nothing is added at checkout.
+        </p>
+        <p>
+          Example, on a {FEES.example.tip} tip: {FEES.example.platform} our fee
+          ({FEES.platformPercent}%), {FEES.example.gateway} payment processing
+          fee ({FEES.gatewayPercent}%), and the creator keeps{" "}
+          <strong>{FEES.example.keep}</strong>.
         </p>
       </>
     ),
@@ -114,7 +120,7 @@ export default function PricingPage() {
       intro={
         <p>
           Simple pricing, shown before you sign up and the same on every page:{" "}
-          {FEES.platformPercent}% of each tip, plus a minimal processing fee, both from
+          {FEES.platformPercent}% of each tip, plus a {FEES.gatewayPercent}% payment processing fee, both from
           the creator’s payout. Fans pay exactly the
           amount they choose.
         </p>

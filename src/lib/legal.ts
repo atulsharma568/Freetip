@@ -52,7 +52,7 @@ export const LEGAL_UPDATED = "4 November 2026";
 // when buying: the Terms, the Refund Policy, the pricing page and the tick box in BuyPass.tsx. The
 // test in test/legal-version.spec.ts fails until it is changed, so an edit cannot go out under an old
 // version (OPERATIONS.md 7i). At most 40 characters.
-export const TERMS_VERSION = "4 November 2026, text 3";
+export const TERMS_VERSION = "4 November 2026, text 4";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.

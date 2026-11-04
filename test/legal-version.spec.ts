@@ -15,6 +15,8 @@ const PINNED: Record<string, string> = {
   "4 November 2026, text 2": "da83cc9ae3ab51771365661c8c0c0f41fa5d4bcbd3923bda620401fa1ea738d8",
   // The Terms now say "our payment provider" instead of naming one (PayU declined the site).
   "4 November 2026, text 3": "a8e944a39d55082f6364c31db5434619fe164298ac06ef99c4d4414d659eb18c",
+  // The Terms and pricing page now show the 3% payment processing fee next to the 5% fee.
+  "4 November 2026, text 4": "622a8c5ec69c99fd08e6e74a369d9ce512d8a2a6b0c9e6ec5b25074e965370c5",
 };
 
 function fingerprint(): string {

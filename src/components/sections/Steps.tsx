@@ -77,6 +77,14 @@ const STEPS = [
             <dt className="text-muted">Fan tips</dt>
             <dd className="numeric whitespace-nowrap">{FEES.example.tip}</dd>
           </div>
+          <div className="flex justify-between gap-4 py-1.5">
+            <dt className="text-muted">Our fee ({FEES.platformPercent}%)</dt>
+            <dd className="numeric whitespace-nowrap">{FEES.example.platform}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-1.5">
+            <dt className="text-muted">Payment processing fee ({FEES.gatewayPercent}%)</dt>
+            <dd className="numeric whitespace-nowrap">{FEES.example.gateway}</dd>
+          </div>
           <div className="flex justify-between gap-4 border-t border-dashed border-line pt-3 text-lg font-semibold">
             <dt>To your bank</dt>
             <dd className="numeric whitespace-nowrap text-accent">{FEES.example.keep}</dd>
