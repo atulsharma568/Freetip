@@ -81,7 +81,7 @@ export function CreatorFeeTable({ rows, site }: { rows: FeeRow[]; site: FeeRates
         {tooMany && <p className="text-xs text-bad">Tick at most {BULK_MAX} creators at a time.</p>}
       </section>
 
-      <div className="max-h-[70vh] overflow-auto rounded-surface border border-control">
+      <div data-lenis-prevent className="max-h-[70vh] overflow-auto rounded-surface border border-control">
         <table className="w-full text-sm">
           <caption className="sr-only">Creators with the rates they pay on tips made from now on</caption>
           <thead className="sticky top-0 z-10 bg-raised">

@@ -83,7 +83,7 @@ export default async function AdminTtsWordsPage() {
               Download list
             </Link>
           </div>
-          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+          <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
             <table className="w-full text-sm">
               <caption className="sr-only">Unknown words, most seen first</caption>
               <thead className="sticky top-0 z-10 bg-raised">
@@ -132,7 +132,7 @@ export default async function AdminTtsWordsPage() {
                   sentences. Remove any that sound wrong.
                 </p>
               </div>
-              <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+              <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
                 <table className="w-full text-sm">
                   <caption className="sr-only">Words the voice learned by itself</caption>
                   <thead className="sticky top-0 z-10 bg-raised">

@@ -106,7 +106,7 @@ export default async function AdminSoundsPage({ searchParams }: { searchParams: 
             Showing {result.data.sounds.length} of {result.data.total} sound{result.data.total === 1 ? "" : "s"}
             {result.data.total > result.data.sounds.length ? " (newest first; search to find older ones)" : ""}
           </p>
-          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+          <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
             <table className="w-full text-sm">
               <caption className="sr-only">Creator sounds, newest first</caption>
               <thead className="sticky top-0 z-10 bg-raised">

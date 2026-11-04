@@ -174,7 +174,7 @@ function PaymentTable({ list }: { list: PaymentList }) {
         </li>
       </ul>
 
-      <div className="hidden max-h-[75vh] overflow-auto rounded-surface border border-control md:block">
+      <div data-lenis-prevent className="hidden max-h-[75vh] overflow-auto rounded-surface border border-control md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">Payment orders, newest first, with fees and the creator&apos;s share</caption>
           <thead className="sticky top-0 z-10 bg-raised">

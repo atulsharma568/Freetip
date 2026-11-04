@@ -350,7 +350,7 @@ export function OverlayEditor({
       <p className="rounded-surface border border-control bg-surface p-4 text-sm text-muted lg:hidden">Open this page on a laptop to edit the overlays. The editor needs a wide screen.</p>
 
       <div className="hidden items-start gap-6 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <div className="max-h-[calc(100dvh-2rem)] space-y-5 overflow-y-auto pr-1 lg:sticky lg:top-4">
+        <div data-lenis-prevent className="max-h-[calc(100dvh-2rem)] space-y-5 overflow-y-auto pr-1 lg:sticky lg:top-4">
           <div role="tablist" aria-label="Overlay" className="flex gap-2">
             {(
               [

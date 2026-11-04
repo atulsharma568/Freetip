@@ -146,7 +146,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
             noun="creator"
             hrefFor={(p) => hrefFor({ page: p })}
           />
-          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+          <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
             <table className="w-full text-sm">
               <caption className="sr-only">
                 Creators, newest first: account, handle, status, payout setup and actions

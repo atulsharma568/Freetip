@@ -73,7 +73,7 @@ export default async function AdminFeaturesPage({ searchParams }: { searchParams
                 Showing {result.data.rows.length} of {result.data.matching} creator{result.data.matching === 1 ? "" : "s"}
                 {result.data.matching > result.data.rows.length ? " (the first of the list; the counts cover everyone)" : ""}.
               </p>
-              <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+              <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
                 <table className="w-full text-sm">
                   <caption className="sr-only">Built paid features per creator</caption>
                   <thead className="sticky top-0 z-10 bg-raised">

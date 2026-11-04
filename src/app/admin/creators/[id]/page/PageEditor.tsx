@@ -348,7 +348,7 @@ export function PageEditor({
       </p>
 
       <div className="hidden items-start gap-6 lg:grid lg:grid-cols-[21rem_minmax(0,1fr)]">
-        <div className="max-h-[calc(100dvh-2rem)] space-y-6 overflow-y-auto pr-1 lg:sticky lg:top-4">
+        <div data-lenis-prevent className="max-h-[calc(100dvh-2rem)] space-y-6 overflow-y-auto pr-1 lg:sticky lg:top-4">
           <BlockList doc={doc} selected={selected} onSelect={setSelected} onMove={move} onDrop={drop} onVisible={visible} onAdd={add} meterSwitchOn={meterSwitchOn} />
           <hr className="border-control" />
           <BlockSettings doc={doc} selected={selected} run={run} library={library} goals={goals} meterSwitchOn={meterSwitchOn} />

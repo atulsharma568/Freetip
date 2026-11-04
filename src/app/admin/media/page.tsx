@@ -112,7 +112,7 @@ export default async function AdminMediaPage({ searchParams }: { searchParams: P
             Showing {result.data.files.length} of {result.data.total} file{result.data.total === 1 ? "" : "s"}
             {result.data.total > result.data.files.length ? " (waiting first, then newest; search to find older ones)" : ""}
           </p>
-          <div className="max-h-[75vh] overflow-auto rounded-surface border border-control">
+          <div data-lenis-prevent className="max-h-[75vh] overflow-auto rounded-surface border border-control">
             <table className="w-full text-sm">
               <caption className="sr-only">Creator alert media, files waiting for approval first</caption>
               <thead className="sticky top-0 z-10 bg-raised">
@@ -233,7 +233,7 @@ async function PageAssetsSection({ like, idMatch, all }: { like: string; idMatch
       ) : result.data.length === 0 ? (
         <p className="text-sm text-muted">No tip page pictures yet.</p>
       ) : (
-        <div className="max-h-[60vh] overflow-auto rounded-surface border border-control">
+        <div data-lenis-prevent className="max-h-[60vh] overflow-auto rounded-surface border border-control">
           <table className="w-full text-sm">
             <caption className="sr-only">Pictures on creators&apos; tip pages, newest first</caption>
             <thead className="sticky top-0 z-10 bg-raised">
