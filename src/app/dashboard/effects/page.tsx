@@ -5,6 +5,8 @@ import { getDb } from "@/lib/db";
 import { isOwnerTipPage } from "@/lib/owner-page";
 import { ownerPageDoc } from "@/lib/page-doc/defaults";
 import { themeFor } from "@/lib/page-doc/theme";
+import { hasFeature } from "@/lib/plans";
+import { safePhotoUrl } from "@/lib/tip-banner";
 import { readTipDecor } from "@/lib/tip-decor-store";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
@@ -37,6 +39,17 @@ export default async function EffectsPage() {
     bannerFx: start && start.bannerFx !== "custom" ? start.bannerFx : "none",
   };
 
+  // The photo the tip page and the dashboard show: the YouTube channel photo while the banner switch is on.
+  let channelPhoto: string | null = null;
+  try {
+    const [row] = await db<{ paid_features: string[] | null; tip_photo_url: string | null }[]>`
+      select paid_features, tip_photo_url from users where id = ${user.id}
+    `;
+    if (row && hasFeature(row, "tipBanner")) channelPhoto = safePhotoUrl(row.tip_photo_url);
+  } catch (err) {
+    console.error("Effects: could not read the channel photo.", err);
+  }
+
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
@@ -52,7 +65,7 @@ export default async function EffectsPage() {
         <EffectsManager
           saved={current}
           style={themeFor(ownerPageDoc(), null).style ?? {}}
-          pictureUrl={user.picture_url}
+          pictureUrl={channelPhoto ?? user.picture_url}
           name={user.name ?? "You"}
         />
       </div>
