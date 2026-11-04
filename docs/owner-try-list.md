@@ -150,3 +150,15 @@ None of this has been seen in a browser with a real login or in real OBS.
 - [ ] PayU, once step B puts the Buy button on `/dashboard/plans` (prices set): with `PAYU_MODE=test` pay a small order from your own account with PayU's test card; the features switch on once, the pass end date is right, `/admin/creators/<id>` shows the features on, and the Audit log has `plan.purchased`. Close the PayU page without paying: the order stays pending and nothing switches on. Then try the failing test card.
 - [ ] PayU's dashboard webhook for `https://freetip.in/api/webhooks/payu` (Successful, Failed): after a test payment, PayU's Webhook logs show a reply of 200.
 - [ ] A pass ending: set a test creator's `pass_until` in the past in Neon (and check `pass_keys`), call `/api/cron/plan-orders` once; the pass's features go, your manual ones stay.
+
+## PayU purchase, step B: the Buy form (2026-11-04)
+
+- [ ] Tell me the prices (monthly, yearly, and whether to have an early price and how many seats); until then there is no Buy form, only "The price will be announced soon". (Suggestion in `docs/competitor-findings.md`: ₹299 a month or ₹2,499 a year, early ₹149 or ₹1,299 for the first 50. After GST registration 18% would come out of the same price, see `docs/rules-check.md` section 2.)
+- [ ] With `PAYU_MODE=test` and prices set, open `/dashboard/plans` as yourself: the Buy form shows two terms, a mobile number box, the tick box and "Pay ₹... with PayU" (off until the number is 10 digits and the box is ticked). A different creator's account must see "Buying opens soon" in test mode.
+- [ ] Pay with PayU's test card: you land back on `/dashboard/plans` with "Payment received. Your paid features are on until ..."; "Your payments" lists it; the receipt opens, looks like a plain receipt, says it was a test payment, and prints or saves as PDF on a phone and a laptop.
+- [ ] Press Cancel on PayU's page: the page says you cancelled and nothing was charged. Use the failing test card: it says the payment did not go through.
+- [ ] Open the receipt address of another creator's order (change the number in the address): it must show "not found".
+- [ ] Buy a second term while the first runs: the end date moves out by the new term, and the page says the new term starts when this one ends.
+- [ ] The reminder: in Neon set a test creator's `pass_until` to 3 days ahead, call `/api/cron/plan-orders` with the secret: the reply says `reminders off` until `CONTACT_FROM_EMAIL` is set to a Resend-verified address, then `1 reminders sent` and the email arrives once (a second call sends nothing). The plans page shows "Your paid features end on ..." for that creator either way.
+- [ ] Read the new wording in the terms (Fees section, "Paid features"), the refund policy ("Paid feature passes"), the privacy policy (pass record, mobile number) and the pricing page ("Optional paid features") and say what to change. A lawyer has not read them.
+

@@ -32,8 +32,8 @@ const WHAT: Record<string, { what: string; note?: string }> = {
     note: "Each tip is also sent straight after it is paid; for waiting alerts to go out on time, also call it every 2 minutes from a free outside scheduler with the CRON_SECRET header (OPERATIONS.md section 7).",
   },
   "/api/cron/plan-orders": {
-    what: "Checks paid-feature orders left pending against PayU, and takes away the features of passes that have ended (only the ones the pass added).",
-    note: "Daily is enough: a payment is normally settled at once by PayU's return or notice; this catches the rest and ends passes.",
+    what: "Checks paid-feature orders left pending against PayU, takes away the features of passes that have ended (only the ones the pass added), and emails creators whose pass ends within 5 days.",
+    note: "Daily is enough: a payment is normally settled at once by PayU's return or notice; this catches the rest and ends passes. Reminders need RESEND_API_KEY and CONTACT_FROM_EMAIL (a sender on a domain verified in Resend); until then the plans page shows the warning on screen only.",
   },
 };
 
@@ -93,7 +93,7 @@ export const ENV_GROUPS: { title: string; vars: EnvVar[] }[] = [
       { name: "BLOB_READ_WRITE_TOKEN", required: true, what: "Sound uploads (Vercel Blob)" },
       { name: "RESEND_API_KEY", required: false, what: "Emails the contact form to you" },
       { name: "CONTACT_NOTIFY_EMAIL", required: false, what: "Where those emails go" },
-      { name: "CONTACT_FROM_EMAIL", required: false, what: "Sender address (optional)" },
+      { name: "CONTACT_FROM_EMAIL", required: false, what: "Sender address on a domain verified in Resend (optional; the 'your pass ends soon' email to creators needs it)" },
     ],
   },
   {

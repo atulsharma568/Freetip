@@ -161,9 +161,10 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          There is no subscription, so there is nothing to cancel. You can close
-          your account at any time, and we pay out any balance due after our
-          usual checks.
+          Nothing renews by itself, so there is nothing to cancel. A paid
+          features pass is a one-off payment for a fixed term (see the next
+          section). You can close your account at any time, and we pay out any
+          balance due after our usual checks.
         </li>
         <li>
           If a tip is refunded or charged back, the tip amount comes back out of
@@ -175,6 +176,40 @@ const SECTIONS: LegalSection[] = [
           itself is refunded under this policy.
         </li>
       </ul>
+    ),
+  },
+  {
+    id: "passes",
+    title: "Paid feature passes",
+    body: (
+      <>
+        <p>
+          <strong>A pass is not refunded once its features are on.</strong> It is
+          a one-off payment for 1 or 12 months and does not renew by itself.
+          We don’t refund a pass because you changed your mind, didn’t use the
+          features, closed your account, or the term ended. We also don’t refund
+          one when we close or suspend an account under our terms.
+        </p>
+        <p>
+          The exception is a payment error. We put it right when we confirm that:
+        </p>
+        <ul>
+          <li>you were charged more than once for the same term;</li>
+          <li>
+            money left your account but the features did not switch on after the
+            payment was confirmed;
+          </li>
+          <li>you were charged a different amount from the price shown to you; or</li>
+          <li>a technical error on our side stopped the pass from working as described.</li>
+        </ul>
+        <p>
+          Where the features simply did not switch on, we switch them on for the
+          full term. Otherwise we return the full amount to the way you paid. To
+          report one, write to <MailFill k="supportEmail" /> with the payment
+          ID on your receipt (or from your bank or UPI app), the amount and the
+          date.
+        </p>
+      </>
     ),
   },
   {
@@ -212,8 +247,9 @@ export default function RefundsPage() {
       path="/refunds"
       intro={
         <p>
-          The short version: tips are final once paid, but if you were charged
-          twice, charged the wrong amount, or your tip didn’t go through, we
+          The short version: tips are final once paid, and so is a paid
+          features pass once its features are on. But if you were charged
+          twice, charged the wrong amount, or your payment didn’t work, we
           put it right and return the money the way you paid. Tell us as soon
           as you notice.
         </p>

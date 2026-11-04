@@ -118,6 +118,23 @@ const FIRSTNAME_MAX = 20;
 const EMAIL_MAX = 50;
 const URL_MAX = 50;
 
+// Checks what the creator typed and what we are about to send, and returns the cleaned values.
+// Split out so the Buy action can refuse a bad mobile number before any order exists. Throws
+// CheckoutInputError for a value PayU would refuse.
+export function checkPayer(payer: CheckoutPayer, urls: CheckoutUrls): CheckoutPayer {
+  const firstname = clean(payer.firstname, "Creator", FIRSTNAME_MAX);
+  const email = payer.email.trim();
+  if (!email || email.length > EMAIL_MAX || /[|\s]/.test(email) || !email.includes("@")) {
+    throw new CheckoutInputError("The email on your account cannot be used for this payment.");
+  }
+  const phone = payer.phone.replace(/[\s-]/g, "").replace(/^(\+91|91|0)(?=\d{10}$)/, "");
+  if (!/^[6-9]\d{9}$/.test(phone)) throw new CheckoutInputError("Enter a 10-digit Indian mobile number.");
+  for (const url of [urls.success, urls.failure, urls.cancel]) {
+    if (!/^https:\/\//.test(url) || url.length > URL_MAX) throw new CheckoutInputError("A return address is too long or not https.");
+  }
+  return { firstname, email, phone };
+}
+
 // The form fields to post to PayU, and where. `action` depends on the mode. The phone is the
 // creator's own mobile number, typed on our Buy form and passed straight on. Throws
 // CheckoutInputError for a value PayU would refuse; every value that goes into the hash must be
@@ -129,17 +146,8 @@ export function checkoutForm(
   urls: CheckoutUrls,
 ): { action: string; fields: Record<string, string> } {
   const amount = payuAmount(order.amountMinor);
-  const firstname = clean(payer.firstname, "Creator", FIRSTNAME_MAX);
+  const { firstname, email, phone } = checkPayer(payer, urls);
   const productinfo = clean(order.productinfo, "Freetip paid features", 100);
-  const email = payer.email.trim();
-  if (!email || email.length > EMAIL_MAX || /[|\s]/.test(email) || !email.includes("@")) {
-    throw new CheckoutInputError("The email on your account cannot be used for this payment.");
-  }
-  const phone = payer.phone.replace(/[\s-]/g, "").replace(/^(\+91|91|0)(?=\d{10}$)/, "");
-  if (!/^[6-9]\d{9}$/.test(phone)) throw new CheckoutInputError("Enter a 10-digit Indian mobile number.");
-  for (const url of [urls.success, urls.failure, urls.cancel]) {
-    if (!/^https:\/\//.test(url) || url.length > URL_MAX) throw new CheckoutInputError("A return address is too long or not https.");
-  }
   const fields = {
     key: config.key,
     txnid: order.txnid,

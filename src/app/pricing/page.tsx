@@ -6,9 +6,9 @@ import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Pricing: ${SITE_NAME}`,
-  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`,
+  description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`,
   alternates: { canonical: "/pricing" },
-  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up or monthly fees, and fans pay exactly the tip.`, url: "/pricing" },
+  openGraph: { title: `Pricing: ${SITE_NAME}`, description: `${SITE_NAME} takes ${FEES.platformPercent}% of each tip, plus a minimal processing fee, both out of the creator’s payout. No sign-up fee, and fans pay exactly the tip.`, url: "/pricing" },
   robots: LEGAL_ROBOTS,
 };
 
@@ -20,8 +20,8 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           We take <strong>{FEES.platformPercent}% of every tip</strong>. There
-          is no sign-up fee, no monthly plan and no charge for the OBS alerts,
-          text-to-speech, approval or QR code.
+          is no sign-up fee and no charge for the OBS alerts, text-to-speech,
+          approval or QR code.
         </p>
         <p>
           We also charge a minimal processing fee on each tip. It is deducted
@@ -29,6 +29,20 @@ const SECTIONS: LegalSection[] = [
           choose; nothing is added at checkout.
         </p>
       </>
+    ),
+  },
+  {
+    id: "paid-features",
+    title: "Optional paid features",
+    body: (
+      <p>
+        Some extras that change how a creator’s alerts, tip page and stream look
+        and work are paid, for 1 or 12 months at a time. It is a one-off payment
+        that does not renew by itself, and the price is shown in the creator’s
+        dashboard before paying. Our fee on tips is the same with or without
+        them. See the <Link href="/terms#fees">terms</Link> and the{" "}
+        <Link href="/refunds">refund policy</Link>.
+      </p>
     ),
   },
   {

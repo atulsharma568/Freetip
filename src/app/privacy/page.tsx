@@ -98,7 +98,13 @@ const SECTIONS: LegalSection[] = [
             checked by our payment partner);
           </li>
           <li>your settings, such as alerts, text-to-speech, approval and banned words;</li>
-          <li>tips received, fees, payouts and tax records.</li>
+          <li>tips received, fees, payouts and tax records;</li>
+          <li>
+            if you buy a paid features pass: the order, the term, the amount,
+            when it was paid and PayU&apos;s payment ID. The mobile number PayU
+            asks for on the payment form goes to PayU to complete the payment;
+            we do not store it.
+          </li>
         </ul>
         <h3>From everyone</h3>
         <ul>
@@ -270,6 +276,11 @@ const SECTIONS: LegalSection[] = [
             <td>Show a fan&apos;s level on the alert, and give the creator a list of supporters (only for creators who switch these on)</td>
             <td>Fan profile: name, tip counts and totals, points and level, the creator&apos;s own note</td>
             <td>Providing the service the creator and you asked for</td>
+          </tr>
+          <tr>
+            <td>Sell and switch on paid features, show your receipt, and email you before a pass ends</td>
+            <td>Pass orders, payment ID, your sign-in email and name</td>
+            <td>Providing the service you asked for; legal duties as to accounts</td>
           </tr>
           <tr>
             <td>Screen messages and handle reports</td>

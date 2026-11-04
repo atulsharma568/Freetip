@@ -2,14 +2,17 @@ import { timingSafeEqual } from "crypto";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { fetchPayment, payuConfig } from "@/lib/payu";
+import { sendPassReminderEmail } from "@/lib/pass-email";
+import { sendPassReminders } from "@/lib/pass-reminders";
 import { expirePasses, reconcilePendingOrders } from "@/lib/plan-orders";
 
-// Daily, run by Vercel Cron (see vercel.json). Two jobs, both safe to repeat, and one never stops
-// the other:
+// Daily, run by Vercel Cron (see vercel.json). Three jobs, all safe to repeat, and one never stops
+// the others:
 //  1. Ask PayU about orders left unsettled (the browser never came back and no notice reached us)
 //     and pay, fail or close them out. Skipped when PayU is not set up. It stops after a time
 //     budget, newest orders first.
 //  2. Take away the features of every pass that has ended, and only the ones the pass added.
+//  3. Email creators whose pass ends within 5 days, once per end date (off until the sender is set up).
 // Vercel sends CRON_SECRET as a bearer token.
 export const maxDuration = 60;
 
@@ -44,6 +47,14 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("Plan orders: ending passes failed (migration 0055 run?)", err instanceof Error ? err.message : err);
   }
+  // A reminder that could not be sent is not a failure of the run: the next run tries again.
+  let reminded = "reminders could not be sent (see the log)";
+  try {
+    const r = await sendPassReminders(db, sendPassReminderEmail);
+    reminded = r.off ? "reminders off (no email sender set up)" : `${r.sent} reminders sent${r.failed ? `, ${r.failed} not sent` : ""}`;
+  } catch (err) {
+    console.error("Plan orders: reminders failed", err instanceof Error ? err.message : err);
+  }
   // A failure is an error status so the owner's cron log shows it.
-  return new Response(`${failed ? "ERROR" : "OK"} (${checked}; ${ended})`, { status: failed ? 500 : 200 });
+  return new Response(`${failed ? "ERROR" : "OK"} (${checked}; ${ended}; ${reminded})`, { status: failed ? 500 : 200 });
 }

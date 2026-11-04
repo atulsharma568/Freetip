@@ -55,7 +55,10 @@ export function newTxnid(): string {
 
 export type CreateOrderResult =
   | { ok: true; order: { id: number; txnid: string; amountMinor: number; term: Term; early: boolean } }
-  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" };
+  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" }
+  // The price is not what the creator was shown (an early seat went, or the prices changed). Nothing
+  // was made; `amountMinor` is what it costs now.
+  | { ok: false; reason: "price_changed"; amountMinor: number };
 
 // At most this many unpaid orders per creator per hour, so the button cannot be used to fill the table.
 const PENDING_PER_HOUR = 5;
@@ -65,6 +68,43 @@ const EARLY_HOLD_HOURS = 2;
 const EARLY_GRACE_DAYS = 31;
 // One lock key for the early-seat count, so two creators cannot both take the last seat.
 const EARLY_SEAT_LOCK = 55001;
+
+// What each term costs this creator right now: the early seats taken by other creators, and whether
+// this creator is renewing an early pass. Reads only; the caller holds the early-seat lock when the
+// answer is going to be acted on.
+async function quoteTerms(
+  tx: Query,
+  creatorId: number,
+  prices: PlanPrices,
+  now: string,
+): Promise<Record<Term, { amountMinor: number; early: boolean } | null>> {
+  // Other creators who hold an early pass or are buying one right now (live money only).
+  const [taken] = await tx<{ n: string }[]>`
+    select count(distinct creator_id)::text as n from plan_orders
+     where early and livemode and creator_id <> ${creatorId}
+       and (status = 'paid' or (status = 'pending' and created_at > ${now}::timestamptz - make_interval(hours => ${EARLY_HOLD_HOURS}::int)))
+  `;
+  // Renewing: the creator's latest paid order was an early one and ended recently (or still runs).
+  const [last] = await tx<{ early: boolean; ends: boolean }[]>`
+    select early, pass_ends_at >= ${now}::timestamptz - make_interval(days => ${EARLY_GRACE_DAYS}::int) as ends
+      from plan_orders where creator_id = ${creatorId} and status = 'paid' and livemode
+     order by paid_at desc limit 1
+  `;
+  const earlyTaken = Number(taken?.n ?? "0");
+  const keepsEarly = Boolean(last?.early && last.ends);
+  return { 1: chooseAmount(prices, 1, earlyTaken, keepsEarly), 12: chooseAmount(prices, 12, earlyTaken, keepsEarly) };
+}
+
+// The price of each term for the Buy form (what the creator is shown). Null when the prices are not set.
+export async function quotePlan(
+  db: LedgerDb,
+  creatorId: number,
+  prices: PlanPrices,
+  now: Date = new Date(),
+): Promise<Record<Term, { amountMinor: number; early: boolean }> | null> {
+  const q = await quoteTerms(db, creatorId, prices, now.toISOString());
+  return q[1] && q[12] ? { 1: q[1], 12: q[12] } : null;
+}
 
 export async function createPlanOrder(
   db: LedgerDb,
@@ -78,6 +118,9 @@ export async function createPlanOrder(
     // A test-mode order may be made only for the owner's own account; the caller works this out
     // from the signed-in account.
     isOwner: boolean;
+    // The amount the creator was shown, in paise. When it is not what the order would cost now the
+    // order is not made (reason "price_changed"), so nobody is sent to PayU for a price they did not see.
+    expectAmountMinor?: number;
     txnid?: string;
     now?: Date;
   },
@@ -92,20 +135,11 @@ export async function createPlanOrder(
     `;
     if (!creator || creator.creator_status !== "active") return { ok: false, reason: "not_active" } as const;
     await tx`select pg_advisory_xact_lock(${EARLY_SEAT_LOCK})`;
-    // Other creators who hold an early pass or are buying one right now (live money only).
-    const [taken] = await tx<{ n: string }[]>`
-      select count(distinct creator_id)::text as n from plan_orders
-       where early and livemode and creator_id <> ${o.creatorId}
-         and (status = 'paid' or (status = 'pending' and created_at > ${now}::timestamptz - make_interval(hours => ${EARLY_HOLD_HOURS}::int)))
-    `;
-    // Renewing: the creator's latest paid order was an early one and ended recently (or still runs).
-    const [last] = await tx<{ early: boolean; ends: boolean }[]>`
-      select early, pass_ends_at >= ${now}::timestamptz - make_interval(days => ${EARLY_GRACE_DAYS}::int) as ends
-        from plan_orders where creator_id = ${o.creatorId} and status = 'paid' and livemode
-       order by paid_at desc limit 1
-    `;
-    const chosen = chooseAmount(o.prices, term, Number(taken?.n ?? "0"), Boolean(last?.early && last.ends));
+    const chosen = (await quoteTerms(tx, o.creatorId, o.prices, now))[term];
     if (!chosen) return { ok: false, reason: "no_price" } as const;
+    if (o.expectAmountMinor !== undefined && o.expectAmountMinor !== chosen.amountMinor) {
+      return { ok: false, reason: "price_changed", amountMinor: chosen.amountMinor } as const;
+    }
     const [recent] = await tx<{ n: string }[]>`
       select count(*)::text as n from plan_orders
        where creator_id = ${o.creatorId} and status = 'pending' and created_at > ${now}::timestamptz - interval '1 hour'
