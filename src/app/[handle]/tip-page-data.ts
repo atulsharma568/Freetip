@@ -9,6 +9,8 @@ import { loadPageAssets, resolveAssets } from "@/lib/page-doc/asset-store";
 import { loadGoalProgress, type GoalProgress } from "@/lib/goal-progress";
 import { loadMeterReading, type MeterReading } from "@/lib/page-doc/pressure";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
+import { applyTipDecor } from "@/lib/page-doc/decor";
+import { readTipDecor } from "@/lib/tip-decor-store";
 import { resolvePageDoc } from "@/lib/page-doc/store";
 import type { PageDoc } from "@/lib/page-doc/types";
 import { hasFeature } from "@/lib/plans";
@@ -51,7 +53,10 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   // The page is drawn from a document of blocks: the stored one while the creator's "Custom tip
   // page" switch is on, otherwise today's page (the owner's own page for the owner, whose document
   // carries the channel's red, whatever accent is saved).
-  const doc = options.doc ?? resolvePageDoc(pageRow, defaultDocFor(handle, creator));
+  const baseDoc = options.doc ?? resolvePageDoc(pageRow, defaultDocFor(handle, creator));
+  // The owner's own page also wears the frame and banner effect picked on the dashboard (Effects), which
+  // replace the header's two settings when something was saved. Only the owner's page has it for now.
+  const doc = ownerPage ? applyTipDecor(baseDoc, await readTipDecor(creator.id)) : baseDoc;
   const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
   // The pictures the document uses, read in one query and only when it uses any, so a page without
   // pictures costs nothing more. The owner's editor preview gets every live file of the creator

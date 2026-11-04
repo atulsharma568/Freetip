@@ -1528,3 +1528,36 @@ html.menu-open body {
   .bfx-aim { opacity: 0.85; }
   .bfx-ecg-trail { opacity: 0.9; }
 }
+
+/* "Fox-fire" frame (AcePressure's kitsune mask): three small flames crawl back and forth along the top
+   of the photo, above the middle only, over a faint arc of light that breathes. Each flame sits on a
+   spoke that swings around the photo's centre. Reduced motion parks them where they start. */
+.pf-foxfire::before {
+  content: ""; position: absolute; inset: 7%; border-radius: inherit;
+  background: conic-gradient(from -80deg, transparent 0deg, color-mix(in srgb, var(--color-accent) 55%, transparent) 80deg, transparent 160deg, transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  filter: blur(0.4px) drop-shadow(0 0 6px color-mix(in srgb, var(--color-accent) 60%, transparent));
+  animation: pf-breathe 3.4s ease-in-out infinite;
+}
+.pf-fox {
+  position: absolute; inset: 7%; transform: rotate(var(--a0));
+  animation: fox-crawl var(--t) ease-in-out infinite alternate; animation-delay: var(--d);
+}
+@keyframes fox-crawl { from { transform: rotate(var(--a0)); } to { transform: rotate(var(--a1)); } }
+.pf-wisp {
+  position: absolute; left: 50%; top: 0; width: calc(16px * var(--k, 1)); height: calc(25px * var(--k, 1));
+  margin: calc(-13px * var(--k, 1)) 0 0 calc(-8px * var(--k, 1));
+  border-radius: 50% 50% 50% 50% / 68% 68% 32% 32%;
+  background: radial-gradient(ellipse at 50% 70%, #fff 0 12%, color-mix(in oklab, var(--color-accent) 45%, white) 30%, var(--color-accent) 62%, transparent 100%);
+  box-shadow: 0 0 9px 2px color-mix(in srgb, var(--color-accent) 75%, transparent);
+  transform-origin: 50% 100%;
+  animation: fox-flicker 0.55s ease-in-out infinite alternate;
+}
+@keyframes fox-flicker {
+  from { transform: scale(0.88, 1.06) skewX(-6deg); opacity: 0.85; }
+  to { transform: scale(1.05, 0.9) skewX(7deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-foxfire::before, .pf-fox, .pf-wisp { animation: none; }
+}

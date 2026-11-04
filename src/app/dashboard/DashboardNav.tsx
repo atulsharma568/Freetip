@@ -1,4 +1,5 @@
 import { getSessionFeatures } from "@/lib/creator-features";
+import { getSessionIsOwnerPage } from "@/lib/session-owner";
 import { SlidingNav } from "./parts/SlidingNav";
 
 const LINKS = [
@@ -27,18 +28,21 @@ const PAGE_GROUPS = {
     { key: "rules", href: "/dashboard/rules", label: "Picks", feature: "alertRules" },
     { key: "variations", href: "/dashboard/variations", label: "Automatic tiers", feature: "alertVariations" },
     { key: "banner", href: "/dashboard/banner", label: "Banner", feature: "tipBanner" },
+    // The photo frame and banner effect: the owner's own page only for now (no paid switch yet).
+    { key: "decor", href: "/dashboard/effects", label: "Effects", feature: "owner" },
   ],
 } as const;
 
 type PageGroup = keyof typeof PAGE_GROUPS;
-const GROUP_OF: Record<string, PageGroup> = { sounds: "sounds", media: "sounds", pinned: "sounds", rules: "tippage", variations: "tippage", banner: "tippage" };
+const GROUP_OF: Record<string, PageGroup> = { sounds: "sounds", media: "sounds", pinned: "sounds", rules: "tippage", variations: "tippage", banner: "tippage", decor: "tippage" };
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
 // overview page, below the numbers. Timestamps, Tip page, Look, Words and motion and Fans show only for creators they are
 // switched on for.
-export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
+export async function DashboardNav({ current }: { current: "overview" | "tips" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "decor" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
   const features = await getSessionFeatures();
-  const onTabs = (g: PageGroup) => PAGE_GROUPS[g].filter((t) => t.feature === null || features[t.feature]);
+  const ownerPage = await getSessionIsOwnerPage();
+  const onTabs = (g: PageGroup) => PAGE_GROUPS[g].filter((t) => t.feature === null || (t.feature === "owner" ? ownerPage : features[t.feature]));
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "tippage" || onTabs("tippage").length > 0) &&
       (l.key !== "look" || features.overlayThemes || features.alertLayout) && (l.key !== "words" || features.alertText || features.alertMotion) &&

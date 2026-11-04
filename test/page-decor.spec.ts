@@ -95,3 +95,30 @@ test.describe("the owner's own page", () => {
     expect(header(defaultPageDoc()).settings).toMatchObject({ frame: "none", bannerFx: "none" });
   });
 });
+
+test.describe("the pick saved from the dashboard", () => {
+  test("only ready-made looks are read back, anything else is none", async () => {
+    const { parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(parseTipDecor({ frame: "foxfire", bannerFx: "clutch" })).toEqual({ frame: "foxfire", bannerFx: "clutch" });
+    expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ frame: "none", bannerFx: "none" });
+    expect(parseTipDecor({})).toEqual({ frame: "none", bannerFx: "none" });
+    for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
+  });
+
+  test("it replaces the header's two settings and any uploaded file there, and nothing else", async () => {
+    const { applyTipDecor } = await import("../src/lib/page-doc/decor");
+    const doc = withHeader({ frame: "custom", frameAsset: 4, bannerFx: "custom", bannerFxAsset: 5, bannerAsset: 6 });
+    const out = applyTipDecor(doc, { frame: "foxfire", bannerFx: "embers" });
+    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "foxfire", frameAsset: null, bannerFx: "embers", bannerFxAsset: null });
+    expect(out.blocks.length).toBe(doc.blocks.length);
+    expect(applyTipDecor(doc, null)).toBe(doc);
+  });
+
+  test("the new fox-fire frame is a ready-made look the editor offers too", async () => {
+    const { FRAME_OPTIONS, PRESET_FRAMES } = await import("../src/lib/page-doc/decor");
+    expect(PRESET_FRAMES).toContain("foxfire");
+    expect(FRAME_OPTIONS.map((o) => o.value)).toContain("foxfire");
+    const kept = parsePageDoc(withHeader({ frame: "foxfire" }))!;
+    expect(header(kept.doc).settings.frame).toBe("foxfire");
+  });
+});

@@ -22,6 +22,15 @@ function CustomPicture({ render, className }: { render: Extract<DecorRender, { k
 // The heart-monitor trace of the Clutch pulse banner: flat, two small bumps, then one tall spike.
 const ECG_PATH = "M0 78 H70 l8 -7 l8 7 H128 l6 5 l10 -52 l10 66 l9 -34 l6 15 H236 l10 -9 l10 9 H400";
 
+// The fox-fire wisps: little flames that crawl back and forth along the top of the photo, only the
+// part above the middle (a swing of at most 75 degrees each way from straight up). Angles are from
+// straight up, positive to the right; each has its own speed so they never line up.
+const FOX_WISPS = [
+  { from: -68, to: 24, secs: 5.2, delay: -1.2, size: 1 },
+  { from: -22, to: 70, secs: 6.6, delay: -3.9, size: 0.8 },
+  { from: -46, to: 52, secs: 8.4, delay: -6.1, size: 0.62 },
+];
+
 // The ring over a creator's photo. It is drawn bigger than the photo (like a Discord decoration) and
 // never takes a click. Decoration only: the photo's own description is what a screen reader reads.
 export function PhotoFrame({ render }: { render: DecorRender }) {
@@ -35,6 +44,12 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
   }
   return (
     <span aria-hidden="true" className={`pf pf-${render.style}`}>
+      {render.style === "foxfire" &&
+        FOX_WISPS.map((w, i) => (
+          <span key={i} className="pf-fox" style={{ "--a0": `${w.from}deg`, "--a1": `${w.to}deg`, "--t": `${w.secs}s`, "--d": `${w.delay}s`, "--k": w.size } as React.CSSProperties}>
+            <span className="pf-wisp" />
+          </span>
+        ))}
       {render.style === "aura" &&
         Array.from({ length: SPARK_COUNT }, (_, i) => (
           <span
