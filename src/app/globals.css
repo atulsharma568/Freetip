@@ -1561,3 +1561,67 @@ html.menu-open body {
 @media (prefers-reduced-motion: reduce) {
   .pf-foxfire::before, .pf-fox, .pf-wisp { animation: none; }
 }
+
+/* More banner effects, all drawn here: spider crawl, storm, neon glitch, falling petals. They follow
+   the page accent. With reduced motion everything stands still and the moving pieces are hidden. */
+
+/* Spider crawl */
+.bfx-web { position: absolute; left: 0; top: 0; width: 84px; height: 84px; opacity: 0.4; }
+.bfx-web path { fill: none; stroke: color-mix(in oklab, var(--color-accent) 55%, white); stroke-width: 1; }
+.bfx-spider { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 85%, transparent)); }
+.bfx-legs path { fill: none; stroke: #111; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bfx-sbody { fill: #14110f; stroke: color-mix(in oklab, var(--color-accent) 70%, black); stroke-width: 0.8; }
+.bfx-seye { fill: color-mix(in oklab, var(--color-accent) 60%, white); }
+.bfx-crawler { position: absolute; bottom: 6px; left: -12%; width: 34px; height: 24px; animation: spider-run 11s linear infinite; }
+.bfx-crawler .bfx-spider { transform: rotate(90deg); }
+@keyframes spider-run { 0% { left: -12%; } 100% { left: 108%; } }
+.bfx-legs-a { transform-origin: 22px 16px; animation: spider-legs 0.28s ease-in-out infinite alternate; }
+.bfx-legs-b { transform-origin: 22px 16px; animation: spider-legs 0.28s ease-in-out infinite alternate-reverse; }
+@keyframes spider-legs { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.bfx-dropper { position: absolute; top: 0; left: 78%; width: 24px; height: 17px; animation: spider-drop 9s ease-in-out infinite; }
+.bfx-thread { position: absolute; left: 50%; bottom: 100%; width: 1px; height: 120px; background: color-mix(in oklab, var(--color-accent) 50%, white); opacity: 0.7; }
+@keyframes spider-drop { 0%, 12% { transform: translateY(-130%); } 38%, 62% { transform: translateY(150%); } 88%, 100% { transform: translateY(-130%); } }
+
+/* Storm */
+.bfx-storm { background: radial-gradient(ellipse at 50% 130%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 65%); }
+.bfx-fog { position: absolute; left: 0; width: 200%; height: 70%; filter: blur(14px); opacity: 0.55;
+  background: radial-gradient(ellipse 18% 50% at 10% 50%, rgb(255 255 255 / 0.28), transparent), radial-gradient(ellipse 22% 55% at 38% 60%, rgb(255 255 255 / 0.22), transparent),
+    radial-gradient(ellipse 18% 50% at 62% 45%, rgb(255 255 255 / 0.26), transparent), radial-gradient(ellipse 24% 55% at 90% 55%, rgb(255 255 255 / 0.22), transparent); }
+.bfx-fog-a { bottom: -12%; animation: fog-drift 26s linear infinite; }
+.bfx-fog-b { bottom: 10%; opacity: 0.35; animation: fog-drift 38s linear infinite reverse; }
+@keyframes fog-drift { to { transform: translateX(-50%); } }
+.bfx-lightning { position: absolute; inset: 0; background: color-mix(in oklab, var(--color-accent) 35%, white); mix-blend-mode: screen; opacity: 0; animation: storm-flash 8s linear infinite; }
+@keyframes storm-flash { 0%, 61%, 66%, 100% { opacity: 0; } 62% { opacity: 0.55; } 63% { opacity: 0.05; } 64% { opacity: 0.4; } 65% { opacity: 0; } }
+.bfx-bolt { position: absolute; top: 0; left: 62%; width: 34px; height: 100%; opacity: 0; fill: color-mix(in oklab, var(--color-accent) 25%, white);
+  filter: drop-shadow(0 0 6px var(--color-accent)) drop-shadow(0 0 14px var(--color-accent)); animation: storm-bolt 8s linear infinite; }
+@keyframes storm-bolt { 0%, 61%, 65.5%, 100% { opacity: 0; } 62%, 64% { opacity: 0.95; } 63% { opacity: 0.2; } }
+
+/* Neon glitch */
+.bfx-scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 3px); }
+.bfx-beam { position: absolute; left: 0; right: 0; top: -20%; height: 28%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 34%, transparent) 55%, color-mix(in oklab, var(--color-accent) 60%, white) 56%, transparent 58%);
+  animation: glitch-beam 5s linear infinite; }
+@keyframes glitch-beam { 0% { transform: translateY(0); } 100% { transform: translateY(520%); } }
+.bfx-gbar { position: absolute; left: 0; right: 0; top: var(--y); height: var(--h); background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  mix-blend-mode: screen; opacity: 0; animation: glitch-bar 5.1s steps(1, end) infinite; animation-delay: var(--d); }
+@keyframes glitch-bar {
+  0%, 84%, 90%, 100% { opacity: 0; transform: translateX(0); }
+  85% { opacity: 0.9; transform: translateX(-9%); } 86% { opacity: 0.4; transform: translateX(7%); }
+  87% { opacity: 0.85; transform: translateX(-3%); } 88% { opacity: 0.3; transform: translateX(11%); }
+}
+
+/* Falling petals */
+.bfx-petal { position: absolute; top: -14px; left: var(--x); width: var(--s); height: var(--s); border-radius: 100% 0 100% 0;
+  background: color-mix(in oklab, var(--color-accent) 45%, white); opacity: 0; box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  animation: petal-fall var(--t) linear infinite; animation-delay: var(--d); }
+@keyframes petal-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(var(--r)); }
+  10% { opacity: 0.9; }
+  50% { transform: translate(calc(var(--w) * -0.6), 90px) rotate(calc(var(--r) + 180deg)); }
+  100% { opacity: 0; transform: translate(var(--w), 190px) rotate(calc(var(--r) + 380deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bfx-crawler, .bfx-dropper, .bfx-legs-a, .bfx-legs-b, .bfx-fog, .bfx-lightning, .bfx-bolt, .bfx-beam, .bfx-gbar, .bfx-petal { animation: none; }
+  .bfx-crawler, .bfx-dropper, .bfx-lightning, .bfx-bolt, .bfx-beam, .bfx-gbar, .bfx-petal { display: none; }
+}

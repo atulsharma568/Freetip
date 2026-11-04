@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, SPARK_COUNT, steady, type BannerFx, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
@@ -107,6 +107,69 @@ export function BannerEffect({ render }: { render: DecorRender }) {
           </svg>
         </>
       )}
+      {render.style === "spider" && (
+        <>
+          {/* A web in the corner, a spider that scuttles along the bottom edge and another that drops
+              down a thread now and then. All drawn here, nothing loaded. */}
+          <svg className="bfx-web" viewBox="0 0 80 80" focusable="false">
+            <path d="M0 0L80 0M0 0L80 30M0 0L66 66M0 0L30 80M0 0L0 80" />
+            <path d="M22 0Q20 18 0 22M44 0Q40 36 0 44M66 0Q60 54 0 66" />
+          </svg>
+          <span className="bfx-crawler">
+            <SpiderShape />
+          </span>
+          <span className="bfx-dropper">
+            <span className="bfx-thread" />
+            <SpiderShape />
+          </span>
+        </>
+      )}
+      {render.style === "storm" && (
+        <>
+          <span className="bfx-fog bfx-fog-a" />
+          <span className="bfx-fog bfx-fog-b" />
+          <span className="bfx-lightning" />
+          <svg className="bfx-bolt" viewBox="0 0 40 100" preserveAspectRatio="none" focusable="false">
+            <path d="M24 0L10 44H20L8 100L34 36H23L32 0Z" />
+          </svg>
+        </>
+      )}
+      {render.style === "glitch" && (
+        <>
+          <span className="bfx-scan" />
+          <span className="bfx-beam" />
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="bfx-gbar"
+              style={
+                {
+                  "--y": `${Math.round(18 + steady(i, 9) * 60)}%`,
+                  "--h": `${6 + Math.round(steady(i, 10) * 10)}%`,
+                  "--d": `${(-i * 1.7).toFixed(1)}s`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </>
+      )}
+      {render.style === "petals" &&
+        Array.from({ length: PETAL_COUNT }, (_, i) => (
+          <span
+            key={i}
+            className="bfx-petal"
+            style={
+              {
+                "--x": `${(steady(i, 11) * 100).toFixed(1)}%`,
+                "--s": `${6 + Math.round(steady(i, 12) * 6)}px`,
+                "--t": `${(7 + steady(i, 13) * 6).toFixed(1)}s`,
+                "--d": `${(-steady(i, 14) * 12).toFixed(1)}s`,
+                "--w": `${Math.round((steady(i, 15) - 0.5) * 70)}px`,
+                "--r": `${Math.round(steady(i, 16) * 360)}deg`,
+              } as React.CSSProperties
+            }
+          />
+        ))}
       {render.style === "slashes" && (
         <>
           <span className="bfx-slash" style={{ "--d": "0s" } as React.CSSProperties} />
@@ -115,5 +178,24 @@ export function BannerEffect({ render }: { render: DecorRender }) {
         </>
       )}
     </span>
+  );
+}
+
+// A small spider seen from above: body, head, eight legs that take turns. Dark, with an accent glow so
+// it shows on a light or a dark banner.
+function SpiderShape() {
+  return (
+    <svg className="bfx-spider" viewBox="0 0 44 30" focusable="false">
+      <g className="bfx-legs bfx-legs-a">
+        <path d="M18 13L7 5L2 9M17 16L5 15L1 20M18 18L8 26L4 28M21 11L14 2L10 3" />
+      </g>
+      <g className="bfx-legs bfx-legs-b">
+        <path d="M26 13L37 5L42 9M27 16L39 15L43 20M26 18L36 26L40 28M23 11L30 2L34 3" />
+      </g>
+      <ellipse cx="22" cy="18" rx="7" ry="6.5" className="bfx-sbody" />
+      <circle cx="22" cy="10.5" r="4" className="bfx-sbody" />
+      <circle cx="20.3" cy="9.6" r="0.9" className="bfx-seye" />
+      <circle cx="23.7" cy="9.6" r="0.9" className="bfx-seye" />
+    </svg>
   );
 }

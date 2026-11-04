@@ -101,6 +101,7 @@ test.describe("the pick saved from the dashboard", () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
     expect(parseTipDecor({ frame: "foxfire", bannerFx: "clutch" })).toEqual({ frame: "foxfire", bannerFx: "clutch" });
     expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ frame: "none", bannerFx: "none" });
+    for (const fx of ["spider", "storm", "glitch", "petals"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
     expect(parseTipDecor({})).toEqual({ frame: "none", bannerFx: "none" });
     for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
   });

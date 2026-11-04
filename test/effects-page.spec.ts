@@ -25,7 +25,7 @@ test.describe("the Effects picker", () => {
   test("every look can be picked and the page does not scroll sideways at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/dev-fixtures/effects");
-    for (const label of ["Flame ring", "Pulsing aura", "Slash ring", "Fox-fire", "Sweeping slashes", "Soft glow sweep", "No effect"]) {
+    for (const label of ["Flame ring", "Pulsing aura", "Slash ring", "Fox-fire", "Sweeping slashes", "Soft glow sweep", "Spider crawl", "Storm", "Neon glitch", "Falling petals", "No effect"]) {
       await page.getByRole("button", { name: new RegExp(label) }).click();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

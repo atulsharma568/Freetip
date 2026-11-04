@@ -8,7 +8,7 @@ import type { PageDoc } from "./types";
 export const FRAME_STYLES = ["none", "flame", "aura", "slash", "foxfire", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
-export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "custom"] as const;
+export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "spider", "storm", "glitch", "petals", "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
@@ -26,6 +26,10 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "slashes", label: "Sweeping slashes" },
   { value: "shimmer", label: "Soft glow sweep" },
   { value: "clutch", label: "Clutch pulse (heartbeat and crosshair lock-on)" },
+  { value: "spider", label: "Spider crawl (a spider scuttles across, another drops on a thread)" },
+  { value: "storm", label: "Storm (drifting fog and lightning)" },
+  { value: "glitch", label: "Neon glitch (scanlines, a sweeping beam and glitch bars)" },
+  { value: "petals", label: "Falling petals" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
 
@@ -36,6 +40,7 @@ export const isBannerFx = (v: unknown): v is BannerFx => typeof v === "string" &
 // the index, never random), so the server's page and the browser's first draw agree.
 export const EMBER_COUNT = 14;
 export const SPARK_COUNT = 6;
+export const PETAL_COUNT = 12;
 
 // A number between 0 and 1 that is always the same for the same index and salt.
 export function steady(index: number, salt: number): number {

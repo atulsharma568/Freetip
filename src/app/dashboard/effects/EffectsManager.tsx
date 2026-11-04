@@ -25,6 +25,10 @@ const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   slashes: { label: "Sweeping slashes", about: "Slashes of light sweep across." },
   shimmer: { label: "Soft glow sweep", about: "A soft glow passes over the banner." },
   clutch: { label: "Clutch pulse", about: "A heartbeat line, a flash and a crosshair that locks on." },
+  spider: { label: "Spider crawl", about: "A spider scuttles along the bottom, another drops on a thread, a web in the corner." },
+  storm: { label: "Storm", about: "Fog drifting across with a lightning flash now and then." },
+  glitch: { label: "Neon glitch", about: "Scanlines, a sweeping beam and glitch bars." },
+  petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
 };
 
 const preset = (style: string): DecorRender => (style === "none" ? null : ({ kind: "preset", style } as DecorRender));
