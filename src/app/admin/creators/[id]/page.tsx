@@ -123,6 +123,15 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
         }
       />
 
+      <nav aria-label="On this page" className="flex flex-wrap gap-2">
+        <a href="#account" className={linkClass}>Account</a>
+        <a href="#plans" className={linkClass}>Plans and features</a>
+        <a href="#money" className={linkClass}>Money</a>
+        <a href="#history" className={linkClass}>History</a>
+      </nav>
+
+      <div id="account" className="scroll-mt-16 space-y-6">
+        <h2 className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-accent after:h-px after:flex-1 after:bg-control">Account</h2>
       <section aria-label="Status and actions" className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={closed ? "closed" : c.creatorStatus} />
@@ -161,42 +170,10 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           </div>
         ))}
       </dl>
+      </div>
 
-      <section className="space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-text">Fee rates</h2>
-          <p className="max-w-2xl text-xs text-muted">
-            What this creator pays out of each tip: our platform fee and the processing charge. By default every creator follows the
-            site rates, which you change for everyone on the{" "}
-            <Link href="/admin/fees" className="underline">
-              Fee rates
-            </Link>{" "}
-            page. Fans always pay exactly the tip.
-          </p>
-        </div>
-        {!ratesRead.ok ? (
-          <CouldNotRead message="Could not read the fee rates. Run migration 0054 in Neon." detail={ratesRead.error} />
-        ) : (
-          <FeeRatesBox
-            key={`${ratesRead.data.site.platformBps}-${ratesRead.data.site.processingBps}-${ratesRead.data.override?.platformBps}-${ratesRead.data.override?.processingBps}`}
-            action={setCreatorFeeRates.bind(null, c.id)}
-            site={ratesRead.data.site}
-            override={ratesRead.data.override}
-            history={
-              feeHistory.ok
-                ? feeHistory.data.map((h) => ({
-                    at: fmtIST(h.at),
-                    from: describeSetting(h.before),
-                    to: describeSetting(h.after),
-                    reason: h.reason,
-                  }))
-                : []
-            }
-          />
-        )}
-      </section>
-
-
+      <div id="plans" className="scroll-mt-16 space-y-6">
+        <h2 className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-accent after:h-px after:flex-1 after:bg-control">Plans and features</h2>
       <section className="space-y-3">
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-text">Plans bought</h2>
@@ -312,25 +289,55 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           />
         )}
       </section>
+      </div>
+
+      <div id="money" className="scroll-mt-16 space-y-6">
+        <h2 className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-accent after:h-px after:flex-1 after:bg-control">Money</h2>
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Fee rates</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            What this creator pays out of each tip: our platform fee and the processing charge. By default every creator follows the
+            site rates, which you change for everyone on the{" "}
+            <Link href="/admin/fees" className="underline">
+              Fee rates
+            </Link>{" "}
+            page. Fans always pay exactly the tip.
+          </p>
+        </div>
+        {!ratesRead.ok ? (
+          <CouldNotRead message="Could not read the fee rates. Run migration 0054 in Neon." detail={ratesRead.error} />
+        ) : (
+          <FeeRatesBox
+            key={`${ratesRead.data.site.platformBps}-${ratesRead.data.site.processingBps}-${ratesRead.data.override?.platformBps}-${ratesRead.data.override?.processingBps}`}
+            action={setCreatorFeeRates.bind(null, c.id)}
+            site={ratesRead.data.site}
+            override={ratesRead.data.override}
+            history={
+              feeHistory.ok
+                ? feeHistory.data.map((h) => ({
+                    at: fmtIST(h.at),
+                    from: describeSetting(h.before),
+                    to: describeSetting(h.after),
+                    reason: h.reason,
+                  }))
+                : []
+            }
+          />
+        )}
+      </section>
 
       <section className="space-y-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold text-text">Latest audit events</h2>
-          <Link href={`/admin/audit?creator=${c.id}`} className="text-xs text-muted underline hover:text-text">
-            See all
-          </Link>
-        </div>
-        {!audit.ok ? (
-          <CouldNotRead message="Could not read the audit history." detail={audit.error} />
-        ) : audit.data.rows.length === 0 ? (
-          <p className="text-sm text-muted">Nothing recorded for this creator yet.</p>
+        <h2 className="text-sm font-semibold text-text">Payouts</h2>
+        {c.payouts.length === 0 ? (
+          <p className="text-sm text-muted">No payout requests yet.</p>
         ) : (
           <ul className="divide-y divide-control rounded-surface border border-control bg-surface text-sm">
-            {audit.data.rows.map((e) => (
-              <li key={e.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
-                <span className="numeric text-text">{e.action}</span>
-                <span className="text-muted">{e.reason ?? ""}</span>
-                <span className="text-muted">{fmtIST(e.at)}</span>
+            {c.payouts.map((p) => (
+              <li key={p.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
+                <span className="numeric text-text">{formatINR(p.amountMinor)}</span>
+                <StatusBadge status={p.status} />
+                <span className="text-muted">{fmtIST(p.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -355,23 +362,34 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           </ul>
         )}
       </section>
+      </div>
 
+      <div id="history" className="scroll-mt-16 space-y-6">
+        <h2 className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.18em] text-accent after:h-px after:flex-1 after:bg-control">History</h2>
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-text">Payouts</h2>
-        {c.payouts.length === 0 ? (
-          <p className="text-sm text-muted">None. The site does not send payouts yet.</p>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-text">Latest audit events</h2>
+          <Link href={`/admin/audit?creator=${c.id}`} className="text-xs text-muted underline hover:text-text">
+            See all
+          </Link>
+        </div>
+        {!audit.ok ? (
+          <CouldNotRead message="Could not read the audit history." detail={audit.error} />
+        ) : audit.data.rows.length === 0 ? (
+          <p className="text-sm text-muted">Nothing recorded for this creator yet.</p>
         ) : (
           <ul className="divide-y divide-control rounded-surface border border-control bg-surface text-sm">
-            {c.payouts.map((p) => (
-              <li key={p.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
-                <span className="numeric text-text">{formatINR(p.amountMinor)}</span>
-                <StatusBadge status={p.status} />
-                <span className="text-muted">{fmtIST(p.createdAt)}</span>
+            {audit.data.rows.map((e) => (
+              <li key={e.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
+                <span className="numeric text-text">{e.action}</span>
+                <span className="text-muted">{e.reason ?? ""}</span>
+                <span className="text-muted">{fmtIST(e.at)}</span>
               </li>
             ))}
           </ul>
         )}
       </section>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, admin creator page grouped under four headings; NO migration)
+
+- **Done, owner chose four headings plus a jump row:** `/admin/creators/<id>` keeps all nine boxes unchanged but orders them as **Account** (status and actions, details), **Plans and features** (Plans bought, Plan orders, Paid features, Custom tip page), **Money** (Fee rates, Payouts, Latest tips) and **History** (audit events), with a row of jump links at the top. Also fixed stale text: the Payouts box said "The site does not send payouts yet", now "No payout requests yet." `tsc` and `eslint` pass; not seen in a browser with a real login.
+- **Next:** the remaining stale admin text (a sweep of `src/app/admin` for "not built" or "not yet" wording).
+
 ## Current state (2026-11-04, admin overview: two new queue lines, "Go to" grid removed; NO migration)
 
 - **Done, owner chose "Remove it":** "Needs you today" now also counts **Alert media to review** (`creator_media.review_state = 'new'`, links to `/admin/media`) and **Tips not yet posted to the books** (live captured tips with no ledger posting, links to `/admin/reconciliation`; `readNotPosted` is now exported). Both also give the sidebar badges. The 19-tile "Go to" grid is gone (the sidebar and Ctrl K cover it). `test/admin-ops.spec.ts` extended: 9 passed; `tsc` and `eslint` pass. Not seen in a browser.
