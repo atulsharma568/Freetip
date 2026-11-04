@@ -291,7 +291,9 @@ How it works:
 
 The books: a request posts debit `creator_payable` and credit `payouts_in_flight`; marking it paid posts debit `payouts_in_flight` and credit `settlement_clearing`; a cancel reverses the request; a reversal of a paid payout reverses both postings (debit `settlement_clearing`, credit `payouts_in_flight`, then debit `payouts_in_flight`, credit `creator_payable`), each once. Every step also writes an Audit log row (`payout.requested`, `payout.paid`, `payout.cancelled`, `payout.reversed`). Migration 0059 adds the `payouts_in_flight` account, the columns that hold the copied UPI ID and the owner's name check, and a rule of one open payout per creator.
 
-Not built: automatic payment through a bank or RazorpayX (needs a business current account and Razorpay's written yes), and a reminder for a request left unpaid (the page shows "Waiting N days" and the sidebar count). The public pages still say payouts follow "a regular schedule" and promise no day; they were not changed.
+7. **Unpaid request nudge (2026-11-04, no migration).** The daily job `/api/cron/payout-reminder` (03:35 UTC, in `vercel.json`, listed on `/admin/health`) emails you while any request has waited **3 days or more**: one email a day listing each reference, amount and days waited (no name, no UPI ID), until each is paid or cancelled. It needs `RESEND_API_KEY` and `CONTACT_NOTIFY_EMAIL`; without them nothing is sent and the request still shows on the page and the sidebar count. Call it by hand like the other crons (`CRON_SECRET` bearer): it answers `OK (nothing waiting)` or `OK (N waiting, email sent)`. The 3 days is `NUDGE_AFTER_DAYS` in `src/lib/payout-notification.ts`.
+
+Not built: automatic payment through a bank or RazorpayX (needs a business current account and Razorpay's written yes). The public pages still say payouts follow "a regular schedule" and promise no day; they were not changed.
 
 ## 8. The owner console (`/admin`)
 

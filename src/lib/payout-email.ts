@@ -1,5 +1,5 @@
 import "server-only";
-import { buildPayoutRequestEmail } from "@/lib/payout-notification";
+import { buildPayoutNudgeEmail, buildPayoutRequestEmail } from "@/lib/payout-notification";
 
 // Emails the owner when a creator requests a payout, through Resend's HTTP API (the same setup as the
 // contact form: RESEND_API_KEY and CONTACT_NOTIFY_EMAIL). Off until those are set. A failed email never
@@ -11,12 +11,21 @@ export async function sendPayoutRequestEmail(o: {
   amountPaise: number;
   firstPayout: boolean;
 }): Promise<"sent" | "off" | "failed"> {
+  return sendToOwner((adminUrl) => buildPayoutRequestEmail({ ...o, adminUrl }));
+}
+
+// The daily nudge about requests that have waited (see payout-reminders.ts).
+export function sendPayoutNudgeEmail(waiting: { payoutId: number; amountPaise: number; waitedDays: number }[]) {
+  return sendToOwner((adminUrl) => buildPayoutNudgeEmail({ waiting, adminUrl }));
+}
+
+async function sendToOwner(build: (adminUrl: string) => { subject: string; text: string }): Promise<"sent" | "off" | "failed"> {
   const key = process.env.RESEND_API_KEY;
   const to = process.env.CONTACT_NOTIFY_EMAIL;
   if (!key || !to) return "off";
 
   const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://freetip.in").replace(/\/+$/, "");
-  const { subject, text } = buildPayoutRequestEmail({ ...o, adminUrl: `${site}/admin/payouts` });
+  const { subject, text } = build(`${site}/admin/payouts`);
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",

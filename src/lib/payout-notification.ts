@@ -27,3 +27,29 @@ export function buildPayoutRequestEmail(o: {
     ].join("\n"),
   };
 }
+
+// A request waiting this many whole days or more is nudged about, once a day, until it is paid or cancelled.
+export const NUDGE_AFTER_DAYS = 3;
+
+// The daily nudge to the owner about payout requests that have waited. References, amounts and days
+// only: no name and no UPI ID, so nothing a creator typed reaches a header or a mailbox.
+export function buildPayoutNudgeEmail(o: {
+  waiting: { payoutId: number; amountPaise: number; waitedDays: number }[];
+  adminUrl: string;
+}) {
+  const total = o.waiting.reduce((sum, w) => sum + w.amountPaise, 0);
+  const n = o.waiting.length;
+  return {
+    subject: `${n} payout ${n === 1 ? "request is" : "requests are"} still waiting: ${formatRupees(total)}`,
+    text: [
+      `${n === 1 ? "A creator has" : `${n} creators have`} been waiting ${NUDGE_AFTER_DAYS} days or more to be paid:`,
+      "",
+      ...o.waiting.map((w) => `${payoutRef(w.payoutId)}: ${formatRupees(w.amountPaise)}, waiting ${w.waitedDays} days`),
+      "",
+      "Pay them, or cancel with a reason if you will not:",
+      o.adminUrl,
+      "",
+      "This email comes once a day while any request is still open this long.",
+    ].join("\n"),
+  };
+}

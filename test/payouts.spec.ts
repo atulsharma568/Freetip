@@ -16,7 +16,8 @@ import {
 import { loadEarningsSummary } from "../src/lib/creator-earnings";
 import { getCreatorBalances } from "../src/lib/admin/balance-queries";
 import { listOpenPayouts, listRecentPayouts } from "../src/lib/admin/payout-queries";
-import { buildPayoutRequestEmail } from "../src/lib/payout-notification";
+import { buildPayoutNudgeEmail, buildPayoutRequestEmail } from "../src/lib/payout-notification";
+import { sendPayoutNudge } from "../src/lib/payout-reminders";
 import { postTipReversal } from "../src/lib/reversal";
 import { getFinanceSummary } from "../src/lib/admin/finance-queries";
 import { getCreatorEarnings } from "../src/lib/admin/creator-queries";
@@ -550,6 +551,59 @@ test.describe("the email to the owner", () => {
     expect(m.text).toContain("(their first payout)");
     expect(m.text).toContain("https://freetip.in/admin/payouts");
     expect(m.text).not.toMatch(/@upi|vpa/i);
+  });
+});
+
+test.describe("the daily nudge about requests left unpaid", () => {
+  test("the email lists references, amounts and days, with no name and no UPI ID", () => {
+    const m = buildPayoutNudgeEmail({
+      waiting: [
+        { payoutId: 7, amountPaise: 60000, waitedDays: 3 },
+        { payoutId: 9, amountPaise: 150000, waitedDays: 5 },
+      ],
+      adminUrl: "https://freetip.in/admin/payouts",
+    });
+    expect(m.subject).toBe("2 payout requests are still waiting: ₹2,100.00");
+    expect(m.text).toContain("FT-7: ₹600.00, waiting 3 days");
+    expect(m.text).toContain("FT-9: ₹1,500.00, waiting 5 days");
+    expect(m.text).toContain("https://freetip.in/admin/payouts");
+    expect(m.text).not.toMatch(/@upi|vpa/i);
+  });
+
+  test("only a request open for 3 days or more is sent, and nothing is sent when none is", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(10) });
+    const r = await requestPayout(db, c, daysAgo(2));
+    expect(r.status).toBe("requested");
+
+    const sent: { payoutId: number; amountPaise: number; waitedDays: number }[][] = [];
+    const send = async (w: (typeof sent)[number]) => {
+      sent.push(w);
+      return "sent" as const;
+    };
+    // Two days: not yet.
+    expect(await sendPayoutNudge(db, send, NOW)).toEqual({ waiting: 0, sent: false, off: false });
+    expect(sent).toHaveLength(0);
+    // Three days: nudged, and again on every later run while it is open.
+    const later = new Date(NOW.getTime() + DAY);
+    expect((await sendPayoutNudge(db, send, later)).sent).toBe(true);
+    expect(sent[0][0].waitedDays).toBe(3);
+    expect((await sendPayoutNudge(db, send, new Date(later.getTime() + DAY))).waiting).toBe(1);
+    // Once it is paid or cancelled the nudges stop.
+    if (r.status === "requested") await cancelPayout(db, r.payoutId, "test");
+    expect((await sendPayoutNudge(db, send, later)).waiting).toBe(0);
+  });
+
+  test("an email that is off is reported, not treated as sent", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(10) });
+    await requestPayout(db, c, daysAgo(5));
+    const r = await sendPayoutNudge(db, async () => "off", NOW);
+    expect(r).toEqual({ waiting: 1, sent: false, off: true });
   });
 });
 

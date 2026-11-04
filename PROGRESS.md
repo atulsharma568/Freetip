@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, unpaid payout nudge built; NO migration, nothing to run)
+
+- **Built:** a daily job `/api/cron/payout-reminder` emails the owner while any payout request has waited 3 days or more (one email a day, references, amounts and days only, no name or UPI ID). No state is kept, so it repeats until each request is paid or cancelled. Code: `buildPayoutNudgeEmail` in `src/lib/payout-notification.ts`, `src/lib/payout-reminders.ts`, `sendPayoutNudgeEmail` in `src/lib/payout-email.ts`, the route, `vercel.json` (03:35 UTC), `/admin/health` entry. Steps in `OPERATIONS.md` 7k item 7; check in `docs/owner-try-list.md`.
+- **Tests:** three new runs in `test/payouts.spec.ts` (email text, 3-day threshold and stop after paid or cancel, email off); type check, lint and build pass.
+- **Not seen:** a real email, the route with the real secret.
+- **Still open:** the "regular schedule" wording on the public pages; a picture on the OBS Pressure meter.
+
 ## Current state (2026-11-04, creator payouts paid by hand are built; run migration 0059 BEFORE the deploy)
 
 - **Owner's decision (2026-11-04):** no provider will split and settle (Razorpay, Cashfree, Easebuzz treated as not answering), so the owner pays creators by hand from their own account; the site does the sums, the waiting, the request, the email and the record. The aggregation risk in `docs/rules-check.md` is unchanged and the owner accepted it. Built.

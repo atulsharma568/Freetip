@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/plan-orders",
       "schedule": "5 18 * * *"
+    },
+    {
+      "path": "/api/cron/payout-reminder",
+      "schedule": "35 3 * * *"
     }
   ]
 }
