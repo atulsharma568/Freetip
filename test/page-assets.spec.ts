@@ -231,7 +231,8 @@ test.describe("reading the picture settings of a stored document", () => {
     const doc = withSettings(withSettings(owner, "backdrop", { style: "media", asset: 5, dim: 65 }), "header", { bannerAsset: 6 });
     const parsed = parsePageDoc(doc)!;
     expect(find(parsed.doc, "backdrop")!.settings).toEqual({ style: "media", asset: 5, dim: 65 });
-    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null });
+    // The owner's page starts with the Clutch pulse banner; picking a banner picture leaves that alone.
+    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, frame: "none", frameAsset: null, bannerFx: "clutch", bannerFxAsset: null });
     expect(usedAssetIds(parsed.doc)).toEqual([5, 6]);
   });
 

@@ -19,6 +19,9 @@ function CustomPicture({ render, className }: { render: Extract<DecorRender, { k
   return <Image src={src} alt="" fill unoptimized sizes="200px" className={className} />;
 }
 
+// The heart-monitor trace of the Clutch pulse banner: flat, two small bumps, then one tall spike.
+const ECG_PATH = "M0 78 H70 l8 -7 l8 7 H128 l6 5 l10 -52 l10 66 l9 -34 l6 15 H236 l10 -9 l10 9 H400";
+
 // The ring over a creator's photo. It is drawn bigger than the photo (like a Discord decoration) and
 // never takes a click. Decoration only: the photo's own description is what a screen reader reads.
 export function PhotoFrame({ render }: { render: DecorRender }) {
@@ -72,6 +75,23 @@ export function BannerEffect({ render }: { render: DecorRender }) {
             }
           />
         ))}
+      {render.style === "clutch" && (
+        <>
+          {/* A heart-monitor line that spikes, and a crosshair that locks on at the spike. The line is
+              drawn in a stretched box with a stroke that keeps its width, so it fits any banner. */}
+          <svg className="bfx-ecg" viewBox="0 0 400 125" preserveAspectRatio="none" focusable="false">
+            <path className="bfx-ecg-trail" pathLength="1" vectorEffect="non-scaling-stroke" d={ECG_PATH} />
+            <path className="bfx-ecg-head" pathLength="1" vectorEffect="non-scaling-stroke" d={ECG_PATH} />
+          </svg>
+          <span className="bfx-flash" />
+          <svg className="bfx-aim" viewBox="0 0 44 44" focusable="false">
+            <circle className="bfx-ping" cx="22" cy="22" r="10" />
+            <circle cx="22" cy="22" r="11" fill="none" strokeWidth="1.6" />
+            <path d="M22 3v9M22 32v9M3 22h9M32 22h9" strokeWidth="2.2" strokeLinecap="round" />
+            <circle cx="22" cy="22" r="1.8" className="bfx-aim-dot" />
+          </svg>
+        </>
+      )}
       {render.style === "slashes" && (
         <>
           <span className="bfx-slash" style={{ "--d": "0s" } as React.CSSProperties} />

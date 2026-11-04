@@ -89,9 +89,9 @@ test.describe("photo frame and banner effect", () => {
 });
 
 test.describe("the owner's own page", () => {
-  test("starts with the flame ring and the rising embers, and no other page does", async () => {
+  test("starts with the Clutch pulse banner and no ring, and no other page has either", async () => {
     const { ownerPageDoc } = await import("../src/lib/page-doc/defaults");
-    expect(header(ownerPageDoc()).settings).toMatchObject({ frame: "flame", bannerFx: "embers" });
+    expect(header(ownerPageDoc()).settings).toMatchObject({ frame: "none", bannerFx: "clutch" });
     expect(header(defaultPageDoc()).settings).toMatchObject({ frame: "none", bannerFx: "none" });
   });
 });

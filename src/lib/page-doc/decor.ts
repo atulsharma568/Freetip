@@ -6,7 +6,7 @@
 export const FRAME_STYLES = ["none", "flame", "aura", "slash", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
-export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "custom"] as const;
+export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
@@ -22,6 +22,7 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "embers", label: "Rising embers" },
   { value: "slashes", label: "Sweeping slashes" },
   { value: "shimmer", label: "Soft glow sweep" },
+  { value: "clutch", label: "Clutch pulse (heartbeat and crosshair lock-on)" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
 

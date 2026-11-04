@@ -37,9 +37,10 @@ export function ownerPageDoc(): PageDoc {
     version: PAGE_DOC_VERSION,
     blocks: [
       make("backdrop", "background"),
-      // A flame ring over the photo and rising embers over the banner, in the page's crimson. They are
-      // only the owner's default: another creator's page starts with neither (see decor.ts).
-      make("header", "side", { frame: "flame", bannerFx: "embers" }),
+      // The "Clutch pulse" banner (a heartbeat line and a crosshair lock-on, in the page's crimson) and
+      // no ring over the photo. They are only the owner's default: another creator's page starts with
+      // neither (see decor.ts).
+      make("header", "side", { frame: "none", bannerFx: "clutch" }),
       make("creatorLinks", "side", { tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" }),
       make("alertPreview", "side"),
       make("qr", "side"),
