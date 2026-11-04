@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, migration 0057 run by the owner; docs only)
+
+- **Done (owner):** `0057_plan_order_hardening.sql` is run in Neon, so the PayU code pushed earlier today (plan order hardening, `plan_orders.checked_at`) has its database columns and the paid-plans page and `/admin/plan-orders` can read them. Migrations 0055, 0056, 0057 and 0058 are now all run; nothing is left to run for the code on `main`.
+- **Still waiting on the owner:** the Razorpay and Cashfree replies on splitting payments; a look at `/admin/fees` for an older saved rate pair (a saved pair overrides the new 5% + 3% standard); the new checks in `docs/owner-try-list.md`.
+
 ## Current state (2026-11-04, decisions of the payment-structure talk, saved; docs only)
 
 - **Fee (owner):** 8% in all, kept as a 5% Freetip fee plus a 3% processing charge; no comparing with competitors for now, because many features are free here. Built and pushed (see the entry below).
