@@ -121,8 +121,10 @@ test.describe("the preview frame in a browser", () => {
     await expect(frame.getByRole("heading", { name: "Send", level: 2 })).toBeVisible();
     await frame.getByRole("heading", { name: "Your note", level: 2 }).click();
     await frame.locator('a[href*="instagram.com"]').click();
-    const picked = await page.evaluate(() => (window as unknown as { picked: string[] }).picked);
-    expect(picked).toEqual(["note", "creatorLinks"]);
+    // The frame's messages reach the parent a moment after the click, so wait for them.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { picked: string[] }).picked))
+      .toEqual(["note", "creatorLinks"]);
     // The link was not followed.
     await expect(frame.getByRole("heading", { name: "Send", level: 2 })).toBeVisible();
   });
