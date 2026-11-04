@@ -6,7 +6,8 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 - **Done; NO migration, nothing to run.** `src/app/dashboard/DashboardNav.tsx` now groups pages the way the alert pages already did: **Sounds and media** (Sounds, Media, Pinned) and **Tip page** (Picks, Automatic tiers, Banner). Each page keeps its own switch; a group's menu link opens its first page that is switched on, and a second row of tabs shows when two or more are on. No page file changed (the nav draws the second row itself). The Tip page entry is hidden when none of its three switches is on; Sounds and media always shows. "Tip page picks" is now called "Picks" inside the group, and the old "Media" and "Banner" menu names are tab names.
 - **Verified:** `tsc`, `eslint`, `npm run build`; no test used the old link names. **Not seen in a browser** (the Playwright browser would not download here): the second tab row on a phone and the lime pill moving between groups.
-- **Still open from the polish list:** names that do not match between menu and page headings (check the headings of Rules, Variations, Sounds, Media against the new labels), unsaved-edit warnings on the alert studio forms, native radios.
+- **Names checked :** every tab label sits inside its page heading (Picks in "Tip page picks", Media in "Alert media", Pinned in "Pinned messages", Banner in "Tip page banner", Layout in "Alert volume and layout"); the menu link "Timestamps" is now "Stream timestamps" to match its page. The group names Look and Words and motion stay (they cover two pages each).
+- **Still open from the polish list:** unsaved-edit warnings on the alert studio forms, native radios.
 
 ## Current state (2026-11-04, where AcePressure's page builder stands; summary only, no code changed)
 
