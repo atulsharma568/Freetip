@@ -23,7 +23,7 @@ export async function load<T>(what: string, read: () => Promise<T>): Promise<Loa
 }
 
 // What the owner reads on a page when a read fails.
-export const COULD_NOT_READ = "Could not read this data. Has migration 0023 been run?";
+export const COULD_NOT_READ = "Could not read this data. The database's own message is below; a migration that has not been run yet is the usual cause.";
 
 // A signed amount of paise as rupees. A negative amount keeps its minus sign: a
 // creator who is owed less than nothing must be visible, never rounded up to zero.

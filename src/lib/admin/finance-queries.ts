@@ -224,7 +224,17 @@ export function getTurnover(db: LedgerDb, year: DateRange): Promise<Loaded<Turno
       `;
       planSalesMinor = toWhole(sales?.sold ?? "0");
     } catch (err) {
-      if ((err as { code?: string }).code !== "42P01") throw err;
+      const code = (err as { code?: string }).code;
+      if (code === "42703") {
+        // Migration 0057 (the ended_at column) is not run yet, so no plan can have been ended early:
+        // count every paid live order. The page keeps working until the migration is run.
+        const [sales] = await db<{ sold: string }[]>`
+          select coalesce(sum(amount_minor), 0)::text as sold from plan_orders
+           where status = 'paid' and livemode
+             and paid_at >= ${from}::timestamptz and paid_at < ${to}::timestamptz
+        `;
+        planSalesMinor = toWhole(sales?.sold ?? "0");
+      } else if (code !== "42P01") throw err;
     }
     const grossTipsMinor = toWhole(tipRows[0]?.gross ?? "0");
     const feesMinor = toWhole(feeRows[0]?.fees ?? "0") + planSalesMinor;
