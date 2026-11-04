@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { checkHandle, claimHandle, renameHandle } from "../src/lib/handle";
+import { checkUpi } from "../src/lib/upi";
 import { closeCreatorAccount } from "../src/lib/account-close";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
 
@@ -206,4 +207,32 @@ test("closing an account erases its handle requests", async () => {
   await requestHandleChange(db, a.googleId, "leaving2");
   await closeCreatorAccount(db, a.id, { role: "creator", userId: a.id });
   expect((await pg.query(`select 1 from handle_requests`)).rows).toHaveLength(0);
+});
+
+test("checkUpi lower-cases and trims a valid UPI ID, and rejects anything else", () => {
+  expect(checkUpi("  Riya@OKAxis ")).toEqual({ ok: true, upiVpa: "riya@okaxis" });
+  expect(checkUpi("9876543210@paytm").ok).toBe(true);
+  expect(checkUpi("").ok).toBe(false);
+  expect(checkUpi("riya").ok).toBe(false);
+  expect(checkUpi("ab@upi").ok).toBe(false);
+  expect(checkUpi("riya@u1").ok).toBe(false);
+});
+
+test("a claim with a UPI ID saves both together; without one it saves only the handle", async () => {
+  const pg = await freshDatabase();
+  const db = asLedgerDb(pg);
+  const a = await creator(pg);
+  const b = await creator(pg);
+  const upiOf = async (id: number) =>
+    (await pg.query<{ upi_vpa: string | null }>(`select upi_vpa from users where id = $1`, [id])).rows[0].upi_vpa;
+
+  expect(await claimHandle(db, a.googleId, "withupi", "riya@okaxis")).toEqual({ status: "ok", handle: "withupi" });
+  expect(await upiOf(a.id)).toBe("riya@okaxis");
+  expect(await claimHandle(db, b.googleId, "noupi")).toEqual({ status: "ok", handle: "noupi" });
+  expect(await upiOf(b.id)).toBeNull();
+
+  // A refused claim must not write the UPI ID.
+  const c = await creator(pg);
+  expect(await claimHandle(db, c.googleId, "withupi", "other@okaxis")).toEqual({ status: "taken" });
+  expect(await upiOf(c.id)).toBeNull();
 });

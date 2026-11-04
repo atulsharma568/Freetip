@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { getDb } from "@/lib/db";
 import { HANDLE_MESSAGE, checkHandle, claimHandle } from "@/lib/handle";
+import { checkUpi } from "@/lib/upi";
 import { REQUEST_MESSAGE, requestHandleChange } from "@/lib/handle-requests";
 import { ALERT_MODES, type AlertMode } from "@/lib/alerts";
 import { MAX_BANNED_LIST_CHARS, parseBannedWords } from "@/lib/message-filter";
@@ -35,6 +36,10 @@ export async function setHandle(
   const check = checkHandle(String(form.get("handle") ?? ""));
   if (!check.ok) return { status: "error", message: check.message };
 
+  // The UPI ID is required with the handle, so every new page has a payout address.
+  const upi = checkUpi(String(form.get("upi_vpa") ?? ""));
+  if (!upi.ok) return { status: "error", message: upi.message };
+
   const db = getDb();
   if (!db) return { status: "error", message: "Database unavailable — try again shortly" };
 
@@ -43,7 +48,7 @@ export async function setHandle(
 
   let result;
   try {
-    result = await claimHandle(db as unknown as LedgerDb, googleId, check.handle);
+    result = await claimHandle(db as unknown as LedgerDb, googleId, check.handle, upi.upiVpa);
   } catch (err: unknown) {
     // Two claims for one name at once: the unique index on users.handle decides.
     if (err instanceof Error && err.message.toLowerCase().includes("unique")) {
@@ -93,9 +98,6 @@ export async function requestMyHandleChange(
 
 // ── Payout onboarding ────────────────────────────────────────────────────────
 
-// UPI VPA format: 3+ chars, @, 3+ alpha bank handle. e.g. 9876543210@paytm
-const UPI_VPA_PATTERN = /^[a-zA-Z0-9._-]{3,}@[a-zA-Z]{3,}$/;
-
 export type PayoutState =
   | { status: "idle" }
   | { status: "error"; message: string }
@@ -110,14 +112,13 @@ export async function submitPayoutDetails(
   if (!session?.user) redirect("/signin");
 
   const legalName = String(form.get("legal_name") ?? "").trim().slice(0, 100);
-  const upiVpa = String(form.get("upi_vpa") ?? "").trim().toLowerCase();
 
   if (!legalName) {
     return { status: "error", message: "Legal name is required" };
   }
-  if (!UPI_VPA_PATTERN.test(upiVpa)) {
-    return { status: "error", message: "Enter a valid UPI ID, e.g. name@upi" };
-  }
+  const upi = checkUpi(String(form.get("upi_vpa") ?? ""));
+  if (!upi.ok) return { status: "error", message: upi.message };
+  const upiVpa = upi.upiVpa;
 
   const db = getDb();
   if (!db) return { status: "error", message: "Database unavailable — try again shortly" };

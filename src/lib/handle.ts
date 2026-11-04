@@ -41,7 +41,13 @@ export type HandleResult =
 
 // The first claim. Fails when the creator already has a handle or the name is in use
 // now or was given up by someone.
-export async function claimHandle(db: LedgerDb, googleId: string, handle: string): Promise<HandleResult> {
+// The UPI ID, when given, is saved in the same step (already checked by checkUpi).
+export async function claimHandle(
+  db: LedgerDb,
+  googleId: string,
+  handle: string,
+  upiVpa: string | null = null,
+): Promise<HandleResult> {
   return db.begin(async (tx): Promise<HandleResult> => {
     await tx`select pg_advisory_xact_lock(hashtext('freetip.handle'))`;
     const users = await tx<{ id: string; handle: string | null }[]>`
@@ -51,7 +57,11 @@ export async function claimHandle(db: LedgerDb, googleId: string, handle: string
     if (users[0].handle) return { status: "already_set" };
 
     if (await isUsed(tx, handle)) return { status: "taken" };
-    await tx`update users set handle = ${handle} where id = ${Number(users[0].id)}`;
+    if (upiVpa) {
+      await tx`update users set handle = ${handle}, upi_vpa = ${upiVpa} where id = ${Number(users[0].id)}`;
+    } else {
+      await tx`update users set handle = ${handle} where id = ${Number(users[0].id)}`;
+    }
     return { status: "ok", handle };
   });
 }

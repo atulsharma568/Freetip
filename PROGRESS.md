@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, UPI ID asked together with the handle; NO migration)
+
+- **Built, owner's request:** the "Claim your link" form now also asks for the UPI ID, required, and the handle and UPI ID are saved in one step (`src/lib/upi.ts`, `claimHandle` takes the UPI ID, `setHandle` checks it). The format check moved to `checkUpi` and is shared with the payout card, which is now prefilled with it. The payout card still asks the legal name and the owner still approves before the page goes live, so a page was never live without a UPI ID; creators who claimed earlier are unchanged (they fill the payout card as before).
+- **Verified:** `tsc`, `eslint`, `test/handle.spec.ts` and `test/payouts.spec.ts` (40 passed, 2 new tests: the format check, and a claim saves both together or neither).
+- **Not seen:** the form in a browser.
+- **Open (owner):** whether the 60-day hold on a new creator's non-UPI tips is too long (it never applies to UPI tips, which wait 1 day).
+
 ## Current state (2026-11-04, payout schedule wording removed from public pages; NO migration)
 
 - **Done, owner's decision:** the public pages no longer say payouts follow "a regular schedule" (terms, delivery, FAQ, `docs/hindi-copy.md` rows). They still promise no particular day. The 5% fee plus processing charge wording is unchanged (owner: fine as is). Type check and lint pass.
