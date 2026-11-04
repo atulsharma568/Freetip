@@ -4,8 +4,6 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { SITE_HOST, SITE_NAME } from "@/lib/site";
-import type { Query } from "@/lib/accrual";
-import { estimateNote, getCreatorRates } from "@/lib/fee-rates";
 import {
   EXPORT_MAX_ROWS,
   TIP_RANGES,
@@ -59,8 +57,6 @@ export default async function TipsPage({
 
   const query = parseTipsQuery(await searchParams);
   const { tips, hasMore } = await loadTips(user.id, query);
-  // Wording only; each tip's own saved rates are what the amounts above use.
-  const rates = (await getCreatorRates(db as unknown as Query, user.id).catch(() => null))?.effective;
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
@@ -126,9 +122,6 @@ export default async function TipsPage({
                   <time dateTime={t.capturedAt.toISOString()}>
                     {dateFormat.format(t.capturedAt)}
                   </time>
-                  <span className="numeric">
-                    You&apos;d keep about {formatRupees(t.sharePaise)}
-                  </span>
                 </p>
                 {t.message && <p className="break-words text-base text-text">{t.message}</p>}
                 {t.rejected && (
@@ -187,8 +180,11 @@ export default async function TipsPage({
         )}
 
         <p className="text-sm text-muted">
-          Only paid tips are listed. The amount you&apos;d keep is an estimate
-          {rates ? ` (${estimateNote(rates)}; a tip keeps the rates it was made under)` : ""}.
+          Only paid tips are listed. What you keep from each tip, and your balance, are in{" "}
+          <Link href="/dashboard/earnings" className="underline underline-offset-2 hover:text-text">
+            Earnings
+          </Link>
+          .
         </p>
       </div>
     </DashboardShell>
