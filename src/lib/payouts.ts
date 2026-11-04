@@ -256,3 +256,83 @@ export async function cancelPayout(db: LedgerDb, payoutId: number, reason: strin
     return { status: "cancelled" };
   });
 }
+
+export type ReverseResult =
+  | { status: "reversed" }
+  | { status: "already" }
+  | { status: "refused"; reason: "missing" | "not_paid" | "no_reason" };
+
+export const MIN_REVERSAL_REASON = 3;
+
+// Takes back a payout that was marked paid but did not reach the creator (the bank returned the
+// transfer, the UTR was typed against the wrong request, the money went to the wrong person and the
+// owner will pay again). The money goes back on the creator's balance and the payout is kept as
+// 'failed' with the reason; its UTR stays on the row so the same transfer cannot be recorded twice.
+// Both original postings are reversed once, mirror image, in one transaction:
+//   paid     (reversed)  debit settlement_clearing  credit payouts_in_flight
+//   request  (reversed)  debit payouts_in_flight    credit creator_payable
+// The unique reversal index (migration 0023) means neither posting can be reversed twice. It needs no
+// migration: 'failed' and failure_reason were already on the table. Nothing here sends money.
+export async function reversePayout(db: LedgerDb, payoutId: number, reason: unknown): Promise<ReverseResult> {
+  const why = typeof reason === "string" ? reason.trim().slice(0, 300) : "";
+  if (why.length < MIN_REVERSAL_REASON) return { status: "refused", reason: "no_reason" };
+
+  return db.begin(async (tx): Promise<ReverseResult> => {
+    const [p] = await tx<
+      { creator_id: string; amount_minor: string; status: string; provider_transfer_ref: string | null; completed_at: Date | null }[]
+    >`
+      select creator_id::text, amount_minor::text, status, provider_transfer_ref, completed_at
+        from creator_payouts where id = ${payoutId} for update
+    `;
+    if (!p) return { status: "refused", reason: "missing" };
+    if (p.status === "failed") return { status: "already" };
+    if (p.status !== "completed") return { status: "refused", reason: "not_paid" };
+
+    const postings = await tx<{ id: string; idempotency_key: string }[]>`
+      select id::text, idempotency_key from ledger_transactions
+       where idempotency_key in (${`payout:${payoutId}:request`}, ${`payout:${payoutId}:paid`})
+    `;
+    const request = postings.find((x) => x.idempotency_key === `payout:${payoutId}:request`);
+    const paid = postings.find((x) => x.idempotency_key === `payout:${payoutId}:paid`);
+    if (!request || !paid) throw new Error(`Payout ${payoutId} is missing a posting to reverse`);
+
+    const creatorId = Number(p.creator_id);
+    const amount = Number(p.amount_minor);
+    await tx`
+      update creator_payouts
+         set status = 'failed', completed_at = null, failed_at = now(), failure_reason = ${why}::text
+       where id = ${payoutId}
+    `;
+    await postLines(tx, {
+      key: `payout:${payoutId}:paid_reversed`,
+      eventType: "payout_paid_reversed",
+      payoutId,
+      creatorId,
+      amountPaise: amount,
+      debit: "settlement_clearing",
+      credit: "payouts_in_flight",
+      reversalOf: paid.id,
+      memo: "Payout marked paid was reversed",
+    });
+    await postLines(tx, {
+      key: `payout:${payoutId}:request_reversed`,
+      eventType: "payout_request_reversed",
+      payoutId,
+      creatorId,
+      amountPaise: amount,
+      debit: "payouts_in_flight",
+      credit: "creator_payable",
+      reversalOf: request.id,
+      memo: "Payout request returned to the creator's balance after a reversal",
+    });
+    await audit(
+      tx,
+      { role: "owner", userId: null },
+      "payout.reversed",
+      payoutId,
+      { amount_minor: amount, utr: p.provider_transfer_ref, paid_at: p.completed_at?.toISOString() ?? null },
+      why,
+    );
+    return { status: "reversed" };
+  });
+}

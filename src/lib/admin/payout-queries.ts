@@ -20,8 +20,11 @@ export interface PayoutAdminRow {
   // Whole days since the request was made (0 for one made today).
   waitedDays: number;
   completedAt: Date | null;
+  // When a payout was cancelled or reversed.
+  failedAt: Date | null;
   utr: string | null;
   firstPayout: boolean;
+  // Why a payout was cancelled, or reversed after it was marked paid.
   cancelReason: string | null;
 }
 
@@ -52,6 +55,7 @@ type RawRow = {
   status: string;
   requested_at: Date | null;
   completed_at: Date | null;
+  failed_at: Date | null;
   utr: string | null;
   first_payout: boolean;
   cancel_reason: string | null;
@@ -71,6 +75,7 @@ const toRow = (r: RawRow, now: Date): PayoutAdminRow => ({
   requestedAt: r.requested_at,
   waitedDays: r.requested_at ? Math.max(0, Math.floor((now.getTime() - r.requested_at.getTime()) / DAY_MS)) : 0,
   completedAt: r.completed_at,
+  failedAt: r.failed_at,
   utr: r.utr,
   firstPayout: r.first_payout,
   cancelReason: r.cancel_reason,
@@ -82,8 +87,8 @@ export function listOpenPayouts(db: LedgerDb, now = new Date()): Promise<Loaded<
     const raw = await db<RawRow[]>`
       select p.id::text as id, p.creator_id::text as creator_id, u.name, u.handle, p.upi_vpa,
              u.upi_vpa as current_upi, p.amount_minor::text as amount_minor, p.status,
-             coalesce(p.requested_at, p.created_at) as requested_at, p.completed_at,
-             p.provider_transfer_ref as utr, p.first_payout, p.cancel_reason
+             coalesce(p.requested_at, p.created_at) as requested_at, p.completed_at, p.failed_at,
+             p.provider_transfer_ref as utr, p.first_payout, coalesce(p.cancel_reason, p.failure_reason) as cancel_reason
         from creator_payouts p
         join users u on u.id = p.creator_id
        where p.status in ('initiated', 'in_transit')
@@ -101,12 +106,12 @@ export function listRecentPayouts(db: LedgerDb, limit = 30, now = new Date()): P
     const raw = await db<RawRow[]>`
       select p.id::text as id, p.creator_id::text as creator_id, u.name, u.handle, p.upi_vpa,
              u.upi_vpa as current_upi, p.amount_minor::text as amount_minor, p.status,
-             coalesce(p.requested_at, p.created_at) as requested_at, p.completed_at,
-             p.provider_transfer_ref as utr, p.first_payout, p.cancel_reason
+             coalesce(p.requested_at, p.created_at) as requested_at, p.completed_at, p.failed_at,
+             p.provider_transfer_ref as utr, p.first_payout, coalesce(p.cancel_reason, p.failure_reason) as cancel_reason
         from creator_payouts p
         join users u on u.id = p.creator_id
        where p.status not in ('initiated', 'in_transit')
-       order by coalesce(p.completed_at, p.failed_at, p.created_at) desc, p.id desc
+       order by coalesce(p.failed_at, p.completed_at, p.created_at) desc, p.id desc
        limit ${limit}
     `;
     return raw.map((r) => toRow(r, now));

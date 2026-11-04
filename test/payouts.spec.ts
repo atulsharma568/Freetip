@@ -11,6 +11,7 @@ import {
   checkUtr,
   markPayoutPaid,
   requestPayout,
+  reversePayout,
 } from "../src/lib/payouts";
 import { loadEarningsSummary } from "../src/lib/creator-earnings";
 import { getCreatorBalances } from "../src/lib/admin/balance-queries";
@@ -308,6 +309,133 @@ test.describe("cancelling a payout request", () => {
     await markPayoutPaid(db, r.payoutId, { utr: "412345678901", nameMatched: true });
     expect(await cancelPayout(db, r.payoutId, null)).toEqual({ status: "refused", reason: "not_open" });
     expect(await cancelPayout(db, 424242, null)).toEqual({ status: "refused", reason: "missing" });
+  });
+});
+
+test.describe("reversing a payout that was marked paid", () => {
+  const snapshot = async (pg: PGlite) =>
+    (
+      await pg.query<{ code: string; b: string }>(
+        `select a.code, coalesce(sum(e.credit_minor - e.debit_minor), 0)::text as b
+           from ledger_accounts a left join ledger_entries e on e.account_id = a.id
+          group by a.code order by a.code`,
+      )
+    ).rows;
+
+  async function paid(pg: PGlite) {
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const share = await tip(pg, c, { gross: 100000, capturedAt: daysAgo(3) });
+    const before = await snapshot(pg);
+    const r = await requestPayout(db, c, NOW);
+    if (r.status !== "requested") throw new Error("not requested");
+    expect(await markPayoutPaid(db, r.payoutId, { utr: "412345678901", nameMatched: true })).toEqual({ status: "paid" });
+    return { db, c, share, id: r.payoutId, before };
+  }
+
+  test("puts the money back on the balance, keeps the record, and the books return to where they were", async () => {
+    const pg = await freshDatabase();
+    const { db, c, share, id, before } = await paid(pg);
+    expect((await loadEarningsSummary(db, c, NOW)).paidOutPaise).toBe(share);
+
+    expect(await reversePayout(db, id, "  bank returned the transfer  ")).toEqual({ status: "reversed" });
+
+    expect(await payoutRow(pg, id)).toMatchObject({
+      status: "failed",
+      completed_at: null,
+      failure_reason: "bank returned the transfer",
+      provider_transfer_ref: "412345678901",
+    });
+    // Every account is exactly as before the request: nothing is lost or counted twice.
+    expect(await snapshot(pg)).toEqual(before);
+
+    const s = await loadEarningsSummary(db, c, NOW);
+    expect(s.balancePaise).toBe(share);
+    expect(s.availablePaise).toBe(share);
+    expect(s.paidOutPaise).toBe(0);
+    expect(s.hasCompletedPayout).toBe(false);
+
+    // Each original posting is reversed once, by its mirror.
+    const rev = await pg.query<{ key: string; reversal_of: string; original: string }>(
+      `select r.idempotency_key as key, r.reversal_of::text, o.idempotency_key as original
+         from ledger_transactions r join ledger_transactions o on o.id = r.reversal_of
+        where r.source_type = 'creator_payout' and r.source_ref = $1 order by r.id`,
+      [String(id)],
+    );
+    expect(rev.rows.map((x) => [x.key, x.original])).toEqual([
+      [`payout:${id}:paid_reversed`, `payout:${id}:paid`],
+      [`payout:${id}:request_reversed`, `payout:${id}:request`],
+    ]);
+
+    const audit = await pg.query(
+      `select actor_role, action, reason from audit_events where entity_type = 'creator_payout' and action = 'payout.reversed'`,
+    );
+    expect(audit.rows).toEqual([{ actor_role: "owner", action: "payout.reversed", reason: "bank returned the transfer" }]);
+  });
+
+  test("a second reversal changes nothing, and the creator can ask again", async () => {
+    const pg = await freshDatabase();
+    const { db, c, share, id } = await paid(pg);
+    await reversePayout(db, id, "wrong person");
+    const txns = async () =>
+      (await pg.query(`select count(*)::int as n from ledger_transactions where source_type = 'creator_payout'`)).rows[0];
+
+    const after = await txns();
+    expect(await reversePayout(db, id, "again")).toEqual({ status: "already" });
+    expect(await txns()).toEqual(after);
+
+    expect(await requestPayout(db, c, NOW)).toMatchObject({ status: "requested", amountPaise: share, firstPayout: true });
+    // The reversed payout's UTR stays reserved: the same transfer is not recorded against the new request.
+    const again = await pg.query<{ id: string }>(`select id::text from creator_payouts where status = 'initiated'`);
+    expect(await markPayoutPaid(db, Number(again.rows[0].id), { utr: "412345678901", nameMatched: true })).toEqual({
+      status: "refused",
+      reason: "utr_used",
+    });
+  });
+
+  test("needs a reason, and only a payout marked paid can be reversed", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(3) });
+    const r = await requestPayout(db, c, NOW);
+    if (r.status !== "requested") throw new Error("not requested");
+
+    // Still waiting: it is cancelled, not reversed.
+    expect(await reversePayout(db, r.payoutId, "not paid yet")).toEqual({ status: "refused", reason: "not_paid" });
+    await cancelPayout(db, r.payoutId, "wrong UPI ID");
+    expect(await reversePayout(db, r.payoutId, "cancelled one")).toEqual({ status: "refused", reason: "not_paid" });
+    expect(await reversePayout(db, 424242, "missing one")).toEqual({ status: "refused", reason: "missing" });
+
+    const pg2 = await freshDatabase();
+    const b = await paid(pg2);
+    for (const bad of [undefined, null, 42, "", "  ", "ab"]) {
+      expect(await reversePayout(b.db, b.id, bad)).toEqual({ status: "refused", reason: "no_reason" });
+    }
+    expect((await payoutRow(pg2, b.id)).status).toBe("completed");
+  });
+
+  test("shows in the owner's recent list as reversed, with the reason, and no longer counts as paid out", async () => {
+    const pg = await freshDatabase();
+    const { db, c, id } = await paid(pg);
+    await reversePayout(db, id, "bank returned the transfer");
+
+    const recent = await listRecentPayouts(db);
+    if (!recent.ok) throw new Error(recent.error);
+    expect(recent.data[0]).toMatchObject({
+      id,
+      status: "failed",
+      utr: "412345678901",
+      cancelReason: "bank returned the transfer",
+      completedAt: null,
+    });
+    expect(recent.data[0].failedAt).toBeInstanceOf(Date);
+
+    // Asking again shows the creator's totals with nothing paid out.
+    await requestPayout(db, c, NOW);
+    const open = await listOpenPayouts(db);
+    if (!open.ok) throw new Error(open.error);
+    expect(open.data.totals.get(c)?.paidOutMinor).toBe(0);
   });
 });
 

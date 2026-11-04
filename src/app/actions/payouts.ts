@@ -8,7 +8,7 @@ import { requireOwner } from "@/lib/owner-auth";
 import type { LedgerDb } from "@/lib/accrual";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { formatRupees } from "@/lib/earnings";
-import { REFUSAL_WORDS, cancelPayout, markPayoutPaid, requestPayout } from "@/lib/payouts";
+import { REFUSAL_WORDS, cancelPayout, markPayoutPaid, requestPayout, reversePayout } from "@/lib/payouts";
 import { sendPayoutRequestEmail } from "@/lib/payout-email";
 
 // A creator asks for a payout and the owner pays it by hand and records the UTR (see payouts.ts for the
@@ -119,6 +119,36 @@ export async function cancelPayoutAction(
     return ok(result.status === "already" ? "Already cancelled." : "Cancelled. The money is back on the creator's balance.");
   } catch (err) {
     console.error("Payout: could not cancel a request", err);
+    return fail("Could not save. The server log has the reason.");
+  }
+}
+
+// A payout marked paid did not reach the creator (the bank sent it back, a wrong UTR, a wrong person):
+// it goes back on the creator's balance and stays on record as reversed, with the reason.
+export async function reversePayoutAction(
+  payoutId: number,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(payoutId)) return fail("That payout is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  try {
+    const result = await reversePayout(db as unknown as LedgerDb, payoutId, formData.get("reason"));
+    if (result.status === "refused") {
+      return fail(
+        {
+          missing: "That payout was not found.",
+          not_paid: "Only a payout marked as paid can be reversed.",
+          no_reason: "Write a short reason (at least 3 letters). It is kept in the audit history.",
+        }[result.reason],
+      );
+    }
+    refresh();
+    return ok(result.status === "already" ? "Already reversed." : "Reversed. The money is back on the creator's balance.");
+  } catch (err) {
+    console.error("Payout: could not reverse a payout", err);
     return fail("Could not save. The server log has the reason.");
   }
 }

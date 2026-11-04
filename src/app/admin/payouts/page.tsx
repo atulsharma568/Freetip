@@ -15,11 +15,13 @@ import { formatINR } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireOwner } from "@/lib/owner-auth";
 import { payoutRef } from "@/lib/payouts";
-import { cancelPayoutAction, markPayoutPaidAction } from "@/app/actions/payouts";
+import { cancelPayoutAction, markPayoutPaidAction, reversePayoutAction } from "@/app/actions/payouts";
 import { CouldNotRead, DefinitionNote, DatabaseNotSetUp } from "../_components/Notices";
 import { MarkPaidForm } from "./MarkPaidForm";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_LABEL: Record<string, string> = { completed: "Paid", cancelled: "Cancelled", failed: "Reversed" };
 
 export default async function PayoutsPage() {
   await requireOwner();
@@ -35,7 +37,10 @@ export default async function PayoutsPage() {
           A creator asks for what is available (at least ₹500; tips are available a day after a UPI
           payment). You pay it from your own bank or UPI app to the UPI ID shown, then enter the UTR
           here and tick that the name matched. Nothing is sent from this site. Cancel a request you will
-          not pay (a wrong UPI ID, say) and the money goes back on the creator&apos;s balance.
+          not pay (a wrong UPI ID, say) and the money goes back on the creator&apos;s balance. If a payout
+          you marked as paid did not arrive (the bank sent it back, or the UTR was for the wrong
+          person), Reverse it in the list below: the money goes back on the balance and the payout
+          stays on record as reversed.
         </DefinitionNote>
       </div>
 
@@ -159,7 +164,7 @@ function Recent({ rows }: { rows: Awaited<ReturnType<typeof listRecentPayouts>> 
   return (
     <section aria-labelledby="recent-title" className="space-y-3">
       <h2 id="recent-title" className="text-lg font-semibold text-text">
-        Paid and cancelled
+        Paid, cancelled and reversed
       </h2>
       <div className="overflow-x-auto rounded-surface border border-control">
         <table className="w-full text-sm">
@@ -171,6 +176,9 @@ function Recent({ rows }: { rows: Awaited<ReturnType<typeof listRecentPayouts>> 
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted">Status</th>
               <th scope="col" className="px-4 py-3 text-left font-medium text-muted">UTR or reason</th>
               <th scope="col" className="px-4 py-3 text-right font-medium text-muted">When (IST)</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-muted">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-control bg-surface">
@@ -186,11 +194,32 @@ function Recent({ rows }: { rows: Awaited<ReturnType<typeof listRecentPayouts>> 
                 <td className="numeric px-4 py-3 text-right text-text">{formatINR(r.amountMinor)}</td>
                 <td className="px-4 py-3 text-xs">
                   <span className={`rounded-full px-2 py-0.5 font-medium ${TONE_BADGE[toneOf(r.status)]}`}>
-                    {r.status === "completed" ? "Paid" : r.status === "cancelled" ? "Cancelled" : r.status}
+                    {STATUS_LABEL[r.status] ?? r.status}
                   </span>
                 </td>
-                <td className="numeric break-all px-4 py-3 text-muted">{r.status === "completed" ? r.utr ?? "—" : r.cancelReason ?? "—"}</td>
-                <td className="px-4 py-3 text-right text-muted">{fmtIST(r.completedAt ?? r.requestedAt, "short")}</td>
+                <td className="numeric break-all px-4 py-3 text-muted">
+                  {r.status === "completed"
+                    ? r.utr ?? "—"
+                    : r.status === "failed"
+                      ? [r.utr, r.cancelReason].filter(Boolean).join(" · ") || "—"
+                      : r.cancelReason ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-right text-muted">
+                  {fmtIST(r.completedAt ?? r.failedAt ?? r.requestedAt, "short")}
+                </td>
+                <td className="px-4 py-3 align-top">
+                  {r.status === "completed" && (
+                    <ConfirmAction
+                      action={reversePayoutAction.bind(null, r.id)}
+                      label="Reverse"
+                      description="Use this only if the money did not reach the creator. It goes back on their balance, this payout is kept as reversed, and they can ask again."
+                      confirmLabel="Reverse payout"
+                      pendingLabel="Reversing…"
+                      askReason
+                      reasonRequired
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

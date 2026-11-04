@@ -21,6 +21,7 @@ export function ConfirmAction({
   size = "sm",
   typeToConfirm,
   askReason = false,
+  reasonRequired = false,
   hidden,
   disabled = false,
 }: {
@@ -33,6 +34,8 @@ export function ConfirmAction({
   size?: ButtonSize;
   typeToConfirm?: string;
   askReason?: boolean;
+  // The reason box must be filled in (the server checks it too).
+  reasonRequired?: boolean;
   hidden?: Record<string, string>;
   // The first button cannot be pressed (for example while the form above it is not valid).
   disabled?: boolean;
@@ -93,8 +96,8 @@ export function ConfirmAction({
           )}
           {askReason && (
             <label className="block space-y-1 text-xs text-muted">
-              Reason (optional, kept in the audit history)
-              <input name="reason" maxLength={300} className={`${FIELD_CLASS} block w-full`} />
+              {reasonRequired ? "Reason (required, kept in the audit history)" : "Reason (optional, kept in the audit history)"}
+              <input name="reason" maxLength={300} required={reasonRequired} className={`${FIELD_CLASS} block w-full`} />
             </label>
           )}
           <div className="flex flex-wrap gap-2">

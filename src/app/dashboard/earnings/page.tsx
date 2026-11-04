@@ -41,7 +41,7 @@ const PAYOUT_WORDS: Record<string, string> = {
   initiated: "Requested, waiting to be paid",
   in_transit: "On its way",
   completed: "Paid",
-  failed: "Failed",
+  failed: "Returned to your balance",
   cancelled: "Cancelled",
 };
 
