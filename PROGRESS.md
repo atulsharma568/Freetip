@@ -2,6 +2,13 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, PayU purchase, Part 2 step A started: research and design done, no code yet)
+
+- **Done so far :** read PayU's own developer docs (hash formulas, the hosted checkout form, the reply and webhook fields, the Verify Payment API) and the code it has to fit with. Facts with sources and the design are in `docs/payu-notes.md`. Nothing was built or tried against PayU yet.
+- **Design in one line each:** believe a payment only when the reply hash, the order's amount and txnid, and PayU's Verify Payment API all agree; the order row moves pending to paid once, in the same transaction as the switch-on; a pass adds to `users.paid_features` and remembers the keys it added (`users.pass_keys`) so expiry never removes the owner's manual ticks; a daily job checks pending orders and removes expired pass keys; prices stay empty so no order can be made yet.
+- **Plan:** step A (xhigh): migration, PayU module (hashes, verify call, form fields), settle and expire functions, routes for the return and the webhook, tests; then one multi-agent review of step A; step B (medium): Buy button and phone field, reminder email 5 days before, receipt, refund wording, `OPERATIONS.md`.
+- **For the owner to decide:** the Buy form must ask for a mobile number because PayU requires one (not stored by us). The PayU test key and salt go in Vercel (and `.env.local` to try locally), never in chat; the variable names will be given when the code lands.
+
 ## Current state (2026-11-04, GST trigger figure on the finance page)
 
 - **Built; NO migration, nothing to run.** `/admin/finance` has a "GST trigger, FY 2026-27 so far" block: gross live tips captured this Indian financial year (1 April to 31 March, IST), our fees (platform fee plus the processing charge, posted to the ledger in the year), and the larger of the two as a percent of ₹15 lakh with a plain sentence (below the trigger; close, from 80%; reached, register within 30 days). It does not follow the date picker above it. Code: `financialYearIST` in `src/lib/admin/date-range.ts`, `getTurnover` and `GST_TRIGGER_MINOR` in `src/lib/admin/finance-queries.ts`. Test-mode tips and earlier years stay out. Plan sales are not added yet (nothing can be bought); add them to `feesMinor` when plan orders exist.
