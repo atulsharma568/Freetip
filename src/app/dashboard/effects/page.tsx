@@ -52,7 +52,7 @@ export default async function EffectsPage() {
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
-      <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
+      <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4 lg:max-w-6xl">
         <div className="space-y-4">
           <DashboardNav current="decor" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Photo and banner effects</h1>

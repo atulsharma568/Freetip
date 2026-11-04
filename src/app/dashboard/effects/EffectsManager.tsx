@@ -7,6 +7,7 @@ import { saveTipDecor } from "@/app/actions/tip-decor";
 import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
 import { PRESET_BANNER_FX, PRESET_FRAMES, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
+import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
 import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillPrimary } from "../parts/styles";
@@ -85,8 +86,9 @@ export function EffectsManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Tile id="effects-preview" title="Preview" level={2}>
+    <PreviewSplit
+      preview={
+        <Tile id="effects-preview" title="Preview" level={2}>
         {/* The tip page's header in your page colour: the banner strip with your photo overlapping its corner. */}
         <div className="space-y-3 rounded-surface bg-ground p-4" style={style}>
           <div
@@ -111,6 +113,8 @@ export function EffectsManager({
           Fans whose device asks for less motion see the frames and lines standing still.
         </p>
       </Tile>
+      }
+    >
 
       <Tile id="effects-frame" title="Frame over your photo" level={2}>
         <div role="group" aria-label="Frame over your photo" className="grid gap-2 sm:grid-cols-2">
@@ -135,6 +139,6 @@ export function EffectsManager({
         {same && !message && <span className="text-sm text-muted">This is what your tip page shows now.</span>}
         <Msg kind={message?.kind} text={message?.text} />
       </div>
-    </div>
+    </PreviewSplit>
   );
 }

@@ -16,6 +16,7 @@ import {
 import type { AlertText } from "@/lib/alert-text";
 import type { FontKey, ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
+import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
 import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillOutline, pillPrimary } from "../parts/styles";
@@ -159,8 +160,9 @@ export function MotionManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview">
+    <PreviewSplit
+      preview={
+        <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Screen shape and replay">
             {SIZES.map((s) => (
@@ -201,6 +203,8 @@ export function MotionManager({
           </p>
         </div>
       </Tile>
+      }
+    >
 
       <Tile id="enter-exit" level={2} title="Coming in and leaving">
         <div className="space-y-4">
@@ -244,6 +248,6 @@ export function MotionManager({
         </button>
         <Msg kind={problem ? "error" : message?.kind} text={problem ?? message?.text} />
       </div>
-    </div>
+    </PreviewSplit>
   );
 }

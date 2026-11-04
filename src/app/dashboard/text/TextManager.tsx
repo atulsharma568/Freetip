@@ -18,6 +18,7 @@ import {
 } from "@/lib/alert-text";
 import type { FontKey, ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
+import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
 import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillOutline, pillPrimary, pillText, field, smallLabel } from "../parts/styles";
@@ -117,8 +118,9 @@ export function TextManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview">
+    <PreviewSplit
+      preview={
+        <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Sample tip and screen shape">
             {AMOUNTS.map((a) => (
@@ -163,6 +165,8 @@ export function TextManager({
           <p className="text-xs text-muted">A sample alert, not a real tip. It repeats every few seconds.</p>
         </div>
       </Tile>
+      }
+    >
 
       <Tile id="headline" level={2} title="Headline">
         <div className="space-y-3">
@@ -185,13 +189,13 @@ export function TextManager({
             autoComplete="off"
           />
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => addToken("{name}")} className={pillOutline}>
+            <button type="button" data-reveal onClick={() => addToken("{name}")} className={pillOutline}>
               Add {"{name}"}
             </button>
-            <button type="button" onClick={() => addToken("{amount}")} className={pillOutline}>
+            <button type="button" data-reveal onClick={() => addToken("{amount}")} className={pillOutline}>
               Add {"{amount}"}
             </button>
-            <button type="button" onClick={() => setHeadline("")} disabled={!headline} className={pillOutline}>
+            <button type="button" data-reveal onClick={() => setHeadline("")} disabled={!headline} className={pillOutline}>
               Use the normal line
             </button>
           </div>
@@ -223,6 +227,7 @@ export function TextManager({
                   />
                   <button
                     type="button"
+                    data-reveal
                     onClick={() => setColours((cs) => ({ ...cs, [c.key]: null }))}
                     disabled={value === null}
                     className={pillText}
@@ -280,6 +285,6 @@ export function TextManager({
         </button>
         <Msg kind={problem ? "error" : message?.kind} text={problem ?? message?.text} />
       </div>
-    </div>
+    </PreviewSplit>
   );
 }

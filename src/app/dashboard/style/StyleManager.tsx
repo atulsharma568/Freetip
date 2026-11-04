@@ -7,6 +7,7 @@ import { AlertStage, type OverlayAlert } from "@/components/overlay/AlertStage";
 import { inkFor } from "@/lib/accent";
 import { FONTS, THEMES, type FontKey, type ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
+import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
 import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillPrimary } from "../parts/styles";
@@ -77,8 +78,9 @@ export function StyleManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview" className="sticky top-2 z-20">
+    <PreviewSplit
+      preview={
+        <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Sample tip and screen shape">
             {AMOUNTS.map((a) => (
@@ -123,6 +125,8 @@ export function StyleManager({
           <p className="text-xs text-muted">A sample alert, not a real tip. It repeats every few seconds.</p>
         </div>
       </Tile>
+      }
+    >
 
       <Tile id="card-style" level={2} title="Card style">
         <div role="radiogroup" aria-label="Card style" className="grid gap-2 sm:grid-cols-2">
@@ -171,6 +175,6 @@ export function StyleManager({
         </button>
         <Msg kind={message?.kind} text={message?.text} />
       </div>
-    </div>
+    </PreviewSplit>
   );
 }

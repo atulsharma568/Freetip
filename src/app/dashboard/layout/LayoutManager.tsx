@@ -10,6 +10,7 @@ import type { AlertText } from "@/lib/alert-text";
 import type { AlertMedia } from "@/lib/media";
 import type { FontKey, ThemeKey } from "@/lib/overlay-themes";
 import { Tile } from "../parts/Tile";
+import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
 import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillPrimary } from "../parts/styles";
@@ -114,8 +115,9 @@ export function LayoutManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview" className="sticky top-2 z-20">
+    <PreviewSplit
+      preview={
+        <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div
             data-testid="layout-preview"
@@ -142,6 +144,8 @@ export function LayoutManager({
           </p>
         </div>
       </Tile>
+      }
+    >
 
       <Tile id="side" level={2} title="Where the picture goes">
         <div className="space-y-3">
@@ -191,6 +195,6 @@ export function LayoutManager({
         </button>
         <Msg kind={problem ? "error" : message?.kind} text={problem ?? message?.text} />
       </div>
-    </div>
+    </PreviewSplit>
   );
 }
