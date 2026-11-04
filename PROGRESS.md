@@ -6,7 +6,8 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 - **Built; NO migration, nothing to run.** `/admin/finance` has a "GST trigger, FY 2026-27 so far" block: gross live tips captured this Indian financial year (1 April to 31 March, IST), our fees (platform fee plus the processing charge, posted to the ledger in the year), and the larger of the two as a percent of ₹15 lakh with a plain sentence (below the trigger; close, from 80%; reached, register within 30 days). It does not follow the date picker above it. Code: `financialYearIST` in `src/lib/admin/date-range.ts`, `getTurnover` and `GST_TRIGGER_MINOR` in `src/lib/admin/finance-queries.ts`. Test-mode tips and earlier years stay out. Plan sales are not added yet (nothing can be bought); add them to `feesMinor` when plan orders exist.
 - **Verified:** `tsc`, `eslint`, build, `test/admin-finance.spec.ts` (12 passed, 3 new: year boundaries in IST, a year's live tips and fees with test-mode and last-year tips left out, empty and failed reads). **Not seen in a browser** with a real owner login.
-- **Still open:** native radios (polish list); Part 2, the PayU purchase (needs the owner's keys and prices).
+- **Native radios done (no migration):** the only plain native radios left were the two in the admin Fee rates box; they now use the shared `OptionRadio` block like the dashboard's other choices. `tsc`, `eslint`, build pass; not seen in a browser. The polish list is now empty.
+- **Still open:** Part 2, the PayU purchase (needs the owner's keys and prices).
 
 ## Current state (2026-11-04, dashboard menu cut from 15 links to 11)
 
@@ -14,7 +15,7 @@ Living status of the project. Read this first; it is updated with every commit. 
 - **Verified:** `tsc`, `eslint`, `npm run build`; no test used the old link names. **Not seen in a browser** (the Playwright browser would not download here): the second tab row on a phone and the lime pill moving between groups.
 - **Names checked :** every tab label sits inside its page heading (Picks in "Tip page picks", Media in "Alert media", Pinned in "Pinned messages", Banner in "Tip page banner", Layout in "Alert volume and layout"); the menu link "Timestamps" is now "Stream timestamps" to match its page. The group names Look and Words and motion stay (they cover two pages each).
 - **Unsaved-edit warnings built (no extra review, no migration).** `src/app/dashboard/parts/useUnsavedWarning.ts`: the browser asks before a tab is closed or reloaded while a form differs from what is saved. Wired into Style, Layout, Text and Motion (when the draft differs from the saved copy) and into the Picks and Automatic tiers add forms (when any field is filled; they empty after a save). Not caught: clicking a link inside the site (the browser only guards leaving the page). `tsc`, `eslint`, build pass; not seen in a browser.
-- **Still open from the polish list:** native radios.
+- **Still open from the polish list:** nothing.
 
 ## Current state (2026-11-04, where AcePressure's page builder stands; summary only, no code changed)
 

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { ActionStatus } from "@/components/admin/ActionStatus";
 import { RateFields, useRateFields } from "@/components/admin/RateFields";
+import { OptionRadio } from "@/app/dashboard/parts/Controls";
 import { buttonClass, FIELD_CLASS } from "@/components/admin/tones";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { ADMIN_IDLE, type AdminAction } from "@/lib/admin/action-state";
@@ -34,7 +35,6 @@ export function FeeRatesBox({
   const [mode, setMode] = useState<"site" | "own">(override ? "own" : "site");
   const fields = useRateFields(override ?? site);
   const current = override ?? site;
-  const radio = "h-4 w-4 accent-[var(--color-accent)]";
 
   return (
     <div className="space-y-4">
@@ -45,24 +45,26 @@ export function FeeRatesBox({
       </p>
 
       <form action={formAction} className="space-y-4 rounded-surface border border-control bg-surface p-4">
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-2">
           <legend className="sr-only">Which rates this creator pays</legend>
-          <label className="flex items-start gap-3 text-sm text-text">
-            <input type="radio" name="mode" value="site" checked={mode === "site"} onChange={() => setMode("site")} className={`mt-1 ${radio}`} />
-            <span>
-              Follow the site rates
-              <span className="block text-xs text-muted">
-                Now {describeRates(site)}. If you change the site rates later, this creator moves with them.
-              </span>
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm text-text">
-            <input type="radio" name="mode" value="own" checked={mode === "own"} onChange={() => setMode("own")} className={`mt-1 ${radio}`} />
-            <span>
-              Their own rates
-              <span className="block text-xs text-muted">Stays as typed, whatever the site rates become. 0 and 0 means no fees.</span>
-            </span>
-          </label>
+          <OptionRadio
+            name="mode"
+            value="site"
+            checked={mode === "site"}
+            onChange={() => setMode("site")}
+            hint={`Now ${describeRates(site)}. If you change the site rates later, this creator moves with them.`}
+          >
+            Follow the site rates
+          </OptionRadio>
+          <OptionRadio
+            name="mode"
+            value="own"
+            checked={mode === "own"}
+            onChange={() => setMode("own")}
+            hint="Stays as typed, whatever the site rates become. 0 and 0 means no fees."
+          >
+            Their own rates
+          </OptionRadio>
         </fieldset>
 
         <RateFields state={fields} idPrefix="creator" disabled={mode !== "own"} />
