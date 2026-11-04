@@ -10,7 +10,7 @@ const LINKS = [
   { key: "look", href: "/dashboard/style", label: "Look" },
   { key: "words", href: "/dashboard/text", label: "Words and motion" },
   { key: "fans", href: "/dashboard/fans", label: "Fans" },
-  { key: "timestamps", href: "/dashboard/timestamps", label: "Timestamps" },
+  { key: "timestamps", href: "/dashboard/timestamps", label: "Stream timestamps" },
   { key: "streamlabs", href: "/dashboard/streamlabs", label: "Streamlabs" },
   { key: "plans", href: "/dashboard/plans", label: "Paid features" },
 ] as const;
