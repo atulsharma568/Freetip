@@ -18,11 +18,14 @@ export function PageHeader({
   return (
     <div className="space-y-1">
       {back && (
-        <Link href={back.href} className="text-sm text-muted hover:text-text">
+        <Link href={back.href} className="inline-flex min-h-9 items-center text-sm text-muted transition-colors hover:text-text">
           ← {back.label}
         </Link>
       )}
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
+      <p className="flex items-center gap-2.5 text-sm font-semibold uppercase tracking-[0.2em] text-accent">
+        <span aria-hidden="true" className="h-0.5 w-6 rounded-full bg-accent" />
+        {eyebrow}
+      </p>
       <h1 className="display text-[clamp(2rem,5vw,3.5rem)] leading-[0.95]">{title}</h1>
       {note && <DefinitionNote>{note}</DefinitionNote>}
     </div>

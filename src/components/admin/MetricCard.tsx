@@ -15,10 +15,11 @@ export function MetricCard({
 }) {
   return (
     <div
-      className={`rounded-surface border p-5 ${
+      className={`relative overflow-hidden rounded-surface border p-5 ${
         accent ? "border-accent/30 bg-surface" : "border-control bg-surface"
       }`}
     >
+      {accent && <span aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5 bg-accent/70" />}
       <p className="text-sm text-muted">{label}</p>
       <p
         className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${

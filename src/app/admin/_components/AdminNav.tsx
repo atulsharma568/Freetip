@@ -3,76 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  At,
-  Bank,
-  ChartBar,
-  ChatText,
-  ClockCounterClockwise,
-  Coins,
-  Envelope,
-  FilmSlate,
-  Gear,
-  Heartbeat,
-  MagnifyingGlass,
-  Percent,
-  Receipt,
-  Scales,
-  Sparkle,
-  SpeakerHigh,
-  SquaresFour,
-  Users,
-  ArrowsLeftRight,
-  type Icon,
-} from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { FIELD_CLASS } from "@/components/admin/tones";
-
-type Item = { href: string; label: string; icon: Icon };
-
-const GROUPS: { title: string; items: Item[] }[] = [
-  {
-    title: "Operate",
-    items: [
-      { href: "/admin", label: "Overview", icon: SquaresFour },
-      { href: "/admin/creators", label: "Creators", icon: Users },
-      { href: "/admin/handle-requests", label: "Handle requests", icon: At },
-      { href: "/admin/messages", label: "Messages", icon: Envelope },
-      { href: "/admin/sounds", label: "Sounds", icon: SpeakerHigh },
-      { href: "/admin/media", label: "Alert media", icon: FilmSlate },
-      { href: "/admin/tts-words", label: "Voice words", icon: ChatText },
-    ],
-  },
-  {
-    title: "Money",
-    items: [
-      { href: "/admin/finance", label: "Finance", icon: Coins },
-      { href: "/admin/finance/creators", label: "Creator earnings", icon: ChartBar },
-      { href: "/admin/fees", label: "Fee rates", icon: Percent },
-      { href: "/admin/finance/balances", label: "Balances", icon: Scales },
-      { href: "/admin/finance/payments", label: "Payment ledger", icon: Receipt },
-      { href: "/admin/finance/settlements", label: "Settlements", icon: Bank },
-      { href: "/admin/reconciliation", label: "Reconciliation", icon: ArrowsLeftRight },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      { href: "/admin/features", label: "Paid features", icon: Sparkle },
-      { href: "/admin/settings", label: "Site settings", icon: Gear },
-      { href: "/admin/health", label: "Health", icon: Heartbeat },
-      { href: "/admin/audit", label: "Audit history", icon: ClockCounterClockwise },
-    ],
-  },
-];
-
-// Overview and Finance have pages underneath that are their own items, so they
-// only count as current on an exact match.
-const EXACT = new Set(["/admin", "/admin/finance"]);
-
-function isCurrent(pathname: string, href: string): boolean {
-  if (pathname === href) return true;
-  return !EXACT.has(href) && pathname.startsWith(`${href}/`);
-}
+import { NAV_GROUPS, isCurrent } from "./nav-items";
 
 // Finds a creator from any owner page. A plain GET form to the creators list (which
 // searches name, email, handle, channel and UPI ID across every tab), so it works without
@@ -129,12 +62,12 @@ function CreatorFinder() {
 export function AdminNav({ badges }: { badges: Record<string, number> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const all = GROUPS.flatMap((g) => g.items);
+  const all = NAV_GROUPS.flatMap((g) => g.items);
   const current = all.find((i) => isCurrent(pathname, i.href));
   const waiting = Object.values(badges).reduce((a, b) => a + b, 0);
 
   return (
-    <div data-lenis-prevent className="space-y-3 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:w-60 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:pr-1">
+    <div data-lenis-prevent className="admin-side space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:rounded-surface lg:border lg:border-line/60 lg:p-3">
       <CreatorFinder />
 
       <nav aria-label="Owner console">
@@ -144,7 +77,7 @@ export function AdminNav({ badges }: { badges: Record<string, number> }) {
           aria-expanded={open}
           aria-controls="admin-nav-list"
           onClick={() => setOpen((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-control px-4 text-sm text-text lg:hidden"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-control bg-surface px-4 text-sm text-text lg:hidden"
         >
           <span>
             Menu <span className="text-muted">· {current?.label ?? "Owner console"}</span>
@@ -158,7 +91,7 @@ export function AdminNav({ badges }: { badges: Record<string, number> }) {
         </button>
 
         <div id="admin-nav-list" className={`${open ? "mt-3 block" : "hidden"} space-y-5 lg:mt-0 lg:block`}>
-          {GROUPS.map((group) => (
+          {NAV_GROUPS.map((group) => (
             <div key={group.title} className="space-y-1">
               <p className="px-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted">{group.title}</p>
               <ul className="space-y-1">
@@ -172,8 +105,10 @@ export function AdminNav({ badges }: { badges: Record<string, number> }) {
                         href={item.href}
                         aria-current={active ? "page" : undefined}
                         onClick={() => setOpen(false)}
-                        className={`flex min-h-10 items-center gap-2.5 rounded-field px-3 text-sm transition-colors ${
-                          active ? "bg-accent font-medium text-ink" : "text-muted hover:bg-raised hover:text-text"
+                        className={`flex min-h-10 items-center gap-2.5 rounded-field px-3 text-sm transition-all duration-200 ${
+                          active
+                            ? "bg-accent font-medium text-ink shadow-[0_8px_22px_-12px_color-mix(in_srgb,var(--color-accent)_70%,transparent)]"
+                            : "text-muted hover:translate-x-0.5 hover:bg-raised/80 hover:text-text"
                         }`}
                       >
                         <Glyph aria-hidden="true" size={18} weight={active ? "fill" : "regular"} className="shrink-0" />

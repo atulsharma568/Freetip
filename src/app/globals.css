@@ -1343,3 +1343,38 @@ html.menu-open body {
 .app-vignette {
   background: radial-gradient(ellipse at 50% 40%, transparent 50%, color-mix(in oklab, black 45%, transparent) 100%);
 }
+
+/* Owner console glass. Inside .admin-root every panel that is a solid `bg-surface` becomes frosted
+   glass, so the AppBackdrop's dots and glows show through. Panels stay 78% opaque with a blur, so
+   text keeps its contrast; popovers and the palette use bg-raised and stay solid. */
+.admin-root .bg-surface {
+  background-color: color-mix(in oklab, var(--color-surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+.admin-root a.bg-surface,
+.admin-root button.bg-surface {
+  transition: border-color 0.2s, transform 0.25s var(--ease-out-expo), box-shadow 0.25s;
+}
+.admin-root a.bg-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+.admin-header {
+  background-color: color-mix(in oklab, var(--color-ground) 72%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+@media (min-width: 64rem) {
+  .admin-side {
+    background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    backdrop-filter: blur(14px) saturate(1.15);
+  }
+}
+/* A stronger top glow on the console only, so the background is easy to see. */
+.admin-root .app-glow-a { background: color-mix(in oklab, var(--color-accent) 17%, transparent); }
+.admin-root .app-glow-b { background: color-mix(in oklab, var(--color-accent) 10%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .admin-root a.bg-surface:hover { transform: none; }
+}

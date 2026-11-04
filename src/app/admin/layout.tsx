@@ -7,6 +7,7 @@ import { TONE_BADGE, TONE_MARK } from "@/components/admin/tones";
 import { AppBackdrop } from "@/components/AppBackdrop";
 import { requireOwner } from "@/lib/owner-auth";
 import { AdminNav } from "./_components/AdminNav";
+import { CommandPalette } from "./_components/CommandPalette";
 
 export const metadata: Metadata = {
   title: "Owner console: Freetip",
@@ -25,7 +26,7 @@ export default async function AdminLayout({
   const keyMode = razorpayKeyMode();
 
   return (
-    <div className="min-h-dvh text-text">
+    <div className="admin-root min-h-dvh text-text">
       <AppBackdrop />
       <a
         href="#main"
@@ -33,11 +34,19 @@ export default async function AdminLayout({
       >
         Skip to the page
       </a>
-      <header className="border-b border-control bg-surface">
+      <header className="admin-header sticky top-0 z-30 border-b border-line/60">
         <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-2">
-          <Link href="/admin" className="group block py-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Freetip</p>
-            <p className="display text-xl transition-colors group-hover:text-accent">Owner console</p>
+          <Link href="/admin" className="group flex items-center gap-3 py-1">
+            <span
+              aria-hidden="true"
+              className="grid size-10 place-items-center rounded-field bg-accent font-mono text-lg font-bold text-ink shadow-[0_8px_24px_-10px_color-mix(in_srgb,var(--color-accent)_80%,transparent)]"
+            >
+              ₹
+            </span>
+            <span>
+              <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted">Freetip</span>
+              <span className="display block text-xl transition-colors group-hover:text-accent">Owner console</span>
+            </span>
           </Link>
           <div className="flex flex-wrap items-center gap-3">
             {/* Test money looks like real money on every other page, so say which this is. */}
@@ -48,9 +57,10 @@ export default async function AdminLayout({
               {TONE_MARK[keyMode.tone] && <span aria-hidden="true">{TONE_MARK[keyMode.tone]}</span>}
               {keyMode.short}
             </p>
+            <CommandPalette badges={badges} />
             <Link
               href="/dashboard"
-              className="inline-flex min-h-11 items-center rounded-full border border-control px-4 text-sm text-muted transition-colors hover:border-text/40 hover:text-text"
+              className="inline-flex min-h-11 items-center rounded-full border border-control bg-surface/60 px-4 text-sm text-muted transition-colors hover:border-text/40 hover:text-text"
             >
               Creator view
             </Link>
