@@ -9,7 +9,7 @@ import { getPayments, type PaymentList } from "@/lib/admin/payment-queries";
 import { formatINR, getTestModeTipCount } from "@/lib/admin/finance-queries";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
 import { adminDb } from "@/lib/admin/server-db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import {
   CouldNotRead,
   DefinitionNote,
@@ -26,7 +26,7 @@ export default async function PaymentLedgerPage({
 }: {
   searchParams: Promise<{ range?: string; q?: string }>;
 }) {
-  await requireOwner();
+  await requireAdminViewer();
   const { range: rangeParam, q: rawQ } = await searchParams;
   const q = (rawQ ?? "").trim().slice(0, 100);
   const preset = parsePreset(rangeParam);

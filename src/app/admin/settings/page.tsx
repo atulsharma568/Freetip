@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { getTtsFloorPaise } from "@/lib/site-settings";
 import { PageHeader } from "../_components/PageHeader";
 import { TtsFloorForm } from "./TtsFloorForm";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Settings that apply to the whole site, not to one creator.
 export default async function AdminSettingsPage() {
-  await requireOwner();
+  const viewer = (await requireAdminViewer()) === "viewer";
   const floor = await getTtsFloorPaise(getDb());
   return (
     <div className="space-y-8">
@@ -25,7 +25,7 @@ export default async function AdminSettingsPage() {
           A tip below this amount is never read aloud, whatever the creator chose, and the tip page does not offer the voice
           for it. It starts at ₹50. Use 0 for no site-wide minimum.
         </p>
-        <TtsFloorForm rupees={Math.round(floor / 100)} />
+        {viewer ? <p className="text-sm text-text">Currently ₹{Math.round(floor / 100)} (the owner changes this).</p> : <TtsFloorForm rupees={Math.round(floor / 100)} />}
       </section>
     </div>
   );

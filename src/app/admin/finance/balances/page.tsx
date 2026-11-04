@@ -8,7 +8,7 @@ import { getCreatorBalances, type BalancesSummary, type CreatorBalanceRow } from
 import { formatINR } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import { HOLD_DAYS_NEW_CREATOR, HOLD_DAYS_OTHER, HOLD_DAYS_UPI } from "@/lib/balances";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import {
   listHref,
   pageOfRows,
@@ -34,7 +34,7 @@ export default async function CreatorBalancesPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  await requireOwner();
+  await requireAdminViewer();
   const query = parseListQuery(await searchParams);
   const db = adminDb();
   const result = db ? await getCreatorBalances(db) : null;

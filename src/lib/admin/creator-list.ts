@@ -56,12 +56,14 @@ const closedLike = `%${CLOSED_EMAIL_DOMAIN}`;
 
 export function getCreatorList(
   db: LedgerDb,
-  opts: { q: string; tab: CreatorTab; page: number },
+  opts: { q: string; tab: CreatorTab; page: number; viewer?: boolean },
   pageSize = CREATORS_PAGE_SIZE,
 ): Promise<Loaded<CreatorList>> {
   return load("the creators list", async () => {
     const q = opts.q.trim().slice(0, 100);
     const like = likeOf(q);
+    // A read-only viewer never gets, and cannot search by, an email or UPI ID.
+    const viewer = opts.viewer === true;
     const page = Math.max(1, Math.floor(opts.page));
     const offset = (page - 1) * pageSize;
 
@@ -74,8 +76,8 @@ export function getCreatorList(
              count(*) filter (where email not like ${closedLike} and creator_status = 'suspended')::text as suspended,
              count(*)::text as "all"
         from users
-       where ${q === ""}::boolean or name ilike ${like} or email ilike ${like} or handle ilike ${like}
-             or yt_channel_name ilike ${like} or upi_vpa ilike ${like}
+       where ${q === ""}::boolean or name ilike ${like} or (${!viewer}::boolean and email ilike ${like}) or handle ilike ${like}
+             or yt_channel_name ilike ${like} or (${!viewer}::boolean and upi_vpa ilike ${like})
     `;
     const counts: Record<CreatorTab, number> = {
       awaiting: toWhole(c.awaiting),
@@ -101,8 +103,8 @@ export function getCreatorList(
       select id::text, name, email, handle, creator_status, onboarding_state, upi_vpa,
              yt_channel_name, yt_channel_url, created_at
         from users
-       where (${q === ""}::boolean or name ilike ${like} or email ilike ${like} or handle ilike ${like}
-              or yt_channel_name ilike ${like} or upi_vpa ilike ${like})
+       where (${q === ""}::boolean or name ilike ${like} or (${!viewer}::boolean and email ilike ${like}) or handle ilike ${like}
+              or yt_channel_name ilike ${like} or (${!viewer}::boolean and upi_vpa ilike ${like}))
          and (${opts.tab} = 'all'
               or (email not like ${closedLike}
                   and ((${opts.tab} = 'awaiting' and (creator_status = 'pending' or onboarding_state = 'submitted'))
@@ -122,11 +124,11 @@ export function getCreatorList(
       rows: found.map((r) => ({
         id: toWhole(r.id),
         name: r.name,
-        email: r.email,
+        email: viewer ? "" : r.email,
         handle: r.handle,
         creatorStatus: r.creator_status,
         onboardingState: r.onboarding_state,
-        upiVpa: r.upi_vpa,
+        upiVpa: viewer ? null : r.upi_vpa,
         ytChannelName: r.yt_channel_name,
         ytChannelUrl: r.yt_channel_url,
         createdAt: r.created_at,

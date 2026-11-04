@@ -6,7 +6,7 @@ import { DateRangeNav } from "@/components/admin/DateRangeNav";
 import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { getCreatorEarnings, type CreatorEarningsRow } from "@/lib/admin/creator-queries";
 import { formatINR, getTestModeTipCount } from "@/lib/admin/finance-queries";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
 import { adminDb } from "@/lib/admin/server-db";
 import {
@@ -37,7 +37,7 @@ export default async function CreatorEarningsPage({
 }: {
   searchParams: Promise<{ range?: string; q?: string; page?: string }>;
 }) {
-  await requireOwner();
+  await requireAdminViewer();
   const params = await searchParams;
   const rangeParam = params.range;
   const query = parseListQuery(params);

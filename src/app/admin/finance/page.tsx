@@ -7,7 +7,7 @@ import { AdminEmptyState } from "@/components/admin/EmptyState";
 import { getFinanceSummary, getTurnover, formatINR, type FinanceSummary, type Turnover } from "@/lib/admin/finance-queries";
 import { financialYearIST, parsePreset, rangeFromPreset } from "@/lib/admin/date-range";
 import { adminDb } from "@/lib/admin/server-db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import {
   CouldNotRead,
   DefinitionNote,
@@ -26,7 +26,7 @@ export default async function AdminFinancePage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
-  await requireOwner();
+  await requireAdminViewer();
   const { range: rangeParam } = await searchParams;
   const preset = parsePreset(rangeParam);
   const range = rangeFromPreset(preset);

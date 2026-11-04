@@ -48,7 +48,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
     );
   }
 
-  const result = await getCreatorList(db, { q, tab, page });
+  const result = await getCreatorList(db, { q, tab, page, viewer });
   if (!result.ok) {
     return (
       <div className="space-y-8">
@@ -107,7 +107,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
           type="search"
           name="q"
           defaultValue={q}
-          placeholder={viewer ? "Search name, email, handle or channel" : "Search name, email, handle, channel or UPI ID"}
+          placeholder={viewer ? "Search name, handle or channel" : "Search name, email, handle, channel or UPI ID"}
           aria-label="Search creators"
           className={`${FIELD_CLASS} w-full max-w-md`}
         />
@@ -167,9 +167,11 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
                       <Link href={`/admin/creators/${c.id}`} className="font-medium text-text hover:underline">
                         {c.name ?? "—"}
                       </Link>
-                      <p title={c.email} className="max-w-[200px] truncate text-xs text-muted">
-                        {c.email}
-                      </p>
+                      {!viewer && (
+                        <p title={c.email} className="max-w-[200px] truncate text-xs text-muted">
+                          {c.email}
+                        </p>
+                      )}
                       {c.ytChannelName &&
                         (c.ytChannelUrl ? (
                           <a

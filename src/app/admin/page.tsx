@@ -17,9 +17,9 @@ export default async function AdminOverviewPage() {
   const NAV_GROUPS = navGroupsFor(viewer);
 
   const db = adminDb();
-  // A viewer never reads the money figures, and sees only the queue items for pages they may open.
+  // A viewer sees only the queue items for pages they may open.
   const [result, fullQueue] = db
-    ? await Promise.all([viewer ? null : getFinanceSummary(db, rangeAllTime()), getQueue(db)])
+    ? await Promise.all([getFinanceSummary(db, rangeAllTime()), getQueue(db)])
     : [null, null];
   const queue = fullQueue && viewer ? { ...fullQueue, items: fullQueue.items.filter((i) => viewerCanOpen(i.href)) } : fullQueue;
 
@@ -82,7 +82,6 @@ export default async function AdminOverviewPage() {
         )}
       </section>
 
-      {!viewer && (
       <section className="rounded-surface border border-control bg-surface p-6">
         <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Current state</h2>
         {result && !result.ok ? (
@@ -118,7 +117,6 @@ export default async function AdminOverviewPage() {
           </dl>
         )}
       </section>
-      )}
 
       <section aria-labelledby="goto-heading" className="space-y-5">
         <h2 id="goto-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">

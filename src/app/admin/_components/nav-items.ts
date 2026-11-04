@@ -73,7 +73,18 @@ export function isCurrent(pathname: string, href: string): boolean {
 
 // The only pages a read-only viewer may open. Anything not listed here stays owner-only (each of
 // those pages also checks for itself).
-const VIEWER_PAGES = new Set(["/admin", "/admin/creators"]);
+const VIEWER_PAGES = new Set([
+  "/admin",
+  "/admin/creators",
+  "/admin/finance",
+  "/admin/finance/creators",
+  "/admin/finance/balances",
+  "/admin/finance/payments",
+  "/admin/finance/settlements",
+  "/admin/reconciliation",
+  "/admin/settings",
+  "/admin/health",
+]);
 
 export function viewerCanOpen(href: string): boolean {
   return VIEWER_PAGES.has(href.split("?")[0]);

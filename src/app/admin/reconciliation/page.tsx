@@ -7,7 +7,7 @@ import { formatINR, getNotPosted, type NotPosted } from "@/lib/admin/finance-que
 import { getReconciliationSummary, type ReconciliationSummary } from "@/lib/admin/payment-queries";
 import { load, type Loaded } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { CouldNotRead, DefinitionNote, FinanceNotSetUp } from "../_components/Notices";
 import { SyncBooksForm } from "./SyncBooksForm";
 
@@ -22,7 +22,7 @@ function Heading({ children }: { children: React.ReactNode }) {
 }
 
 export default async function AdminReconciliationPage() {
-  await requireOwner();
+  const viewer = (await requireAdminViewer()) === "viewer";
   const db = adminDb();
 
   const header = (
@@ -74,7 +74,7 @@ export default async function AdminReconciliationPage() {
           on the books. It only works with live keys (the posting still runs without them). It runs
           only when you press the button.
         </p>
-        <SyncBooksForm />
+        {viewer ? <p className="text-sm text-muted">The Sync button is for the owner.</p> : <SyncBooksForm />}
       </section>
 
       <section className="space-y-4">

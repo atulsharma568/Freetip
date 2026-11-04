@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TONE_BADGE, TONE_MARK } from "@/components/admin/tones";
 import { cronJobs, describeSchedule, envStatus } from "@/lib/admin/health";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { DefinitionNote } from "../_components/Notices";
 import { PageHeader } from "../_components/PageHeader";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // The scheduled jobs and which server settings are set. Presence only: a value is
 // never read into the page. The site does not record when a job last ran yet.
 export default async function AdminHealthPage() {
-  await requireOwner();
+  await requireAdminViewer();
   const jobs = cronJobs();
   const groups = envStatus();
   const missing = groups.flatMap((g) => g.vars).filter((v) => v.required && !v.set);
