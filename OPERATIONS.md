@@ -85,6 +85,7 @@ Set in Vercel > Settings > Environment Variables (Production), then **redeploy**
 | `AUTH_SECRET`, `AUTH_URL` (`https://freetip.in`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | Sign-in. |
 | `NEXT_PUBLIC_SITE_URL` (`https://freetip.in`) | Lets search engines in, turns on redirects and schema. |
 | `OWNER_GOOGLE_IDS` | Comma-separated Google account IDs allowed into `/admin`. |
+| `ADMIN_VIEWER_GOOGLE_IDS` | Optional. Comma-separated Google account IDs that may only LOOK at `/admin`: Overview, Creators, Finance, Balances, Reconciliation, Site settings and Health, with emails, UPI IDs and every button hidden, and no search by email or UPI ID. Every other admin page gives them "not found". An ID in both lists counts as owner. Find a person's ID in Neon (`select google_id from users where email = '...'`; they must have signed in once). A change needs a redeploy. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Payments and webhook check. |
 | `RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL`, `CONTACT_FROM_EMAIL` (optional) | Contact-form email to the owner. |
 | `BLOB_READ_WRITE_TOKEN` | Sound uploads (Vercel Blob store). |
