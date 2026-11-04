@@ -160,7 +160,7 @@ export function MotionManager({
 
   return (
     <div className="space-y-6">
-      <Tile id="preview" level={2} title="Preview" className="sticky top-2 z-20">
+      <Tile id="preview" level={2} title="Preview">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Screen shape and replay">
             {SIZES.map((s) => (
