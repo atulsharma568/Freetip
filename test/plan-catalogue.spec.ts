@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { CREATOR_EXTRA_KEYS, CUSTOM_KEYS, STARTER_KEYS, buildCatalogue, tierOf } from "../src/lib/plan-catalogue";
+import { COMPARISON_GROUPS, CREATOR_EXTRA_KEYS, CUSTOM_KEYS, STARTER_KEYS, buildCatalogue, buildComparison, tierOf } from "../src/lib/plan-catalogue";
 import { FEATURES, NO_FEATURES, builtFeatureKeys, planFeatures } from "../src/lib/plans";
 import { TIER_PRICES, perMonthOfYear, priceView, yearSaving } from "../src/lib/pricing";
 
@@ -90,5 +90,29 @@ test.describe("plan prices", () => {
   test("keep the early price as given", () => {
     const early = { monthly: 149, yearly: 1299, seats: 50 };
     expect(priceView({ monthly: 299, yearly: 2499, early })?.early).toEqual(early);
+  });
+});
+
+test.describe("the side-by-side table", () => {
+  test("names every Starter and Creator feature exactly once, and no other", () => {
+    const keys = COMPARISON_GROUPS.flatMap((g) => g.keys);
+    expect([...keys].sort()).toEqual([...STARTER_KEYS, ...CREATOR_EXTRA_KEYS].sort());
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test("a group is either all Starter features or all Creator-only ones", () => {
+    for (const g of COMPARISON_GROUPS) {
+      const want = g.creatorOnly ? "creator" : "starter";
+      for (const k of g.keys) expect(tierOf(k)).toBe(want);
+    }
+  });
+
+  test("marks Starter's ticks from the group, and keeps hand-ticked features in view", () => {
+    const { groups, handPicked } = buildComparison(NO_FEATURES);
+    for (const g of groups) for (const i of g.items) expect(i.inStarter).toBe(!g.creatorOnly);
+    expect(handPicked).toEqual([]);
+    const on = buildComparison(planFeatures({ paid_features: ["pageBuilder", "highlightedMessages", "alertText"] }));
+    expect(on.handPicked.map((i) => i.key).sort()).toEqual(["highlightedMessages", "pageBuilder"]);
+    expect(on.groups.flatMap((g) => g.items).find((i) => i.key === "alertText")?.on).toBe(true);
   });
 });

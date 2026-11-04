@@ -126,6 +126,94 @@ export function buildCatalogue(features: PlanFeatures): CatalogueGroup[] {
   })).filter((g) => g.items.length > 0);
 }
 
+// The side-by-side table on /dashboard/plans. The groups are split by plan: the first three hold
+// only Starter's features (Creator has them too), the rest hold only Creator's, so a group is either
+// "in both" or "only in Creator" and the table never mixes the two. Each built feature appears once.
+export type ComparisonGroup = { title: string; blurb: string; creatorOnly: boolean; keys: readonly FeatureKey[] };
+
+export const COMPARISON_GROUPS: readonly ComparisonGroup[] = [
+  {
+    title: "Alert looks",
+    blurb: "The alert on your stream, in your own style.",
+    creatorOnly: false,
+    keys: ["alertText", "alertMotion", "overlayThemes", "alertLayout"],
+  },
+  {
+    title: "Stream overlays",
+    blurb: "Extra boxes for OBS beside your alert.",
+    creatorOnly: false,
+    keys: ["supportStreak", "topSupporter", "recentSupporters"],
+  },
+  {
+    title: "Stream moments",
+    blurb: "Save the best moments while you stream.",
+    creatorOnly: false,
+    keys: ["timestamps", "tipMarks"],
+  },
+  {
+    title: "Your own media",
+    blurb: "Your pictures, GIFs and clips on the alert and on your page.",
+    creatorOnly: true,
+    keys: ["customAlertMedia", "alertVariations", "alertRules", "tipBanner"],
+  },
+  {
+    title: "Your voice",
+    blurb: "Messages read aloud in the fan's language.",
+    creatorOnly: true,
+    keys: ["regionalVoices"],
+  },
+  {
+    title: "Your fans",
+    blurb: "Know who supports you. Fans are remembered by the name they type, nothing else.",
+    creatorOnly: true,
+    keys: ["fanLevels", "fanCrm"],
+  },
+  {
+    title: "Your workflow",
+    blurb: "Tools for editing, sharing and your other apps.",
+    creatorOnly: true,
+    keys: ["highlightsPage", "editorLink", "clipHelper", "streamlabs"],
+  },
+];
+
+export type ComparisonItem = CatalogueItem & { inStarter: boolean };
+export type ComparisonGroupView = { title: string; blurb: string; creatorOnly: boolean; items: ComparisonItem[] };
+
+const ENTRIES = new Map<FeatureKey, Entry>(GROUPS.flatMap((g) => g.entries.map((e) => [e.key, e] as const)));
+
+export function buildComparison(features: PlanFeatures): {
+  groups: ComparisonGroupView[];
+  // Features this creator has on that no plan sells: the custom page, the meter and pinned messages
+  // (ticked by hand). Shown apart so a creator never loses sight of something that is on for them.
+  handPicked: CatalogueItem[];
+} {
+  const built = new Set<FeatureKey>(FEATURES.filter((f) => f.built).map((f) => f.key));
+  const item = (e: Entry): CatalogueItem => ({
+    key: e.key,
+    title: e.title,
+    benefit: e.benefit,
+    on: features[e.key],
+    // A link only for a feature that is on: a page that is off redirects.
+    href: features[e.key] && e.href ? e.href : null,
+    tier: tierOf(e.key),
+    beta: BETA_KEYS.has(e.key),
+  });
+  const shown = new Set<FeatureKey>();
+  const groups = COMPARISON_GROUPS.map((g) => ({
+    title: g.title,
+    blurb: g.blurb,
+    creatorOnly: g.creatorOnly,
+    items: g.keys.filter((k) => built.has(k) && ENTRIES.has(k)).map((k) => {
+      shown.add(k);
+      return { ...item(ENTRIES.get(k)!), inStarter: !g.creatorOnly };
+    }),
+  })).filter((g) => g.items.length > 0);
+  const handPicked = [...ENTRIES.values()]
+    .filter((e) => built.has(e.key) && !shown.has(e.key) && features[e.key])
+    .map(item);
+  return { groups, handPicked };
+}
+
 // The keys a bought plan switches on, from the same lists the plan cards read, so what the page
 // shows and what a pass grants cannot drift apart. Creator includes everything in Starter. The Custom
 // page's two features are never granted by a pass (the owner ticks them by hand for each creator),

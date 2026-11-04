@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Check } from "@phosphor-icons/react";
 import { perMonthOfYear, yearSaving, type PlanKey, type TierPrices } from "@/lib/pricing";
@@ -19,11 +18,6 @@ export interface PlanCard {
   plan: PlanKey;
   name: string;
   tagline: string;
-  // "Everything in Starter, plus" or similar, shown above the list.
-  lead: string | null;
-  // The first few features, then how many more the list below the cards shows.
-  highlights: string[];
-  more: number;
   prices: TierPrices;
   buy: BuyState;
   // Plain words about this creator's running pass of the plan, or null.
@@ -35,33 +29,9 @@ export interface PlanCard {
   earlyOpen: boolean | null;
 }
 
-export interface CustomCard {
-  name: string;
-  tagline: string;
-  highlights: string[];
-  from: number;
-}
-
 const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 
 const cardBox = "flex flex-col gap-5 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5";
-
-function Highlights({ lead, items, more }: { lead: string | null; items: string[]; more: number }) {
-  return (
-    <div className="space-y-2">
-      {lead && <p className="text-sm font-medium text-text">{lead}</p>}
-      <ul className="space-y-1.5">
-        {items.map((t) => (
-          <li key={t} className="flex items-start gap-2 text-sm text-muted">
-            <Check size={14} weight="bold" aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
-            <span>{t}</span>
-          </li>
-        ))}
-      </ul>
-      {more > 0 && <p className="text-xs text-muted">and {more} more, listed below</p>}
-    </div>
-  );
-}
 
 function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; earlyOpen: boolean | null }) {
   const year = term === 12;
@@ -69,7 +39,7 @@ function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; 
   return (
     <div className="space-y-1">
       <p>
-        <span className="numeric text-3xl font-semibold text-text">{rupees(year ? prices.yearly : prices.monthly)}</span>
+        <span className="text-3xl font-semibold tabular-nums text-text">{rupees(year ? prices.yearly : prices.monthly)}</span>
         <span className="text-sm text-muted">{year ? " a year" : " a month"}</span>
       </p>
       <p className="text-xs text-muted">
@@ -90,14 +60,12 @@ function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; 
 export function PlanCards({
   starter,
   creator,
-  custom,
   testMode = false,
   liveOwnerTest = false,
   showPrices = true,
 }: {
   starter: PlanCard;
   creator: PlanCard;
-  custom: CustomCard;
   testMode?: boolean;
   // Sales are closed to creators and the owner is shown the Buy button with live keys: real money.
   liveOwnerTest?: boolean;
@@ -126,7 +94,7 @@ export function PlanCards({
   return (
     <section aria-labelledby="plan-cards-title" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="plan-cards-title" className="text-sm font-medium uppercase tracking-widest text-muted">
+        <h2 id="plan-cards-title" className="text-2xl font-semibold text-text">
           Choose a plan
         </h2>
         <TermSwitch term={term} onChange={setTerm} disabled={busy} />
@@ -144,14 +112,16 @@ export function PlanCards({
             ) : (
               <p className="text-sm text-text">The price will be announced soon.</p>
             )}
-            <Highlights lead={p.lead} items={p.highlights} more={p.more} />
             {(p.status || p.note) && (
               <div className="space-y-1 text-sm text-text">
                 {p.status && <p>{p.status}</p>}
                 {p.note && <p className="text-muted">{p.note}</p>}
               </div>
             )}
-            <div className="mt-auto space-y-2">
+            <div className="mt-auto flex flex-col items-start gap-2">
+              <a href="#compare" className="inline-block text-sm text-text underline decoration-line hover:decoration-accent">
+                See every feature
+              </a>
               {p.buy.kind === "open" ? (
                 <button
                   type="button"
@@ -194,32 +164,6 @@ export function PlanCards({
         </div>
       )}
 
-      <article className={cardBox}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-x-6">
-          <div className="min-w-0 flex-1 space-y-1">
-            <h3 className="text-xl font-semibold text-text">{custom.name}</h3>
-            <p className="text-sm text-muted">{custom.tagline}</p>
-          </div>
-          {showPrices ? (
-            <p>
-              <span className="text-sm text-muted">From </span>
-              <span className="numeric text-3xl font-semibold text-text">{rupees(custom.from)}</span>
-              <span className="text-sm text-muted"> once</span>
-            </p>
-          ) : (
-            <p className="text-sm text-text">Price agreed with you first.</p>
-          )}
-        </div>
-        <Highlights lead={null} items={custom.highlights} more={0} />
-        <div className="space-y-2">
-          <Link href="/contact#message" className={pillOutline}>
-            Ask about it
-          </Link>
-          <p className="text-xs text-muted">
-            On request. We build it for you and agree the price first. Tell us it is about the custom page.
-          </p>
-        </div>
-      </article>
     </section>
   );
 }

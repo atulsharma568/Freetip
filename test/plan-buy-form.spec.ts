@@ -16,7 +16,7 @@ test.describe("the plan cards", () => {
   test("show month prices, switch to year prices, and offer the early price only when a seat is left", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
     const cards = page.getByRole("article");
-    await expect(cards).toHaveCount(3);
+    await expect(cards).toHaveCount(2); // the two plans; every feature is in the table under them
     await expect(cards.nth(0)).toContainText("Starter");
     await expect(cards.nth(0)).toContainText(inr(S.monthly));
     await expect(cards.nth(1)).toContainText("Everything in Starter, plus");
@@ -29,14 +29,32 @@ test.describe("the plan cards", () => {
     await expect(cards.nth(1)).toContainText(`${inr(C.yearly)} a year`);
     await expect(cards.nth(1)).toContainText(`save ${Math.round((1 - C.yearly / (C.monthly * 12)) * 100)}%`);
 
-    await expect(cards.nth(2)).toContainText(`From ${inr(TIER_PRICES.customFrom)}`);
-    await expect(cards.nth(2).getByRole("link", { name: "Ask about it" })).toHaveAttribute("href", "/contact#message");
+    // The one-time extras sit under the table, with their prices and a link to ask.
+    const extras = page.getByRole("region", { name: "One-time extras" });
+    await expect(extras).toContainText(`From ${inr(TIER_PRICES.customFrom)}`);
+    await expect(extras.getByRole("link", { name: "Ask about an extra" })).toHaveAttribute("href", "/contact#message");
 
     await page.goto("/dev-fixtures/plans?early=1");
     await expect(page.getByRole("article").nth(1)).toContainText("Early price for the first 50 creators");
     await expect(page.getByRole("article").nth(1)).toContainText(inr(C.early.monthly));
     await page.getByRole("button", { name: "12 months" }).click();
     await expect(page.getByRole("article").nth(1)).toContainText(inr(C.early.yearly));
+  });
+
+  test("the table names every feature, marks the Creator-only groups and never says 'and N more'", async ({ page }) => {
+    await page.goto("/dev-fixtures/plans?on=1");
+    await expect(page.getByText(/and \d+ more/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Every feature, side by side" })).toBeVisible();
+    for (const name of ["Alert looks", "Stream overlays", "Stream moments", "Your own media", "Your voice", "Your fans", "Your workflow"]) {
+      await expect(page.getByRole("heading", { name, level: 3 })).toBeVisible();
+    }
+    await expect(page.getByText("Only in Creator.").first()).toBeVisible();
+    await expect(page.getByText("Your own GIFs, pictures and clips")).toBeVisible();
+    await expect(page.getByText("Voices in more Indian languages")).toBeVisible();
+    // A feature switched on for the creator says so; a hand-ticked one the plans do not sell shows apart.
+    await expect(page.getByText("On for you").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Switched on for you by hand" })).toBeVisible();
+    await expect(page.getByText("A custom tip page")).toBeVisible();
   });
 
   test("a plan that cannot be bought yet has an off button and no pay form", async ({ page }) => {

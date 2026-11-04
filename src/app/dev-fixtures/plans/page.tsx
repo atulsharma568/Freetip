@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { fixturesEnabled } from "@/lib/page-fixtures";
 import { PLAN_CARDS } from "@/app/dashboard/plans/cards-data";
 import { PlanCards, type BuyState } from "@/app/dashboard/plans/PlanCards";
+import { PlanTable } from "@/app/dashboard/plans/PlanTable";
+import { OneTimeExtras } from "@/app/dashboard/plans/OneTimeExtras";
+import { buildComparison } from "@/lib/plan-catalogue";
+import { planFeatures } from "@/lib/plans";
 import { DashboardShell } from "@/app/dashboard/parts/DashboardShell";
 import { Msg } from "@/app/dashboard/parts/Msg";
 import { paymentNotice, type OrderSummary } from "@/lib/plan-view";
@@ -45,9 +49,11 @@ function open(p: TierPrices, early: boolean, renewing: boolean, covered1: boolea
   };
 }
 
-export default async function PlansFixturePage({ searchParams }: { searchParams: Promise<{ early?: string; renewing?: string; notice?: string; buy?: string; covered?: string }> }) {
+export default async function PlansFixturePage({ searchParams }: { searchParams: Promise<{ early?: string; renewing?: string; notice?: string; buy?: string; covered?: string; on?: string }> }) {
   if (!fixturesEnabled()) notFound();
-  const { early, renewing, notice, buy, covered } = await searchParams;
+  const { early, renewing, notice, buy, covered, on } = await searchParams;
+  // ?on=1: three features are switched on for this made-up creator (the "On for you" mark).
+  const comparison = buildComparison(planFeatures({ paid_features: on === "1" ? ["alertText", "customAlertMedia", "pageBuilder"] : [] }));
   const isEarly = early === "1";
   const isRenewing = renewing === "1";
   // ?buy=off: nothing can be bought yet (the plan cards show the off button).
@@ -69,8 +75,9 @@ export default async function PlansFixturePage({ searchParams }: { searchParams:
           testMode={false}
           starter={{ ...PLAN_CARDS.starter, buy: off ? SOON : open(TIER_PRICES.starter, isEarly, isRenewing, isCovered), earlyOpen: off ? null : isEarly, status: isRenewing ? "Your Starter plan runs until 10 December 2026, 11:30 am IST." : null }}
           creator={{ ...PLAN_CARDS.creator, buy: off ? SOON : open(TIER_PRICES.creator, isEarly, isRenewing, false), earlyOpen: off ? null : isEarly }}
-          custom={PLAN_CARDS.custom}
         />
+        <PlanTable groups={comparison.groups} handPicked={comparison.handPicked} />
+        <OneTimeExtras showPrices={!off} />
       </div>
     </DashboardShell>
   );

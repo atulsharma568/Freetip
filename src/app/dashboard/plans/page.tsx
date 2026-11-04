@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Check } from "@phosphor-icons/react/ssr";
 import { auth } from "@/auth";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { payuConfig } from "@/lib/payu";
-import { buildCatalogue, type TierKey } from "@/lib/plan-catalogue";
+import { buildCatalogue, buildComparison } from "@/lib/plan-catalogue";
 import { expireOne, quotePlan, syncRunningPasses } from "@/lib/plan-orders";
 import { settleOwnOrders } from "@/lib/plan-settle";
 import {
@@ -29,13 +28,12 @@ import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { Msg } from "../parts/Msg";
 import { Tile } from "../parts/Tile";
-import { pillOutline } from "../parts/styles";
 import Link from "next/link";
 import { PendingRefresh } from "./PendingRefresh";
 import { PLAN_CARDS } from "./cards-data";
 import { PlanCards, type BuyState } from "./PlanCards";
-
-const TIER_LABEL: Record<TierKey, string> = { starter: "Starter", creator: "Creator", custom: "Custom page" };
+import { PlanTable } from "./PlanTable";
+import { OneTimeExtras } from "./OneTimeExtras";
 
 export const metadata: Metadata = {
   title: `Paid features: ${SITE_NAME}`,
@@ -73,9 +71,10 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   >`select id::text, handle, paid_features, creator_status from users where id = ${creatorId}`;
   if (!user?.handle) redirect("/dashboard");
 
-  const groups = buildCatalogue(planFeatures(user));
-  const all = groups.flatMap((g) => g.items);
+  const features = planFeatures(user);
+  const all = buildCatalogue(features).flatMap((g) => g.items);
   const onCount = all.filter((i) => i.on).length;
+  const comparison = buildComparison(features);
 
   // Buying: the orders, the running passes and what each term of each plan costs this creator. Read
   // apart so the page still opens before migrations 0055 and 0056 are run (then there is nothing to
@@ -150,6 +149,31 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           </div>
         )}
 
+        <Tile id="plan" level={2} title="Your plan">
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              {onCount > 0
+                ? `You have ${onCount} of ${all.length} paid features switched on.`
+                : "You have no paid features switched on yet."}
+            </p>
+            {passes.length === 0 ? (
+              <p className="text-sm text-muted">
+                {buy.starter.kind === "open" || buy.creator.kind === "open" ? "You have no running plan. Choose one below." : "You have no running plan."}
+              </p>
+            ) : (
+              passes.map(({ plan, status }) =>
+                status.state === "none" ? null : (
+                  <p key={plan} className="text-sm text-text">
+                    {status.state === "ending"
+                      ? `Your ${PLAN_NAMES[plan]} plan ends on ${istMoment(status.endsAt)}. Add another term below: it starts when this one ends, so you lose no days.`
+                      : `Your ${PLAN_NAMES[plan]} plan runs until ${istMoment(status.endsAt)}.`}
+                  </p>
+                ),
+              )
+            )}
+          </div>
+        </Tile>
+
         <PlanCards
           testMode={config?.mode === "test"}
           liveOwnerTest={config?.mode === "live" && !LIVE_SALES_OPEN && isOwner}
@@ -164,33 +188,11 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
               : null,
           }}
           creator={{ ...PLAN_CARDS.creator, buy: buy.creator, status: cardStatus("creator"), earlyOpen: earlyOpen.creator }}
-          custom={PLAN_CARDS.custom}
         />
 
-        <Tile id="plan" level={2} title="Your plan">
-          <div className="space-y-3">
-            <p className="text-sm text-muted">
-              {onCount > 0
-                ? `You have ${onCount} of ${all.length} paid features switched on.`
-                : "You have no paid features switched on yet."}
-            </p>
-            {passes.length === 0 ? (
-              <p className="text-sm text-muted">
-                {buy.starter.kind === "open" || buy.creator.kind === "open" ? "You have no running plan. Choose one above." : "You have no running plan."}
-              </p>
-            ) : (
-              passes.map(({ plan, status }) =>
-                status.state === "none" ? null : (
-                  <p key={plan} className="text-sm text-text">
-                    {status.state === "ending"
-                      ? `Your ${PLAN_NAMES[plan]} plan ends on ${istMoment(status.endsAt)}. Add another term above: it starts when this one ends, so you lose no days.`
-                      : `Your ${PLAN_NAMES[plan]} plan runs until ${istMoment(status.endsAt)}.`}
-                  </p>
-                ),
-              )
-            )}
-          </div>
-        </Tile>
+        <PlanTable groups={comparison.groups} handPicked={comparison.handPicked} />
+
+        <OneTimeExtras showPrices={buyOpen} />
 
         {payments.length > 0 && (
           <Tile id="payments" level={2} title="Your payments">
@@ -214,50 +216,6 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
             </ul>
           </Tile>
         )}
-
-        {groups.map((g, i) => (
-          <section key={g.title} aria-labelledby={`plan-group-${i}`} className="space-y-3">
-            <div className="space-y-1">
-              <h2 id={`plan-group-${i}`} className="text-sm font-medium uppercase tracking-widest text-muted">
-                {g.title}
-              </h2>
-              <p className="text-sm text-muted">{g.blurb}</p>
-            </div>
-            <ul className="space-y-3">
-              {g.items.map((item) => (
-                <li
-                  key={item.key}
-                  className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <h3 className="text-base font-medium text-text">{item.title}</h3>
-                    <p className="text-sm text-muted">{item.benefit}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {item.on ? (
-                      <>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink">
-                          <Check size={12} weight="bold" aria-hidden="true" />
-                          On for you
-                        </span>
-                        {item.href && (
-                          <Link href={item.href} className={pillOutline}>
-                            Open
-                          </Link>
-                        )}
-                      </>
-                    ) : (
-                      <span className="rounded-full border border-control px-3 py-1 text-xs text-muted">
-                        {item.tier ? `In ${TIER_LABEL[item.tier]}` : "In the paid plan"}
-                        {item.beta ? " · Beta" : ""}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
       </div>
     </DashboardShell>
   );

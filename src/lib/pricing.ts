@@ -28,6 +28,36 @@ export const TIER_PRICES: { starter: TierPrices; creator: TierPrices; customFrom
   customFrom: 2999,
 };
 
+// One-time extras, done by hand for a creator on request (not bought through the Buy form and not
+// part of a plan). `from` is whole rupees, "from" because the work is agreed with the creator first.
+// Placeholders like the plan prices: change them here at any time.
+export const ONE_TIME_EXTRAS: readonly { key: string; name: string; blurb: string; from: number }[] = [
+  {
+    key: "custom-page",
+    name: "Custom tip page",
+    blurb: "We design and publish a tip page made for you: your colours, words and pictures. Nothing changes until you are happy with it.",
+    from: TIER_PRICES.customFrom,
+  },
+  {
+    key: "alert-makeover",
+    name: "Alert makeover",
+    blurb: "We set up your whole alert for you: wording, colours, motion and a different look for bigger tips.",
+    from: 999,
+  },
+  {
+    key: "qr-poster",
+    name: "QR poster and panels",
+    blurb: "A picture with your name, colours and a QR code to your tip link, plus the support panels for under your stream.",
+    from: 699,
+  },
+  {
+    key: "launch-kit",
+    name: "Launch kit",
+    blurb: "The custom tip page, the alert makeover and the QR poster together, for less than buying them one by one.",
+    from: 3999,
+  },
+];
+
 // The prices above are still placeholders. While this is false nothing can be bought with PayU's
 // live key, whatever else is set; with the test key only the owner can buy (src/app/actions/
 // plan-checkout.ts), so the Buy form can be tried end to end. Set it to true, in the same commit
