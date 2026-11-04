@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard menu split into three clusters; NO migration)
+
+- **Built, owner's request:** the dashboard menu in `src/app/dashboard/DashboardNav.tsx` is now three clusters instead of one long row: everyday pages (Overview, Tips, Recap, Sounds and media, Paid features), **Earnings** as its own pill beside them, and a second row "Your paid features" listing only what the owner switched on for that creator (Tip page, Look, Words and motion, Fans, Stream timestamps, Streamlabs); the row is hidden when none is on. Display only, same links and switches.
+- **Verified:** `tsc`, `eslint`, production build. **Not seen:** in a browser (phone width especially).
+
 ## Current state (2026-11-04, UPI ID asked together with the handle; NO migration)
 
 - **Built, owner's request:** the "Claim your link" form now also asks for the UPI ID, required, and the handle and UPI ID are saved in one step (`src/lib/upi.ts`, `claimHandle` takes the UPI ID, `setHandle` checks it). The format check moved to `checkUpi` and is shared with the payout card, which is now prefilled with it. The payout card still asks the legal name and the owner still approves before the page goes live, so a page was never live without a UPI ID; creators who claimed earlier are unchanged (they fill the payout card as before).

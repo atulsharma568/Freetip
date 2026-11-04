@@ -54,11 +54,25 @@ export async function DashboardNav({ current }: { current: "overview" | "tips" |
     ...l,
     href: l.key === "look" && !features.overlayThemes ? "/dashboard/layout" : l.key === "words" && !features.alertText ? "/dashboard/motion" : l.key === "tippage" || l.key === "sounds" ? onTabs(l.key)[0].href : l.href,
   }));
+  // Three clusters: everyday pages, Earnings on its own, and the paid features switched on for this creator.
+  const FEATURE_KEYS = ["tippage", "look", "words", "fans", "timestamps", "streamlabs"];
+  const main = items.filter((i) => i.key !== "earnings" && !FEATURE_KEYS.includes(i.key));
+  const earnings = items.filter((i) => i.key === "earnings");
+  const mine = items.filter((i) => FEATURE_KEYS.includes(i.key));
   const group = current === "style" || current === "layout" ? "look" : current === "text" || current === "motion" ? "words" : (GROUP_OF[current] ?? current);
   const tabs = GROUP_OF[current] ? onTabs(GROUP_OF[current]) : [];
   return (
     <>
-      <SlidingNav items={items} current={group} label="Dashboard" />
+      <div className="flex max-w-full flex-wrap items-center gap-2">
+        <SlidingNav items={main} current={group} label="Dashboard" />
+        <SlidingNav items={earnings} current={group} label="Earnings" />
+      </div>
+      {mine.length > 0 && (
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted">Your paid features</span>
+          <SlidingNav items={mine} current={group} label="Paid features switched on" />
+        </div>
+      )}
       {tabs.length > 1 && <SlidingNav items={tabs.map(({ key, href, label }) => ({ key, href, label }))} current={current} label={group === "sounds" ? "Sounds and media" : "Tip page"} kind="location" />}
     </>
   );
