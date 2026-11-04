@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   description,
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_IN", title, description },
   twitter: { card: "summary_large_image", title, description },
+  // The site is already dark and its colours are tuned, so the Dark Reader extension is told to leave it alone.
+  other: { "darkreader-lock": "true" },
 };
 
 export const viewport: Viewport = {
