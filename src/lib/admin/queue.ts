@@ -7,7 +7,7 @@ import { load, toWhole, type Loaded } from "./result";
 // does not exist yet (a migration not run) shows as "could not read" for that one
 // line and never as zero.
 
-export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators" | "planPaymentsToLook";
+export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators" | "planPaymentsToLook" | "payoutsToPay";
 
 export interface QueueItem {
   key: QueueKey;
@@ -48,6 +48,13 @@ async function count(db: LedgerDb, which: QueueKey): Promise<number> {
     case "planPaymentsToLook":
       // PayU says paid at another price; nothing was switched on (migration 0055 and the daily check).
       return countNeedsLook(db);
+    case "payoutsToPay": {
+      // A creator asked for a payout and the owner has not yet paid or cancelled it.
+      const [r] = await db<{ n: string }[]>`
+        select count(*)::text as n from creator_payouts where status in ('initiated', 'in_transit')
+      `;
+      return toWhole(r.n);
+    }
     case "handleRequests": {
       const [r] = await db<{ n: string }[]>`select count(*)::text as n from handle_requests where status = 'pending'`;
       return toWhole(r.n);
@@ -61,6 +68,7 @@ const ITEMS: { key: QueueKey; label: string; href: string }[] = [
   { key: "newMessages", label: "New contact messages", href: "/admin/messages?status=new" },
   { key: "handleRequests", label: "Handle change requests", href: "/admin/handle-requests" },
   { key: "planPaymentsToLook", label: "Plan payments to look at", href: "/admin/plan-orders" },
+  { key: "payoutsToPay", label: "Payout requests to pay", href: "/admin/payouts" },
 ];
 
 export interface Queue {
@@ -89,5 +97,6 @@ export function badgesFrom(queue: Queue): Record<string, number> {
     "/admin/messages": n("newMessages"),
     "/admin/handle-requests": n("handleRequests"),
     "/admin/plan-orders": n("planPaymentsToLook"),
+    "/admin/payouts": n("payoutsToPay"),
   };
 }

@@ -5,13 +5,14 @@
 //   held       the net of each tip still inside its hold
 //   available  balance minus held, never below zero
 //
-// A tip's hold starts at capture and depends on how it was paid: 7 days for UPI,
-// 30 for anything else (card, netbanking, wallet, or a method we never recorded);
+// A tip's hold starts at capture and depends on how it was paid: 1 day for UPI
+// (owner, 2026-11-04, so a day's earnings can be paid the next day), 30 for
+// anything else (card, netbanking, wallet, or a method we never recorded);
 // a creator with no completed payout waits 60 days on non-UPI tips, since a new
-// creator is the likeliest chargeback. The numbers are the owner-approved
+// creator is the likeliest chargeback. The other numbers are the owner-approved
 // defaults in docs/payout-design.md section 3.
 export const MIN_PAYOUT_PAISE = 50_000; // ₹500
-export const HOLD_DAYS_UPI = 7;
+export const HOLD_DAYS_UPI = 1;
 export const HOLD_DAYS_OTHER = 30;
 export const HOLD_DAYS_NEW_CREATOR = 60;
 

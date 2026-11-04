@@ -50,8 +50,8 @@ export default async function CreatorBalancesPage({
           Live money only, read from the ledger. Balance is everything owed to the creator. Held is
           the part still inside its waiting period ({HOLD_DAYS_UPI} days for a UPI tip,{" "}
           {HOLD_DAYS_OTHER} for any other tip, {HOLD_DAYS_NEW_CREATOR} while the creator has no
-          completed payout). Available is balance less held. Nothing here moves money: no payout
-          can be made from the site yet.
+          completed payout). Available is balance less held. A payout a creator has asked for is
+          already off the balance and waits on the Payouts to pay page. Nothing here moves money.
         </DefinitionNote>
       </div>
 

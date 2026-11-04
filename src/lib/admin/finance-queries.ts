@@ -11,7 +11,10 @@ export { formatINR } from "./result";
 //    to a figure; they are only counted, so the page can say how many exist.
 //  * "Posted to the books" figures come from the ledger (src/lib/accrual.ts
 //    posts every captured live tip there), not from adding up tips:
-//      owed to creators        = creator_payable credit minus debit
+//      owed to creators        = creator_payable plus payouts_in_flight (credit minus
+//                                debit): a payout that was asked for and not yet paid
+//                                is still owed, so it stays in this figure until you
+//                                record it as paid
 //      our fee                 = platform_fee_revenue credit minus debit
 //      processing charge       = gateway_fee_expense credit minus debit (the flat
 //                                charge we recover from creators; Razorpay's own
@@ -138,11 +141,12 @@ export function getFinanceSummary(db: LedgerDb, range: DateRange): Promise<Loade
                coalesce(sum(e.credit_minor - e.debit_minor), 0)::text as net_all,
                coalesce(sum(case when lt.effective_at >= ${from}::timestamptz
                                   and lt.effective_at <  ${to}::timestamptz
+                                  and lt.source_type <> 'creator_payout'
                                  then e.credit_minor - e.debit_minor else 0 end), 0)::text as net_period
           from ledger_entries e
           join ledger_accounts a        on a.id  = e.account_id
           join ledger_transactions lt   on lt.id = e.ledger_transaction_id
-         where a.code in ('creator_payable', 'platform_fee_revenue', 'gateway_fee_expense', 'processor_clearing')
+         where a.code in ('creator_payable', 'payouts_in_flight', 'platform_fee_revenue', 'gateway_fee_expense', 'processor_clearing')
          group by a.code
       `,
       readNotPosted(db),
@@ -162,7 +166,7 @@ export function getFinanceSummary(db: LedgerDb, range: DateRange): Promise<Loade
       creatorShareMinor: net("creator_payable").period,
       ourFeeMinor: net("platform_fee_revenue").period,
       processingChargeMinor: net("gateway_fee_expense").period,
-      owedToCreatorsMinor: net("creator_payable").all,
+      owedToCreatorsMinor: net("creator_payable").all + net("payouts_in_flight").all,
       // Razorpay owes us what we debited: debit minus credit, the opposite sign.
       razorpayOwesUsMinor: negate(net("processor_clearing").all),
       notPosted,

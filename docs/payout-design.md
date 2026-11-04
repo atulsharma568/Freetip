@@ -6,6 +6,8 @@
 
 Status: design. Nothing in steps 2 to 6 is built. Nothing may move money until the owner has approved it. v2 folds in an adversarial review of v1 by a separate agent (its findings are marked "review" below). Facts about Razorpay and Indian rules come from a research pass on 2026-10-30 that read pages through a summarising tool and some non-official sources; anything marked UNVERIFIED must be confirmed with Razorpay, a lawyer or an accountant before it is relied on.
 
+**Update 2026-11-04 (owner): step 4 is built, in a simpler form, and the aggregation risk below is accepted by the owner.** Razorpay, Cashfree and Easebuzz are treated as not answering, so the owner pays creators by hand. Differences from the design below: no Monday sheet; a creator **requests** a payout from the Earnings page when at least ₹500 is available (any day), the request posts to the ledger at once (`payouts_in_flight`), the owner is emailed and pays it from `/admin/payouts`, then records the UTR (migration 0059, `src/lib/payouts.ts`, `OPERATIONS.md` 7k). The UPI hold is **1 day** (was 7) so a day's earnings can be paid the next day; other methods keep 30 days (60 for a creator with no completed payout). Ceilings stay as designed (₹5,000 first payout, ₹25,000 any payout) as constants in code, not environment settings; the per-sheet ceiling does not apply because there is no sheet. Not built from this design: the open-dispute block, the UPI-change 7-day hold, refunds after a payout (owner writes it off by hand).
+
 ## 1. What exists today (code map, 2026-10-30)
 
 - Tips are paid through Razorpay Standard Checkout into Freetip's own Razorpay account (`createTipOrder` sends only amount, currency, receipt: no Route, no transfers). Limits: 100 paise to ₹1,00,000.

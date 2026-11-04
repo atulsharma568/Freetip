@@ -14,8 +14,10 @@ import {
   type EarningsSummary,
 } from "@/lib/creator-earnings";
 import { statusWord, type StatementRow } from "@/lib/earnings-statement";
+import { FIRST_PAYOUT_MAX_PAISE, MIN_PAYOUT_PAISE, PAYOUT_MAX_PAISE, amountToRequest, payoutRef } from "@/lib/payouts";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
+import { RequestPayout } from "./RequestPayout";
 
 export const metadata: Metadata = {
   title: `Earnings: ${SITE_NAME}`,
@@ -36,7 +38,7 @@ const dateOnly = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", da
 const PAYOUT_WORDS: Record<string, string> = {
   scheduled: "Scheduled",
   held: "On hold",
-  initiated: "Sent",
+  initiated: "Requested, waiting to be paid",
   in_transit: "On its way",
   completed: "Paid",
   failed: "Failed",
@@ -59,8 +61,14 @@ export default async function EarningsPage({
 
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
-  const [user] = await db<{ id: number; handle: string | null; creator_status: string }[]>`
-    select id, handle, creator_status from users where google_id = ${googleId}
+  const [user] = await db<{
+    id: number;
+    handle: string | null;
+    creator_status: string;
+    onboarding_state: string;
+    upi_vpa: string | null;
+  }[]>`
+    select id, handle, creator_status, onboarding_state, upi_vpa from users where google_id = ${googleId}
   `;
   // Nothing to show until the creator has a link.
   if (!user?.handle) redirect("/dashboard");
@@ -94,6 +102,11 @@ export default async function EarningsPage({
         ) : (
           <>
             <Tiles summary={summary} />
+            <Payout
+              summary={summary}
+              active={user.creator_status === "active" && user.onboarding_state === "active"}
+              upiVpa={user.upi_vpa}
+            />
             <Statement rows={rows} page={page} hasMore={hasMore} />
             <Payouts summary={summary} />
           </>
@@ -102,10 +115,11 @@ export default async function EarningsPage({
         <p className="text-sm text-muted">
           Only live tips that have been added to our books are listed; a tip appears here a short while
           after it is paid. Each row is worked at the rates the tip was made under. A tip stays pending
-          for a waiting period before it can be paid out ({HOLD_DAYS_UPI} days for a UPI tip,{" "}
-          {HOLD_DAYS_OTHER} for any other method, {HOLD_DAYS_NEW_CREATOR} for those while you have no
-          completed payout). Payouts are made on a regular schedule; nothing is withdrawn from this page.
-          These figures are an account of your tips, not a promise of a payment on a particular day.
+          for a waiting period before it can be paid out ({HOLD_DAYS_UPI} day for a UPI tip,{" "}
+          {HOLD_DAYS_OTHER} days for any other method, {HOLD_DAYS_NEW_CREATOR} days for those while you
+          have no completed payout). A payout is paid by hand to your UPI ID after you ask for it; we do
+          not promise a particular day. The first payout is at most {formatRupees(FIRST_PAYOUT_MAX_PAISE)}
+          and any one payout at most {formatRupees(PAYOUT_MAX_PAISE)}; the rest stays available.
         </p>
       </div>
     </DashboardShell>
@@ -126,6 +140,45 @@ function Tiles({ summary }: { summary: EarningsSummary }) {
         }
       />
       <Tile label="Paid out" value={formatRupees(summary.paidOutPaise)} note="Payouts that reached you." />
+    </section>
+  );
+}
+
+function Payout({ summary, active, upiVpa }: { summary: EarningsSummary; active: boolean; upiVpa: string | null }) {
+  const open = summary.payouts.find((p) => p.status === "initiated" || p.status === "in_transit");
+  const amount = amountToRequest(summary.availablePaise, summary.hasCompletedPayout);
+
+  let body: React.ReactNode;
+  if (open) {
+    body = (
+      <p className="text-text">
+        Your request of <span className="numeric font-semibold">{formatRupees(open.amountPaise)}</span> (
+        <span className="numeric">{payoutRef(open.id)}</span>) is waiting to be paid. It will show here as
+        Paid once it has been sent. You can ask again after that.
+      </p>
+    );
+  } else if (!active) {
+    body = <p className="text-muted">Payouts open once your account is active.</p>;
+  } else if (!upiVpa) {
+    body = <p className="text-muted">Add a UPI ID in your payout setup to be able to ask for a payout.</p>;
+  } else if (amount > 0) {
+    body = <RequestPayout amountLabel={formatRupees(amount)} upiVpa={upiVpa} />;
+  } else {
+    body = (
+      <p className="text-muted">
+        You can ask for a payout once at least {formatRupees(MIN_PAYOUT_PAISE)} is available. Available
+        now: <span className="numeric text-text">{formatRupees(summary.availablePaise)}</span>
+        {summary.pendingPaise > 0 ? ` (${formatRupees(summary.pendingPaise)} more is still pending).` : "."}
+      </p>
+    );
+  }
+
+  return (
+    <section aria-labelledby="payout-title" className="space-y-3 rounded-surface border border-line/60 bg-surface p-5">
+      <h2 id="payout-title" className="text-lg font-semibold text-text">
+        Get paid
+      </h2>
+      {body}
     </section>
   );
 }

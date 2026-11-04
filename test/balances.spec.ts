@@ -17,9 +17,10 @@ import { asLedgerDb, freshDatabase } from "./helpers/pg";
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-11-03T06:00:00Z");
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * DAY);
+const hoursAgo = (n: number) => new Date(NOW.getTime() - n * 60 * 60 * 1000);
 
 test.describe("hold rules (pure)", () => {
-  test("UPI waits 7 days; anything else 30, or 60 for a creator with no completed payout", () => {
+  test("UPI waits 1 day; anything else 30, or 60 for a creator with no completed payout", () => {
     expect(holdDays("upi", false)).toBe(HOLD_DAYS_UPI);
     expect(holdDays("upi", true)).toBe(HOLD_DAYS_UPI);
     expect(holdDays("card", true)).toBe(HOLD_DAYS_OTHER);
@@ -39,12 +40,12 @@ test.describe("hold rules (pure)", () => {
 
   test("available is the balance less what is held, and never below zero", () => {
     const tips = [
-      { capturedAt: daysAgo(1), method: "upi", netPaise: 4000 },
+      { capturedAt: hoursAgo(12), method: "upi", netPaise: 4000 },
       { capturedAt: daysAgo(20), method: "upi", netPaise: 6000 },
     ];
     const b = workOutBalance(10000, tips, true, NOW);
     expect(b).toMatchObject({ balancePaise: 10000, heldPaise: 4000, availablePaise: 6000 });
-    expect(b.nextReleaseAt?.getTime()).toBe(daysAgo(1).getTime() + HOLD_DAYS_UPI * DAY);
+    expect(b.nextReleaseAt?.getTime()).toBe(hoursAgo(12).getTime() + HOLD_DAYS_UPI * DAY);
 
     // Part of the balance already paid out or taken back: held can exceed the balance.
     expect(workOutBalance(1000, tips, true, NOW).availablePaise).toBe(0);
@@ -104,13 +105,13 @@ test.describe("balances from the ledger", () => {
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const old = await postedTip(pg, c, { gross: 100000, capturedAt: daysAgo(10), method: "upi" });
-    const fresh = await postedTip(pg, c, { gross: 50000, capturedAt: daysAgo(2), method: "upi" });
+    const fresh = await postedTip(pg, c, { gross: 50000, capturedAt: hoursAgo(12), method: "upi" });
     const card = await postedTip(pg, c, { gross: 20000, capturedAt: daysAgo(10), method: "card" });
 
     const { rows, minPayoutMinor } = data(await getCreatorBalances(db, NOW));
     expect(minPayoutMinor).toBe(MIN_PAYOUT_PAISE);
     expect(rows).toHaveLength(1);
-    // No completed payout yet, so the card tip waits 60 days; the fresh UPI tip waits 7.
+    // No completed payout yet, so the card tip waits 60 days; the fresh UPI tip waits 1 day.
     expect(rows[0]).toMatchObject({
       creatorId: c,
       balanceMinor: old.share + fresh.share + card.share,

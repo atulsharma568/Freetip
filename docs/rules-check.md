@@ -1,4 +1,6 @@
 
+**Update 2026-11-04:** no provider has agreed to split and settle, so the owner decided to pay creators by hand from their own account anyway (`OPERATIONS.md` 7k). The reading below has not changed and the risk it describes is still open; the owner accepted it.
+
 The owner has no budget for a lawyer or accountant (2026-10-31) and asked for the rules to be checked from public sources. This is a reading of the rules, not legal advice and not a sign-off: it says what the text says, what stays unclear, and which choice carries the least risk. Sources are at the end.
 
 ## 1. Is paying creators from our own account "payment aggregation"? (the big one)

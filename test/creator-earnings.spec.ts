@@ -15,9 +15,9 @@ test.describe("statement rows", () => {
   const base = { tipId: 1, fanName: "Riya", grossPaise: 10000, netPaise: 9200, method: "upi" };
 
   test("a recent tip is pending until its hold ends, an old one is released", () => {
-    const fresh = toStatementRow({ ...base, capturedAt: new Date(now.getTime() - DAY), rates: STANDARD_RATES }, false, now);
+    const fresh = toStatementRow({ ...base, capturedAt: new Date(now.getTime() - DAY / 2), rates: STANDARD_RATES }, false, now);
     expect(fresh.status).toBe("held");
-    expect(fresh.releasesAt?.getTime()).toBe(new Date(now.getTime() - DAY).getTime() + HOLD_DAYS_UPI * DAY);
+    expect(fresh.releasesAt?.getTime()).toBe(new Date(now.getTime() - DAY / 2).getTime() + HOLD_DAYS_UPI * DAY);
     const old = toStatementRow({ ...base, capturedAt: new Date(now.getTime() - 30 * DAY), rates: STANDARD_RATES }, false, now);
     expect(old).toMatchObject({ status: "released", releasesAt: null });
   });
@@ -91,7 +91,7 @@ test.describe("creator earnings against the real schema", () => {
     const db = asLedgerDb(pg);
     const me = await creator(pg);
     const other = await creator(pg);
-    await postedTip(pg, me, 10000, "Riya", new Date(now.getTime() - 2 * DAY));
+    await postedTip(pg, me, 10000, "Riya", new Date(now.getTime() - DAY / 2));
     await postedTip(pg, me, 5000, null, new Date(now.getTime() - 40 * DAY));
     await postedTip(pg, other, 99900, "Someone else");
 
@@ -107,8 +107,8 @@ test.describe("creator earnings against the real schema", () => {
 
     const s = await loadEarningsSummary(db, me, now);
     expect(s.balancePaise).toBe(9200 + 4600);
-    expect(s.pendingPaise).toBe(9200); // only the 2-day-old UPI tip is inside its 7-day hold
-    expect(s.nextReleaseAt?.getTime()).toBe(now.getTime() - 2 * DAY + HOLD_DAYS_UPI * DAY);
+    expect(s.pendingPaise).toBe(9200); // only the half-day-old UPI tip is inside its 1-day hold
+    expect(s.nextReleaseAt?.getTime()).toBe(now.getTime() - DAY / 2 + HOLD_DAYS_UPI * DAY);
     expect(s.paidOutPaise).toBe(0);
     expect(s.payouts).toEqual([]);
   });

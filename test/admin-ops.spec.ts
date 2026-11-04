@@ -176,6 +176,11 @@ test("the needs-you queue counts each thing once and badges follow it", async ()
     `insert into handle_requests (user_id, current_handle, requested_handle) values ($1, 'old', 'newer')`,
     [p],
   );
+  // One payout request waiting to be paid, and one already paid (which is not counted).
+  await pg.query(
+    `insert into creator_payouts (creator_id, amount_minor, status) values ($1, 50000, 'initiated'), ($1, 60000, 'completed')`,
+    [p],
+  );
   const q = await getQueue(asLedgerDb(pg));
   const n = (key: string) => {
     const item = q.items.find((i) => i.key === key);
@@ -187,7 +192,14 @@ test("the needs-you queue counts each thing once and badges follow it", async ()
   expect(n("handleRequests")).toBe(1);
   expect(q.awaitingCreators).toEqual({ ok: true, data: 2 });
   expect(n("planPaymentsToLook")).toBe(0);
-  expect(badgesFrom(q)).toEqual({ "/admin/creators": 2, "/admin/messages": 1, "/admin/handle-requests": 1, "/admin/plan-orders": 0 });
+  expect(n("payoutsToPay")).toBe(1);
+  expect(badgesFrom(q)).toEqual({
+    "/admin/creators": 2,
+    "/admin/messages": 1,
+    "/admin/handle-requests": 1,
+    "/admin/plan-orders": 0,
+    "/admin/payouts": 1,
+  });
 });
 
 test("a failed read in the queue is reported, never turned into zero", async () => {

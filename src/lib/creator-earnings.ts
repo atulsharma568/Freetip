@@ -23,6 +23,10 @@ export interface EarningsSummary {
   // The part still inside its waiting period, and when the first tip frees up.
   pendingPaise: number;
   nextReleaseAt: Date | null;
+  // Balance less the pending part, never below zero: what a payout request can ask for.
+  availablePaise: number;
+  // Whether any payout has been paid yet (the first one has a lower ceiling).
+  hasCompletedPayout: boolean;
   // Payouts that reached the creator.
   paidOutPaise: number;
   payouts: PayoutRow[];
@@ -49,7 +53,11 @@ export async function loadEarningsSummary(db: Query, creatorId: number, now = ne
      order by created_at desc, id desc
      limit 50
   `;
-  const hasCompletedPayout = payoutRows.some((p) => p.status === "completed");
+  // Asked apart from the 50 newest rows, so an old completed payout is never missed.
+  const [paid] = await db<{ done: boolean }[]>`
+    select exists (select 1 from creator_payouts p where p.creator_id = ${creatorId} and p.status = 'completed') as done
+  `;
+  const hasCompletedPayout = paid?.done ?? false;
 
   // The tips that can still be inside a hold: captured within the longest hold.
   const since = new Date(now.getTime() - LONGEST_HOLD_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -84,6 +92,8 @@ export async function loadEarningsSummary(db: Query, creatorId: number, now = ne
     balancePaise: b.balancePaise,
     pendingPaise: b.heldPaise,
     nextReleaseAt: b.nextReleaseAt,
+    availablePaise: b.availablePaise,
+    hasCompletedPayout,
     paidOutPaise: payouts.filter((p) => p.status === "completed").reduce((s, p) => s + p.amountPaise, 0),
     payouts,
   };

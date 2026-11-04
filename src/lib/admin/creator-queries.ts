@@ -5,11 +5,14 @@ import { load, toWhole, type Loaded } from "./result";
 // Per creator, live money only (see finance-queries.ts for the definitions).
 //
 //   tips, gross      live tips captured in the period
-//   creatorShare     creator_payable credit minus debit posted in the period
+//   creatorShare     creator_payable credit minus debit posted in the period by tips
+//                    (a payout request is not a change in what the creator earned)
 //   ourFee           platform_fee_revenue credit minus debit posted in the period
 //                    (the ledger transaction names the creator)
-//   owedNow          creator_payable credit minus debit, all time. NOT floored at
-//                    zero: a creator who owes us money shows a negative figure.
+//   owedNow          creator_payable plus payouts_in_flight, credit minus debit, all
+//                    time: what still has to be paid out, including a payout that was
+//                    asked for and not yet paid. NOT floored at zero: a creator who
+//                    owes us money shows a negative figure.
 //   lastTipAt        the latest live captured tip, all time
 //
 // A creator is listed when they have a live captured tip or anything on their
@@ -75,9 +78,11 @@ export function getCreatorEarnings(
                  sum(e.credit_minor - e.debit_minor) as owed_now,
                  sum(case when x.effective_at >= ${from}::timestamptz
                            and x.effective_at <  ${to}::timestamptz
+                           and a.code = 'creator_payable'
+                           and x.source_type <> 'creator_payout'
                           then e.credit_minor - e.debit_minor else 0 end) as share_period
             from ledger_entries e
-            join ledger_accounts a      on a.id = e.account_id and a.code = 'creator_payable'
+            join ledger_accounts a      on a.id = e.account_id and a.code in ('creator_payable', 'payouts_in_flight')
             join ledger_transactions x  on x.id = e.ledger_transaction_id
            group by e.creator_id
         ) sh on sh.creator_id = u.id
