@@ -6,7 +6,7 @@ import { sendPassReminderEmail } from "@/lib/pass-email";
 import { sendPassReminders } from "@/lib/pass-reminders";
 import { expirePasses, reconcilePendingOrders, syncRunningPasses } from "@/lib/plan-orders";
 
-// Daily, run by Vercel Cron (see vercel.json). Three jobs, all safe to repeat, and one never stops
+// Daily, run by Vercel Cron (see vercel.json). Four jobs, all safe to repeat, and one never stops
 // the others:
 //  1. Ask PayU about orders left unsettled (the browser never came back and no notice reached us)
 //     and pay, fail or close them out. Skipped when PayU is not set up. It stops after a time
@@ -14,7 +14,9 @@ import { expirePasses, reconcilePendingOrders, syncRunningPasses } from "@/lib/p
 //  2. Take away the features of every pass that has ended, and only the ones the pass added.
 //  3. Give every running plan the features it lists today (a feature added to a plan after it was bought).
 //  4. Email creators whose pass ends within 5 days, once per end date (off until the sender is set up).
-// Vercel sends CRON_SECRET as a bearer token.
+// Jobs 1 to 3 touch money or access: if any of them throws or leaves one creator undone, the answer is
+// ERROR (status 500) so the cron log shows it. A reminder email that did not go is not an error: the
+// next run tries again. Vercel sends CRON_SECRET as a bearer token.
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
@@ -29,31 +31,38 @@ export async function GET(request: Request) {
   if (!sql) return new Response("Not set up", { status: 503 });
   const db = sql as unknown as LedgerDb;
 
+  // Set by any step of jobs 1 to 3 that failed or left something undone, so the run is not reported OK.
+  let failed = false;
+
   let checked = "PayU not set up";
   const config = payuConfig();
   if (config) {
     try {
       const r = await reconcilePendingOrders(db, { config, fetchPayment: (txnid) => fetchPayment(config, txnid) });
       checked = `${r.looked} looked at, ${r.activated} paid, ${r.failed} failed, ${r.abandoned} closed out, ${r.stillPending} still open, ${r.unavailable} not answered, ${r.needsLook} to look at by hand, ${r.errors} errors`;
+      if (r.errors > 0) failed = true;
     } catch (err) {
       console.error("Plan orders: the PayU check failed (migration 0055 run?)", err instanceof Error ? err.message : err);
       checked = "the PayU check failed (see the log)";
+      failed = true;
     }
   }
   let ended = "passes could not be checked (see the log)";
-  let failed = true;
   try {
-    ended = `${(await expirePasses(db)).expired} passes ended`;
-    failed = false;
+    const r = await expirePasses(db);
+    ended = `${r.expired} passes ended${r.failed ? `, ${r.failed} could not be switched off (see the log)` : ""}`;
+    if (r.failed > 0) failed = true;
   } catch (err) {
     console.error("Plan orders: ending passes failed (migration 0055 run?)", err instanceof Error ? err.message : err);
+    failed = true;
   }
-  // A plan whose feature list grew since it was bought. Not a failure of the run if it cannot be done.
+  // A plan whose feature list grew since it was bought: a creator who paid for it is missing a feature.
   let synced = "feature sync failed (see the log)";
   try {
     synced = `${(await syncRunningPasses(db)).synced} plans got new features`;
   } catch (err) {
     console.error("Plan orders: adding new plan features failed (migration 0057 run?)", err instanceof Error ? err.message : err);
+    failed = true;
   }
   // A reminder that could not be sent is not a failure of the run: the next run tries again.
   let reminded = "reminders could not be sent (see the log)";

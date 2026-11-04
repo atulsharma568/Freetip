@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ConfirmAction } from "@/components/admin/ConfirmAction";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { markPlanPaymentHandled } from "@/app/actions/admin";
 import { formatINR } from "@/lib/admin/result";
 import { fmtIST } from "@/lib/admin/format";
 import type { PlanOrderRow } from "@/lib/admin/plan-order-queries";
@@ -8,7 +10,8 @@ import { PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 const planName = (plan: string) => PLAN_NAMES[plan as PlanKey] ?? plan;
 const term = (months: number) => (months === 12 ? "12 months" : `${months} month${months === 1 ? "" : "s"}`);
 
-export function OrderTable({ rows }: { rows: PlanOrderRow[] }) {
+// `canHandle` adds the "Mark handled" button, used on the "to look at" list.
+export function OrderTable({ rows, canHandle = false }: { rows: PlanOrderRow[]; canHandle?: boolean }) {
   return (
     <div data-lenis-prevent className="overflow-x-auto rounded-surface border border-control">
       <table className="w-full text-sm">
@@ -60,6 +63,19 @@ export function OrderTable({ rows }: { rows: PlanOrderRow[] }) {
                 {r.payuRef && <span className="block">PayU payment {r.payuRef}</span>}
                 {r.failureReason && <span className="block">{r.failureReason}</span>}
                 {r.endedReason && <span className="block">{r.endedReason}</span>}
+                {canHandle && (
+                  <div className="mt-2">
+                    <ConfirmAction
+                      action={markPlanPaymentHandled.bind(null, r.id)}
+                      label="Mark handled"
+                      confirmLabel="Mark handled"
+                      pendingLabel="Saving…"
+                      tone="quiet"
+                      description="Take this payment off the list. Do it once you have refunded it in PayU or given the creator the features yourself. Nothing is changed on the order; the reason is kept in the audit history."
+                      askReason
+                    />
+                  </div>
+                )}
               </td>
             </tr>
           ))}

@@ -50,17 +50,20 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     ["Covers", `${istMoment(order.passStartsAt ?? order.createdAt)} to ${istMoment(order.passEndsAt ?? order.createdAt)}`],
     ["Amount paid", rupees(order.amountMinor)],
     ["Paid with", `PayU, payment ID ${order.payuRef ?? "not recorded"}`],
+    ...(order.endedAt ? ([["Status", `Plan ended early on ${istMoment(order.endedAt)}`]] as [string, string][]) : []),
   ];
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
       {/* The site is dark, so a printed receipt would be pale text on white paper. When printing, only the
-          receipt is shown, in black on white, whatever the theme. */}
+          receipt is laid out, in black on white, whatever the theme. */}
       <style>{`@media print {
-        html, body { background: #fff !important; color: #000 !important; }
-        body * { visibility: hidden !important; }
-        .receipt-sheet, .receipt-sheet * { visibility: visible !important; color: #000 !important; background: transparent !important; border-color: #999 !important; box-shadow: none !important; backdrop-filter: none !important; }
-        .receipt-sheet { position: absolute !important; left: 0; top: 0; width: 100% !important; max-width: none !important; padding: 24px !important; }
+        html, body { background: #fff !important; color: #000 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+        /* Everything that is not the receipt (or a box holding it) is removed, so nothing keeps taking up paper (a blank first page). */
+        body *:not(.receipt-sheet):not(.receipt-sheet *):not(:has(.receipt-sheet)) { display: none !important; }
+        *:has(.receipt-sheet) { display: block !important; position: static !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+        .receipt-sheet, .receipt-sheet * { color: #000 !important; background: transparent !important; border-color: #999 !important; box-shadow: none !important; backdrop-filter: none !important; }
+        .receipt-sheet { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 24px !important; }
         .receipt-sheet a { text-decoration: none !important; }
       }`}</style>
       <div className="receipt-sheet mx-auto w-full max-w-2xl space-y-6 px-6 pb-24 pt-4">

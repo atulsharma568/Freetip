@@ -20,6 +20,8 @@ export interface OrderSummary {
   passStartsAt: Date | null;
   passEndsAt: Date | null;
   payuRef: string | null;
+  // Set when the owner ended the plan by hand (a refund): the money was given back.
+  endedAt?: Date | null;
 }
 
 interface OrderRow extends Record<string, unknown> {
@@ -34,6 +36,7 @@ interface OrderRow extends Record<string, unknown> {
   pass_starts_at: Date | string | null;
   pass_ends_at: Date | string | null;
   payu_ref: string | null;
+  ended_at?: Date | string | null;
 }
 
 const when = (v: Date | string | null): Date | null => (v === null ? null : new Date(v));
@@ -51,16 +54,19 @@ function toSummary(r: OrderRow): OrderSummary {
     passStartsAt: when(r.pass_starts_at),
     passEndsAt: when(r.pass_ends_at),
     payuRef: r.payu_ref,
+    endedAt: when(r.ended_at ?? null),
   };
 }
 
-// The creator's most recent order of any kind made in the last `withinDays` days, or null.
+// The creator's most recent order of any kind made in the last `withinDays` days, or null. "Most
+// recent" counts the moment an order was paid, so an older checkout tab paid after a newer Buy was
+// pressed is what the page reports, not the newer one still waiting.
 export async function latestOrder(db: LedgerDb, creatorId: number, now: Date = new Date(), withinDays = 3): Promise<OrderSummary | null> {
   const [row] = await db<OrderRow[]>`
-    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref, ended_at
       from plan_orders
      where creator_id = ${creatorId} and created_at > ${now.toISOString()}::timestamptz - make_interval(days => ${withinDays}::int)
-     order by created_at desc, id desc limit 1
+     order by greatest(created_at, coalesce(paid_at, created_at)) desc, id desc limit 1
   `;
   return row ? toSummary(row) : null;
 }
@@ -68,7 +74,7 @@ export async function latestOrder(db: LedgerDb, creatorId: number, now: Date = n
 // The creator's paid orders, newest first.
 export async function paidOrders(db: LedgerDb, creatorId: number, limit = 24): Promise<OrderSummary[]> {
   const rows = await db<OrderRow[]>`
-    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref, ended_at
       from plan_orders where creator_id = ${creatorId} and status = 'paid'
      order by paid_at desc, id desc limit ${limit}
   `;
@@ -79,7 +85,7 @@ export async function paidOrders(db: LedgerDb, creatorId: number, limit = 24): P
 export async function paidOrder(db: LedgerDb, creatorId: number, orderId: number): Promise<OrderSummary | null> {
   if (!Number.isSafeInteger(orderId) || orderId <= 0) return null;
   const [row] = await db<OrderRow[]>`
-    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref, ended_at
       from plan_orders where id = ${orderId} and creator_id = ${creatorId} and status = 'paid'
   `;
   return row ? toSummary(row) : null;
@@ -162,7 +168,7 @@ export function paymentNotice(hint: string | undefined, latest: OrderSummary | n
   if (latest.status === "pending") {
     return {
       kind: "info",
-      text: "We are waiting for PayU to confirm your payment. This normally takes a minute, and this page checks again by itself. If money left your account and your features are not on after a few hours, write to us on the contact page with the payment ID.",
+      text: "We are waiting for PayU to confirm your payment. This normally takes a minute. This page checks again for a short while; if it stops, reload it. If money left your account and your features are not on after a few hours, write to us on the contact page with the payment ID.",
     };
   }
   return {

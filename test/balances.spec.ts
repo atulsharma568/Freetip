@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { postCaptureAccrual } from "../src/lib/accrual";
 import { postTipReversal } from "../src/lib/reversal";
-import { splitTip } from "../src/lib/money";
+import { LEGACY_RATES, splitTip } from "../src/lib/money";
 import {
   HOLD_DAYS_NEW_CREATOR,
   HOLD_DAYS_OTHER,
@@ -89,7 +89,8 @@ async function postedTip(
     [t.rows[0].id, `border_${seq}`, paymentRef, o.method, o.gross, `bkey_${seq}`, o.capturedAt.toISOString()],
   );
   await postCaptureAccrual(asLedgerDb(pg), paymentRef);
-  return { paymentRef, share: splitTip(o.gross).creatorSharePaise };
+  // The fixture saves no pair on the order, so it carries the column default (the legacy 5% + 2.75%).
+  return { paymentRef, share: splitTip(o.gross, LEGACY_RATES).creatorSharePaise };
 }
 
 function data<T>(r: { ok: true; data: T } | { ok: false; error: string }): T {

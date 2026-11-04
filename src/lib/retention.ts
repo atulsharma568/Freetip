@@ -59,6 +59,37 @@ export async function purgeHandledContactMessages(db: LedgerDb): Promise<{ delet
   });
 }
 
+// Plan orders (migration 0055): an order that was never paid carries no money, so it is kept 12 months
+// (long enough to look into a payment that turned up late) and then deleted; a paid order is a tax and
+// accounting record and is kept up to 8 years from the day it was paid, then deleted. The privacy
+// policy says exactly this. The rupee figures stay in the books (the ledger is not touched here).
+export const UNPAID_ORDER_RETENTION_MONTHS = 12;
+export const PAID_ORDER_RETENTION_YEARS = 8;
+
+export async function purgeOldPlanOrders(db: LedgerDb): Promise<{ unpaid: number; paid: number }> {
+  return db.begin(async (tx) => {
+    const unpaid = await tx<{ id: string }[]>`
+      delete from plan_orders
+       where status <> 'paid' and created_at < now() - make_interval(months => ${UNPAID_ORDER_RETENTION_MONTHS})
+      returning id::text as id
+    `;
+    const paid = await tx<{ id: string }[]>`
+      delete from plan_orders
+       where status = 'paid' and paid_at < now() - make_interval(years => ${PAID_ORDER_RETENTION_YEARS})
+      returning id::text as id
+    `;
+    if (unpaid.length || paid.length) {
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, after_json, reason)
+        values (null, 'system', 'plan_orders.purged', 'plan_orders',
+                ${{ unpaid: unpaid.length, paid: paid.length, unpaid_months: UNPAID_ORDER_RETENTION_MONTHS, paid_years: PAID_ORDER_RETENTION_YEARS }}::jsonb,
+                'daily clean-up: plan orders older than the retention period')
+      `;
+    }
+    return { unpaid: unpaid.length, paid: paid.length };
+  });
+}
+
 // Timestamp moments hold a viewer's chat name and what they typed after !ts, so they
 // follow the same 90 days as tip text. The comment already posted on YouTube is the
 // creator's own and is not touched. A stream row with no moments left is removed too.

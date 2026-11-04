@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import { postCaptureAccrual, postMissingAccruals, type LedgerDb } from "../src/lib/accrual";
-import { splitTip } from "../src/lib/money";
+import { LEGACY_RATES, splitTip } from "../src/lib/money";
 import { financialYearIST, rangeAllTime, type DateRange } from "../src/lib/admin/date-range";
 import { getCreatorEarnings } from "../src/lib/admin/creator-queries";
 import {
@@ -73,7 +73,8 @@ async function tip(pg: PGlite, o: TipOptions = {}) {
 
 // What the money rules say each tip is worth, summed.
 function expected(grosses: number[]) {
-  const parts = grosses.map((g) => splitTip(g));
+  // Fixture orders save no pair, so they carry the column default (the legacy 5% + 2.75%).
+  const parts = grosses.map((g) => splitTip(g, LEGACY_RATES));
   const sum = (pick: (s: ReturnType<typeof splitTip>) => number) => parts.reduce((n, s) => n + pick(s), 0);
   return {
     gross: sum((s) => s.grossPaise),
@@ -159,7 +160,7 @@ test.describe("totals match the ledger", () => {
       creatorShareMinor: all.share,
     });
     const row = list.rows.find((r) => r.orderId === tips[1].tipId)!;
-    const one = splitTip(25050);
+    const one = splitTip(25050, LEGACY_RATES);
     expect(row).toMatchObject({
       grossMinor: 25050,
       live: true,

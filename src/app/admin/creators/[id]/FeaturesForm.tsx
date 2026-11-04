@@ -21,12 +21,15 @@ export function FeaturesForm({
   action,
   granted,
   passKeys,
+  blockedKeys = [],
   lastChanged,
 }: {
   action: AdminAction;
   granted: string[];
   // The features a running plan switched on: they end with the plan unless "Keep" is ticked.
   passKeys: string[];
+  // Features the owner switched off on purpose: a plan does not switch them back on until they are ticked.
+  blockedKeys?: string[];
   lastChanged: string | null;
 }) {
   const [state, formAction, pending] = useActionState(action, ADMIN_IDLE);
@@ -54,6 +57,15 @@ export function FeaturesForm({
         built features are on for this creator.{" "}
         {lastChanged ? `Last changed ${lastChanged}.` : "No change is recorded in the audit history yet."}
       </p>
+
+      {blockedKeys.length > 0 && (
+        <p role="status" className={`text-xs ${TONE_TEXT.warn}`}>
+          <span aria-hidden="true">{TONE_MARK.warn} </span>
+          Held back on purpose: {blockedKeys.map((k) => LABEL.get(k) ?? k).join(", ")}. A plan this creator has or buys
+          will not switch {blockedKeys.length > 1 ? "these" : "this"} on until you tick {blockedKeys.length > 1 ? "them" : "it"} and
+          save, or press &ldquo;Turn on everything that exists&rdquo;.
+        </p>
+      )}
 
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="loaded" value={featureSnapshot(granted)} />
@@ -131,7 +143,7 @@ export function FeaturesForm({
         label="Turn all off"
         confirmLabel="Turn everything off"
         pendingLabel="Turning off…"
-        description="Every paid feature is switched off for this creator. Their overlays and timestamp tools stop showing at once."
+        description="Every paid feature is switched off for this creator and held off: a plan they have or buy later will not switch them back on until you tick them again. Their overlays and timestamp tools stop showing at once. To stop one plan and take its money back, use End plan now above instead."
         hidden={{ intent: "none" }}
         askReason
         size="md"

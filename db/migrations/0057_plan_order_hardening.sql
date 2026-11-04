@@ -10,6 +10,10 @@
 --       that were still running. An ended order no longer holds an early seat, no longer gives the
 --       early price on renewal and no longer counts as a sale in the books; the order row and its
 --       receipt stay.
+-- plan_orders.checked_at
+--     — when the creator's own page load last asked PayU about this order, so opening the Paid features
+--       page again and again (or from many servers) cannot send PayU more than one question per order
+--       every 20 seconds. The daily job does not use it.
 -- users.starter_anchor_day, users.creator_anchor_day
 --     — the day of the month a plan's current run started (UTC). Adding a month to Jan 31 gives
 --       Feb 28, and adding another to Feb 28 gives Mar 28: three days lost. With the anchor the
@@ -23,6 +27,7 @@
 alter table plan_orders add column if not exists agreed_at timestamptz;
 alter table plan_orders add column if not exists terms_version text
   check (terms_version is null or char_length(terms_version) <= 40);
+alter table plan_orders add column if not exists checked_at timestamptz;
 alter table plan_orders add column if not exists ended_at timestamptz;
 alter table plan_orders add column if not exists ended_reason text
   check (ended_reason is null or char_length(ended_reason) <= 300);

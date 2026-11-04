@@ -106,26 +106,24 @@ const SECTIONS: LegalSection[] = [
         </ul>
         <h3>If you buy a paid features pass</h3>
         <p>
-          The payment is taken by PayU, not by us. When you press Pay, we send
-          PayU:
+          The payment is taken by our payment provider, not by us. When you press
+          Pay, we send the provider:
         </p>
         <ul>
           <li>your name, from your Google account;</li>
           <li>your email address, from your Google account;</li>
           <li>
-            your mobile number, which you type on our Buy form because PayU
-            needs it. We pass it to PayU and do not store it;
+            your mobile number, which you type on our Buy form because the
+            provider needs it. We pass it on and do not store it;
           </li>
           <li>the amount and our order reference.</li>
         </ul>
         <p>
-          You then pay on PayU&apos;s own page, and PayU handles your card, UPI
-          or net banking details itself. We never see them. What PayU does with
-          the data it receives is covered by{" "}
-          <a href="https://payu.in/privacy-policy/" rel="noreferrer">
-            PayU&apos;s own privacy policy
-          </a>
-          .
+          You then pay on the provider&apos;s own page, and it handles your card,
+          UPI or net banking details itself. We never receive your full card number, UPI
+          PIN or net banking password. What the provider does with the data it
+          receives is covered by its own privacy policy, which is shown on its
+          payment page.
         </p>
         <p>For each order, whether or not it was paid, we keep:</p>
         <ul>
@@ -133,22 +131,31 @@ const SECTIONS: LegalSection[] = [
             your creator account, the plan (Starter or Creator) and the term (1
             or 12 months) you bought;
           </li>
-          <li>the amount, our order reference and PayU&apos;s payment ID;</li>
+          <li>the amount, our order reference and the provider&apos;s payment ID;</li>
           <li>
             the dates: when the order was made, when it was paid, and when the
             pass starts and ends, and a short note of why if it did not go
-            through;
+            through or if we ended the plan early (for example after a refund);
           </li>
           <li>
-            the time you ticked the box agreeing to our Terms and Refund Policy,
+            whether the early price applied, and which features the pass
+            switched on;
+          </li>
+          <li>
+            the time you pressed Pay with the box ticked, agreeing to our Terms and Refund Policy,
             and which version of those texts you agreed to. We keep this as
             proof of what was agreed.
           </li>
         </ul>
         <p>
-          We keep these order records for up to 8 years, because tax and
-          accounting records have to be kept, and delete them after that. See
-          “How long we keep it” below.
+          We keep the record of an order that was paid for up to 8 years from
+          the day it was paid, because tax and accounting records have to be
+          kept, and delete it after that. An order that was never paid is
+          deleted after 12 months. Our audit history, which can only be added to
+          and is kept for as long as we run the service, also holds a short
+          note when a payment is confirmed, a plan ends, or we change something
+          on your account. It names your account and the order, and holds no
+          card details and no mobile number. See “How long we keep it” below.
         </p>
         <h3>From everyone</h3>
         <ul>
@@ -203,8 +210,10 @@ const SECTIONS: LegalSection[] = [
           page, or by closing your account.
         </p>
         <p>
-          We use this information only to link your channel to your Freetip page,
-          so fans can tip you and your alerts can show on your stream. It is not
+          We use this information to link your channel to your Freetip page,
+          so fans can tip you and your alerts can show on your stream, and, if
+          you buy a paid features pass, to take that payment through our payment provider and
+          email you before the pass ends. It is not
           used for advertising, not sold, and not shared, except with the services
           that run the site (listed under “Who we share it with”) or where the
           law requires it. Nobody at
@@ -267,9 +276,9 @@ const SECTIONS: LegalSection[] = [
           <tbody>
             <tr>
               <td>Email (verified), name, picture</td>
-              <td>Identify you; your name and picture also appear on your public tip page</td>
+              <td>Identify you; your name and picture also appear on your public tip page; if you buy a paid features pass, take that payment and email you before it ends</td>
               <td>Yes, while your account is open</td>
-              <td>Only the services that run the site</td>
+              <td>The services that run the site, including our payment provider if you buy a pass</td>
             </tr>
             <tr>
               <td>YouTube channel ID, name and link (read-only)</td>
@@ -322,8 +331,8 @@ const SECTIONS: LegalSection[] = [
             <td>Providing the service the creator and you asked for</td>
           </tr>
           <tr>
-            <td>Take payment for a paid features pass (through PayU), switch the features on, show your receipt, email you before a pass ends, and keep proof of what you agreed to</td>
-            <td>Pass orders and payment ID, your sign-in email and name, the mobile number you type (sent to PayU only, not kept by us), the time you agreed to the terms and which version</td>
+            <td>Take payment for a paid features pass (through our payment provider), switch the features on, show your receipt, email you before a pass ends, and keep proof of what you agreed to</td>
+            <td>Pass orders and payment ID, your sign-in email and name, the mobile number you type (sent to the payment provider only, not kept by us), the time you agreed to the terms and which version</td>
             <td>Providing the service you asked for; legal duties as to accounts</td>
           </tr>
           <tr>
@@ -478,11 +487,12 @@ const SECTIONS: LegalSection[] = [
         <li>
           <strong>Paid features orders:</strong> only if a creator buys a
           pass. The order record (the account, plan and term, the amount, our
-          order reference, PayU&apos;s payment ID, the dates, and the time the
+          order reference, the provider&apos;s payment ID, the dates, and the time the
           creator agreed to the Terms and Refund Policy with the version they
-          agreed to) is kept for up to 8 years, because tax and accounting
-          records have to be kept, then deleted. The creator&apos;s mobile
-          number is not part of it: we do not store it. PayU keeps what it
+          agreed to) of a paid order is kept for up to 8 years from the day it
+          was paid, because tax and accounting records have to be kept, then
+          deleted; an order that was never paid is deleted after 12 months. The creator&apos;s mobile
+          number is not part of it: we do not store it. The payment provider keeps what it
           receives under its own policy.
         </li>
         <li>

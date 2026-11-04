@@ -54,17 +54,19 @@ const SECTIONS: LegalSection[] = [
           <Link href="/refunds">refund policy</Link>.
         </p>
         <p>
-          <strong>Early price.</strong> Each plan, Starter and Creator, has a
-          lower early price for {EARLY_SEATS}. Seats are counted for each plan
-          separately, and a seat stays taken after a pass ends. The early price
-          applies to the term bought, 1 month or 12 months, at the early price
-          listed for that term. A creator who bought a plan at the early price
-          keeps the early price when they buy another term of it before the pass
-          ends, or within 31 days after it ends. The dashboard shows the price a
-          creator will pay before they pay, and it never changes after they press
-          Pay. If it changes while the form is open, for example because the last
-          early seat has gone, nothing is charged and the creator is asked to
-          reload and see the new price first.
+          <strong>Early price.</strong> {LIVE_SALES_OPEN ? "Each plan, Starter and Creator, has" : "Each plan, Starter and Creator, will have"} a
+          lower early price for {LIVE_SALES_OPEN ? EARLY_SEATS : "its first creators. How many, and the prices, are announced when plans open"}.
+          Seats are counted for each plan separately, and a seat stays taken
+          after a pass ends. Someone who has started paying holds their seat for
+          two hours. The early price applies to the term bought, 1 month or 12
+          months, at the early price listed for that term. A creator who bought a
+          plan at the early price keeps the early price when they buy another
+          term of that plan, before the pass ends and for at least 31 days after
+          it ends. The dashboard shows the price a creator will pay before they
+          pay, and it never changes after they press Pay. If it changes while
+          the form is open, for example because the last early seat has gone,
+          nothing is charged and the creator is asked to reload and see the new
+          price first.
           {LIVE_SALES_OPEN ? "" : " Plans are not open to buy yet. These rules apply from the day they open."}
         </p>
       </>

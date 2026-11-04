@@ -61,7 +61,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   // return and notice were both lost is switched on now and not at the daily job; switch off a plan
   // that has just ended; and give a running plan the features it lists today. Each is safe to repeat
   // and none can stop the page opening (before migrations 0055 to 0057 they only log).
-  await settleOwnOrders(creatorId);
+  const settled = await settleOwnOrders(creatorId);
   await expireOne(ledger, creatorId).catch((err: unknown) => {
     console.error("Plans page: could not switch off an ended plan:", err instanceof Error ? err.message : err);
   });
@@ -109,7 +109,10 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   } catch (err) {
     console.error("Plans page: could not read orders (migrations 0055 and 0056 run?)", err instanceof Error ? err.message : err);
   }
-  const notice = paymentNotice(payment, latest);
+  // A payment that was settled by this very page load is said so even when the address has no hint
+  // (PayU's return was lost, or the creator came back by another route).
+  const hint = payment ?? (settled && settled.activated > 0 ? "paid" : undefined);
+  const notice = paymentNotice(hint, latest);
   const passes = PLAN_KEYS.map((plan) => ({ plan, status: passStatus(until[plan]) })).filter((p) => p.status.state !== "none");
   const cardStatus = (plan: PlanKey): string | null => {
     const st = passStatus(until[plan]);
@@ -143,12 +146,13 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                 </Link>
               </p>
             )}
-            {latest?.status === "pending" && notice.kind === "info" && <PendingRefresh />}
+            {latest?.status === "pending" && notice.kind === "info" && hint !== "cancelled" && <PendingRefresh />}
           </div>
         )}
 
         <PlanCards
           testMode={config?.mode === "test"}
+          liveOwnerTest={config?.mode === "live" && !LIVE_SALES_OPEN && isOwner}
           showPrices={buyOpen}
           starter={{
             ...PLAN_CARDS.starter,
@@ -199,6 +203,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                       {" "}
                       · paid {istDay(o.paidAt ?? o.createdAt)}
                       {!o.livemode ? " · test payment" : ""}
+                      {o.endedAt ? " · plan ended early" : ""}
                     </span>
                   </p>
                   <Link href={`/dashboard/plans/receipt/${o.id}`} className="text-sm text-text underline decoration-line hover:decoration-accent">

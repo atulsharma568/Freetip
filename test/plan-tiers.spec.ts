@@ -189,14 +189,14 @@ test.describe("when a plan ends", () => {
     const c = await creator(pg);
     await buy(pg, c, "starter");
     await buy(pg, c, "creator", { term: 12 });
-    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1, failed: 0 });
     const u = await userRow(pg, c);
     expect([...u.paid_features].sort()).toEqual([...CREATOR].sort());
     expect([...u.pass_keys].sort()).toEqual([...CREATOR].sort());
     expect(u.starter_until).toBeNull();
     expect(u.creator_until).not.toBeNull();
     // Nothing left to expire until Creator ends.
-    expect(await expirePasses(db, addDays(T0, 41))).toEqual({ expired: 0 });
+    expect(await expirePasses(db, addDays(T0, 41))).toEqual({ expired: 0, failed: 0 });
   });
 
   test("Creator ends while Starter runs: only Creator's extra features go", async () => {
@@ -205,7 +205,7 @@ test.describe("when a plan ends", () => {
     const c = await creator(pg);
     await buy(pg, c, "starter", { term: 12 });
     await buy(pg, c, "creator");
-    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1, failed: 0 });
     const u = await userRow(pg, c);
     expect([...u.paid_features].sort()).toEqual([...STARTER].sort());
     expect([...u.pass_keys].sort()).toEqual([...STARTER].sort());
@@ -213,7 +213,7 @@ test.describe("when a plan ends", () => {
     expect(iso(u.starter_until)).toBe("2027-11-10T06:00:00.000Z");
     for (const k of CREATOR_ONLY) expect(u.paid_features).not.toContain(k);
     // And when Starter ends too, everything the passes added is gone.
-    expect(await expirePasses(db, addDays(T0, 400))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 400))).toEqual({ expired: 1, failed: 0 });
     expect(await userRow(pg, c)).toMatchObject({ paid_features: [], pass_keys: [], starter_until: null, creator_until: null });
   });
 
@@ -223,7 +223,7 @@ test.describe("when a plan ends", () => {
     const c = await creator(pg);
     await buy(pg, c, "starter");
     await buy(pg, c, "creator");
-    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 40))).toEqual({ expired: 1, failed: 0 });
     expect(await userRow(pg, c)).toMatchObject({ paid_features: [], pass_keys: [], starter_until: null, creator_until: null });
     const audit = await pg.query<{ n: string }>(`select count(*)::text n from audit_events where action = 'plan.expired'`);
     expect(Number(audit.rows[0].n)).toBe(1);
@@ -256,9 +256,9 @@ test.describe("when a plan ends", () => {
     const c = await creator(pg);
     await buy(pg, c, "starter");
     await buy(pg, c, "starter", { now: addDays(T0, 20) });
-    expect(await expirePasses(db, addDays(T0, 35))).toEqual({ expired: 0 });
+    expect(await expirePasses(db, addDays(T0, 35))).toEqual({ expired: 0, failed: 0 });
     expect((await userRow(pg, c)).paid_features.length).toBe(STARTER.length);
-    expect(await expirePasses(db, addDays(T0, 61))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 61))).toEqual({ expired: 1, failed: 0 });
   });
 });
 
@@ -370,12 +370,12 @@ test.describe("the daily job survives one bad creator", () => {
     } finally {
       console.error = log;
     }
-    expect(r).toEqual({ expired: 1 });
+    expect(r).toEqual({ expired: 1, failed: 1 }); // the cron turns the failure into an ERROR
     expect((await userRow(pg, good)).paid_features).toEqual([]);
     expect((await userRow(pg, bad)).paid_features.length).toBe(STARTER.length);
     // Once the fault is gone the next run clears the one left behind.
     await pg.exec(`drop trigger fail_bad on users`);
-    expect(await expirePasses(db, addDays(T0, 41))).toEqual({ expired: 1 });
+    expect(await expirePasses(db, addDays(T0, 41))).toEqual({ expired: 1, failed: 0 });
   });
 });
 

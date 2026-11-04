@@ -25,7 +25,10 @@ import { PLAN_KEYS, priceView, type PlanKey, type PlanPrices } from "./pricing";
 //    pending order: a paid order is never overwritten, and a failed one can still be paid (the
 //    creator may retry in PayU's page under the same reference).
 //  - One PayU payment id pays one order (unique index).
-//  - Lock order is always the order row, then the user row; nothing takes them the other way round.
+//  - Lock order: wherever a path takes both, it is the order row first, then the user row. Making an
+//    order takes a per-creator advisory lock first, so two orders made at once for one creator run
+//    one after the other. The owner's tools (End now, a feature save) and the expiry take only the
+//    user row, which cannot deadlock with a path that takes the order row first.
 
 export type Term = 1 | 12;
 export const TERMS: readonly Term[] = [1, 12];
@@ -176,6 +179,9 @@ export async function createPlanOrder(
   if (!termsVersion) return { ok: false, reason: "no_agreement" };
   const now = (o.now ?? new Date()).toISOString();
   return db.begin(async (tx) => {
+    // One order is made at a time per creator (a double press on Buy), so the lock below always sees
+    // the previous order.
+    await tx`select pg_advisory_xact_lock(${o.creatorId})`;
     // Lock order is the order row, then the user row (see the top of this file; a payment settling
     // takes them in that order). The pending orders this one is about to close are locked first, so a
     // payment settling one of them at the same moment cannot deadlock with this.
@@ -559,28 +565,45 @@ export async function reconcilePendingOrders(
   return out;
 }
 
+// How often one order may be asked about from a page load, whatever the number of servers or tabs.
+const PAGE_CHECK_GAP_SECONDS = 20;
+// A pending order is looked at from a page load for this long after it was made (the daily job takes
+// over after that); a failed one, which a retry under the same reference can still pay, for a shorter time.
+const PAGE_PENDING_HOURS = 24;
+const PAGE_FAILED_HOURS = 2;
+
 // The same check for one creator's own unsettled orders, run when they open the Paid features page,
 // so a payment whose return and notice were both lost shows up in seconds, not at the daily job. No
-// minimum age (the creator may have just come back); a handful of the newest orders, asked at the
-// same time so PayU being slow costs one wait, not several. Orders PayU has never heard of stay as
-// they are until a day has passed (then they are closed out, as in the daily job).
+// minimum age (the creator may have just come back); the newest eight orders, asked at the
+// same time so PayU being slow costs one wait, not several. Each order is picked (and stamped
+// `checked_at`) by one caller at a time and not again for PAGE_CHECK_GAP_SECONDS, so refreshing the
+// page cannot turn into a flood of questions to PayU. Orders PayU has never heard of stay as they are
+// until a day has passed (then they are closed out, as in the daily job).
 export async function settleCreatorOrders(
   db: LedgerDb,
   creatorId: number,
   deps: SettleDeps,
-  opts: { maxAgeDays?: number; limit?: number } = {},
+  opts: { limit?: number } = {},
 ): Promise<ReconcileResult> {
   const now = (deps.now ?? (() => new Date()))();
   const stamp = now.toISOString();
   const live = deps.config.mode === "live";
   const rows = await db<UnsettledRow[]>`
-    select id::text, txnid, status, amount_minor::text,
-           (created_at <= ${stamp}::timestamptz - interval '1 day') as old
-      from plan_orders
-     where creator_id = ${creatorId} and livemode = ${live}
-       and (status = 'pending' or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}))
-       and created_at > ${stamp}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
-     order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 4}
+    with picked as (
+      select id from plan_orders
+       where creator_id = ${creatorId} and livemode = ${live}
+         and (checked_at is null or checked_at <= ${stamp}::timestamptz - make_interval(secs => ${PAGE_CHECK_GAP_SECONDS}::int))
+         and ((status = 'pending' and created_at > ${stamp}::timestamptz - make_interval(hours => ${PAGE_PENDING_HOURS}::int))
+           or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}
+               and created_at > ${stamp}::timestamptz - make_interval(hours => ${PAGE_FAILED_HOURS}::int)))
+       order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 8}
+         for update skip locked
+    )
+    update plan_orders o set checked_at = ${stamp}::timestamptz
+      from picked
+     where o.id = picked.id
+    returning o.id::text, o.txnid, o.status, o.amount_minor::text,
+              (o.created_at <= ${stamp}::timestamptz - interval '1 day') as old
   `;
   const out = emptyResult();
   await Promise.all(rows.map((row) => checkUnsettled(db, deps, row, now, out)));
@@ -666,7 +689,7 @@ async function expireUser(
 
 // Switches off the plans whose pass has ended, one creator at a time. Safe to run as often as wanted:
 // a plan already cleared is not found again.
-export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit = 200): Promise<{ expired: number }> {
+export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit = 200): Promise<{ expired: number; failed: number }> {
   const stamp = now.toISOString();
   const due = await db<{ id: string }[]>`
     select id::text from users
@@ -675,23 +698,34 @@ export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit =
      order by least(coalesce(starter_until, 'infinity'::timestamptz), coalesce(creator_until, 'infinity'::timestamptz)) limit ${limit}
   `;
   let expired = 0;
+  let failed = 0;
   for (const { id } of due) {
-    // One creator whose expiry fails must not stop everyone behind them being switched off.
+    // One creator whose expiry fails must not stop everyone behind them being switched off; the count
+    // of failures goes back to the daily job, which then reports an error instead of "OK".
     const done = await db
       .begin((tx) => expireUser(tx, id, stamp))
       .catch((err: unknown) => {
         console.error(`Plan expiry: creator ${id} could not be switched off, trying the rest:`, err instanceof Error ? err.message : err);
+        failed += 1;
         return false;
       });
     if (done) expired += 1;
   }
-  return { expired };
+  return { expired, failed };
 }
 
 // The same switch-off for one creator, for when they open a page and their pass has just ended (so
 // the dashboard does not wait for the daily job). False when nothing had ended. Safe to call often.
 export async function expireOne(db: LedgerDb, creatorId: number, now: Date = new Date()): Promise<boolean> {
   const stamp = now.toISOString();
+  // A cheap look first, so the usual page view (nothing ended) does not open a transaction.
+  const [due] = await db<{ id: string }[]>`
+    select id::text from users
+     where id = ${creatorId}
+       and ((starter_until is not null and starter_until <= ${stamp}::timestamptz)
+         or (creator_until is not null and creator_until <= ${stamp}::timestamptz))
+  `;
+  if (!due) return false;
   return db.begin((tx) => expireUser(tx, String(creatorId), stamp));
 }
 
@@ -703,56 +737,64 @@ export async function expireOne(db: LedgerDb, creatorId: number, now: Date = new
 export async function syncRunningPasses(
   db: LedgerDb,
   now: Date = new Date(),
-  opts: { creatorId?: number; limit?: number } = {},
+  opts: { creatorId?: number } = {},
 ): Promise<{ synced: number }> {
   const stamp = now.toISOString();
-  const rows = await db<{ id: string; paid_features: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
-    select id::text, paid_features, blocked_keys,
-           (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
-           (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
-      from users
-     where ((starter_until is not null and starter_until > ${stamp}::timestamptz)
-         or (creator_until is not null and creator_until > ${stamp}::timestamptz))
-       and (${opts.creatorId ?? null}::bigint is null or id = ${opts.creatorId ?? null}::bigint)
-     order by id limit ${opts.limit ?? 1000}
-  `;
+  const BATCH = 500;
   let synced = 0;
-  for (const row of rows) {
-    const wanted = new Set<string>([...(row.starter ? planFeatureKeys("starter") : []), ...(row.creator ? planFeatureKeys("creator") : [])]);
-    const have = new Set(row.paid_features ?? []);
-    const blocked = new Set(row.blocked_keys ?? []);
-    if (![...wanted].some((k) => !have.has(k) && !blocked.has(k))) continue;
-    const changed = await db
-      .begin(async (tx) => {
-        const [u] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
-          select paid_features, pass_keys, blocked_keys,
-                 (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
-                 (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
-            from users where id = ${Number(row.id)} for no key update
-        `;
-        if (!u) return false;
-        const want = [...(u.starter ? planFeatureKeys("starter") : []), ...(u.creator ? planFeatureKeys("creator") : [])];
-        const has = new Set(u.paid_features ?? []);
-        const block = new Set(u.blocked_keys ?? []);
-        const add = [...new Set(want)].filter((k) => !has.has(k) && !block.has(k));
-        if (add.length === 0) return false;
-        await tx`
-          update users set paid_features = ${[...(u.paid_features ?? []), ...add]}::text[],
-                           pass_keys = ${[...new Set([...(u.pass_keys ?? []), ...add])]}::text[]
-           where id = ${Number(row.id)}
-        `;
-        await tx`
-          insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
-          values (null, 'system', 'plan.features_synced', 'user', ${row.id}, ${{ added_keys: add }}::jsonb,
-                  'A running plan lists features the creator did not have yet')
-        `;
-        return true;
-      })
-      .catch((err: unknown) => {
-        console.error(`Plan sync: creator ${row.id} could not be updated, trying the rest:`, err instanceof Error ? err.message : err);
-        return false;
-      });
-    if (changed) synced += 1;
+  let after = 0;
+  // In batches by id, so every creator with a running plan is looked at however many there are.
+  for (;;) {
+    const rows = await db<{ id: string; paid_features: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
+      select id::text, paid_features, blocked_keys,
+             (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
+             (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
+        from users
+       where ((starter_until is not null and starter_until > ${stamp}::timestamptz)
+           or (creator_until is not null and creator_until > ${stamp}::timestamptz))
+         and id > ${after}
+         and (${opts.creatorId ?? null}::bigint is null or id = ${opts.creatorId ?? null}::bigint)
+       order by id limit ${BATCH}
+    `;
+    for (const row of rows) {
+      const wanted = new Set<string>([...(row.starter ? planFeatureKeys("starter") : []), ...(row.creator ? planFeatureKeys("creator") : [])]);
+      const have = new Set(row.paid_features ?? []);
+      const blocked = new Set(row.blocked_keys ?? []);
+      if (![...wanted].some((k) => !have.has(k) && !blocked.has(k))) continue;
+      const changed = await db
+        .begin(async (tx) => {
+          const [u] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
+            select paid_features, pass_keys, blocked_keys,
+                   (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
+                   (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
+              from users where id = ${Number(row.id)} for no key update
+          `;
+          if (!u) return false;
+          const want = [...(u.starter ? planFeatureKeys("starter") : []), ...(u.creator ? planFeatureKeys("creator") : [])];
+          const has = new Set(u.paid_features ?? []);
+          const block = new Set(u.blocked_keys ?? []);
+          const add = [...new Set(want)].filter((k) => !has.has(k) && !block.has(k));
+          if (add.length === 0) return false;
+          await tx`
+            update users set paid_features = ${[...(u.paid_features ?? []), ...add]}::text[],
+                             pass_keys = ${[...new Set([...(u.pass_keys ?? []), ...add])]}::text[]
+             where id = ${Number(row.id)}
+          `;
+          await tx`
+            insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
+            values (null, 'system', 'plan.features_synced', 'user', ${row.id}, ${{ added_keys: add }}::jsonb,
+                    'A running plan lists features the creator did not have yet')
+          `;
+          return true;
+        })
+        .catch((err: unknown) => {
+          console.error(`Plan sync: creator ${row.id} could not be updated, trying the rest:`, err instanceof Error ? err.message : err);
+          return false;
+        });
+      if (changed) synced += 1;
+    }
+    if (rows.length < BATCH || opts.creatorId !== undefined) break;
+    after = Number(rows[rows.length - 1].id);
   }
   return { synced };
 }

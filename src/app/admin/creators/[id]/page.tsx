@@ -44,18 +44,31 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, plansRead, ordersRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
+  const [featuresRead, blockedRead, plansRead, ordersRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
     load("the paid features", async () => {
       const [f] = await db<{ paid_features: string[] | null; pass_keys: string[] | null }[]>`
         select paid_features, pass_keys from users where id = ${creatorId}
       `;
       return { granted: f?.paid_features ?? [], passKeys: f?.pass_keys ?? [] };
     }),
+    // Apart from the box above, so a database without migration 0057 still shows the switches.
+    load("the held-back features", async () => {
+      const [f] = await db<{ blocked_keys: string[] | null }[]>`select blocked_keys from users where id = ${creatorId}`;
+      return f?.blocked_keys ?? [];
+    }),
     load("the plan end dates", async () => {
-      const [p] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
-        select starter_until, creator_until from users where id = ${creatorId}
+      // Whether each end date is still ahead is worked out by the database, so this page keeps no clock.
+      const [p] = await db<
+        { starter_until: Date | null; creator_until: Date | null; starter_running: boolean | null; creator_running: boolean | null }[]
+      >`
+        select starter_until, creator_until, starter_until > now() as starter_running, creator_until > now() as creator_running
+          from users where id = ${creatorId}
       `;
-      return { starter: p?.starter_until ?? null, creator: p?.creator_until ?? null };
+      return {
+        starter: p?.starter_until ?? null,
+        creator: p?.creator_until ?? null,
+        running: { starter: Boolean(p?.starter_running), creator: Boolean(p?.creator_running) },
+      };
     }),
     load("the plan orders", () => getPlanOrders(db as unknown as LedgerDb, { creatorId, limit: 12 })),
     getLastFeatureChange(db, creatorId),
@@ -203,7 +216,13 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
                 <div key={plan} className="space-y-2">
                   <p className="text-sm text-text">
                     {PLAN_NAMES[plan]}:{" "}
-                    <span className="numeric">{until ? `runs until ${fmtIST(until)}` : "not running"}</span>
+                    <span className="numeric">
+                      {until
+                        ? plansRead.data.running[plan]
+                          ? `runs until ${fmtIST(until)}`
+                          : `ended ${fmtIST(until)} (its features switch off at the next daily job)`
+                        : "not running"}
+                    </span>
                   </p>
                   {until && (
                     <ConfirmAction
@@ -211,7 +230,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
                       label={`End ${PLAN_NAMES[plan]} now`}
                       confirmLabel={`End ${PLAN_NAMES[plan]} now`}
                       pendingLabel="Ending…"
-                      description={`The ${PLAN_NAMES[plan]} plan stops now. Its features switch off for this creator, except ones you ticked by hand or the other plan still covers. The money is not touched: refund it in PayU yourself.`}
+                      description={`The ${PLAN_NAMES[plan]} plan stops now. Its features switch off for this creator, except ones you ticked by hand or the other plan still covers. The money is not touched: refund it in PayU yourself. This ends the whole plan: every paid term still running on it is ended and no longer counted as a sale, so refund each of them in PayU.`}
                       askReason
                       size="md"
                     />
@@ -259,10 +278,11 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
           <CouldNotRead message="Could not read the switches. Run migration 0035 in Neon." detail={featuresRead.error} />
         ) : (
           <FeaturesForm
-            key={`${featuresRead.data.granted.join(",")}|${featuresRead.data.passKeys.join(",")}`}
+            key={`${featuresRead.data.granted.join(",")}|${featuresRead.data.passKeys.join(",")}|${blockedRead.ok ? blockedRead.data.join(",") : ""}`}
             action={setCreatorFeatures.bind(null, c.id)}
             granted={featuresRead.data.granted}
             passKeys={featuresRead.data.passKeys}
+            blockedKeys={blockedRead.ok ? blockedRead.data : []}
             lastChanged={
               !lastChange.ok ? "(could not read the audit history)" : lastChange.data ? fmtIST(lastChange.data.at) : null
             }

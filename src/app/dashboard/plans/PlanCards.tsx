@@ -92,12 +92,15 @@ export function PlanCards({
   creator,
   custom,
   testMode = false,
+  liveOwnerTest = false,
   showPrices = true,
 }: {
   starter: PlanCard;
   creator: PlanCard;
   custom: CustomCard;
   testMode?: boolean;
+  // Sales are closed to creators and the owner is shown the Buy button with live keys: real money.
+  liveOwnerTest?: boolean;
   // False while the prices are still placeholders for this viewer (buying is closed to them): the
   // cards then say the price will be announced instead of showing a number that may change.
   showPrices?: boolean;
@@ -184,6 +187,7 @@ export function PlanCards({
             option={pickedBuy.options[term]}
             renewing={pickedBuy.renewing}
             testMode={testMode}
+            liveOwnerTest={liveOwnerTest}
             onTermChange={setTerm}
             onBusyChange={onBusyChange}
           />

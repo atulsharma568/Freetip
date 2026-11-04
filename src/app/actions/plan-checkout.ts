@@ -7,7 +7,7 @@ import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { checkPayer, checkoutForm, CheckoutInputError, payuConfig, type CheckoutPayer, type CheckoutUrls } from "@/lib/payu";
 import { createPlanOrder } from "@/lib/plan-orders";
 import { buyingOpen, rupees } from "@/lib/plan-view";
-import { LEGAL_UPDATED } from "@/lib/legal";
+import { TERMS_VERSION } from "@/lib/legal";
 import { LIVE_SALES_OPEN, PLAN_NAMES, TIER_PRICES } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/url";
 
@@ -47,36 +47,36 @@ export async function startPlanCheckout(input: {
   const config = payuConfig();
   if (!config) return fail("Buying is not open yet.");
 
-  const [user] = await db<{ id: string; handle: string | null; email: string; name: string | null; creator_status: string }[]>`
-    select id::text, handle, email, name, creator_status from users where google_id = ${googleId}
-  `;
-  if (!user?.handle) return fail("Set up your creator page first.");
-  if (user.creator_status !== "active") return fail("Paid features can be bought once your page is live.");
-
-  // The same rule the page uses to show the button: live money once the owner has opened sales (the
-  // prices are placeholders until then) and always for the owner, test money only for the owner.
-  const isOwner = isOwnerGoogleId(googleId, configuredOwnerGoogleIds());
-  if (!buyingOpen(config.mode, LIVE_SALES_OPEN, isOwner)) return fail("Buying is not open yet.");
-
-  const urls: CheckoutUrls = {
-    success: `${SITE_URL}/api/payu/return`,
-    failure: `${SITE_URL}/api/payu/return`,
-    cancel: `${SITE_URL}/api/payu/cancel`,
-  };
-  const payer: CheckoutPayer = { firstname: user.name ?? "", email: user.email, phone };
-  // Refuse a bad mobile number or email before an order exists, so a typo does not leave an unpaid
-  // order behind (those count towards the hourly limit and hold an early seat).
-  try {
-    checkPayer(payer, urls);
-  } catch (err) {
-    if (err instanceof CheckoutInputError) return fail(err.message);
-    throw err;
-  }
-
   // Anything that goes wrong from here (the database, building the form) is told to the creator in
   // words, never left to the dashboard's error page. No order is left half made: the order and the
   // closing of the older pending ones are one transaction.
   try {
+    const [user] = await db<{ id: string; handle: string | null; email: string; name: string | null; creator_status: string }[]>`
+      select id::text, handle, email, name, creator_status from users where google_id = ${googleId}
+    `;
+    if (!user?.handle) return fail("Set up your creator page first.");
+    if (user.creator_status !== "active") return fail("Paid features can be bought once your page is live.");
+
+    // The same rule the page uses to show the button: live money once the owner has opened sales (the
+    // prices are placeholders until then) and always for the owner, test money only for the owner.
+    const isOwner = isOwnerGoogleId(googleId, configuredOwnerGoogleIds());
+    if (!buyingOpen(config.mode, LIVE_SALES_OPEN, isOwner)) return fail("Buying is not open yet.");
+
+    const urls: CheckoutUrls = {
+      success: `${SITE_URL}/api/payu/return`,
+      failure: `${SITE_URL}/api/payu/return`,
+      cancel: `${SITE_URL}/api/payu/cancel`,
+    };
+    const payer: CheckoutPayer = { firstname: user.name ?? "", email: user.email, phone };
+    // Refuse a bad mobile number or email before an order exists, so a typo does not leave an unpaid
+    // order behind (those count towards the hourly limit and hold an early seat).
+    try {
+      checkPayer(payer, urls);
+    } catch (err) {
+      if (err instanceof CheckoutInputError) return fail(err.message);
+      throw err;
+    }
+
     const created = await createPlanOrder(db as unknown as LedgerDb, {
       creatorId: Number(user.id),
       term,
@@ -86,8 +86,8 @@ export async function startPlanCheckout(input: {
       isOwner,
       expectAmountMinor,
       // What the creator agreed to by ticking the box: the time is the server's, the text is the
-      // version published now (the date at the top of the Terms and Refund Policy).
-      termsVersion: LEGAL_UPDATED,
+      // version published now (TERMS_VERSION in legal.ts).
+      termsVersion: TERMS_VERSION,
     });
     if (!created.ok) {
       switch (created.reason) {

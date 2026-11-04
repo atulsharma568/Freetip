@@ -33,14 +33,14 @@ export default async function PlanOrdersPage() {
         <DefinitionNote>
           PayU says these orders are paid, but not at the plain price (an offer or discount was applied, or its amounts
           disagree). Nothing was switched on. Open the payment in PayU&apos;s dashboard, then either refund it there or
-          give the creator the features yourself in their page.
+          give the creator the features yourself in their page, then press Mark handled to take it off this list.
         </DefinitionNote>
         {!look.ok ? (
           <CouldNotRead message="Could not read these orders. Is migration 0057 run?" detail={look.error} />
         ) : look.data.length === 0 ? (
           <AdminEmptyState title="Nothing to look at" description="No payment is waiting for your decision." />
         ) : (
-          <OrderTable rows={look.data} />
+          <OrderTable rows={look.data} canHandle />
         )}
       </section>
 

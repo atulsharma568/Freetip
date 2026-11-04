@@ -570,7 +570,7 @@ test.describe("the owner's own ticks and a pass that ends", () => {
     expect((await orderRow(pg, o.id)).added_keys).not.toContain("alertText");
 
     const after = addDays(T0, 31);
-    expect(await expirePasses(db, after)).toEqual({ expired: 1 });
+    expect(await expirePasses(db, after)).toEqual({ expired: 1, failed: 0 });
     const ended = await userRow(pg, c);
     expect([...ended.paid_features].sort()).toEqual(["alertText", "highlightedMessages"]);
     expect(ended.pass_keys).toEqual([]);
@@ -584,19 +584,19 @@ test.describe("the owner's own ticks and a pass that ends", () => {
     const c = await creator(pg);
     const a = await newOrder(db, c);
     await settlePlanPayment(db, payuReply(a), payu(paid(a.amountMinor)));
-    expect(await expirePasses(db, addDays(T0, 29))).toEqual({ expired: 0 });
+    expect(await expirePasses(db, addDays(T0, 29))).toEqual({ expired: 0, failed: 0 });
     expect((await userRow(pg, c)).paid_features.length).toBe(PASS_FEATURE_KEYS.length);
 
     // Renewed on day 20: the end is now two months out, so day 31 removes nothing.
     const day20 = addDays(T0, 20);
     const b = await newOrder(db, c, { now: day20 });
     await settlePlanPayment(db, payuReply(b, { mihpayid: "pay_2" }), { ...payu(paid(b.amountMinor, "pay_2")), now: () => day20 });
-    expect(await expirePasses(db, addDays(T0, 31))).toEqual({ expired: 0 });
+    expect(await expirePasses(db, addDays(T0, 31))).toEqual({ expired: 0, failed: 0 });
     expect((await userRow(pg, c)).paid_features.length).toBe(PASS_FEATURE_KEYS.length);
 
     // Two months on it does end, once.
-    expect(await expirePasses(db, addDays(T0, 70))).toEqual({ expired: 1 });
-    expect(await expirePasses(db, addDays(T0, 71))).toEqual({ expired: 0 });
+    expect(await expirePasses(db, addDays(T0, 70))).toEqual({ expired: 1, failed: 0 });
+    expect(await expirePasses(db, addDays(T0, 71))).toEqual({ expired: 0, failed: 0 });
     expect((await userRow(pg, c)).paid_features).toEqual([]);
   });
 

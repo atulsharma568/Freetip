@@ -42,6 +42,7 @@ export function BuyPass({
   option,
   renewing,
   testMode,
+  liveOwnerTest = false,
   onTermChange,
   onBusyChange,
 }: {
@@ -49,6 +50,8 @@ export function BuyPass({
   option: BuyOption;
   renewing: boolean;
   testMode: boolean;
+  // Sales are closed to creators and this is the owner trying a real payment: it charges real money.
+  liveOwnerTest?: boolean;
   // The term switch inside the form (the one above the cards is the same state).
   onTermChange: (term: 1 | 12) => void;
   // True while a payment is being started, so the cards above can hold still.
@@ -93,6 +96,8 @@ export function BuyPass({
         }
         setLeaving(true);
         postToPayu(result.action, result.fields);
+        // If the browser has not left after a while (a blocked post), give the button back.
+        window.setTimeout(() => setLeaving(false), 20_000);
       } catch {
         setLeaving(false);
         setProblem({ text: "We could not reach the server. Nothing was charged. Check your connection and try again.", about });
@@ -146,7 +151,11 @@ export function BuyPass({
           aria-describedby={`${id}-phone-note`}
         />
         <p id={`${id}-phone-note`} className="text-xs text-muted">
-          PayU asks for it to complete the payment. We pass it to PayU and do not keep it.
+          PayU asks for it to complete the payment. We pass it to PayU and do not keep it. See the{" "}
+          <Link href="/privacy" target="_blank" className="text-text underline decoration-line hover:decoration-accent">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
 
@@ -180,6 +189,12 @@ export function BuyPass({
         <p className="text-xs text-muted">
           You pay on PayU&apos;s page by UPI, card or net banking. Your features switch on as soon as PayU confirms.
         </p>
+        {liveOwnerTest && (
+          <p className="text-xs text-text">
+            Live payment: this charges real money. Only you can see this button while sales are closed. To undo it,
+            refund it in PayU yourself and use End plan now in the admin.
+          </p>
+        )}
         {testMode && (
           <p className="text-xs text-muted">Test mode: only you can see this button, and the payment is not real money.</p>
         )}

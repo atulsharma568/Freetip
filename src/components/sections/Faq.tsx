@@ -55,7 +55,7 @@ const ITEMS = [
   },
   {
     q: "Is it live yet?",
-    a: `Partly. Creators can sign in with Google now and set up their tip page, OBS alert, text-to-speech and dashboard. Payouts to creators are not automatic yet${PLANS_LIVE_CLAUSE}. The sample tip card and the sample alert on this page are demos, not connected to payments or to a stream.`,
+    a: `Partly. Creators can sign in with Google now and set up their tip page, OBS alert, text-to-speech and dashboard. Payouts to creators have not started yet${PLANS_LIVE_CLAUSE}. The sample tip card and the sample alert on this page are demos, not connected to payments or to a stream.`,
   },
 ];
 

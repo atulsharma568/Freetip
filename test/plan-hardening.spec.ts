@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { PGlite } from "@electric-sql/pglite";
 import type { LedgerDb } from "../src/lib/accrual";
-import { countNeedsLook, getPlanOrders } from "../src/lib/admin/plan-order-queries";
+import { countNeedsLook, getPlanOrders, markNeedsLookHandled } from "../src/lib/admin/plan-order-queries";
 import {
   createPlanOrder,
   endPlanNow,
@@ -16,6 +16,7 @@ import {
   type SettleDeps,
 } from "../src/lib/plan-orders";
 import { planFeatureKeys } from "../src/lib/plan-catalogue";
+import { purgeOldPlanOrders } from "../src/lib/retention";
 import { readReply, replyHash, type PayuConfig, type PayuPayment } from "../src/lib/payu";
 import type { PlanPrices } from "../src/lib/pricing";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
@@ -151,6 +152,42 @@ test.describe("opening the Paid features page settles the creator's own orders",
     expect((await settleCreatorOrders(db, me, deps(() => ({ kind: "pending" }), addDays(T0, 4)))).looked).toBe(0);
   });
 
+  test("refreshing the page cannot flood PayU: one question per order every 20 seconds, however many loads", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const o = await newOrder(db, c);
+    const d = deps(() => ({ kind: "pending" }), T0);
+    // Several page loads at the same moment (two tabs, two servers) ask once between them.
+    const results = await Promise.all([settleCreatorOrders(db, c, d), settleCreatorOrders(db, c, d), settleCreatorOrders(db, c, d)]);
+    expect(results.reduce((n, r) => n + r.looked, 0)).toBe(1);
+    expect(d.asked).toEqual([o.txnid]);
+    // Ten seconds on: still nothing. Thirty seconds on: asked again.
+    const at = (secs: number) => deps(() => ({ kind: "pending" }), new Date(T0.getTime() + secs * 1000));
+    expect((await settleCreatorOrders(db, c, at(10))).looked).toBe(0);
+    expect((await settleCreatorOrders(db, c, at(30))).looked).toBe(1);
+  });
+
+  test("a pending order is asked about for a day, a failed one for two hours, then the daily job takes over", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    // The first order is cancelled (failed) before the second is made, because a new order closes older pending ones.
+    const failed = await newOrder(db, c);
+    await pg.query(`update plan_orders set status = 'failed', failure_reason = 'cancelled', failed_at = $2::timestamptz where id = $1`, [failed.id, T0.toISOString()]);
+    const pending = await newOrder(db, c);
+    await pg.query(`update plan_orders set checked_at = null`);
+    const hoursLater = (h: number) => deps(() => ({ kind: "pending" }), new Date(T0.getTime() + h * 3_600_000));
+    const within = hoursLater(1);
+    expect((await settleCreatorOrders(db, c, within)).looked).toBe(2);
+    await pg.query(`update plan_orders set checked_at = null`);
+    const afterTwo = hoursLater(3);
+    await settleCreatorOrders(db, c, afterTwo);
+    expect(afterTwo.asked).toEqual([pending.txnid]);
+    await pg.query(`update plan_orders set checked_at = null`);
+    expect((await settleCreatorOrders(db, c, hoursLater(25))).looked).toBe(0);
+  });
+
   test("PayU unreachable changes nothing; one order that throws does not stop the others", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
@@ -161,7 +198,9 @@ test.describe("opening the Paid features page settles the creator's own orders",
     try {
       const down = await settleCreatorOrders(db, c, deps(() => ({ kind: "unavailable", reason: "timeout" }), T0));
       expect(down).toMatchObject({ looked: 1, unavailable: 1, activated: 0 });
-      const boom = await settleCreatorOrders(db, c, { config: LIVE, now: () => T0, sleep: async () => {}, fetchPayment: async () => { throw new Error("boom"); } });
+      // A page load asks about an order at most every 20 seconds, so the second look is a little later.
+      const later = new Date(T0.getTime() + 30_000);
+      const boom = await settleCreatorOrders(db, c, { config: LIVE, now: () => later, sleep: async () => {}, fetchPayment: async () => { throw new Error("boom"); } });
       expect(boom).toMatchObject({ looked: 1, errors: 1 });
     } finally {
       console.error = noisy;
@@ -196,6 +235,38 @@ test.describe("a payment at another price is shown to the owner", () => {
     // Once it is paid (by hand, or later at the plain price) it leaves the list.
     await settlePlanPayment(db, reply(o), deps(() => paid(o.amountMinor), addDays(T0, 1)));
     expect(await countNeedsLook(db)).toBe(0);
+  });
+
+  test("Mark handled takes it off the list and the badge once, keeps the reason, and changes nothing else", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const o = await newOrder(db, c);
+    const calm = await newOrder(db, await creator(pg));
+    const noisy = console.error;
+    console.error = () => {};
+    try {
+      await reconcilePendingOrders(db, deps(() => ({ kind: "mismatch", reason: "a discount was applied" }), addDays(T0, 1)));
+    } finally {
+      console.error = noisy;
+    }
+    expect(await countNeedsLook(db)).toBe(2);
+    // An order that was never flagged cannot be marked, and neither can one that does not exist.
+    const clean = await newOrder(db, await creator(pg), { now: addDays(T0, 2) });
+    expect(await markNeedsLookHandled(db, clean.id, "x")).toBe("not_flagged");
+    expect(await markNeedsLookHandled(db, 999999, "x")).toBe("not_flagged");
+    expect(await markNeedsLookHandled(db, o.id, "refunded in PayU")).toBe("handled");
+    expect(await markNeedsLookHandled(db, o.id, "again")).toBe("already_handled");
+    expect(await countNeedsLook(db)).toBe(1);
+    expect((await getPlanOrders(db, { needsLookOnly: true })).map((r) => r.id)).toEqual([calm.id]);
+    // The audit line keeps the reason, the order itself is untouched, and the flag line is still there.
+    const handled = await auditRows(pg, "plan.payment_look_handled");
+    expect(handled).toHaveLength(1);
+    expect((await orderRow(pg, o.id)).status).toBe("pending");
+    expect((await auditRows(pg, NEEDS_LOOK_ACTION)).length).toBe(2);
+    // The note stays readable in the full list.
+    const all = await getPlanOrders(db, { creatorId: c });
+    expect(all[0].needsLook).toBe("a discount was applied");
   });
 });
 
@@ -301,7 +372,7 @@ test.describe("a month is added on the day the run started", () => {
     expect((await userRow(pg, c)).creator_until!.toISOString()).toBe("2029-02-28T06:00:00.000Z");
     // After it ends, a purchase on the 15th starts a run anchored on the 15th.
     const later = new Date("2029-06-15T06:00:00.000Z");
-    expect(await expirePasses(db, later)).toEqual({ expired: 1 });
+    expect(await expirePasses(db, later)).toEqual({ expired: 1, failed: 0 });
     expect((await userRow(pg, c)).creator_anchor_day).toBeNull();
     const b = await newOrder(db, c, { now: later });
     await settlePlanPayment(db, reply(b), deps(() => paid(b.amountMinor, "pay_b"), later));
@@ -311,6 +382,25 @@ test.describe("a month is added on the day the run started", () => {
 });
 
 test.describe("the owner's takedown and the owner's own ticks", () => {
+  test("Turn all off while a plan runs stays off: the daily sync does not put the features back", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const o = await newOrder(db, c, { plan: "creator" });
+    await settlePlanPayment(db, reply(o), deps(() => paid(o.amountMinor), T0));
+    const on = (await userRow(pg, c)).paid_features;
+    expect(on.length).toBeGreaterThan(0);
+    // What the admin action now does for "Turn all off": every key off, as a takedown.
+    await db.begin((tx) => writeFeatureKeys(tx, c, [], false, { takedown: true }));
+    expect((await userRow(pg, c)).paid_features).toEqual([]);
+    expect([...(await userRow(pg, c)).blocked_keys].sort()).toEqual([...on].sort());
+    expect(await syncRunningPasses(db, addDays(T0, 1))).toEqual({ synced: 0 });
+    expect((await userRow(pg, c)).paid_features).toEqual([]);
+    // "Turn on everything that exists" clears the hold.
+    await db.begin((tx) => writeFeatureKeys(tx, c, planFeatureKeys("creator"), true, { takedown: false }));
+    expect((await userRow(pg, c)).blocked_keys).toEqual([]);
+  });
+
   test("a feature unticked while on stays off when a plan is bought later; ticking it again clears the block", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
@@ -338,7 +428,8 @@ test.describe("the owner's takedown and the owner's own ticks", () => {
     expect((await userRow(pg, c)).blocked_keys).toEqual([]);
     await db.begin((tx) => writeFeatureKeys(tx, c, [], false, { takedown: true }));
     expect((await userRow(pg, c)).blocked_keys).toEqual(["alertText"]);
-    // "Turn all off" and "turn on everything" are resets, not takedowns.
+    // Called without a takedown (or with "turn on everything") the list is cleared; the admin action
+    // asks for a takedown on Save and on Turn all off, and clears it only on Turn on everything.
     await db.begin((tx) => writeFeatureKeys(tx, c, [], false, { takedown: false }));
     expect((await userRow(pg, c)).blocked_keys).toEqual([]);
     await db.begin((tx) => writeFeatureKeys(tx, c, ["alertText"], true, { takedown: true }));
@@ -399,5 +490,27 @@ test.describe("keeping running plans in step with the feature list", () => {
     expect(await expireOne(db, c, addDays(T0, 31))).toBe(true);
     expect((await userRow(pg, c)).paid_features).toEqual([]);
     expect(await expireOne(db, c, addDays(T0, 32))).toBe(false);
+  });
+});
+
+test.describe("how long orders are kept (the privacy policy's promise)", () => {
+  test("an order never paid goes after 12 months, a paid one after 8 years, and nothing else is touched", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const stale = await newOrder(db, c, { now: new Date("2025-10-01T00:00:00.000Z") }); // pending, over a year old
+    const young = await newOrder(db, await creator(pg), { now: new Date(Date.now() - 30 * day) });
+    const ancient = await newOrder(db, await creator(pg), { now: new Date("2017-06-01T00:00:00.000Z") });
+    await settlePlanPayment(db, reply(ancient), deps(() => paid(ancient.amountMinor, "pay_old"), new Date("2017-06-01T00:00:00.000Z")));
+    const recentPaid = await newOrder(db, await creator(pg), { now: new Date(Date.now() - 400 * day) });
+    await settlePlanPayment(db, reply(recentPaid), deps(() => paid(recentPaid.amountMinor, "pay_recent"), new Date(Date.now() - 400 * day)));
+    expect(await purgeOldPlanOrders(db)).toEqual({ unpaid: 1, paid: 1 });
+    const left = (await pg.query<{ id: string }>(`select id::text from plan_orders order by id`)).rows.map((r) => Number(r.id));
+    expect(left).toEqual([young.id, recentPaid.id]);
+    expect(stale.id).not.toBe(young.id);
+    expect(await auditRows(pg, "plan_orders.purged")).toHaveLength(1);
+    // A second run finds nothing and writes no second line.
+    expect(await purgeOldPlanOrders(db)).toEqual({ unpaid: 0, paid: 0 });
+    expect(await auditRows(pg, "plan_orders.purged")).toHaveLength(1);
   });
 });

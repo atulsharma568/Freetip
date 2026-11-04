@@ -11,6 +11,7 @@ import { del } from "@vercel/blob";
 import { takeDownAsset } from "@/lib/page-doc/asset-store";
 import { builtFeatureKeys, featureSnapshot, sanitizeFeatureKeys } from "@/lib/plans";
 import { endPlanNow, writeFeatureKeys } from "@/lib/plan-orders";
+import { markNeedsLookHandled } from "@/lib/admin/plan-order-queries";
 import { PLAN_KEYS, PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
@@ -133,7 +134,9 @@ export async function resetCreatorAccent(
 
 // Turns paid features on or off for one creator (the owner's per-creator switches,
 // stored in users.paid_features). `intent` is "save" (the ticked boxes), "all" (every
-// feature that exists) or "none". Each change is written to the audit trail.
+// feature that exists) or "none". "Save" and "none" are takedowns for whatever they switch off, so a
+// running plan does not put it straight back; "all" clears the takedowns. Each change is written to the
+// audit trail.
 export async function setCreatorFeatures(
   creatorId: number,
   _prev: AdminActionState,
@@ -145,6 +148,7 @@ export async function setCreatorFeatures(
   if (!db) return fail(NO_DB);
 
   const intent = formData.get("intent");
+  if (intent !== "save" && intent !== "all" && intent !== "none") return fail("That request is not valid.");
   const keys =
     intent === "all"
       ? builtFeatureKeys()
@@ -162,10 +166,11 @@ export async function setCreatorFeatures(
       // now (a payment switched a pass on, or another save came first) the old ticks would undo that,
       // so ask for a reload instead.
       if (intent === "save" && formData.get("loaded") !== featureSnapshot(before.paid_features)) return "stale" as const;
-      // Pass keys the owner wants to stay when the plan ends, and (on a Save) the takedowns: a feature
-      // switched off here while it was on is not switched back on by a plan bought later.
+      // Pass keys the owner wants to stay when the plan ends, and the takedowns (on a Save and on Turn
+      // all off): a feature switched off here while it was on is not switched back on by a running plan's
+      // sync or by a plan bought later, until the owner ticks it again.
       const keep = formData.getAll("keep").filter((v): v is string => typeof v === "string" && (keys as readonly string[]).includes(v));
-      await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all", { keep, takedown: intent === "save" });
+      await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all", { keep, takedown: intent !== "all" });
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
         values (null, 'owner', 'creator.features_changed', 'user', ${String(creatorId)},
@@ -204,8 +209,8 @@ export async function endCreatorPlan(
     const ended = await endPlanNow(db as unknown as LedgerDb, creatorId, plan, reasonOf(formData, `${name} plan ended by the owner`) ?? "");
     if (!ended) return fail(`The ${name} plan is not running for this creator.`);
   } catch (err) {
-    console.error("Admin: could not end a plan (migrations 0055 and 0056 run?)", err);
-    return fail("Could not end the plan. Have migrations 0055 and 0056 been run?");
+    console.error("Admin: could not end a plan (migrations 0055, 0056 and 0057 run?)", err);
+    return fail("Could not end the plan. Have migrations 0055, 0056 and 0057 been run?");
   }
   refreshCreator(creatorId);
   revalidatePath("/admin/features");
@@ -656,4 +661,29 @@ export async function setTtsFloor(_prev: AdminActionState, formData: FormData): 
     console.error("Admin: could not save the voice minimum (migration 0043 run?)", err);
     return fail("Could not save. Has migration 0043 been run in Neon?");
   }
+}
+
+// Takes a payment off the "to look at" list once the owner has dealt with it (refunded it in PayU, or
+// gave the creator the features by hand). The reason is kept in the audit history.
+export async function markPlanPaymentHandled(
+  orderId: number,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(orderId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  try {
+    const outcome = await markNeedsLookHandled(db as unknown as LedgerDb, orderId, reasonOf(formData, "marked handled by the owner") ?? "");
+    if (outcome === "not_flagged") return fail("That order is not on the list.");
+    if (outcome === "already_handled") return fail("That order was already marked handled.");
+  } catch (err) {
+    console.error("Admin: could not mark a plan payment handled (migration 0057 run?)", err);
+    return fail(SAVE_FAILED);
+  }
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/plan-orders");
+  revalidatePath("/admin/audit");
+  return ok("Marked handled.");
 }
