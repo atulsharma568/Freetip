@@ -20,10 +20,13 @@ const LABEL = new Map<string, string>(FEATURES.map((f) => [f.key, f.label]));
 export function FeaturesForm({
   action,
   granted,
+  passKeys,
   lastChanged,
 }: {
   action: AdminAction;
   granted: string[];
+  // The features a running plan switched on: they end with the plan unless "Keep" is ticked.
+  passKeys: string[];
   lastChanged: string | null;
 }) {
   const [state, formAction, pending] = useActionState(action, ADMIN_IDLE);
@@ -88,6 +91,12 @@ export function FeaturesForm({
                       <span className="block text-xs text-muted">{f.description}</span>
                     </span>
                   </label>
+                  {f.built && ticked.has(f.key) && passKeys.includes(f.key) && (
+                    <label className="ml-7 flex items-center gap-2 text-xs text-muted">
+                      <input type="checkbox" name="keep" value={f.key} className="h-3.5 w-3.5 accent-[var(--color-accent)]" />
+                      From a plan: ends with the plan. Keep after the plan ends
+                    </label>
+                  )}
                   {missing.length > 0 && (
                     <p role="status" className={`ml-7 text-xs ${TONE_TEXT.warn}`}>
                       <span aria-hidden="true">{TONE_MARK.warn} </span>

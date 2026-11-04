@@ -44,7 +44,7 @@ async function creator(pg: PGlite, o: { status?: string; name?: string | null } 
 // Makes an order and, when asked, pays it through the real settle path.
 async function pay(pg: PGlite, creatorId: number, o: { term?: number; plan?: string; prices?: PlanPrices; now?: Date; livemode?: boolean } = {}) {
   const db = asLedgerDb(pg);
-  const r = await createPlanOrder(db, {
+  const r = await createPlanOrder(db, { termsVersion: "4 November 2026",
     creatorId,
     term: o.term ?? 1,
     plan: o.plan ?? "creator",
@@ -110,8 +110,9 @@ test.describe("the price shown and the price charged", () => {
     });
   });
 
-  test("buyingOpen: live sales need the switch, test mode is the owner's only, no PayU settings is closed", () => {
-    expect(buyingOpen("live", false, true)).toBe(false); // placeholder prices: nobody, owner included
+  test("buyingOpen: live sales need the switch except for the owner, test mode is the owner's only, no PayU settings is closed", () => {
+    expect(buyingOpen("live", false, true)).toBe(true); // the owner can try the first real payment while sales are closed
+    expect(buyingOpen("live", false, false)).toBe(false); // placeholder prices: no creator
     expect(buyingOpen("live", true, false)).toBe(true);
     expect(buyingOpen("test", false, false)).toBe(false); // a creator never pays in test mode
     expect(buyingOpen("test", false, true)).toBe(true);
@@ -124,11 +125,11 @@ test.describe("the price shown and the price charged", () => {
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const base = { creatorId: c, term: 1, plan: "creator", prices: PRICES, livemode: true, isOwner: false, now: T0 };
-    const ok = await createPlanOrder(db, { ...base, expectAmountMinor: 14900 });
+    const ok = await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, expectAmountMinor: 14900 });
     expect(ok).toMatchObject({ ok: true, order: { amountMinor: 14900, early: true } });
     // Another creator now holds the only early seat, so this one's price has moved to the normal one.
     const other = await creator(pg);
-    expect(await createPlanOrder(db, { ...base, creatorId: other, expectAmountMinor: 14900 })).toEqual({
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: other, expectAmountMinor: 14900 })).toEqual({
       ok: false,
       reason: "price_changed",
       amountMinor: 29900,
@@ -137,9 +138,9 @@ test.describe("the price shown and the price charged", () => {
     const n = await pg.query<{ n: string }>(`select count(*)::text n from plan_orders where creator_id = $1`, [other]);
     expect(Number(n.rows[0].n)).toBe(0);
     // Shown the right price, they can buy.
-    expect((await createPlanOrder(db, { ...base, creatorId: other, expectAmountMinor: 29900 })).ok).toBe(true);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: other, expectAmountMinor: 29900 })).ok).toBe(true);
     // A wrong amount that is lower than the price is refused as well.
-    expect(await createPlanOrder(db, { ...base, creatorId: other, expectAmountMinor: 100 })).toMatchObject({ ok: false, reason: "price_changed" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: other, expectAmountMinor: 100 })).toMatchObject({ ok: false, reason: "price_changed" });
   });
 });
 
@@ -206,7 +207,7 @@ test.describe("reading orders for the page and the receipt", () => {
     const c = await creator(pg);
     expect(await latestOrder(db, c, T0)).toBeNull();
     const first = await pay(pg, c, { now: T0 });
-    const second = await createPlanOrder(db, { creatorId: c, term: 12, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 1) });
+    const second = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 12, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 1) });
     if (!second.ok) throw new Error("no order");
     const latest = await latestOrder(db, c, addDays(T0, 1));
     expect(latest).toMatchObject({ id: second.order.id, status: "pending", termMonths: 12, amountMinor: 249900 });
@@ -230,7 +231,7 @@ test.describe("reading orders for the page and the receipt", () => {
     expect(await paidOrder(db, mine, -1)).toBeNull();
     expect(await paidOrder(db, mine, Number.NaN)).toBeNull();
     // An unpaid order has no receipt.
-    const unpaid = await createPlanOrder(db, { creatorId: mine, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 });
+    const unpaid = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: mine, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 });
     if (!unpaid.ok) throw new Error("no order");
     expect(await paidOrder(db, mine, unpaid.order.id)).toBeNull();
   });

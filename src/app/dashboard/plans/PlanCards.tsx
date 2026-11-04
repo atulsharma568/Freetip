@@ -92,11 +92,15 @@ export function PlanCards({
   creator,
   custom,
   testMode = false,
+  showPrices = true,
 }: {
   starter: PlanCard;
   creator: PlanCard;
   custom: CustomCard;
   testMode?: boolean;
+  // False while the prices are still placeholders for this viewer (buying is closed to them): the
+  // cards then say the price will be announced instead of showing a number that may change.
+  showPrices?: boolean;
 }) {
   const [term, setTerm] = useState<1 | 12>(1);
   const [selected, setSelected] = useState<PlanKey | null>(null);
@@ -132,7 +136,11 @@ export function PlanCards({
               <h3 className="text-xl font-semibold text-text">{p.name}</h3>
               <p className="text-sm text-muted">{p.tagline}</p>
             </div>
-            <Price prices={p.prices} term={term} earlyOpen={p.earlyOpen} />
+            {showPrices ? (
+              <Price prices={p.prices} term={term} earlyOpen={p.earlyOpen} />
+            ) : (
+              <p className="text-sm text-text">The price will be announced soon.</p>
+            )}
             <Highlights lead={p.lead} items={p.highlights} more={p.more} />
             {(p.status || p.note) && (
               <div className="space-y-1 text-sm text-text">
@@ -188,11 +196,15 @@ export function PlanCards({
             <h3 className="text-xl font-semibold text-text">{custom.name}</h3>
             <p className="text-sm text-muted">{custom.tagline}</p>
           </div>
-          <p>
-            <span className="text-sm text-muted">From </span>
-            <span className="numeric text-3xl font-semibold text-text">{rupees(custom.from)}</span>
-            <span className="text-sm text-muted"> once</span>
-          </p>
+          {showPrices ? (
+            <p>
+              <span className="text-sm text-muted">From </span>
+              <span className="numeric text-3xl font-semibold text-text">{rupees(custom.from)}</span>
+              <span className="text-sm text-muted"> once</span>
+            </p>
+          ) : (
+            <p className="text-sm text-text">Price agreed with you first.</p>
+          )}
         </div>
         <Highlights lead={null} items={custom.highlights} more={0} />
         <div className="space-y-2">

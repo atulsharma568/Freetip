@@ -100,12 +100,56 @@ const SECTIONS: LegalSection[] = [
           <li>your settings, such as alerts, text-to-speech, approval and banned words;</li>
           <li>tips received, fees, payouts and tax records;</li>
           <li>
-            if you buy a paid features pass: the order, the term, the amount,
-            when it was paid and PayU&apos;s payment ID. The mobile number PayU
-            asks for on the payment form goes to PayU to complete the payment;
-            we do not store it.
+            if you buy a paid features pass: what is listed in the next
+            heading.
           </li>
         </ul>
+        <h3>If you buy a paid features pass</h3>
+        <p>
+          The payment is taken by PayU, not by us. When you press Pay, we send
+          PayU:
+        </p>
+        <ul>
+          <li>your name, from your Google account;</li>
+          <li>your email address, from your Google account;</li>
+          <li>
+            your mobile number, which you type on our Buy form because PayU
+            needs it. We pass it to PayU and do not store it;
+          </li>
+          <li>the amount and our order reference.</li>
+        </ul>
+        <p>
+          You then pay on PayU&apos;s own page, and PayU handles your card, UPI
+          or net banking details itself. We never see them. What PayU does with
+          the data it receives is covered by{" "}
+          <a href="https://payu.in/privacy-policy/" rel="noreferrer">
+            PayU&apos;s own privacy policy
+          </a>
+          .
+        </p>
+        <p>For each order, whether or not it was paid, we keep:</p>
+        <ul>
+          <li>
+            your creator account, the plan (Starter or Creator) and the term (1
+            or 12 months) you bought;
+          </li>
+          <li>the amount, our order reference and PayU&apos;s payment ID;</li>
+          <li>
+            the dates: when the order was made, when it was paid, and when the
+            pass starts and ends, and a short note of why if it did not go
+            through;
+          </li>
+          <li>
+            the time you ticked the box agreeing to our Terms and Refund Policy,
+            and which version of those texts you agreed to. We keep this as
+            proof of what was agreed.
+          </li>
+        </ul>
+        <p>
+          We keep these order records for up to 8 years, because tax and
+          accounting records have to be kept, and delete them after that. See
+          “How long we keep it” below.
+        </p>
         <h3>From everyone</h3>
         <ul>
           <li>
@@ -196,8 +240,8 @@ const SECTIONS: LegalSection[] = [
           dashboard, or ask us through the <Link href="/contact">contact form</Link>{" "}
           from the email you signed up with. Closing erases your profile,
           including the Google data above, straight away. We keep only the records
-          we must keep by law (tip, payout and tax records, which do not include
-          your YouTube data), and your handle stays reserved so nobody else can
+          we must keep by law (tip, payout, paid features order and tax records,
+          which do not include your YouTube data), and your handle stays reserved so nobody else can
           take it. If money is still owed to you or a payout is in progress, we
           settle that first. You can also take away our access at
           any time from your Google Account at myaccount.google.com/permissions;
@@ -278,8 +322,8 @@ const SECTIONS: LegalSection[] = [
             <td>Providing the service the creator and you asked for</td>
           </tr>
           <tr>
-            <td>Sell and switch on paid features, show your receipt, and email you before a pass ends</td>
-            <td>Pass orders, payment ID, your sign-in email and name</td>
+            <td>Take payment for a paid features pass (through PayU), switch the features on, show your receipt, email you before a pass ends, and keep proof of what you agreed to</td>
+            <td>Pass orders and payment ID, your sign-in email and name, the mobile number you type (sent to PayU only, not kept by us), the time you agreed to the terms and which version</td>
             <td>Providing the service you asked for; legal duties as to accounts</td>
           </tr>
           <tr>
@@ -430,6 +474,16 @@ const SECTIONS: LegalSection[] = [
           <strong>Payment, payout and tax records:</strong> as long as Indian
           tax, accounting and anti-money-laundering laws require, currently up
           to 8 years.
+        </li>
+        <li>
+          <strong>Paid features orders:</strong> only if a creator buys a
+          pass. The order record (the account, plan and term, the amount, our
+          order reference, PayU&apos;s payment ID, the dates, and the time the
+          creator agreed to the Terms and Refund Policy with the version they
+          agreed to) is kept for up to 8 years, because tax and accounting
+          records have to be kept, then deleted. The creator&apos;s mobile
+          number is not part of it: we do not store it. PayU keeps what it
+          receives under its own policy.
         </li>
         <li>
           <strong>Creator accounts:</strong> while the account is open. When you

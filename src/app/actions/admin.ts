@@ -162,7 +162,10 @@ export async function setCreatorFeatures(
       // now (a payment switched a pass on, or another save came first) the old ticks would undo that,
       // so ask for a reload instead.
       if (intent === "save" && formData.get("loaded") !== featureSnapshot(before.paid_features)) return "stale" as const;
-      await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all");
+      // Pass keys the owner wants to stay when the plan ends, and (on a Save) the takedowns: a feature
+      // switched off here while it was on is not switched back on by a plan bought later.
+      const keep = formData.getAll("keep").filter((v): v is string => typeof v === "string" && (keys as readonly string[]).includes(v));
+      await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all", { keep, takedown: intent === "save" });
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
         values (null, 'owner', 'creator.features_changed', 'user', ${String(creatorId)},

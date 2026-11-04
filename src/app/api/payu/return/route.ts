@@ -8,6 +8,9 @@ import { readFormBody, settleFromBody } from "@/lib/plan-settle";
 // The word is only a hint for what to say; the page reads the database for the truth. The webhook
 // (/api/webhooks/payu) reaches the same settle, so whichever arrives first wins and the other
 // changes nothing. Whatever goes wrong, the creator lands on the plans page, never an error page.
+// Asking PayU twice (with a short wait between) can take a while; the same limit as the webhook.
+export const maxDuration = 30;
+
 export async function POST(request: Request): Promise<Response> {
   let word = "problem";
   try {

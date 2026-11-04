@@ -183,7 +183,8 @@ test("the needs-you queue counts each thing once and badges follow it", async ()
   expect(n("newMessages")).toBe(1);
   expect(n("handleRequests")).toBe(1);
   expect(q.awaitingCreators).toEqual({ ok: true, data: 2 });
-  expect(badgesFrom(q)).toEqual({ "/admin/creators": 2, "/admin/messages": 1, "/admin/handle-requests": 1 });
+  expect(n("planPaymentsToLook")).toBe(0);
+  expect(badgesFrom(q)).toEqual({ "/admin/creators": 2, "/admin/messages": 1, "/admin/handle-requests": 1, "/admin/plan-orders": 0 });
 });
 
 test("a failed read in the queue is reported, never turned into zero", async () => {

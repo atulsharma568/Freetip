@@ -54,7 +54,16 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-6 pb-24 pt-4">
+      {/* The site is dark, so a printed receipt would be pale text on white paper. When printing, only the
+          receipt is shown, in black on white, whatever the theme. */}
+      <style>{`@media print {
+        html, body { background: #fff !important; color: #000 !important; }
+        body * { visibility: hidden !important; }
+        .receipt-sheet, .receipt-sheet * { visibility: visible !important; color: #000 !important; background: transparent !important; border-color: #999 !important; box-shadow: none !important; backdrop-filter: none !important; }
+        .receipt-sheet { position: absolute !important; left: 0; top: 0; width: 100% !important; max-width: none !important; padding: 24px !important; }
+        .receipt-sheet a { text-decoration: none !important; }
+      }`}</style>
+      <div className="receipt-sheet mx-auto w-full max-w-2xl space-y-6 px-6 pb-24 pt-4">
         <p className="print:hidden">
           <Link href="/dashboard/plans" className="text-sm text-muted transition-colors duration-200 hover:text-text">
             ← Paid features

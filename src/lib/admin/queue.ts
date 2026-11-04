@@ -1,12 +1,13 @@
 import type { LedgerDb } from "../accrual";
 import { CLOSED_EMAIL_DOMAIN } from "../account-close";
+import { countNeedsLook } from "./plan-order-queries";
 import { load, toWhole, type Loaded } from "./result";
 
 // What is waiting for the owner. Each count is read on its own, so a table that
 // does not exist yet (a migration not run) shows as "could not read" for that one
 // line and never as zero.
 
-export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators";
+export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators" | "planPaymentsToLook";
 
 export interface QueueItem {
   key: QueueKey;
@@ -44,6 +45,9 @@ async function count(db: LedgerDb, which: QueueKey): Promise<number> {
       const [r] = await db<{ n: string }[]>`select count(*)::text as n from contact_messages where status = 'new'`;
       return toWhole(r.n);
     }
+    case "planPaymentsToLook":
+      // PayU says paid at another price; nothing was switched on (migration 0055 and the daily check).
+      return countNeedsLook(db);
     case "handleRequests": {
       const [r] = await db<{ n: string }[]>`select count(*)::text as n from handle_requests where status = 'pending'`;
       return toWhole(r.n);
@@ -56,6 +60,7 @@ const ITEMS: { key: QueueKey; label: string; href: string }[] = [
   { key: "submittedSetups", label: "Payout setups submitted", href: "/admin/creators?tab=submitted" },
   { key: "newMessages", label: "New contact messages", href: "/admin/messages?status=new" },
   { key: "handleRequests", label: "Handle change requests", href: "/admin/handle-requests" },
+  { key: "planPaymentsToLook", label: "Plan payments to look at", href: "/admin/plan-orders" },
 ];
 
 export interface Queue {
@@ -83,5 +88,6 @@ export function badgesFrom(queue: Queue): Record<string, number> {
     "/admin/creators": queue.awaitingCreators.ok ? queue.awaitingCreators.data : 0,
     "/admin/messages": n("newMessages"),
     "/admin/handle-requests": n("handleRequests"),
+    "/admin/plan-orders": n("planPaymentsToLook"),
   };
 }

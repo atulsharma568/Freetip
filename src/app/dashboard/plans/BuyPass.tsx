@@ -84,13 +84,19 @@ export function BuyPass({
   function pay() {
     setProblem(null);
     start(async () => {
-      const result = await startPlanCheckout({ plan, term: option.term, phone, expectAmountMinor: option.amountMinor, agreed });
-      if (result.status === "error") {
-        setProblem({ text: result.message, about });
-        return;
+      // A dropped connection or a server error must show a message here, not the dashboard's error page.
+      try {
+        const result = await startPlanCheckout({ plan, term: option.term, phone, expectAmountMinor: option.amountMinor, agreed });
+        if (result.status === "error") {
+          setProblem({ text: result.message, about });
+          return;
+        }
+        setLeaving(true);
+        postToPayu(result.action, result.fields);
+      } catch {
+        setLeaving(false);
+        setProblem({ text: "We could not reach the server. Nothing was charged. Check your connection and try again.", about });
       }
-      setLeaving(true);
-      postToPayu(result.action, result.fields);
     });
   }
 

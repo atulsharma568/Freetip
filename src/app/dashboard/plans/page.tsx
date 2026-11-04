@@ -7,7 +7,8 @@ import { getDb } from "@/lib/db";
 import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { payuConfig } from "@/lib/payu";
 import { buildCatalogue, type TierKey } from "@/lib/plan-catalogue";
-import { quotePlan } from "@/lib/plan-orders";
+import { expireOne, quotePlan, syncRunningPasses } from "@/lib/plan-orders";
+import { settleOwnOrders } from "@/lib/plan-settle";
 import {
   istDay,
   istMoment,
@@ -49,9 +50,27 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
 
+  const [account] = await db<{ id: string; handle: string | null; creator_status: string }[]>`
+    select id::text, handle, creator_status from users where google_id = ${googleId}`;
+  if (!account?.handle) redirect("/dashboard");
+
+  const config = payuConfig();
+  const ledger = db as unknown as LedgerDb;
+  const creatorId = Number(account.id);
+  // Before anything is read: ask PayU about this creator's own unsettled orders, so a payment whose
+  // return and notice were both lost is switched on now and not at the daily job; switch off a plan
+  // that has just ended; and give a running plan the features it lists today. Each is safe to repeat
+  // and none can stop the page opening (before migrations 0055 to 0057 they only log).
+  await settleOwnOrders(creatorId);
+  await expireOne(ledger, creatorId).catch((err: unknown) => {
+    console.error("Plans page: could not switch off an ended plan:", err instanceof Error ? err.message : err);
+  });
+  await syncRunningPasses(ledger, new Date(), { creatorId }).catch((err: unknown) => {
+    console.error("Plans page: could not add the plan's new features:", err instanceof Error ? err.message : err);
+  });
   const [user] = await db<
     { id: string; handle: string | null; paid_features: string[] | null; creator_status: string }[]
-  >`select id::text, handle, paid_features, creator_status from users where google_id = ${googleId}`;
+  >`select id::text, handle, paid_features, creator_status from users where id = ${creatorId}`;
   if (!user?.handle) redirect("/dashboard");
 
   const groups = buildCatalogue(planFeatures(user));
@@ -61,23 +80,21 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   // Buying: the orders, the running passes and what each term of each plan costs this creator. Read
   // apart so the page still opens before migrations 0055 and 0056 are run (then there is nothing to
   // show but the features).
-  const config = payuConfig();
   const isOwner = isOwnerGoogleId(googleId, configuredOwnerGoogleIds());
   let latest: OrderSummary | null = null;
   let payments: OrderSummary[] = [];
   const until: Record<PlanKey, Date | null> = { starter: null, creator: null };
   const buy: Record<PlanKey, BuyState> = { starter: { kind: "soon" }, creator: { kind: "soon" } };
   const earlyOpen: Record<PlanKey, boolean | null> = { starter: null, creator: null };
+  const buyOpen = buyingOpen(config?.mode ?? null, LIVE_SALES_OPEN, isOwner);
   try {
-    const ledger = db as unknown as LedgerDb;
-    const creatorId = Number(user.id);
     const [passRow] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
       select starter_until, creator_until from users where id = ${creatorId}`;
     until.starter = passRow?.starter_until ?? null;
     until.creator = passRow?.creator_until ?? null;
     [latest, payments] = await Promise.all([latestOrder(ledger, creatorId), paidOrders(ledger, creatorId)]);
-    // Live money only once the owner has opened sales; test money only for the owner.
-    if (buyingOpen(config?.mode ?? null, LIVE_SALES_OPEN, isOwner)) {
+    // Live money once the owner has opened sales (and always for the owner); test money only for the owner.
+    if (buyOpen) {
       for (const plan of PLAN_KEYS) {
         const quote = await quotePlan(ledger, creatorId, plan, TIER_PRICES[plan]);
         if (!quote) continue;
@@ -132,6 +149,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
 
         <PlanCards
           testMode={config?.mode === "test"}
+          showPrices={buyOpen}
           starter={{
             ...PLAN_CARDS.starter,
             buy: buy.starter,

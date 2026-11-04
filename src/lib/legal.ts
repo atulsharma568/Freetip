@@ -1,4 +1,5 @@
 import { PLATFORM_BPS, PROCESSING_BPS, splitTip } from "./money";
+import { LIVE_SALES_OPEN } from "./pricing";
 
 // Operator details for the legal, contact and pricing pages. Empty values
 // render as visible [bracketed] placeholders (see <Fill>), so nothing is
@@ -42,6 +43,10 @@ export const LEGAL_DRAFT = false;
 // Draft policy pages ask search engines not to index them.
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
+// The date of the current Terms and Refund Policy text. Every paid-plan order stores it
+// (plan_orders.terms_version) as the proof of which text the creator agreed to when they ticked
+// the box, so change it in the same commit as ANY change to the wording of the terms or the refund
+// policy (OPERATIONS.md 7i).
 export const LEGAL_UPDATED = "4 November 2026";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
@@ -84,6 +89,7 @@ export function feeBreakdown(rupees: number) {
 // Services that process personal data for us. "planned" ones are not used yet.
 export const PROCESSORS = [
   { name: "Payment processor", role: "payments, refunds and payouts", status: "planned" },
+  { name: "PayU", role: "taking a creator's payment for a paid features pass (the creator's name, email address and mobile number, the amount and our order reference; PayU handles the card, UPI or net banking details itself and we never see them)", status: LIVE_SALES_OPEN ? "active" : "planned" }, // live once creators can buy
   { name: "Vercel", role: "website hosting and the sound files creators upload", status: "active" },
   { name: "Neon", role: "database (creator accounts, tips, saved stream timestamps, waitlist entries and contact messages)", status: "active" },
   { name: "Resend", role: "emailing us a copy of each contact message (your name, email and message pass through it), and emailing a creator a reminder before a paid features pass ends (their name and email)", status: "planned" },

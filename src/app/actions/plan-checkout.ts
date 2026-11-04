@@ -7,6 +7,7 @@ import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { checkPayer, checkoutForm, CheckoutInputError, payuConfig, type CheckoutPayer, type CheckoutUrls } from "@/lib/payu";
 import { createPlanOrder } from "@/lib/plan-orders";
 import { buyingOpen, rupees } from "@/lib/plan-view";
+import { LEGAL_UPDATED } from "@/lib/legal";
 import { LIVE_SALES_OPEN, PLAN_NAMES, TIER_PRICES } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/url";
 
@@ -52,8 +53,8 @@ export async function startPlanCheckout(input: {
   if (!user?.handle) return fail("Set up your creator page first.");
   if (user.creator_status !== "active") return fail("Paid features can be bought once your page is live.");
 
-  // The same rule the page uses to show the button: live money only once the owner has opened
-  // sales (the prices are placeholders until then), test money only for the owner.
+  // The same rule the page uses to show the button: live money once the owner has opened sales (the
+  // prices are placeholders until then) and always for the owner, test money only for the owner.
   const isOwner = isOwnerGoogleId(googleId, configuredOwnerGoogleIds());
   if (!buyingOpen(config.mode, LIVE_SALES_OPEN, isOwner)) return fail("Buying is not open yet.");
 
@@ -72,39 +73,53 @@ export async function startPlanCheckout(input: {
     throw err;
   }
 
-  const created = await createPlanOrder(db as unknown as LedgerDb, {
-    creatorId: Number(user.id),
-    term,
-    plan,
-    prices: TIER_PRICES[plan],
-    livemode: config.mode === "live",
-    isOwner,
-    expectAmountMinor,
-  });
-  if (!created.ok) {
-    switch (created.reason) {
-      case "no_price":
-        return fail("The price has not been set yet.");
-      case "test_not_allowed":
-        return fail("Buying is not open yet.");
-      case "not_active":
-        return fail("Paid features can be bought once your page is live.");
-      case "too_many":
-        return fail("You started several payments in the last hour. Finish one, or try again later.");
-      case "already_covered":
-        return fail("Your Creator plan already includes everything in Starter for that long. You can buy Starter after Creator ends.");
-      case "price_changed":
-        return fail(`The price changed to ${rupees(created.amountMinor)}. Reload the page to see it and try again.`);
-      default:
-        return fail("Choose a plan and 1 month or 12 months.");
+  // Anything that goes wrong from here (the database, building the form) is told to the creator in
+  // words, never left to the dashboard's error page. No order is left half made: the order and the
+  // closing of the older pending ones are one transaction.
+  try {
+    const created = await createPlanOrder(db as unknown as LedgerDb, {
+      creatorId: Number(user.id),
+      term,
+      plan,
+      prices: TIER_PRICES[plan],
+      livemode: config.mode === "live",
+      isOwner,
+      expectAmountMinor,
+      // What the creator agreed to by ticking the box: the time is the server's, the text is the
+      // version published now (the date at the top of the Terms and Refund Policy).
+      termsVersion: LEGAL_UPDATED,
+    });
+    if (!created.ok) {
+      switch (created.reason) {
+        case "no_price":
+          return fail("The price has not been set yet.");
+        case "test_not_allowed":
+          return fail("Buying is not open yet.");
+        case "not_active":
+          return fail("Paid features can be bought once your page is live.");
+        case "too_many":
+          return fail("You started a lot of payments in the last hour. Try again a little later.");
+        case "already_covered":
+          return fail("Your Creator plan already includes everything in Starter for that long. You can buy Starter after Creator ends.");
+        case "price_changed":
+          return fail(`The price changed to ${rupees(created.amountMinor)}. Reload the page to see it and try again.`);
+        case "no_agreement":
+          return fail("Something went wrong with the form. Reload the page and try again.");
+        default:
+          return fail("Choose a plan and 1 month or 12 months.");
+      }
     }
-  }
 
-  const { action, fields } = checkoutForm(
-    config,
-    { txnid: created.order.txnid, amountMinor: created.order.amountMinor, productinfo: `Freetip ${PLAN_NAMES[plan]} plan`, orderRef: String(created.order.id) },
-    payer,
-    urls,
-  );
-  return { status: "ok", action, fields };
+    const { action, fields } = checkoutForm(
+      config,
+      { txnid: created.order.txnid, amountMinor: created.order.amountMinor, productinfo: `Freetip ${PLAN_NAMES[plan]} plan`, orderRef: String(created.order.id) },
+      payer,
+      urls,
+    );
+    return { status: "ok", action, fields };
+  } catch (err) {
+    if (err instanceof CheckoutInputError) return fail(err.message);
+    console.error("Buying a plan: could not start the payment:", err instanceof Error ? err.message : err);
+    return fail("We could not start the payment. Nothing was charged. Please try again in a minute.");
+  }
 }

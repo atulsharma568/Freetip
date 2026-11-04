@@ -60,13 +60,19 @@ export type CreateOrderResult =
   | { ok: true; order: { id: number; txnid: string; amountMinor: number; term: Term; plan: PlanKey; early: boolean } }
   // "already_covered": a Starter term that a running Creator pass already covers to the end, so
   // buying it would give the creator nothing.
-  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" | "bad_plan" | "already_covered" }
+  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" | "bad_plan" | "already_covered" | "no_agreement" }
   // The price is not what the creator was shown (an early seat went, or the prices changed). Nothing
   // was made; `amountMinor` is what it costs now.
   | { ok: false; reason: "price_changed"; amountMinor: number };
 
-// At most this many unpaid orders per creator per hour, so the button cannot be used to fill the table.
-const PENDING_PER_HOUR = 5;
+// At most this many unpaid orders (pending or failed) per creator per hour, so the button cannot be
+// used to fill the table. A new order closes the creator's older pending ones (SUPERSEDED_REASON), so
+// pressing Cancel or Back on PayU's page and starting again never piles up pending orders; this limit
+// only stops a loop.
+const UNPAID_PER_HOUR = 12;
+// What a pending order is marked with when the same creator starts a newer one. It is not
+// ABANDONED_REASON, so PayU is still asked about it and a real payment under it is still believed.
+export const SUPERSEDED_REASON = "replaced by a newer order";
 // An unpaid early order holds its seat this long (the Buy form is only offered for as long).
 const EARLY_HOLD_HOURS = 2;
 // A creator whose early pass ended less than this long ago keeps the early price on renewal.
@@ -87,13 +93,13 @@ async function quoteTerms(
   // Other creators who hold an early pass of this plan or are buying one right now (live money only).
   const [taken] = await tx<{ n: string }[]>`
     select count(distinct creator_id)::text as n from plan_orders
-     where early and livemode and plan = ${plan} and creator_id <> ${creatorId}
+     where early and livemode and plan = ${plan} and creator_id <> ${creatorId} and ended_at is null
        and (status = 'paid' or (status = 'pending' and created_at > ${now}::timestamptz - make_interval(hours => ${EARLY_HOLD_HOURS}::int)))
   `;
   // Renewing: the creator's latest paid order of this plan was an early one and ended recently (or still runs).
   const [last] = await tx<{ early: boolean; ends: boolean }[]>`
     select early, pass_ends_at >= ${now}::timestamptz - make_interval(days => ${EARLY_GRACE_DAYS}::int) as ends
-      from plan_orders where creator_id = ${creatorId} and plan = ${plan} and status = 'paid' and livemode
+      from plan_orders where creator_id = ${creatorId} and plan = ${plan} and status = 'paid' and livemode and ended_at is null
      order by paid_at desc limit 1
   `;
   const earlyTaken = Number(taken?.n ?? "0");
@@ -153,6 +159,10 @@ export async function createPlanOrder(
     // The amount the creator was shown, in paise. When it is not what the order would cost now the
     // order is not made (reason "price_changed"), so nobody is sent to PayU for a price they did not see.
     expectAmountMinor?: number;
+    // The version of the Terms and Refund Policy text the creator saw when they ticked the box (the
+    // date in LEGAL_UPDATED). Required: an order is never made without the record of what was agreed.
+    // The agreement time is `now` (the server's clock), never a time the browser sent.
+    termsVersion: string;
     txnid?: string;
     now?: Date;
   },
@@ -162,8 +172,18 @@ export async function createPlanOrder(
   const plan = PLAN_KEYS.find((p) => p === o.plan);
   if (!plan) return { ok: false, reason: "bad_plan" };
   if (!o.livemode && !o.isOwner) return { ok: false, reason: "test_not_allowed" };
+  const termsVersion = typeof o.termsVersion === "string" ? o.termsVersion.trim().slice(0, 40) : "";
+  if (!termsVersion) return { ok: false, reason: "no_agreement" };
   const now = (o.now ?? new Date()).toISOString();
   return db.begin(async (tx) => {
+    // Lock order is the order row, then the user row (see the top of this file; a payment settling
+    // takes them in that order). The pending orders this one is about to close are locked first, so a
+    // payment settling one of them at the same moment cannot deadlock with this.
+    await tx`
+      select id from plan_orders
+       where creator_id = ${o.creatorId} and status = 'pending' and livemode = ${o.livemode}
+       order by id for update
+    `;
     const [creator] = await tx<{ creator_status: string }[]>`
       select creator_status from users where id = ${o.creatorId} for no key update
     `;
@@ -178,13 +198,20 @@ export async function createPlanOrder(
     }
     const [recent] = await tx<{ n: string }[]>`
       select count(*)::text as n from plan_orders
-       where creator_id = ${o.creatorId} and status = 'pending' and created_at > ${now}::timestamptz - interval '1 hour'
+       where creator_id = ${o.creatorId} and status <> 'paid' and created_at > ${now}::timestamptz - interval '1 hour'
     `;
-    if (Number(recent?.n ?? "0") >= PENDING_PER_HOUR) return { ok: false, reason: "too_many" } as const;
+    if (Number(recent?.n ?? "0") >= UNPAID_PER_HOUR) return { ok: false, reason: "too_many" } as const;
+    // The creator's older pending orders of the same mode are closed: they were left by Cancel, Back or
+    // a closed tab. They can still be paid (a notice or the PayU check settles a failed order too) and
+    // they stop holding an early seat. The user row is locked, so two tabs cannot both skip this.
+    await tx`
+      update plan_orders set status = 'failed', failed_at = ${now}::timestamptz, failure_reason = ${SUPERSEDED_REASON}
+       where creator_id = ${o.creatorId} and status = 'pending' and livemode = ${o.livemode}
+    `;
     const txnid = o.txnid ?? newTxnid();
     const [row] = await tx<{ id: string }[]>`
-      insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at)
-      values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz)
+      insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at, agreed_at, terms_version)
+      values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz, ${now}::timestamptz, ${termsVersion})
       returning id::text
     `;
     return { ok: true, order: { id: Number(row.id), txnid, amountMinor: chosen.amountMinor, term, plan, early: chosen.early } } as const;
@@ -281,11 +308,51 @@ export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: Se
   if (answer.kind === "pending" || answer.kind === "not_found") {
     return { status: "unavailable", reason: "PayU has not confirmed this payment yet" };
   }
-  if (answer.kind === "mismatch") return { status: "rejected", reason: "not_confirmed", detail: answer.reason };
-  if (answer.kind !== "success" || answer.amountMinor !== Number(order.amount_minor)) return { status: "rejected", reason: "not_confirmed" };
+  if (answer.kind === "mismatch") {
+    await flagNeedsLook(db, orderId, answer.reason);
+    return { status: "rejected", reason: "not_confirmed", detail: answer.reason };
+  }
+  if (answer.kind === "success" && answer.amountMinor !== Number(order.amount_minor)) {
+    await flagNeedsLook(db, orderId, "the amount differs");
+    return { status: "rejected", reason: "not_confirmed" };
+  }
+  if (answer.kind !== "success") return { status: "rejected", reason: "not_confirmed" };
 
   // The payment id comes from PayU's own answer; the id in the posted reply is not covered by the hash.
   return activate(db, orderId, answer.payuRef, (deps.now ?? (() => new Date()))());
+}
+
+// The term a payment adds to one plan, worked out in the database in UTC so the session's time zone
+// can never move it. The term starts when the plan's current pass ends, or at `stamp` when it has
+// ended (or never ran). A month is added by the calendar and then put back on the day of the month
+// the run started on, so Jan 31 plus one month is Feb 28 and one more is Mar 31, not Mar 28
+// (`anchorDay` is that day, kept while the pass is renewed without a gap; a new run starts a new one).
+async function termSpan(
+  tx: Query,
+  planUntil: string | null,
+  anchorDay: number | null,
+  months: number,
+  stamp: string,
+): Promise<{ starts: string; ends: string; anchor: number }> {
+  const [r] = await tx<{ starts: string; ends: string; anchor: number }[]>`
+    with s as (
+      select greatest(coalesce(${planUntil}::text::timestamptz, ${stamp}::timestamptz), ${stamp}::timestamptz) as starts,
+             coalesce(${planUntil}::text::timestamptz > ${stamp}::timestamptz, false) as renewing
+    ), a as (
+      select starts,
+             ((starts at time zone 'UTC') + make_interval(months => ${months}::int)) as cand,
+             (case when renewing and ${anchorDay}::int is not null then ${anchorDay}::int
+                   else extract(day from (starts at time zone 'UTC'))::int end) as anchor
+        from s
+    )
+    select starts::text as starts,
+           ((date_trunc('month', cand)
+             + (least(anchor, extract(day from (date_trunc('month', cand) + interval '1 month' - interval '1 day'))::int) - 1) * interval '1 day'
+             + (cand - date_trunc('day', cand))) at time zone 'UTC')::text as ends,
+           anchor::int as anchor
+      from a
+  `;
+  return r;
 }
 
 // Pays the order and switches the features on, in one transaction with both rows locked.
@@ -302,34 +369,53 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
 
       // Which plan this order bought; the plan's own end date is the one that moves.
       const plan: PlanKey = order.plan === "starter" ? "starter" : "creator";
-      const [user] = await tx<{ creator_status: string; paid_features: string[] | null; pass_keys: string[] | null; plan_until: string | null }[]>`
-        select creator_status, paid_features, pass_keys,
-               (case when ${plan}::text = 'starter' then starter_until else creator_until end)::text as plan_until
+      const [user] = await tx<{
+        creator_status: string;
+        paid_features: string[] | null;
+        pass_keys: string[] | null;
+        blocked_keys: string[] | null;
+        plan_until: string | null;
+        anchor_day: number | null;
+        other_until: string | null;
+      }[]>`
+        select creator_status, paid_features, pass_keys, blocked_keys,
+               (case when ${plan}::text = 'starter' then starter_until else creator_until end)::text as plan_until,
+               (case when ${plan}::text = 'starter' then starter_anchor_day else creator_anchor_day end)::int as anchor_day,
+               (case when ${plan}::text = 'starter' then creator_until else null end)::text as other_until
           from users where id = ${creatorId} for no key update
       `;
-      // Months are added in UTC, so the session's time zone can never move the end date. The new term
-      // starts when this plan's current pass ends, or now when it has ended (or never ran).
-      const [span] = await tx<{ starts: string; ends: string }[]>`
-        select greatest(coalesce(${user.plan_until}::text::timestamptz, ${stamp}::timestamptz), ${stamp}::timestamptz)::text as starts,
-               (((greatest(coalesce(${user.plan_until}::text::timestamptz, ${stamp}::timestamptz), ${stamp}::timestamptz)) at time zone 'UTC'
-                  + make_interval(months => ${order.term_months}::int)) at time zone 'UTC')::text as ends
-      `;
-      const user2 = { ...user, ...span };
-      if (user2.creator_status !== "active") {
+      const span = await termSpan(tx, user.plan_until, user.anchor_day, order.term_months, stamp);
+      // A Starter term that a running Creator pass covers all the way would add nothing (the creator
+      // may have started this order before buying Creator): it starts when Creator ends instead, so
+      // the money still buys time. Compared in the database, so no date text is parsed here.
+      let covered = false;
+      if (plan === "starter" && user.other_until !== null) {
+        const [c] = await tx<{ covered: boolean }[]>`select ${user.other_until}::text::timestamptz >= ${span.ends}::timestamptz as covered`;
+        covered = Boolean(c?.covered);
+      }
+      const final = covered ? await termSpan(tx, user.other_until, null, order.term_months, stamp) : span;
+      if (user.creator_status !== "active") {
         // Paid, but the account is suspended or closed. The pass is still recorded; the owner may
         // want to refund by hand.
-        console.error(`Plan order ${orderId} was paid for a creator whose account is ${user2.creator_status}: check whether to refund.`);
+        console.error(`Plan order ${orderId} was paid for a creator whose account is ${user.creator_status}: check whether to refund.`);
       }
-      const have = new Set(user2.paid_features ?? []);
+      const have = new Set(user.paid_features ?? []);
+      const blocked = new Set(user.blocked_keys ?? []);
       // Only keys not already on are the pass's to take away later; a key the owner ticked stays theirs.
-      const added = planFeatureKeys(plan).filter((k) => !have.has(k));
-      const features = [...(user2.paid_features ?? []), ...added];
-      const passKeys = [...new Set([...(user2.pass_keys ?? []), ...added])];
+      // A key the owner switched off on purpose (a takedown) is not switched back on by a payment.
+      const wanted = planFeatureKeys(plan);
+      const added = wanted.filter((k) => !have.has(k) && !blocked.has(k));
+      const skipped = wanted.filter((k) => !have.has(k) && blocked.has(k));
+      const features = [...(user.paid_features ?? []), ...added];
+      const passKeys = [...new Set([...(user.pass_keys ?? []), ...added])];
+      const user2 = { ...final };
 
       await tx`
         update users set paid_features = ${features}::text[], pass_keys = ${passKeys}::text[],
                          starter_until = case when ${plan}::text = 'starter' then ${user2.ends}::timestamptz else starter_until end,
-                         creator_until = case when ${plan}::text = 'creator' then ${user2.ends}::timestamptz else creator_until end
+                         creator_until = case when ${plan}::text = 'creator' then ${user2.ends}::timestamptz else creator_until end,
+                         starter_anchor_day = case when ${plan}::text = 'starter' then ${final.anchor}::smallint else starter_anchor_day end,
+                         creator_anchor_day = case when ${plan}::text = 'creator' then ${final.anchor}::smallint else creator_anchor_day end
          where id = ${creatorId}
       `;
       await tx`
@@ -341,7 +427,7 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
         values (null, 'system', 'plan.purchased', 'user', ${String(creatorId)},
-                ${{ order_id: orderId, plan, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user2.ends, added_keys: added, livemode: order.livemode }}::jsonb,
+                ${{ order_id: orderId, plan, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user2.ends, added_keys: added, skipped_blocked_keys: skipped, livemode: order.livemode }}::jsonb,
                 'PayU payment confirmed')
       `;
       return { status: "activated", orderId, creatorId, endsAt: user2.ends } as const;
@@ -368,9 +454,77 @@ export interface ReconcileResult {
   abandoned: number;
   stillPending: number;
   unavailable: number;
-  // PayU says paid, but not the plain price: the owner has to look (also written to the log).
+  // PayU says paid, but not the plain price: the owner has to look (also written to the log and, once
+  // per order, to the audit trail where the owner's pages show it).
   needsLook: number;
   errors: number;
+}
+
+const emptyResult = (): ReconcileResult => ({ looked: 0, activated: 0, failed: 0, abandoned: 0, stillPending: 0, unavailable: 0, needsLook: 0, errors: 0 });
+
+interface UnsettledRow extends Record<string, unknown> {
+  id: string;
+  txnid: string;
+  status: string;
+  amount_minor: string;
+  old: boolean;
+}
+
+// The action the owner's pages look for: PayU says an order is paid but not at the plain price, so
+// nothing was switched on and a person has to decide (refund it in PayU, or give the features by hand).
+export const NEEDS_LOOK_ACTION = "plan.payment_needs_look";
+
+// Writes the "needs a look" line once per order (a second look at the same order adds nothing), so
+// the owner sees it without reading the server log. Never throws: the check goes on without it.
+async function flagNeedsLook(db: LedgerDb, orderId: number, detail: string): Promise<void> {
+  try {
+    await db`
+      insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
+      select null, 'system', ${NEEDS_LOOK_ACTION}, 'plan_order', ${String(orderId)},
+             ${{ order_id: orderId, detail: detail.slice(0, 300) }}::jsonb,
+             'PayU says this order is paid, but not at the plain price. Nothing was switched on.'
+       where not exists (select 1 from audit_events where action = ${NEEDS_LOOK_ACTION} and entity_type = 'plan_order' and entity_ref = ${String(orderId)})
+    `;
+  } catch (err) {
+    console.error(`Plan order ${orderId}: could not write the needs-a-look line:`, err instanceof Error ? err.message : err);
+  }
+}
+
+// Asks PayU about one unsettled order and acts on the answer: pays it, fails it, closes it out, or
+// leaves it. Adds what it did to `out`. Never believes anything but PayU's own Verify answer for the
+// plain price (the same rule as a reply: see settlePlanPayment).
+async function checkUnsettled(db: LedgerDb, deps: SettleDeps, row: UnsettledRow, now: Date, out: ReconcileResult): Promise<void> {
+  out.looked += 1;
+  try {
+    const answer = await deps.fetchPayment(row.txnid);
+    if (answer.kind === "unavailable") out.unavailable += 1;
+    else if (answer.kind === "success" && answer.amountMinor === Number(row.amount_minor)) {
+      const r = await activate(db, Number(row.id), answer.payuRef, now);
+      if (r.status === "activated") out.activated += 1;
+    } else if (answer.kind === "success" || answer.kind === "mismatch") {
+      out.needsLook += 1;
+      const detail = answer.kind === "mismatch" ? answer.reason : "the amount differs";
+      console.error(`Plan order ${row.id} (txnid ${row.txnid}) is paid at PayU but not at the plain price: ${detail}. Look at it by hand.`);
+      await flagNeedsLook(db, Number(row.id), detail);
+    } else if (answer.kind === "failure") {
+      const changed = await db<{ id: string }[]>`
+        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
+         where id = ${Number(row.id)} and status = 'pending'
+        returning id::text
+      `;
+      if (changed.length) out.failed += 1;
+      else out.stillPending += 1;
+    } else if (answer.kind === "not_found" && row.status === "pending" && row.old) {
+      await db`
+        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${ABANDONED_REASON}
+         where id = ${Number(row.id)} and status = 'pending'
+      `;
+      out.abandoned += 1;
+    } else out.stillPending += 1;
+  } catch (err) {
+    out.errors += 1;
+    console.error(`Plan order ${row.id} could not be checked:`, err instanceof Error ? err.message : err);
+  }
 }
 
 // Orders that were never settled by a return or a notice are asked about at PayU: pending ones, and
@@ -386,7 +540,7 @@ export async function reconcilePendingOrders(
   const now = (deps.now ?? (() => new Date()))();
   const stamp = now.toISOString();
   const live = deps.config.mode === "live";
-  const rows = await db<{ id: string; txnid: string; status: string; amount_minor: string; old: boolean }[]>`
+  const rows = await db<UnsettledRow[]>`
     select id::text, txnid, status, amount_minor::text,
            (created_at <= ${stamp}::timestamptz - interval '1 day') as old
       from plan_orders
@@ -396,40 +550,40 @@ export async function reconcilePendingOrders(
        and created_at >  ${stamp}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
      order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 50}
   `;
-  const out: ReconcileResult = { looked: 0, activated: 0, failed: 0, abandoned: 0, stillPending: 0, unavailable: 0, needsLook: 0, errors: 0 };
+  const out = emptyResult();
   const started = Date.now();
   for (const row of rows) {
     if (Date.now() - started > (opts.budgetMs ?? 40_000)) break;
-    out.looked += 1;
-    try {
-      const answer = await deps.fetchPayment(row.txnid);
-      if (answer.kind === "unavailable") out.unavailable += 1;
-      else if (answer.kind === "success" && answer.amountMinor === Number(row.amount_minor)) {
-        const r = await activate(db, Number(row.id), answer.payuRef, now);
-        if (r.status === "activated") out.activated += 1;
-      } else if (answer.kind === "success" || answer.kind === "mismatch") {
-        out.needsLook += 1;
-        console.error(`Plan order ${row.id} (txnid ${row.txnid}) is paid at PayU but not at the plain price: ${answer.kind === "mismatch" ? answer.reason : "the amount differs"}. Look at it by hand.`);
-      } else if (answer.kind === "failure") {
-        const changed = await db<{ id: string }[]>`
-          update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
-           where id = ${Number(row.id)} and status = 'pending'
-          returning id::text
-        `;
-        if (changed.length) out.failed += 1;
-        else out.stillPending += 1;
-      } else if (answer.kind === "not_found" && row.status === "pending" && row.old) {
-        await db`
-          update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${ABANDONED_REASON}
-           where id = ${Number(row.id)} and status = 'pending'
-        `;
-        out.abandoned += 1;
-      } else out.stillPending += 1;
-    } catch (err) {
-      out.errors += 1;
-      console.error(`Plan order ${row.id} could not be checked:`, err instanceof Error ? err.message : err);
-    }
+    await checkUnsettled(db, deps, row, now, out);
   }
+  return out;
+}
+
+// The same check for one creator's own unsettled orders, run when they open the Paid features page,
+// so a payment whose return and notice were both lost shows up in seconds, not at the daily job. No
+// minimum age (the creator may have just come back); a handful of the newest orders, asked at the
+// same time so PayU being slow costs one wait, not several. Orders PayU has never heard of stay as
+// they are until a day has passed (then they are closed out, as in the daily job).
+export async function settleCreatorOrders(
+  db: LedgerDb,
+  creatorId: number,
+  deps: SettleDeps,
+  opts: { maxAgeDays?: number; limit?: number } = {},
+): Promise<ReconcileResult> {
+  const now = (deps.now ?? (() => new Date()))();
+  const stamp = now.toISOString();
+  const live = deps.config.mode === "live";
+  const rows = await db<UnsettledRow[]>`
+    select id::text, txnid, status, amount_minor::text,
+           (created_at <= ${stamp}::timestamptz - interval '1 day') as old
+      from plan_orders
+     where creator_id = ${creatorId} and livemode = ${live}
+       and (status = 'pending' or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}))
+       and created_at > ${stamp}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
+     order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 4}
+  `;
+  const out = emptyResult();
+  await Promise.all(rows.map((row) => checkUnsettled(db, deps, row, now, out)));
   return out;
 }
 
@@ -438,7 +592,12 @@ export async function reconcilePendingOrders(
 // Switches off whatever has ended for one creator, inside a transaction. Takes away the features a
 // finished plan added, and only those: a key stays when the owner ticked it, or when the other plan,
 // if still running, covers it too. False when nothing had ended (a renewal came in meanwhile).
-async function expireUser(tx: Query, id: string, stamp: string, byOwner?: { reason: string }): Promise<boolean> {
+async function expireUser(
+  tx: Query,
+  id: string,
+  stamp: string,
+  byOwner?: { reason: string; originalUntil?: { starter: string | null; creator: string | null } },
+): Promise<boolean> {
   const [u] = await tx<{
     paid_features: string[] | null;
     pass_keys: string[] | null;
@@ -475,12 +634,20 @@ async function expireUser(tx: Query, id: string, stamp: string, byOwner?: { reas
     update users set paid_features = ${kept}::text[], pass_keys = ${keptPassKeys}::text[],
            starter_until = case when ${u.starter_ended}::boolean then null else starter_until end,
            starter_reminded_until = case when ${u.starter_ended}::boolean then null else starter_reminded_until end,
+           starter_anchor_day = case when ${u.starter_ended}::boolean then null else starter_anchor_day end,
            creator_until = case when ${u.creator_ended}::boolean then null else creator_until end,
-           creator_reminded_until = case when ${u.creator_ended}::boolean then null else creator_reminded_until end
+           creator_reminded_until = case when ${u.creator_ended}::boolean then null else creator_reminded_until end,
+           creator_anchor_day = case when ${u.creator_ended}::boolean then null else creator_anchor_day end
      where id = ${Number(id)}
   `;
   const ended = [u.starter_ended ? "starter" : null, u.creator_ended ? "creator" : null].filter(Boolean);
-  const before = { features: u.paid_features ?? [], starter_until: u.starter_until, creator_until: u.creator_until };
+  // When the owner ends a plan early its end date was already set to now; the audit line keeps the date
+  // it would have run until.
+  const before = {
+    features: u.paid_features ?? [],
+    starter_until: byOwner?.originalUntil ? byOwner.originalUntil.starter : u.starter_until,
+    creator_until: byOwner?.originalUntil ? byOwner.originalUntil.creator : u.creator_until,
+  };
   const after = { features: kept, ended };
   if (byOwner) {
     await tx`
@@ -521,6 +688,75 @@ export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit =
   return { expired };
 }
 
+// The same switch-off for one creator, for when they open a page and their pass has just ended (so
+// the dashboard does not wait for the daily job). False when nothing had ended. Safe to call often.
+export async function expireOne(db: LedgerDb, creatorId: number, now: Date = new Date()): Promise<boolean> {
+  const stamp = now.toISOString();
+  return db.begin((tx) => expireUser(tx, String(creatorId), stamp));
+}
+
+// A plan's feature list can grow after a creator bought it (a new feature joins Starter). A running
+// pass should get what its plan lists now, so this adds the keys the running plans list and the
+// creator does not have: not the ones the owner switched off on purpose (blocked_keys), and each added
+// key is remembered as the pass's so the plan's end takes it away again. One audit line per creator
+// changed. Safe to run as often as wanted; with `creatorId` it looks at that creator only.
+export async function syncRunningPasses(
+  db: LedgerDb,
+  now: Date = new Date(),
+  opts: { creatorId?: number; limit?: number } = {},
+): Promise<{ synced: number }> {
+  const stamp = now.toISOString();
+  const rows = await db<{ id: string; paid_features: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
+    select id::text, paid_features, blocked_keys,
+           (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
+           (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
+      from users
+     where ((starter_until is not null and starter_until > ${stamp}::timestamptz)
+         or (creator_until is not null and creator_until > ${stamp}::timestamptz))
+       and (${opts.creatorId ?? null}::bigint is null or id = ${opts.creatorId ?? null}::bigint)
+     order by id limit ${opts.limit ?? 1000}
+  `;
+  let synced = 0;
+  for (const row of rows) {
+    const wanted = new Set<string>([...(row.starter ? planFeatureKeys("starter") : []), ...(row.creator ? planFeatureKeys("creator") : [])]);
+    const have = new Set(row.paid_features ?? []);
+    const blocked = new Set(row.blocked_keys ?? []);
+    if (![...wanted].some((k) => !have.has(k) && !blocked.has(k))) continue;
+    const changed = await db
+      .begin(async (tx) => {
+        const [u] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; blocked_keys: string[] | null; starter: boolean; creator: boolean }[]>`
+          select paid_features, pass_keys, blocked_keys,
+                 (starter_until is not null and starter_until > ${stamp}::timestamptz) as starter,
+                 (creator_until is not null and creator_until > ${stamp}::timestamptz) as creator
+            from users where id = ${Number(row.id)} for no key update
+        `;
+        if (!u) return false;
+        const want = [...(u.starter ? planFeatureKeys("starter") : []), ...(u.creator ? planFeatureKeys("creator") : [])];
+        const has = new Set(u.paid_features ?? []);
+        const block = new Set(u.blocked_keys ?? []);
+        const add = [...new Set(want)].filter((k) => !has.has(k) && !block.has(k));
+        if (add.length === 0) return false;
+        await tx`
+          update users set paid_features = ${[...(u.paid_features ?? []), ...add]}::text[],
+                           pass_keys = ${[...new Set([...(u.pass_keys ?? []), ...add])]}::text[]
+           where id = ${Number(row.id)}
+        `;
+        await tx`
+          insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
+          values (null, 'system', 'plan.features_synced', 'user', ${row.id}, ${{ added_keys: add }}::jsonb,
+                  'A running plan lists features the creator did not have yet')
+        `;
+        return true;
+      })
+      .catch((err: unknown) => {
+        console.error(`Plan sync: creator ${row.id} could not be updated, trying the rest:`, err instanceof Error ? err.message : err);
+        return false;
+      });
+    if (changed) synced += 1;
+  }
+  return { synced };
+}
+
 // The owner ends one plan now (after a refund by hand, say): its end date becomes now and the same
 // switch-off runs, so the features nothing else covers go and the rest stay. False when that plan
 // was not running. Writes one audit line, as the owner, with the reason given.
@@ -533,8 +769,9 @@ export async function endPlanNow(
 ): Promise<boolean> {
   const stamp = now.toISOString();
   return db.begin(async (tx) => {
-    const [u] = await tx<{ running: boolean }[]>`
-      select (case when ${plan}::text = 'starter' then starter_until else creator_until end) is not null as running
+    const [u] = await tx<{ running: boolean; starter_until: string | null; creator_until: string | null }[]>`
+      select (case when ${plan}::text = 'starter' then starter_until else creator_until end) is not null as running,
+             starter_until::text, creator_until::text
         from users where id = ${creatorId} for no key update
     `;
     if (!u?.running) return false;
@@ -543,7 +780,13 @@ export async function endPlanNow(
                        creator_until = case when ${plan}::text = 'creator' then ${stamp}::timestamptz else creator_until end
        where id = ${creatorId}
     `;
-    return expireUser(tx, String(creatorId), stamp, { reason });
+    // The paid orders of this plan that had not finished are ended with it: they stop holding an early
+    // seat, stop giving the early price on renewal and stop counting as a sale. The rows and receipts stay.
+    await tx`
+      update plan_orders set ended_at = ${stamp}::timestamptz, ended_reason = ${reason.slice(0, 300)}
+       where creator_id = ${creatorId} and plan = ${plan} and status = 'paid' and ended_at is null and pass_ends_at > ${stamp}::timestamptz
+    `;
+    return expireUser(tx, String(creatorId), stamp, { reason, originalUntil: { starter: u.starter_until, creator: u.creator_until } });
   });
 }
 
@@ -551,25 +794,51 @@ export async function endPlanNow(
 
 // Writes the owner's choice of features for one creator. A pass remembers which keys it added so it
 // can take away only those when it ends: whatever the owner unticks is forgotten there (so a later
-// manual tick is the owner's own), and "everything on" is the owner's own choice, so nothing is left
-// for the pass to remove. Call it inside the transaction that holds the user row. Before migration
-// 0055 the pass columns do not exist; then only the features are written, so the owner's box keeps
-// working until the migration is run.
-export async function writeFeatureKeys(tx: Query, creatorId: number, keys: readonly string[], everything: boolean): Promise<void> {
-  const [col] = await tx<{ ok: boolean }[]>`
+// manual tick is the owner's own), "everything on" is the owner's own choice, so nothing is left for
+// the pass to remove, and `keep` lists pass keys the owner wants to stay after the pass ends (they
+// become the owner's own). A feature the owner unticks while it was on is a takedown: it is remembered
+// in blocked_keys so a plan bought later does not switch it back on; ticking it again clears that, and
+// "everything on" or "everything off" clear the whole list. Call it inside the transaction that holds
+// the user row. Before migration 0055 (pass columns) or 0057 (blocked_keys) the columns do not exist;
+// then only what exists is written, so the owner's box keeps working until the migration is run.
+export async function writeFeatureKeys(
+  tx: Query,
+  creatorId: number,
+  keys: readonly string[],
+  everything: boolean,
+  opts: { keep?: readonly string[]; takedown?: boolean } = {},
+): Promise<void> {
+  const [col] = await tx<{ pass: boolean; blocked: boolean }[]>`
     select exists (
-      select 1 from information_schema.columns
-       where table_schema = current_schema() and table_name = 'users' and column_name = 'pass_keys'
-    ) as ok
+             select 1 from information_schema.columns
+              where table_schema = current_schema() and table_name = 'users' and column_name = 'pass_keys'
+           ) as pass,
+           exists (
+             select 1 from information_schema.columns
+              where table_schema = current_schema() and table_name = 'users' and column_name = 'blocked_keys'
+           ) as blocked
   `;
-  if (!col?.ok) {
+  if (!col?.pass) {
     await tx`update users set paid_features = ${[...keys]}::text[] where id = ${creatorId}`;
+    return;
+  }
+  const keep = [...(opts.keep ?? [])];
+  if (!col.blocked) {
+    await tx`
+      update users set paid_features = ${[...keys]}::text[],
+             pass_keys = case when ${everything} then '{}'::text[]
+                              else array(select k from unnest(pass_keys) k where k = any(${[...keys]}::text[]) and k <> all(${keep}::text[])) end
+       where id = ${creatorId}
+    `;
     return;
   }
   await tx`
     update users set paid_features = ${[...keys]}::text[],
            pass_keys = case when ${everything} then '{}'::text[]
-                            else array(select k from unnest(pass_keys) k where k = any(${[...keys]}::text[])) end
+                            else array(select k from unnest(pass_keys) k where k = any(${[...keys]}::text[]) and k <> all(${keep}::text[])) end,
+           blocked_keys = case when ${Boolean(opts.takedown) && !everything}
+                               then array(select distinct k from unnest(blocked_keys || paid_features) k where k <> all(${[...keys]}::text[]))
+                               else '{}'::text[] end
      where id = ${creatorId}
   `;
 }

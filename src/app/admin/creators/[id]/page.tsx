@@ -10,7 +10,9 @@ import { CLOSED_EMAIL_DOMAIN } from "@/lib/account-close";
 import { fmtIST } from "@/lib/admin/format";
 import { formatINR, load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
-import type { Query } from "@/lib/accrual";
+import type { LedgerDb, Query } from "@/lib/accrual";
+import { getPlanOrders } from "@/lib/admin/plan-order-queries";
+import { OrderTable } from "../../plan-orders/OrderTable";
 import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
 import { endCreatorPlan, setCreatorFeatures } from "@/app/actions/admin";
@@ -42,10 +44,12 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, plansRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
+  const [featuresRead, plansRead, ordersRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
     load("the paid features", async () => {
-      const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
-      return f?.paid_features ?? [];
+      const [f] = await db<{ paid_features: string[] | null; pass_keys: string[] | null }[]>`
+        select paid_features, pass_keys from users where id = ${creatorId}
+      `;
+      return { granted: f?.paid_features ?? [], passKeys: f?.pass_keys ?? [] };
     }),
     load("the plan end dates", async () => {
       const [p] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
@@ -53,6 +57,7 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
       `;
       return { starter: p?.starter_until ?? null, creator: p?.creator_until ?? null };
     }),
+    load("the plan orders", () => getPlanOrders(db as unknown as LedgerDb, { creatorId, limit: 12 })),
     getLastFeatureChange(db, creatorId),
     getAuditPage(db, { creatorId }, 5),
     load("the tip page", () => getPageSummary(db as unknown as Query, creatorId)),
@@ -220,19 +225,44 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
 
       <section className="space-y-3">
         <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Plan orders</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            The latest orders for this creator, with the time they ticked the agreement and which version of the Terms
+            and Refund Policy they agreed to. All creators are on{" "}
+            <Link href="/admin/plan-orders" className="underline">
+              Plan payments
+            </Link>
+            .
+          </p>
+        </div>
+        {!ordersRead.ok ? (
+          <CouldNotRead message="Could not read the orders. Run migration 0057 in Neon." detail={ordersRead.error} />
+        ) : ordersRead.data.length === 0 ? (
+          <p className="text-sm text-muted">No orders yet.</p>
+        ) : (
+          <OrderTable rows={ordersRead.data} />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
           <h2 className="text-sm font-semibold text-text">Paid features</h2>
           <p className="max-w-2xl text-xs text-muted">
             Everything is off until you tick it here or the creator buys a plan. A feature that is off is simply not
             shown to them. Planned features are listed so you can see what is coming, but cannot be switched on.
+            Unticking a feature that is on is a takedown: a plan the creator buys later does not switch it back on
+            until you tick it again. A feature that came from a plan ends with that plan unless you tick &ldquo;Keep after
+            the plan ends&rdquo; beside it.
           </p>
         </div>
         {!featuresRead.ok ? (
           <CouldNotRead message="Could not read the switches. Run migration 0035 in Neon." detail={featuresRead.error} />
         ) : (
           <FeaturesForm
-            key={featuresRead.data.join(",")}
+            key={`${featuresRead.data.granted.join(",")}|${featuresRead.data.passKeys.join(",")}`}
             action={setCreatorFeatures.bind(null, c.id)}
-            granted={featuresRead.data}
+            granted={featuresRead.data.granted}
+            passKeys={featuresRead.data.passKeys}
             lastChanged={
               !lastChange.ok ? "(could not read the audit history)" : lastChange.data ? fmtIST(lastChange.data.at) : null
             }

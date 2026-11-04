@@ -52,7 +52,7 @@ async function buy(
 ) {
   const db = asLedgerDb(pg);
   const now = o.now ?? T0;
-  const made = await createPlanOrder(db, {
+  const made = await createPlanOrder(db, { termsVersion: "4 November 2026",
     creatorId,
     term: o.term ?? 1,
     plan,
@@ -146,7 +146,7 @@ test.describe("buying a plan", () => {
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     for (const plan of ["gold", "", "CREATOR", "custom"]) {
-      expect(await createPlanOrder(db, { creatorId: c, term: 1, plan, prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({
+      expect(await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 1, plan, prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({
         ok: false,
         reason: "bad_plan",
       });
@@ -161,7 +161,7 @@ test.describe("buying a plan", () => {
     await buy(pg, c, "creator", { term: 12 });
     // Creator runs a year: a month or a year of Starter adds nothing, to the minute.
     for (const term of [1, 12]) {
-      expect(await createPlanOrder(db, { creatorId: c, term, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({
+      expect(await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({
         ok: false,
         reason: "already_covered",
       });
@@ -169,16 +169,16 @@ test.describe("buying a plan", () => {
     // A creator with one month of Creator may buy a year of Starter: it runs past the Creator pass.
     const d = await creator(pg);
     await buy(pg, d, "creator");
-    expect((await createPlanOrder(db, { creatorId: d, term: 12, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).ok).toBe(true);
-    expect(await createPlanOrder(db, { creatorId: d, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toMatchObject({ reason: "already_covered" });
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: d, term: 12, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).ok).toBe(true);
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: d, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toMatchObject({ reason: "already_covered" });
     // A lapsed Creator pass that the daily job has not cleared yet covers nothing.
     const e = await creator(pg);
     await buy(pg, e, "creator");
-    expect((await createPlanOrder(db, { creatorId: e, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 31) })).ok).toBe(true);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: e, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 31) })).ok).toBe(true);
     // Creator over a running Starter is always allowed (it adds features).
     const f = await creator(pg);
     await buy(pg, f, "starter", { term: 12 });
-    expect((await createPlanOrder(db, { creatorId: f, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).ok).toBe(true);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: f, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).ok).toBe(true);
   });
 });
 
@@ -315,7 +315,7 @@ test.describe("a Starter term a running Creator pass covers", () => {
     expect(creatorQuote[1].covered).toBe(false);
     expect(creatorQuote[12].covered).toBe(false);
     // The order check agrees with the quote.
-    expect(await createPlanOrder(db, { creatorId: c, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toMatchObject({ reason: "already_covered" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 1, plan: "starter", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toMatchObject({ reason: "already_covered" });
     // A creator with no Creator pass has nothing covered.
     const d = await creator(pg);
     const none = (await quotePlan(db, d, "starter", NO_EARLY, T0))!;

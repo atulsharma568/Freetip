@@ -2,7 +2,7 @@ import "server-only";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { fetchPayment, payuConfig, readReply } from "@/lib/payu";
-import { settlePlanPayment, type SettleResult } from "@/lib/plan-orders";
+import { settleCreatorOrders, settlePlanPayment, type ReconcileResult, type SettleResult } from "@/lib/plan-orders";
 
 // Turns a form body PayU posted (the browser return or the webhook) into a settled order. The
 // rules are in plan-orders.ts; this only wires in the database, the settings and PayU's check.
@@ -84,4 +84,38 @@ export async function settleFromBody(body: Record<string, unknown>): Promise<Set
     console.error(`PayU could not confirm ${ref}: ${forLog(result.reason, 120)}`);
   }
   return result;
+}
+
+// ---- A creator's own unsettled orders, on the Paid features page ---------------------------
+
+// How long the page waits for PayU, per question. The page opens either way; a slow PayU only means
+// the order is looked at again on the next load (the page refreshes itself while an order is open).
+const PAGE_VERIFY_TIMEOUT_MS = 3000;
+// One question about the same creator per this long, on this server instance (a brake, not a lock:
+// the refresh timer and a reload together would otherwise ask PayU twice in a second).
+const PAGE_CHECK_EVERY_MS = 3000;
+const lastCheck = new Map<number, number>();
+
+// Asks PayU about this creator's pending (and recently failed) orders and settles what PayU says is
+// paid. Called when the creator opens the plans page, so a payment whose browser return and notice
+// were both lost is switched on in seconds instead of at the daily job. Never throws and never
+// blocks the page for long: any problem is a log line and the page shows what the database says.
+export async function settleOwnOrders(creatorId: number): Promise<ReconcileResult | null> {
+  try {
+    const config = payuConfig();
+    const db = getDb();
+    if (!config || !db) return null;
+    const nowMs = Date.now();
+    const last = lastCheck.get(creatorId);
+    if (last !== undefined && nowMs - last < PAGE_CHECK_EVERY_MS) return null;
+    lastCheck.set(creatorId, nowMs);
+    if (lastCheck.size > 500) for (const [id, at] of lastCheck) if (nowMs - at > PAGE_CHECK_EVERY_MS) lastCheck.delete(id);
+    return await settleCreatorOrders(db as unknown as LedgerDb, creatorId, {
+      config,
+      fetchPayment: (txnid) => fetchPayment(config, txnid, undefined, PAGE_VERIFY_TIMEOUT_MS),
+    });
+  } catch (err) {
+    console.error("Plans page: could not check the creator's own orders:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }

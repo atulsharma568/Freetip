@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { Plus } from "@phosphor-icons/react";
 import { RevealHeading } from "@/components/motion/RevealHeading";
+import { FEES } from "@/lib/legal";
+import { LIVE_SALES_OPEN } from "@/lib/pricing";
+
+// What the plan sentences say follows LIVE_SALES_OPEN, so opening sales needs no edit here.
+const PLANS_SENTENCE = LIVE_SALES_OPEN
+  ? "The price is shown in your dashboard before you pay."
+  : "Plans are not open yet, and the price will be announced when they open.";
+const PLANS_LIVE_CLAUSE = LIVE_SALES_OPEN ? "" : " and the paid plans cannot be bought yet";
 
 const ITEMS = [
   {
@@ -15,7 +23,7 @@ const ITEMS = [
   },
   {
     q: "What does it cost?",
-    a: "We take 5% of every tip, plus a minimal processing fee, both out of your payout. Fans pay exactly the amount they choose, with nothing added.",
+    a: `We take ${FEES.platformPercent}% of every tip, plus a minimal processing fee, both out of your payout. Fans pay exactly the amount they choose, with nothing added. Creators can also buy an optional paid plan, Starter or Creator, for extra features. A plan is an extra only: it does not change the fee on tips. ${PLANS_SENTENCE}`,
   },
   {
     q: "Is there an extra charge on large tips?",
@@ -47,7 +55,7 @@ const ITEMS = [
   },
   {
     q: "Is it live yet?",
-    a: "Not yet. This page previews the product. The sample tip card and the sample alert are demos, not connected to payments or to a stream.",
+    a: `Partly. Creators can sign in with Google now and set up their tip page, OBS alert, text-to-speech and dashboard. Payouts to creators are not automatic yet${PLANS_LIVE_CLAUSE}. The sample tip card and the sample alert on this page are demos, not connected to payments or to a stream.`,
   },
 ];
 

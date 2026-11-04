@@ -10,6 +10,7 @@ import {
   settlePlanPayment,
   writeFeatureKeys,
   ABANDONED_REASON,
+  SUPERSEDED_REASON,
   type SettleDeps,
 } from "../src/lib/plan-orders";
 import { planFeatureKeys } from "../src/lib/plan-catalogue";
@@ -61,7 +62,7 @@ const auditCount = async (pg: PGlite, action: string) =>
   Number((await pg.query<{ n: string }>(`select count(*)::text as n from audit_events where action = $1`, [action])).rows[0].n);
 
 async function newOrder(db: LedgerDb, creatorId: number, o: { term?: number; plan?: string; livemode?: boolean; prices?: PlanPrices; now?: Date } = {}) {
-  const r = await createPlanOrder(db, {
+  const r = await createPlanOrder(db, { termsVersion: "4 November 2026",
     creatorId,
     term: o.term ?? 1,
     plan: o.plan ?? "creator",
@@ -139,14 +140,14 @@ test.describe("making an order", () => {
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const base = { creatorId: c, term: 1, plan: "creator", prices: PRICES, livemode: true, isOwner: false, now: T0 };
-    expect(await createPlanOrder(db, { ...base, prices: { monthly: null, yearly: null, early: null } })).toEqual({ ok: false, reason: "no_price" });
-    expect(await createPlanOrder(db, { ...base, creatorId: await creator(pg, { status: "pending" }) })).toEqual({ ok: false, reason: "not_active" });
-    expect(await createPlanOrder(db, { ...base, creatorId: await creator(pg, { status: "suspended" }) })).toEqual({ ok: false, reason: "not_active" });
-    expect(await createPlanOrder(db, { ...base, creatorId: 999999 })).toEqual({ ok: false, reason: "not_active" });
-    expect(await createPlanOrder(db, { ...base, term: 3 })).toEqual({ ok: false, reason: "bad_term" });
-    expect(await createPlanOrder(db, { ...base, livemode: false })).toEqual({ ok: false, reason: "test_not_allowed" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, prices: { monthly: null, yearly: null, early: null } })).toEqual({ ok: false, reason: "no_price" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: await creator(pg, { status: "pending" }) })).toEqual({ ok: false, reason: "not_active" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: await creator(pg, { status: "suspended" }) })).toEqual({ ok: false, reason: "not_active" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, creatorId: 999999 })).toEqual({ ok: false, reason: "not_active" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, term: 3 })).toEqual({ ok: false, reason: "bad_term" });
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, livemode: false })).toEqual({ ok: false, reason: "test_not_allowed" });
     // The owner may try with test money.
-    expect((await createPlanOrder(db, { ...base, livemode: false, isOwner: true })).ok).toBe(true);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", ...base, livemode: false, isOwner: true })).ok).toBe(true);
     // Nothing was written by the refusals.
     expect(Number((await pg.query<{ n: string }>(`select count(*)::text n from plan_orders`)).rows[0].n)).toBe(1);
   });
@@ -167,18 +168,75 @@ test.describe("making an order", () => {
     expect(orders[2].o).toMatchObject({ amountMinor: 29900, early: false });
     // An unpaid early order does not hold a seat.
     const owner = await creator(pg);
-    const test = await createPlanOrder(db, { creatorId: owner, term: 1, plan: "creator", prices: PRICES, livemode: false, isOwner: true, now: T0 });
+    const test = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: owner, term: 1, plan: "creator", prices: PRICES, livemode: false, isOwner: true, now: T0 });
     expect(test.ok && test.order.early).toBe(false);
   });
 
-  test("stops after five unpaid orders in an hour", async () => {
+  test("a new order closes the creator's older pending ones, so Cancel and Back never pile up and never lock them out", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const c = await creator(pg);
-    for (let i = 0; i < 5; i++) await newOrder(db, c);
-    expect(await createPlanOrder(db, { creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({ ok: false, reason: "too_many" });
+    const other = await creator(pg);
+    const otherOrder = await newOrder(db, other);
+    const first = await newOrder(db, c);
+    const second = await newOrder(db, c);
+    const third = await newOrder(db, c);
+    // Only the newest is pending; the older ones were closed with the reason that keeps them payable.
+    expect((await orderRow(pg, first.id)).status).toBe("failed");
+    expect((await orderRow(pg, first.id)).failure_reason).toBe(SUPERSEDED_REASON);
+    expect((await orderRow(pg, second.id)).status).toBe("failed");
+    expect((await orderRow(pg, third.id)).status).toBe("pending");
+    // Another creator's order is not touched.
+    expect((await orderRow(pg, otherOrder.id)).status).toBe("pending");
+    // Many cancels in an hour are fine: 11 closed orders and one pending is below the brake.
+    for (let i = 0; i < 8; i++) await newOrder(db, c);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).ok).toBe(true);
+    // A closed order can still be paid: PayU's own check settles it.
+    expect((await settlePlanPayment(db, payuReply(first), payu(paid(first.amountMinor, "pay_first")))).status).toBe("activated");
+    expect(await orderRow(pg, first.id)).toMatchObject({ status: "paid", payu_ref: "pay_first" });
+  });
+
+  test("a closed order does not hold an early seat, and a test order does not close a live one", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const ca = await creator(pg);
+    const cb = await creator(pg);
+    const cc = await creator(pg);
+    const a1 = await newOrder(db, ca, { prices: PRICES });
+    expect(a1.early).toBe(true);
+    // ca starts again: the first order is closed, and its seat is not counted twice.
+    await newOrder(db, ca, { prices: PRICES });
+    expect((await newOrder(db, cb, { prices: PRICES })).early).toBe(true);
+    // Seats were 2 (ca, cb): cc gets the normal price.
+    expect((await newOrder(db, cc, { prices: PRICES })).early).toBe(false);
+    // The owner's test order is a different mode and closes nothing live.
+    const live = await newOrder(db, cc, { prices: NO_EARLY });
+    const test = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: cc, term: 1, plan: "creator", prices: NO_EARLY, livemode: false, isOwner: true, now: T0 });
+    expect(test.ok).toBe(true);
+    expect((await orderRow(pg, live.id)).status).toBe("pending");
+  });
+
+  test("stops a loop of twelve unpaid orders in an hour", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    for (let i = 0; i < 12; i++) await newOrder(db, c);
+    expect(await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 })).toEqual({ ok: false, reason: "too_many" });
     // An hour later the earlier ones no longer count.
-    expect((await createPlanOrder(db, { creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: new Date(T0.getTime() + 61 * 60000) })).ok).toBe(true);
+    expect((await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: new Date(T0.getTime() + 61 * 60000) })).ok).toBe(true);
+  });
+
+  test("the order keeps when the creator agreed and to which version of the terms, and is refused without one", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const o = await newOrder(db, c, { now: T0 });
+    const row = (await pg.query<{ agreed_at: Date; terms_version: string }>(`select agreed_at, terms_version from plan_orders where id = $1`, [o.id])).rows[0];
+    expect(row.agreed_at.toISOString()).toBe(T0.toISOString());
+    expect(row.terms_version).toBe("4 November 2026");
+    for (const termsVersion of ["", "   "]) {
+      expect(await createPlanOrder(db, { creatorId: c, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, termsVersion, now: T0 })).toEqual({ ok: false, reason: "no_agreement" });
+    }
   });
 });
 
@@ -294,7 +352,7 @@ test.describe("a payment", () => {
     const c = await creator(pg);
     const live = await newOrder(db, c, { livemode: true });
     const owner = await creator(pg);
-    const made = await createPlanOrder(db, { creatorId: owner, term: 1, plan: "creator", prices: NO_EARLY, livemode: false, isOwner: true, now: T0 });
+    const made = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: owner, term: 1, plan: "creator", prices: NO_EARLY, livemode: false, isOwner: true, now: T0 });
     if (!made.ok) throw new Error("order");
     expect(await settlePlanPayment(db, payuReply(live, {}, TEST), payu(paid(live.amountMinor), TEST))).toEqual({ status: "rejected", reason: "mode_mismatch" });
     expect(await settlePlanPayment(db, payuReply(made.order), payu(paid(made.order.amountMinor), LIVE))).toEqual({ status: "rejected", reason: "mode_mismatch" });
@@ -672,7 +730,7 @@ test.describe("orders left pending", () => {
     const db = asLedgerDb(pg);
     const old = await newOrder(db, await creator(pg), { now: T0 });
     const owner = await creator(pg);
-    const test = await createPlanOrder(db, { creatorId: owner, term: 1, plan: "creator", prices: NO_EARLY, livemode: false, isOwner: true, now: addDays(T0, 3) });
+    const test = await createPlanOrder(db, { termsVersion: "4 November 2026", creatorId: owner, term: 1, plan: "creator", prices: NO_EARLY, livemode: false, isOwner: true, now: addDays(T0, 3) });
     if (!test.ok) throw new Error("order");
     const liveRecent = await newOrder(db, await creator(pg), { now: addDays(T0, 3) });
     const asked: string[] = [];
@@ -780,5 +838,7 @@ test.describe("the schema", () => {
     await pg.exec(readMigration("0055_plan_orders.sql"));
     await pg.exec(readMigration("0056_plan_tiers.sql"));
     await pg.exec(readMigration("0056_plan_tiers.sql"));
+    await pg.exec(readMigration("0057_plan_order_hardening.sql"));
+    await pg.exec(readMigration("0057_plan_order_hardening.sql"));
   });
 });

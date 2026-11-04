@@ -163,8 +163,11 @@ const SECTIONS: LegalSection[] = [
             tip page is built for a creator on request, at a price we agree
             before any work starts. The price is
             shown in the creator’s dashboard before paying and is the full
-            amount; nothing is added at checkout. The features switch on when
-            the payment is confirmed. A pass does not renew by itself: when it
+            amount; nothing is added at checkout. The first creators to buy a
+            plan get a lower early price, and a creator who has it keeps it when
+            they renew in time; the rules are on the{" "}
+            <Link href="/pricing#paid-features">pricing page</Link>. The
+            features switch on when the payment is confirmed. A pass does not renew by itself: when it
             ends the paid features switch off and nothing more is charged unless
             the creator buys again, and a new term bought before the end starts
             when the current one ends. We try to email a reminder about 5 days

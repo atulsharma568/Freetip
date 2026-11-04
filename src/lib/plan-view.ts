@@ -88,11 +88,12 @@ export async function paidOrder(db: LedgerDb, creatorId: number, orderId: number
 // ---- Whether buying is open ---------------------------------------------------------------
 
 // The one rule for "may this creator buy now", used by the plans page (to show the button) and by
-// the Buy action (to refuse): with PayU's live key only once the owner has opened sales; with the
-// test key only the owner. No PayU settings at all means closed.
+// the Buy action (to refuse): with PayU's live key once the owner has opened sales, and always for the
+// owner (so the first real payment can be tried alone while sales are closed to everyone else); with
+// the test key only the owner. No PayU settings at all means closed.
 export function buyingOpen(mode: "live" | "test" | null, liveSalesOpen: boolean, isOwner: boolean): boolean {
   if (mode === null) return false;
-  return mode === "live" ? liveSalesOpen : isOwner;
+  return mode === "live" ? liveSalesOpen || isOwner : isOwner;
 }
 
 // ---- Words ------------------------------------------------------------------------------

@@ -38,6 +38,7 @@ const STATUS_TONE: Record<string, Tone> = {
   // money
   captured: "good",
   completed: "good",
+  paid: "good",
   matched: "good",
   processed: "good",
   won: "good",

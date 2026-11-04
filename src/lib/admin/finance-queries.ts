@@ -214,12 +214,12 @@ export function getTurnover(db: LedgerDb, year: DateRange): Promise<Loaded<Turno
       `,
     ]);
     // Pass sales (migration 0055). Before the migration is run the table is missing: that is zero
-    // sales, not a failed read.
+    // sales, not a failed read. A plan the owner ended early (a refund by hand) is not a sale.
     let planSalesMinor = 0;
     try {
       const [sales] = await db<{ sold: string }[]>`
         select coalesce(sum(amount_minor), 0)::text as sold from plan_orders
-         where status = 'paid' and livemode
+         where status = 'paid' and livemode and ended_at is null
            and paid_at >= ${from}::timestamptz and paid_at < ${to}::timestamptz
       `;
       planSalesMinor = toWhole(sales?.sold ?? "0");
