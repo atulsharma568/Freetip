@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard menu names match the page headings; NO migration)
+
+- **Done, owner chose to rename the menu:** "Look" is now "Alert style" and "Words and motion" is now "Alert text" in the dashboard menu (`DashboardNav.tsx`, `OPERATIONS.md` 7 item on grouping). Headings, addresses and switches unchanged. The public FAQ line about payouts stays as it is (owner). Type check and lint pass; not seen in a browser.
+- **Next, one at a time:** overview tile count, Tips and Earnings repeated figures, page widths, then the admin items.
+
 ## Current state (2026-11-04, dashboard overview stale payout sentence fixed; NO migration)
 
 - **Done, owner chose "Dashboard cleanup"; Cashfree work is on hold until their KYC approval (owner):** the overview note no longer says "Payouts have not started yet"; it now points to Earnings (`OverviewStrip.tsx`). Type check and lint pass.

@@ -169,7 +169,7 @@ Four paid switches in the "Alert box" group change how the OBS alert looks and s
 | Automatic tiers by tip size (was "Alert variations") | `/dashboard/variations` | "From this tip size up": a picture, a sound, wording and colours, and a longer stay (from ₹1,000, up to 5 minutes). Up to 10, one per size. A fan's own choice always wins (a tip that picked an alert rule gets no variation; a soundboard sound the fan picked replaces the variation's sound; a voice tip plays no sound). Its media needs "Custom alert media" and its wording and colours need "Alert text and colours". | 0046 |
 | Alert volume and layout | `/dashboard/layout` | A master volume for alert sounds and the voice (only quieter than normal) and the picture left or right of the card (landscape only; media needs "Custom alert media"). | 0047 |
 
-In the dashboard menu the four alert-design pages are grouped: **Look** (Style and Layout tabs) and **Words and motion** (Text and Motion tabs). Each tab is still its own page with its own switch; a creator with only one of a pair switched on sees that page and no tabs. The page addresses are unchanged.
+In the dashboard menu the four alert-design pages are grouped: **Alert style** (Style and Layout tabs) and **Alert text** (Text and Motion tabs). Each tab is still its own page with its own switch; a creator with only one of a pair switched on sees that page and no tabs. The page addresses are unchanged.
 
 Owner setup, in order:
 

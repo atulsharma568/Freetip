@@ -9,8 +9,8 @@ const LINKS = [
   { key: "recap", href: "/dashboard/recap", label: "Recap" },
   { key: "sounds", href: "/dashboard/sounds", label: "Sounds and media" },
   { key: "tippage", href: "/dashboard/rules", label: "Tip page" },
-  { key: "look", href: "/dashboard/style", label: "Look" },
-  { key: "words", href: "/dashboard/text", label: "Words and motion" },
+  { key: "look", href: "/dashboard/style", label: "Alert style" },
+  { key: "words", href: "/dashboard/text", label: "Alert text" },
   { key: "fans", href: "/dashboard/fans", label: "Fans" },
   { key: "timestamps", href: "/dashboard/timestamps", label: "Stream timestamps" },
   { key: "streamlabs", href: "/dashboard/streamlabs", label: "Streamlabs" },
@@ -38,7 +38,7 @@ type PageGroup = keyof typeof PAGE_GROUPS;
 const GROUP_OF: Record<string, PageGroup> = { sounds: "sounds", media: "sounds", pinned: "sounds", rules: "tippage", variations: "tippage", banner: "tippage", decor: "tippage" };
 
 // Section links shared by the dashboard pages. Alerts and settings stay on the
-// overview page, below the numbers. Timestamps, Tip page, Look, Words and motion and Fans show only for creators they are
+// overview page, below the numbers. Timestamps, Tip page, Alert style, Alert text and Fans show only for creators they are
 // switched on for.
 export async function DashboardNav({ current }: { current: "overview" | "tips" | "earnings" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "decor" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
   const features = await getSessionFeatures();
