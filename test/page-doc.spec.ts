@@ -15,7 +15,7 @@ const block = (type: string, extra: Record<string, unknown> = {}) => ({ id: type
 const minimal: PageDoc = {
   version: 1,
   blocks: [
-    { id: "header", type: "header", visible: true, slot: "side", settings: { bannerAsset: null } },
+    { id: "header", type: "header", visible: true, slot: "side", settings: { bannerAsset: null, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null } },
     { id: "amount", type: "amount", visible: true, slot: "main", settings: { ladder: null, heading: "", barLabel: "" } },
     { id: "note", type: "note", visible: true, slot: "main", settings: { heading: "", namePlaceholder: "", messagePlaceholder: "" } },
     { id: "send", type: "send", visible: true, slot: "main", settings: { heading: "", buttonLabel: "" } },

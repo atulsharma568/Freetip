@@ -216,11 +216,17 @@ export function setNumber(doc: PageDoc, type: BlockType, key: string, value: num
 // The picture of a block: an id from the library, or null for none. Whether the file fits the place
 // is the editor's picker's job (it lists only files that fit); the page draws the normal look for a
 // file that does not.
-const ASSET_KEYS: Partial<Record<BlockType, string>> = { backdrop: "asset", header: "bannerAsset", pressureMeter: "picture" };
+// The header has three places for a file; `place` says which, and is the banner when left out.
+const ASSET_KEYS: Partial<Record<BlockType, readonly string[]>> = {
+  backdrop: ["asset"],
+  header: ["bannerAsset", "frameAsset", "bannerFxAsset"],
+  pressureMeter: ["picture"],
+};
 
-export function setAsset(doc: PageDoc, type: BlockType, id: number | null): EditResult {
+export function setAsset(doc: PageDoc, type: BlockType, id: number | null, place?: string): EditResult {
   const at = indexOf(doc, type);
-  const key = ASSET_KEYS[type];
+  const keys = ASSET_KEYS[type];
+  const key = keys && (place === undefined ? keys[0] : keys.find((k) => k === place));
   if (at < 0 || !key) return refuse(doc, "That block does not take a picture.");
   if (id !== null && cleanAssetId(id) === null) return refuse(doc, "That picture is not valid.");
   if ((doc.blocks[at].settings as Record<string, unknown>)[key] === id) return refuse(doc);

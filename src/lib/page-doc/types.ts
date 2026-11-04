@@ -4,6 +4,8 @@
 // limit, the minimum tip, fee wording, the anonymous option, what the Pay button does) are not
 // in here on purpose: they come from the real values, never from a document.
 
+import type { BannerFx, FrameStyle } from "./decor";
+
 export const PAGE_DOC_VERSION = 1 as const;
 
 // The places a block can sit. `side` is the left, sticky column on a laptop (on top on a phone),
@@ -44,7 +46,10 @@ export interface SettingsByType {
   // backdrop with no readable asset draws nothing, so the page is plain.
   backdrop: { style: "ember" | "media"; asset: number | null; dim: number };
   // `bannerAsset` (an id in page_assets, a picture or GIF) replaces the creator's own banner.
-  header: { bannerAsset: number | null };
+  // `frame` is an animated ring over the photo and `bannerFx` an effect over the banner (see
+  // decor.ts); "custom" draws the picture or GIF `frameAsset` / `bannerFxAsset` of the library over
+  // them, and draws nothing when that file is missing or does not fit.
+  header: { bannerAsset: number | null; frame: FrameStyle; frameAsset: number | null; bannerFx: BannerFx; bannerFxAsset: number | null };
   creatorLinks: { tagline: string; instagram: string };
   alertPreview: { label: string };
   qr: Record<string, never>;

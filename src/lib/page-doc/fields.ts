@@ -1,5 +1,6 @@
 import { ASSET_LIMITS } from "./assets";
 import { INSTAGRAM_PATTERN, LIMITS } from "./blocks";
+import { BANNER_FX_OPTIONS, FRAME_OPTIONS } from "./decor";
 import type { BlockType, SettingsByType } from "./types";
 
 // What the owner may change in each block, as data, so the settings panel is drawn from this table
@@ -108,7 +109,10 @@ export const CHOICE_FIELDS: { [K in BlockType]: ChoiceField[] } = {
       ],
     },
   ],
-  header: [],
+  header: [
+    { key: "frame", label: "Frame over the photo", options: FRAME_OPTIONS },
+    { key: "bannerFx", label: "Effect over the banner", options: BANNER_FX_OPTIONS },
+  ],
   creatorLinks: [],
   alertPreview: [],
   qr: [],

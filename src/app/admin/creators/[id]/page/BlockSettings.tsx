@@ -14,7 +14,7 @@ import { MeterSettings, type EditorGoal } from "./MeterSettings";
 
 const ABOUT: Record<BlockType, string> = {
   backdrop: "What sits behind the whole page: the smoke, slashes and embers, or a picture, GIF or video from the library. Use the eye in the list to turn it off.",
-  header: "The creator's photo, name and bio come from their account, so there is nothing to word here. You can put a picture or GIF from the library in place of their banner. This block has to stay on the page.",
+  header: "The creator's photo, name and bio come from their account, so there is nothing to word here. You can put a picture or GIF from the library in place of their banner, and add an animated frame over their photo and an effect over the banner. This block has to stay on the page.",
   creatorLinks: "A line of words and an Instagram link under the header. Leave both empty to show nothing.",
   alertPreview: "The alert as it will look on stream, drawn from what the fan types.",
   qr: "The QR code to this page, shown on a laptop. Nothing to edit.",
@@ -167,16 +167,46 @@ export function BlockSettings({
         );
       })}
 
-      {picture && (
+      {block.type === "header" && (
+        <>
+          <AssetPicker
+            use="banner"
+            value={(block as Block<"header">).settings.bannerAsset}
+            library={library}
+            onPick={(id) => run((d) => setAsset(d, block.type, id, "bannerAsset"))}
+            onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}
+          />
+          {(block as Block<"header">).settings.frame === "custom" && (
+            <div className="space-y-1">
+              <AssetPicker
+                use="frame"
+                value={(block as Block<"header">).settings.frameAsset}
+                library={library}
+                onPick={(id) => run((d) => setAsset(d, block.type, id, "frameAsset"))}
+                onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}
+              />
+              <p className="text-xs text-muted">A square picture with a see-through middle works best (PNG or GIF). It is drawn a little bigger than the photo.</p>
+            </div>
+          )}
+          {(block as Block<"header">).settings.bannerFx === "custom" && (
+            <div className="space-y-1">
+              <AssetPicker
+                use="fx"
+                value={(block as Block<"header">).settings.bannerFxAsset}
+                library={library}
+                onPick={(id) => run((d) => setAsset(d, block.type, id, "bannerFxAsset"))}
+                onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}
+              />
+              <p className="text-xs text-muted">Drawn over the whole banner, so use a see-through picture or GIF the same shape as the banner (wide).</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {block.type !== "header" && picture && (
         <AssetPicker
           use={picture}
-          value={
-            block.type === "header"
-              ? (block as Block<"header">).settings.bannerAsset
-              : block.type === "pressureMeter"
-                ? (block as Block<"pressureMeter">).settings.picture
-                : (block as Block<"backdrop">).settings.asset
-          }
+          value={block.type === "pressureMeter" ? (block as Block<"pressureMeter">).settings.picture : (block as Block<"backdrop">).settings.asset}
           library={library}
           onPick={(id) => run((d) => setAsset(d, block.type, id))}
           onSwap={(from, to, kind) => run((d) => swapAsset(d, from, to, kind))}

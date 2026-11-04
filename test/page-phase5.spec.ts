@@ -73,7 +73,7 @@ test.describe("a page as a template", () => {
           b.type === "backdrop"
             ? ({ ...b, settings: { style: "media", asset: 3, dim: 55 } } as Block)
             : b.type === "header"
-              ? ({ ...b, settings: { bannerAsset: 4 } } as Block)
+              ? ({ ...b, settings: { bannerAsset: 4, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null } } as Block)
               : b.type === "strip"
                 ? ({ ...b, settings: { left: "Keep me", right: "" } } as Block)
                 : b,

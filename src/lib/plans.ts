@@ -213,7 +213,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     key: "pageBuilder",
     label: "Custom tip page",
     group: "Tip page",
-    description: "The owner publishes a custom tip page for this creator from the owner console (a done-for-you page); the creator never edits it. Nothing changes on their page until one is published, and switching this off puts the normal page back at once.",
+    description: "The owner publishes a custom tip page for this creator from the owner console (a done-for-you page); the creator never edits it. Nothing changes on their page until one is published, and switching this off puts the normal page back at once. It also carries the animated frame over the photo and the effect over the banner (ready-made looks or the owner's own picture or GIF).",
     built: true,
   },
   {

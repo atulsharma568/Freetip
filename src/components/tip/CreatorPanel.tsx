@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Lightning, MonitorPlay, UserMinus } from "@phosphor-icons/react";
 import { INK_HEX, SITE_HOST } from "@/lib/site";
 import { isUploadedBannerUrl } from "@/lib/tip-banner";
+import { BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
 
 const PERKS = [
   { Icon: Lightning, text: "UPI and cards" },
@@ -24,6 +25,8 @@ export function CreatorPanel({
   bio,
   previewMode,
   headingAs: Heading = "h1",
+  frame = null,
+  bannerFx = null,
 }: {
   displayName: string;
   pictureUrl: string | null;
@@ -35,27 +38,40 @@ export function CreatorPanel({
   previewMode: boolean;
   // The tip page's one h1; the dashboard preview sits under its own h1, so it passes "h3".
   headingAs?: "h1" | "h3";
+  // An animated frame over the photo and an effect over the banner (custom tip page); null draws none.
+  frame?: DecorRender;
+  bannerFx?: DecorRender;
 }) {
   // A channel with the same name as the display name would just repeat it.
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
+  // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
+  // ground), so a creator can have an animated banner without uploading one.
+  const hasBanner = Boolean(bannerUrl) || bannerFx !== null;
   return (
     <section className="space-y-6" aria-label="Creator">
       <div className="space-y-4">
-        {bannerUrl && (
-          <div className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface">
-            <Image
-              src={bannerUrl}
-              alt=""
-              fill
-              priority
-              // An upload goes out as it is: the image optimiser would flatten an animated banner.
-              unoptimized={isUploadedBannerUrl(bannerUrl)}
-              sizes="(min-width: 1024px) 400px, 100vw"
-              className="object-cover"
-            />
+        {hasBanner && (
+          <div
+            className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface"
+            style={bannerUrl ? undefined : { background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
+          >
+            {bannerUrl && (
+              <Image
+                src={bannerUrl}
+                alt=""
+                fill
+                priority
+                // An upload goes out as it is: the image optimiser would flatten an animated banner.
+                unoptimized={isUploadedBannerUrl(bannerUrl)}
+                sizes="(min-width: 1024px) 400px, 100vw"
+                className="object-cover"
+              />
+            )}
+            <BannerEffect render={bannerFx} />
           </div>
         )}
-        <span className={`inline-block rounded-full border-2 border-accent p-1.5 ${bannerUrl ? "relative z-10 -mt-14 ml-4 bg-ground sm:-mt-16" : ""}`}>
+        <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
+          <PhotoFrame render={frame} />
           {pictureUrl ? (
             <Image
               src={pictureUrl}

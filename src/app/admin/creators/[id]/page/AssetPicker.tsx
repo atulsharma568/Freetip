@@ -146,7 +146,7 @@ export function AssetPicker({
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-xs font-semibold text-text">{use === "banner" ? "Banner picture" : use === "meter" ? "Meter picture" : "Picture"}</h3>
+        <h3 className="text-xs font-semibold text-text">{use === "banner" ? "Banner picture" : use === "meter" ? "Meter picture" : use === "frame" ? "Your frame over the photo" : use === "fx" ? "Your effect over the banner" : "Picture"}</h3>
         <span className="numeric text-xs text-muted">
           {library.items.length}/{ASSET_LIMITS.files} files
         </span>
@@ -162,7 +162,7 @@ export function AssetPicker({
               value === null ? "border-accent text-text" : "border-control text-muted hover:text-text"
             }`}
           >
-            {use === "banner" ? "The creator's own banner" : use === "meter" ? "No picture" : "None"}
+            {use === "banner" ? "The creator's own banner" : use === "meter" ? "No picture" : use === "frame" || use === "fx" ? "Nothing yet" : "None"}
           </button>
         </li>
         {items.map((a) => (

@@ -16,7 +16,7 @@ export interface ResolvedAsset {
 }
 
 // Where a file may be used.
-export type AssetUse = "backdrop" | "banner" | "meter";
+export type AssetUse = "backdrop" | "banner" | "meter" | "frame" | "fx";
 
 export const ASSET_LIMITS = {
   // A picture or GIF; a WebM is capped by `media.ts` at 8 MB.
@@ -44,6 +44,10 @@ const KINDS_FOR: Record<AssetUse, readonly AssetKind[]> = {
   banner: ["image", "gif"],
   // The emblem on the Pressure meter: a picture or a GIF, like a banner.
   meter: ["image", "gif"],
+  // A frame over the photo and an effect over the banner: a picture (a transparent PNG or WebP) or a
+  // GIF, like a banner. An animated WebP or PNG is refused for every use, as before.
+  frame: ["image", "gif"],
+  fx: ["image", "gif"],
 };
 
 export const kindsFor = (use: AssetUse): readonly AssetKind[] => KINDS_FOR[use];
@@ -65,7 +69,11 @@ export function usedAssetIds(doc: PageDoc): number[] {
   };
   for (const block of doc.blocks) {
     if (block.type === "backdrop") add(block.settings.asset);
-    else if (block.type === "header") add(block.settings.bannerAsset);
+    else if (block.type === "header") {
+      add(block.settings.bannerAsset);
+      add(block.settings.frameAsset);
+      add(block.settings.bannerFxAsset);
+    }
     else if (block.type === "pressureMeter") add(block.settings.picture);
   }
   return ids;
@@ -81,9 +89,17 @@ export function replaceAssetId(doc: PageDoc, from: number, to: number, toKind?: 
       changed = true;
       return { ...block, settings: { ...block.settings, asset: to } };
     }
-    if (block.type === "header" && block.settings.bannerAsset === from && (!toKind || usableFor(toKind, "banner"))) {
-      changed = true;
-      return { ...block, settings: { ...block.settings, bannerAsset: to } };
+    if (block.type === "header") {
+      // Each of the header's three places keeps the old file when the new one does not fit it.
+      const next = { ...block.settings };
+      if (next.bannerAsset === from && (!toKind || usableFor(toKind, "banner"))) next.bannerAsset = to;
+      if (next.frameAsset === from && (!toKind || usableFor(toKind, "frame"))) next.frameAsset = to;
+      if (next.bannerFxAsset === from && (!toKind || usableFor(toKind, "fx"))) next.bannerFxAsset = to;
+      if (next.bannerAsset !== block.settings.bannerAsset || next.frameAsset !== block.settings.frameAsset || next.bannerFxAsset !== block.settings.bannerFxAsset) {
+        changed = true;
+        return { ...block, settings: next };
+      }
+      return block;
     }
     if (block.type === "pressureMeter" && block.settings.picture === from && (!toKind || usableFor(toKind, "meter"))) {
       changed = true;

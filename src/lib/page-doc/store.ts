@@ -267,9 +267,11 @@ export function asTemplate(doc: PageDoc): { doc: PageDoc; removed: string[] } {
       note("the backdrop picture");
       return { ...block, settings: { ...block.settings, asset: null } };
     }
-    if (block.type === "header" && block.settings.bannerAsset !== null) {
-      note("the banner picture");
-      return { ...block, settings: { ...block.settings, bannerAsset: null } };
+    if (block.type === "header" && (block.settings.bannerAsset !== null || block.settings.frameAsset !== null || block.settings.bannerFxAsset !== null)) {
+      if (block.settings.bannerAsset !== null) note("the banner picture");
+      if (block.settings.frameAsset !== null) note("the photo frame picture");
+      if (block.settings.bannerFxAsset !== null) note("the banner effect picture");
+      return { ...block, settings: { ...block.settings, bannerAsset: null, frameAsset: null, bannerFxAsset: null } };
     }
     if (block.type === "pressureMeter" && (block.settings.picture !== null || block.settings.goal !== null)) {
       if (block.settings.picture !== null) note("the meter picture");
