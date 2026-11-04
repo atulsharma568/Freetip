@@ -9,9 +9,11 @@ import {
   reconcilePendingOrders,
   settlePlanPayment,
   writeFeatureKeys,
+  ABANDONED_REASON,
   type SettleDeps,
 } from "../src/lib/plan-orders";
 import { PASS_FEATURE_KEYS } from "../src/lib/plan-catalogue";
+import { featureSnapshot } from "../src/lib/plans";
 import { readReply, replyHash, type PayuConfig, type PayuPayment } from "../src/lib/payu";
 import type { PlanPrices } from "../src/lib/pricing";
 import { asLedgerDb, freshDatabase } from "./helpers/pg";
@@ -93,6 +95,7 @@ function payu(answer: PayuPayment | (() => PayuPayment), config = LIVE): SettleD
     config,
     calls,
     now: () => T0,
+    sleep: async () => {},
     fetchPayment: async (txnid) => {
       calls.push(txnid);
       return typeof answer === "function" ? answer() : answer;
@@ -303,30 +306,55 @@ test.describe("a payment", () => {
 
     for (const answer of [
       { kind: "failure", reason: "no" } as PayuPayment,
-      { kind: "not_found" } as PayuPayment,
       paid(100), // PayU says a different amount
     ]) {
       expect(await settlePlanPayment(db, payuReply(o), payu(answer))).toEqual({ status: "rejected", reason: "not_confirmed" });
     }
-    // PayU names a different payment than the reply.
-    expect(await settlePlanPayment(db, payuReply(o, { mihpayid: "pay_other" }), payu(paid(o.amountMinor, "pay_1")))).toEqual({ status: "rejected", reason: "ref_mismatch" });
-    expect(await userRow(pg, c)).toEqual(before);
-    expect((await orderRow(pg, o.id)).status).toBe("pending");
+    // PayU says paid, but not at the plain price (a discount or offer): never a success, and said why.
+    expect(await settlePlanPayment(db, payuReply(o), payu({ kind: "mismatch", reason: "a discount was applied" }))).toEqual({ status: "rejected", reason: "not_confirmed", detail: "a discount was applied" });
+    // The payment id comes from PayU's own answer: the posted id is not covered by the hash, so a
+    // different one in the reply changes nothing (PayU's answer is used).
+    const r = await settlePlanPayment(db, payuReply(o, { mihpayid: "pay_other" }), payu(paid(o.amountMinor, "pay_1")));
+    expect(r.status).toBe("activated");
+    expect((await orderRow(pg, o.id)).payu_ref).toBe("pay_1");
+    expect(before.paid_features).toEqual([]);
   });
 
-  test("when PayU is not sure or cannot be reached, nothing changes and it can be tried again", async () => {
+  test("when PayU is not sure, has not caught up or cannot be reached, nothing changes and the answer is try again", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const c = await creator(pg);
     const o = await newOrder(db, c);
-    expect(await settlePlanPayment(db, payuReply(o), payu({ kind: "pending" }))).toEqual({ status: "pending", orderId: o.id });
-    expect(await settlePlanPayment(db, payuReply(o), payu({ kind: "unavailable", reason: "timeout" }))).toEqual({ status: "unavailable", reason: "timeout" });
-    // A pending reply from PayU (a bank transfer still in flight) is also just "not yet".
-    expect(await settlePlanPayment(db, payuReply(o, { status: "pending" }), payu(paid(o.amountMinor)))).toEqual({ status: "pending", orderId: o.id });
+    const notYet = { status: "unavailable", reason: "PayU has not confirmed this payment yet" };
+    // PayU's check can trail its own notice: pending or not found is asked twice, then "try again".
+    for (const answer of [{ kind: "pending" } as PayuPayment, { kind: "not_found" } as PayuPayment]) {
+      const deps = payu(answer);
+      expect(await settlePlanPayment(db, payuReply(o), deps)).toEqual(notYet);
+      expect(deps.calls).toHaveLength(2);
+    }
+    const down = payu({ kind: "unavailable", reason: "timeout" });
+    expect(await settlePlanPayment(db, payuReply(o), down)).toEqual({ status: "unavailable", reason: "timeout" });
+    expect(down.calls).toHaveLength(1); // no point asking twice when PayU cannot be reached
+    // A pending reply from PayU (a bank transfer still in flight) is just "not yet", with no check made.
+    const bank = payu(paid(o.amountMinor));
+    expect(await settlePlanPayment(db, payuReply(o, { status: "pending" }), bank)).toEqual({ status: "pending", orderId: o.id });
+    expect(bank.calls).toHaveLength(0);
     expect((await orderRow(pg, o.id)).status).toBe("pending");
     expect((await userRow(pg, c)).paid_features).toEqual([]);
     // PayU answers later: it goes through.
     expect((await settlePlanPayment(db, payuReply(o), payu(paid(o.amountMinor)))).status).toBe("activated");
+  });
+
+  test("PayU catching up on the second look is enough", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const o = await newOrder(db, c);
+    const answers: PayuPayment[] = [{ kind: "not_found" }, paid(o.amountMinor)];
+    const deps = payu(() => answers.shift()!);
+    expect((await settlePlanPayment(db, payuReply(o), deps)).status).toBe("activated");
+    expect(deps.calls).toHaveLength(2);
+    expect((await userRow(pg, c)).paid_features.length).toBe(PASS_FEATURE_KEYS.length);
   });
 
   test("a failure marks a pending order failed, a later success still pays it, and a failure never undoes a payment", async () => {
@@ -342,6 +370,10 @@ test.describe("a payment", () => {
     // The creator tries again in PayU's page under the same reference and it works.
     expect((await settlePlanPayment(db, payuReply(o), payu(paid(o.amountMinor)))).status).toBe("activated");
     expect(await orderRow(pg, o.id)).toMatchObject({ status: "paid", failure_reason: null });
+
+    // PayU's documents use both "failure" and "failed" for a failed payment.
+    const o2 = await newOrder(db, await creator(pg));
+    expect(await settlePlanPayment(db, payuReply(o2, { status: "failed" }), payu(paid(o2.amountMinor)))).toEqual({ status: "failed", orderId: o2.id });
 
     // A late failure notice for the same reference changes nothing.
     expect(await settlePlanPayment(db, fail, payu(paid(o.amountMinor)))).toEqual({ status: "already_paid", orderId: o.id });
@@ -360,6 +392,103 @@ test.describe("a payment", () => {
     expect((await orderRow(pg, b.id)).status).toBe("pending");
     expect((await userRow(pg, cb)).paid_features).toEqual([]);
     expect(await auditCount(pg, "plan.purchased")).toBe(1);
+  });
+});
+
+test.describe("the term", () => {
+  test("months are added in UTC, and the end of a short month is the last day", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const jan31 = new Date("2027-01-31T06:00:00.000Z");
+    const o = await newOrder(db, c, { now: jan31 });
+    await settlePlanPayment(db, payuReply(o), { ...payu(paid(o.amountMinor)), now: () => jan31 });
+    expect((await userRow(pg, c)).pass_until!.toISOString()).toBe("2027-02-28T06:00:00.000Z");
+    // A year from 29 February lands on 28 February.
+    const leap = new Date("2028-02-29T06:00:00.000Z");
+    const d = await creator(pg);
+    const o2 = await newOrder(db, d, { now: leap, term: 12 });
+    await settlePlanPayment(db, payuReply(o2, { mihpayid: "pay_leap" }), { ...payu(paid(o2.amountMinor, "pay_leap")), now: () => leap });
+    expect((await userRow(pg, d)).pass_until!.toISOString()).toBe("2029-02-28T06:00:00.000Z");
+  });
+});
+
+test.describe("the early price", () => {
+  const EARLY: PlanPrices = { monthly: 299, yearly: 2499, early: { monthly: 149, yearly: 1299, seats: 2 } };
+
+  test("seats are counted by creator, so one creator renewing every month holds one seat", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const a = await creator(pg);
+    let at = T0;
+    for (let i = 0; i < 3; i++) {
+      const o = await newOrder(db, a, { prices: EARLY, now: at });
+      expect(o.early).toBe(true);
+      await settlePlanPayment(db, payuReply(o, { mihpayid: `pay_a${i}` }), { ...payu(paid(o.amountMinor, `pay_a${i}`)), now: () => at });
+      at = addDays(at, 28);
+    }
+    // Another creator still finds a seat (only one of the two is held), and a third does not.
+    const b = await creator(pg);
+    expect((await newOrder(db, b, { prices: EARLY, now: at })).early).toBe(true);
+    const c = await creator(pg);
+    expect((await newOrder(db, c, { prices: EARLY, now: at })).early).toBe(false);
+  });
+
+  test("a creator who holds an early pass keeps the early price when renewing, even if the seats were cut; a long lapse loses it", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const a = await creator(pg);
+    const first = await newOrder(db, a, { prices: EARLY });
+    await settlePlanPayment(db, payuReply(first, { mihpayid: "pay_1" }), payu(paid(first.amountMinor, "pay_1")));
+    const x = await newOrder(db, await creator(pg), { prices: EARLY });
+    await settlePlanPayment(db, payuReply(x, { mihpayid: "pay_x" }), payu(paid(x.amountMinor, "pay_x")));
+    // The owner later cuts the early seats to 1; both holders are already past it.
+    const cut: PlanPrices = { ...EARLY, early: { monthly: 149, yearly: 1299, seats: 1 } };
+    // Renewing while the pass runs, and within 31 days after it ended: still early.
+    expect((await newOrder(db, a, { prices: cut, now: addDays(T0, 20) })).early).toBe(true);
+    expect((await newOrder(db, a, { prices: cut, now: addDays(T0, 30 + 30) })).early).toBe(true);
+    // Someone new finds the seats gone.
+    expect((await newOrder(db, await creator(pg), { prices: cut })).early).toBe(false);
+    // After more than 31 days without a pass, the creator pays the normal price.
+    expect((await newOrder(db, a, { prices: cut, now: addDays(T0, 30 + 40) })).early).toBe(false);
+  });
+
+  test("a seat is not given to someone else when its holder lets the pass lapse", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const a = await creator(pg);
+    const b = await creator(pg);
+    for (const [who, ref] of [[a, "pay_a"], [b, "pay_b"]] as const) {
+      const o = await newOrder(db, who, { prices: EARLY });
+      await settlePlanPayment(db, payuReply(o, { mihpayid: ref }), payu(paid(o.amountMinor, ref)));
+    }
+    // A year later both passes are long over; the early seats are still counted as taken.
+    expect((await newOrder(db, await creator(pg), { prices: EARLY, now: addDays(T0, 400) })).early).toBe(false);
+  });
+
+  test("an unpaid early order holds its seat for two hours, then lets it go", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const a = await creator(pg);
+    const b = await creator(pg);
+    const c = await creator(pg);
+    expect((await newOrder(db, a, { prices: EARLY })).early).toBe(true);
+    expect((await newOrder(db, b, { prices: EARLY })).early).toBe(true);
+    // Both seats are held by unpaid orders, so a third creator is told the normal price.
+    expect((await newOrder(db, c, { prices: EARLY })).early).toBe(false);
+    // Three hours later the unpaid holds have lapsed.
+    expect((await newOrder(db, c, { prices: EARLY, now: new Date(T0.getTime() + 3 * 3600000) })).early).toBe(true);
+  });
+
+  test("a failed or abandoned early order holds nothing", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const a = await creator(pg);
+    const o = await newOrder(db, a, { prices: EARLY });
+    await settlePlanPayment(db, payuReply(o, { status: "failure" }), payu(paid(o.amountMinor)));
+    const b = await newOrder(db, await creator(pg), { prices: EARLY });
+    const c = await newOrder(db, await creator(pg), { prices: EARLY });
+    expect([b.early, c.early]).toEqual([true, true]);
   });
 });
 
@@ -478,6 +607,27 @@ test.describe("the owner's feature box", () => {
   });
 });
 
+test.describe("the feature box before migration 0055 and from a stale page", () => {
+  test("the snapshot ignores order and unknown words, so it names the state a page was loaded with", () => {
+    expect(featureSnapshot(["alertText", "alertMotion"])).toBe(featureSnapshot(["alertMotion", "alertText"]));
+    expect(featureSnapshot(["alertText", "notAFeature"])).toBe(featureSnapshot(["alertText"]));
+    expect(featureSnapshot([])).toBe("");
+    expect(featureSnapshot(["alertText"])).not.toBe(featureSnapshot(["alertText", "alertMotion"]));
+  });
+
+  test("without the pass columns the owner's box still saves the features", async () => {
+    const pg = await freshDatabase();
+    const c = await creator(pg);
+    await pg.exec(`alter table users drop column pass_keys`);
+    const sql = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const text = strings.reduce((acc, str, i) => acc + str + (i < values.length ? `$${i + 1}` : ""), "");
+      return (await pg.query(text, values as unknown[])).rows as never;
+    }) as never;
+    await writeFeatureKeys(sql, c, ["alertText"], false);
+    expect((await pg.query<{ paid_features: string[] }>(`select paid_features from users where id = $1`, [c])).rows[0].paid_features).toEqual(["alertText"]);
+  });
+});
+
 test.describe("orders left pending", () => {
   test("the daily check pays what PayU says is paid and leaves the rest", async () => {
     const pg = await freshDatabase();
@@ -499,9 +649,9 @@ test.describe("orders left pending", () => {
       [stillOrder.txnid]: { kind: "pending" },
       [downOrder.txnid]: { kind: "unavailable", reason: "timeout" },
     };
-    const deps: SettleDeps = { config: LIVE, now: () => now, fetchPayment: async (t) => answers[t] ?? { kind: "not_found" } };
+    const deps: SettleDeps = { config: LIVE, now: () => now, sleep: async () => {}, fetchPayment: async (t) => answers[t] ?? { kind: "not_found" } };
 
-    expect(await reconcilePendingOrders(db, deps)).toEqual({ looked: 4, activated: 1, failed: 1, stillPending: 1, unavailable: 1 });
+    expect(await reconcilePendingOrders(db, deps)).toEqual({ looked: 4, activated: 1, failed: 1, abandoned: 0, stillPending: 1, unavailable: 1, needsLook: 0, errors: 0 });
     expect((await orderRow(pg, paidOrder.id)).status).toBe("paid");
     expect((await userRow(pg, ca)).paid_features.length).toBe(PASS_FEATURE_KEYS.length);
     expect((await orderRow(pg, failedOrder.id)).status).toBe("failed");
@@ -512,19 +662,96 @@ test.describe("orders left pending", () => {
     expect(await auditCount(pg, "plan.purchased")).toBe(1);
   });
 
-  test("an order older than three days is no longer asked about, and a test order is not checked with live keys", async () => {
+  test("an order older than three days is no longer asked about, and only the server's own mode is asked", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const old = await newOrder(db, await creator(pg), { now: T0 });
     const owner = await creator(pg);
     const test = await createPlanOrder(db, { creatorId: owner, term: 1, prices: NO_EARLY, livemode: false, isOwner: true, now: addDays(T0, 3) });
     if (!test.ok) throw new Error("order");
+    const liveRecent = await newOrder(db, await creator(pg), { now: addDays(T0, 3) });
     const asked: string[] = [];
-    const deps: SettleDeps = { config: LIVE, now: () => addDays(T0, 4), fetchPayment: async (t) => (asked.push(t), paid(1)) };
-    const r = await reconcilePendingOrders(db, deps);
-    expect(r.looked).toBe(1); // the test order only (the old one is past three days)
-    expect(asked).toEqual([]); // and it is not asked about with the live key
+    const ask = (config: PayuConfig): SettleDeps => ({ config, now: () => addDays(T0, 4), sleep: async () => {}, fetchPayment: async (t) => (asked.push(t), { kind: "pending" }) });
+    // With the live key: the live order from yesterday, not the one past three days, not the test one.
+    expect((await reconcilePendingOrders(db, ask(LIVE))).looked).toBe(1);
+    expect(asked).toEqual([liveRecent.txnid]);
+    // With the test key: only the test order.
+    asked.length = 0;
+    expect((await reconcilePendingOrders(db, ask(TEST))).looked).toBe(1);
+    expect(asked).toEqual([test.order.txnid]);
     expect(old.id).toBeGreaterThan(0);
+  });
+
+  test("an order PayU does not know is marked never paid only after a day; a PayU-failed one is asked again and can still be paid", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const ca = await creator(pg);
+    const cb = await creator(pg);
+    const cc = await creator(pg);
+    const stale = await newOrder(db, ca, { now: T0 });
+    const young = await newOrder(db, cb, { now: addDays(T0, 1) });
+    const retry = await newOrder(db, cc, { now: T0 });
+    // PayU first reported the retry order as failed (a failed attempt), later it succeeded.
+    await settlePlanPayment(db, payuReply(retry, { status: "failure" }), payu(paid(retry.amountMinor)));
+    expect((await orderRow(pg, retry.id)).status).toBe("failed");
+    const now = addDays(T0, 1.5);
+    const deps: SettleDeps = {
+      config: LIVE,
+      now: () => now,
+      sleep: async () => {},
+      fetchPayment: async (t) => (t === retry.txnid ? paid(retry.amountMinor, "pay_retry") : { kind: "not_found" }),
+    };
+    const r = await reconcilePendingOrders(db, deps);
+    expect(r).toMatchObject({ looked: 3, activated: 1, abandoned: 1, stillPending: 1, errors: 0 });
+    expect(await orderRow(pg, stale.id)).toMatchObject({ status: "failed", failure_reason: ABANDONED_REASON });
+    expect((await orderRow(pg, young.id)).status).toBe("pending");
+    expect(await orderRow(pg, retry.id)).toMatchObject({ status: "paid", payu_ref: "pay_retry" });
+    // An abandoned order is not asked about again, but it can still be paid by a real notice.
+    const again = await reconcilePendingOrders(db, deps);
+    expect(again.looked).toBe(1); // only the young one
+    expect((await settlePlanPayment(db, payuReply(stale, { mihpayid: "pay_late" }), payu(paid(stale.amountMinor, "pay_late")))).status).toBe("activated");
+  });
+
+  test("PayU saying paid at another price needs a look and changes nothing; one order that throws does not stop the rest", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const odd = await newOrder(db, await creator(pg), { now: T0 });
+    const broken = await newOrder(db, await creator(pg), { now: T0 });
+    const good = await newOrder(db, await creator(pg), { now: T0 });
+    const noisy = console.error;
+    const logged: string[] = [];
+    console.error = (...args: unknown[]) => void logged.push(args.map(String).join(" "));
+    try {
+      const deps: SettleDeps = {
+        config: LIVE,
+        now: () => addDays(T0, 1),
+        sleep: async () => {},
+        fetchPayment: async (t) => {
+          if (t === odd.txnid) return { kind: "mismatch", reason: "a discount was applied" };
+          if (t === broken.txnid) throw new Error("boom");
+          return paid(good.amountMinor, "pay_good");
+        },
+      };
+      const r = await reconcilePendingOrders(db, deps);
+      expect(r).toMatchObject({ looked: 3, activated: 1, needsLook: 1, errors: 1 });
+    } finally {
+      console.error = noisy;
+    }
+    expect(logged.some((l) => l.includes(String(odd.id)) && l.includes("a discount was applied"))).toBe(true);
+    expect((await orderRow(pg, odd.id)).status).toBe("pending");
+    expect((await orderRow(pg, broken.id)).status).toBe("pending");
+    expect((await orderRow(pg, good.id)).status).toBe("paid");
+  });
+
+  test("the newest orders are asked about first, so a real payment is not starved behind old ones", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const ids: string[] = [];
+    for (let i = 0; i < 4; i++) ids.push((await newOrder(db, await creator(pg), { now: addDays(T0, i * 0.1) })).txnid);
+    const asked: string[] = [];
+    const deps: SettleDeps = { config: LIVE, now: () => addDays(T0, 1), sleep: async () => {}, fetchPayment: async (t) => (asked.push(t), { kind: "pending" }) };
+    await reconcilePendingOrders(db, deps, { limit: 2 });
+    expect(asked).toEqual([ids[3], ids[2]]);
   });
 });
 

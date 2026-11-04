@@ -16,12 +16,13 @@ import { priceView, type PlanPrices } from "./pricing";
 //  - An order is made first, with the amount fixed on our side. A reply is acted on only when its
 //    hash matches, it names an order we made, the amount and our own order id agree, the mode
 //    (live or test) agrees, and PayU's Verify Payment API, asked by our server, says the same
-//    transaction succeeded for the same amount.
+//    transaction succeeded for the plain price (no discount).
 //  - pending -> paid happens once, in the same transaction as the switch-on, with both rows
 //    locked. A second delivery finds the order paid and changes nothing. A failure only fills a
 //    pending order: a paid order is never overwritten, and a failed one can still be paid (the
 //    creator may retry in PayU's page under the same reference).
 //  - One PayU payment id pays one order (unique index).
+//  - Lock order is always the order row, then the user row; nothing takes them the other way round.
 
 export type Term = 1 | 12;
 export const TERMS: readonly Term[] = [1, 12];
@@ -29,11 +30,17 @@ export const TERMS: readonly Term[] = [1, 12];
 // ---- Price ----------------------------------------------------------------------------------
 
 // What a term costs now, in paise, and whether it is the early price. Null when the prices are not
-// set. `earlyTaken` is how many early passes have been paid for already (live money only).
-export function chooseAmount(prices: PlanPrices, term: Term, earlyTaken: number): { amountMinor: number; early: boolean } | null {
+// set. `earlyTaken` is how many other creators hold or are buying an early pass; `keepsEarly` is a
+// creator who already holds one and is renewing, who keeps the early price whatever the count.
+export function chooseAmount(
+  prices: PlanPrices,
+  term: Term,
+  earlyTaken: number,
+  keepsEarly = false,
+): { amountMinor: number; early: boolean } | null {
   const view = priceView(prices);
   if (!view) return null;
-  const early = view.early && earlyTaken < view.early.seats ? view.early : null;
+  const early = view.early && (keepsEarly || earlyTaken < view.early.seats) ? view.early : null;
   const rupees = term === 12 ? (early ? early.yearly : view.yearly) : early ? early.monthly : view.monthly;
   if (!Number.isInteger(rupees) || rupees <= 0) return null;
   return { amountMinor: rupees * 100, early: early !== null };
@@ -52,6 +59,12 @@ export type CreateOrderResult =
 
 // At most this many unpaid orders per creator per hour, so the button cannot be used to fill the table.
 const PENDING_PER_HOUR = 5;
+// An unpaid early order holds its seat this long (the Buy form is only offered for as long).
+const EARLY_HOLD_HOURS = 2;
+// A creator whose early pass ended less than this long ago keeps the early price on renewal.
+const EARLY_GRACE_DAYS = 31;
+// One lock key for the early-seat count, so two creators cannot both take the last seat.
+const EARLY_SEAT_LOCK = 55001;
 
 export async function createPlanOrder(
   db: LedgerDb,
@@ -59,9 +72,11 @@ export async function createPlanOrder(
     creatorId: number;
     term: number;
     prices: PlanPrices;
-    // True when the order is made with PayU's live key.
+    // True when the order is made with PayU's live key. The caller works this out from the settings,
+    // never from anything the creator sent.
     livemode: boolean;
-    // A test-mode order may be made only for the owner's own account.
+    // A test-mode order may be made only for the owner's own account; the caller works this out
+    // from the signed-in account.
     isOwner: boolean;
     txnid?: string;
     now?: Date;
@@ -73,13 +88,23 @@ export async function createPlanOrder(
   const now = (o.now ?? new Date()).toISOString();
   return db.begin(async (tx) => {
     const [creator] = await tx<{ creator_status: string }[]>`
-      select creator_status from users where id = ${o.creatorId} for update
+      select creator_status from users where id = ${o.creatorId} for no key update
     `;
     if (!creator || creator.creator_status !== "active") return { ok: false, reason: "not_active" } as const;
-    const [early] = await tx<{ n: string }[]>`
-      select count(*)::text as n from plan_orders where status = 'paid' and early and livemode
+    await tx`select pg_advisory_xact_lock(${EARLY_SEAT_LOCK})`;
+    // Other creators who hold an early pass or are buying one right now (live money only).
+    const [taken] = await tx<{ n: string }[]>`
+      select count(distinct creator_id)::text as n from plan_orders
+       where early and livemode and creator_id <> ${o.creatorId}
+         and (status = 'paid' or (status = 'pending' and created_at > ${now}::timestamptz - make_interval(hours => ${EARLY_HOLD_HOURS}::int)))
     `;
-    const chosen = chooseAmount(o.prices, term, Number(early?.n ?? "0"));
+    // Renewing: the creator's latest paid order was an early one and ended recently (or still runs).
+    const [last] = await tx<{ early: boolean; ends: boolean }[]>`
+      select early, pass_ends_at >= ${now}::timestamptz - make_interval(days => ${EARLY_GRACE_DAYS}::int) as ends
+        from plan_orders where creator_id = ${o.creatorId} and status = 'paid' and livemode
+       order by paid_at desc limit 1
+    `;
+    const chosen = chooseAmount(o.prices, term, Number(taken?.n ?? "0"), Boolean(last?.early && last.ends));
     if (!chosen) return { ok: false, reason: "no_price" } as const;
     const [recent] = await tx<{ n: string }[]>`
       select count(*)::text as n from plan_orders
@@ -114,12 +139,13 @@ export type SettleResult =
   | { status: "already_paid"; orderId: number }
   // A failure was recorded on a pending or failed order.
   | { status: "failed"; orderId: number }
-  // PayU has not decided yet; check again later.
+  // PayU has not decided yet (a bank transfer still in flight); its next notice settles it.
   | { status: "pending"; orderId: number }
-  // Could not reach PayU for the check: nothing changed, try again later.
+  // Could not get PayU's confirmation (unreachable, or it has not caught up with its own notice):
+  // nothing changed, so the answer to PayU is "try again" and the daily job looks again.
   | { status: "unavailable"; reason: string }
   // Not believed. Nothing changed. Worth a log line.
-  | { status: "rejected"; reason: RejectReason };
+  | { status: "rejected"; reason: RejectReason; detail?: string };
 
 interface OrderRow extends Record<string, unknown> {
   id: string;
@@ -135,7 +161,13 @@ export interface SettleDeps {
   // Asks PayU's Verify Payment API about one txnid.
   fetchPayment: (txnid: string) => Promise<PayuPayment>;
   now?: () => Date;
+  // Waits between asking PayU twice (tests pass a no-op).
+  sleep?: (ms: number) => Promise<void>;
 }
+
+const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+// PayU's check can trail its own notice by a moment; ask once more after this long.
+const VERIFY_RETRY_MS = 2000;
 
 export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: SettleDeps): Promise<SettleResult> {
   const { config } = deps;
@@ -152,7 +184,8 @@ export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: Se
   // Our own order id travels in udf1 and is covered by the hash.
   if (reply.udf1 !== order.id) return { status: "rejected", reason: "ref_mismatch" };
 
-  if (reply.status === "failure") {
+  // PayU's documents give both words for a failed payment.
+  if (reply.status === "failure" || reply.status === "failed") {
     const reason = reply.error || reply.unmappedstatus || "payment failed";
     const changed = await db<{ id: string }[]>`
       update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${reason.slice(0, 300)}
@@ -166,13 +199,21 @@ export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: Se
 
   if (order.status === "paid") return { status: "already_paid", orderId };
 
-  // The reply says success. Ask PayU ourselves before believing it.
-  const answer = await deps.fetchPayment(reply.txnid);
+  // The reply says success. Ask PayU ourselves before believing it. PayU's check can trail its own
+  // notice, so a "pending" or "not found" gets one more look after a short wait.
+  let answer = await deps.fetchPayment(reply.txnid);
+  if (answer.kind === "pending" || answer.kind === "not_found") {
+    await (deps.sleep ?? defaultSleep)(VERIFY_RETRY_MS);
+    answer = await deps.fetchPayment(reply.txnid);
+  }
   if (answer.kind === "unavailable") return { status: "unavailable", reason: answer.reason };
-  if (answer.kind === "pending") return { status: "pending", orderId };
+  if (answer.kind === "pending" || answer.kind === "not_found") {
+    return { status: "unavailable", reason: "PayU has not confirmed this payment yet" };
+  }
+  if (answer.kind === "mismatch") return { status: "rejected", reason: "not_confirmed", detail: answer.reason };
   if (answer.kind !== "success" || answer.amountMinor !== Number(order.amount_minor)) return { status: "rejected", reason: "not_confirmed" };
-  if (reply.mihpayid && reply.mihpayid !== answer.payuRef) return { status: "rejected", reason: "ref_mismatch" };
 
+  // The payment id comes from PayU's own answer; the id in the posted reply is not covered by the hash.
   return activate(db, orderId, answer.payuRef, (deps.now ?? (() => new Date()))());
 }
 
@@ -188,13 +229,19 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
       if (order.status === "paid") return { status: "already_paid", orderId } as const;
       const creatorId = Number(order.creator_id);
 
-      const [user] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; starts: string; ends: string }[]>`
-        select paid_features, pass_keys,
+      // Months are added in UTC, so the session's time zone can never move the end date.
+      const [user] = await tx<{ creator_status: string; paid_features: string[] | null; pass_keys: string[] | null; starts: string; ends: string }[]>`
+        select creator_status, paid_features, pass_keys,
                greatest(coalesce(pass_until, ${stamp}::timestamptz), ${stamp}::timestamptz)::text as starts,
-               (greatest(coalesce(pass_until, ${stamp}::timestamptz), ${stamp}::timestamptz)
-                  + make_interval(months => ${order.term_months}::int))::text as ends
-          from users where id = ${creatorId} for update
+               (((greatest(coalesce(pass_until, ${stamp}::timestamptz), ${stamp}::timestamptz)) at time zone 'UTC'
+                  + make_interval(months => ${order.term_months}::int)) at time zone 'UTC')::text as ends
+          from users where id = ${creatorId} for no key update
       `;
+      if (user.creator_status !== "active") {
+        // Paid, but the account is suspended or closed. The pass is still recorded; the owner may
+        // want to refund by hand.
+        console.error(`Plan order ${orderId} was paid for a creator whose account is ${user.creator_status}: check whether to refund.`);
+      }
       const have = new Set(user.paid_features ?? []);
       // Only keys not already on are the pass's to take away later; a key the owner ticked stays theirs.
       const added = PASS_FEATURE_KEYS.filter((k) => !have.has(k));
@@ -222,45 +269,87 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
     });
   } catch (err) {
     // The same PayU payment id on another order: the unique index refused it, nothing changed.
-    if ((err as { code?: string }).code === "23505" || /plan_orders_payu_ref/.test((err as Error).message ?? "")) {
+    if (/plan_orders_payu_ref/.test((err as Error).message ?? "")) {
       return { status: "rejected", reason: "payment_already_used" };
     }
     throw err;
   }
 }
 
-// ---- Checking orders that were left pending ------------------------------------------------
+// ---- Checking orders that were left unsettled -----------------------------------------------
 
-// Pending orders older than `minAgeMinutes` and younger than `maxAgeDays` are asked about at PayU,
-// for the case the browser never came back and no notice reached us. Returns how each ended.
+// What the daily check writes on an order PayU has never heard of after a day, so it stops being
+// asked about. Such an order can still be paid later (a stored checkout form); its reply settles it.
+export const ABANDONED_REASON = "never paid at PayU";
+
+export interface ReconcileResult {
+  looked: number;
+  activated: number;
+  failed: number;
+  abandoned: number;
+  stillPending: number;
+  unavailable: number;
+  // PayU says paid, but not the plain price: the owner has to look (also written to the log).
+  needsLook: number;
+  errors: number;
+}
+
+// Orders that were never settled by a return or a notice are asked about at PayU: pending ones, and
+// failed ones PayU itself reported failed (a retry under the same reference may have succeeded).
+// Newest first, so a real payment whose notice was lost is never starved behind abandoned
+// checkouts; only this server's own settings' mode is asked about; one bad order cannot stop
+// the rest; and the loop stops when its time budget is used.
 export async function reconcilePendingOrders(
   db: LedgerDb,
-  deps: SettleDeps & { fetchPayment: (txnid: string) => Promise<PayuPayment> },
-  opts: { minAgeMinutes?: number; maxAgeDays?: number; limit?: number } = {},
-): Promise<{ looked: number; activated: number; failed: number; stillPending: number; unavailable: number }> {
+  deps: SettleDeps,
+  opts: { minAgeMinutes?: number; maxAgeDays?: number; limit?: number; budgetMs?: number } = {},
+): Promise<ReconcileResult> {
   const now = (deps.now ?? (() => new Date()))();
-  const rows = await db<{ id: string; txnid: string; amount_minor: string; livemode: boolean }[]>`
-    select id::text, txnid, amount_minor::text, livemode from plan_orders
-     where status = 'pending'
-       and created_at <= ${now.toISOString()}::timestamptz - make_interval(mins => ${opts.minAgeMinutes ?? 10}::int)
-       and created_at >  ${now.toISOString()}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
-     order by created_at limit ${opts.limit ?? 50}
+  const stamp = now.toISOString();
+  const live = deps.config.mode === "live";
+  const rows = await db<{ id: string; txnid: string; status: string; amount_minor: string; old: boolean }[]>`
+    select id::text, txnid, status, amount_minor::text,
+           (created_at <= ${stamp}::timestamptz - interval '1 day') as old
+      from plan_orders
+     where livemode = ${live}
+       and (status = 'pending' or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}))
+       and created_at <= ${stamp}::timestamptz - make_interval(mins => ${opts.minAgeMinutes ?? 10}::int)
+       and created_at >  ${stamp}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
+     order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 50}
   `;
-  const out = { looked: rows.length, activated: 0, failed: 0, stillPending: 0, unavailable: 0 };
+  const out: ReconcileResult = { looked: 0, activated: 0, failed: 0, abandoned: 0, stillPending: 0, unavailable: 0, needsLook: 0, errors: 0 };
+  const started = Date.now();
   for (const row of rows) {
-    if (row.livemode !== (deps.config.mode === "live")) continue;
-    const answer = await deps.fetchPayment(row.txnid);
-    if (answer.kind === "unavailable") out.unavailable += 1;
-    else if (answer.kind === "success" && answer.amountMinor === Number(row.amount_minor)) {
-      const r = await activate(db, Number(row.id), answer.payuRef, now);
-      if (r.status === "activated") out.activated += 1;
-    } else if (answer.kind === "failure") {
-      await db`
-        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
-         where id = ${Number(row.id)} and status = 'pending'
-      `;
-      out.failed += 1;
-    } else out.stillPending += 1;
+    if (Date.now() - started > (opts.budgetMs ?? 40_000)) break;
+    out.looked += 1;
+    try {
+      const answer = await deps.fetchPayment(row.txnid);
+      if (answer.kind === "unavailable") out.unavailable += 1;
+      else if (answer.kind === "success" && answer.amountMinor === Number(row.amount_minor)) {
+        const r = await activate(db, Number(row.id), answer.payuRef, now);
+        if (r.status === "activated") out.activated += 1;
+      } else if (answer.kind === "success" || answer.kind === "mismatch") {
+        out.needsLook += 1;
+        console.error(`Plan order ${row.id} (txnid ${row.txnid}) is paid at PayU but not at the plain price: ${answer.kind === "mismatch" ? answer.reason : "the amount differs"}. Look at it by hand.`);
+      } else if (answer.kind === "failure") {
+        const changed = await db<{ id: string }[]>`
+          update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
+           where id = ${Number(row.id)} and status = 'pending'
+          returning id::text
+        `;
+        if (changed.length) out.failed += 1;
+        else out.stillPending += 1;
+      } else if (answer.kind === "not_found" && row.status === "pending" && row.old) {
+        await db`
+          update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${ABANDONED_REASON}
+           where id = ${Number(row.id)} and status = 'pending'
+        `;
+        out.abandoned += 1;
+      } else out.stillPending += 1;
+    } catch (err) {
+      out.errors += 1;
+      console.error(`Plan order ${row.id} could not be checked:`, err instanceof Error ? err.message : err);
+    }
   }
   return out;
 }
@@ -279,7 +368,7 @@ export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit =
     const done = await db.begin(async (tx) => {
       const [u] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; pass_until: string }[]>`
         select paid_features, pass_keys, pass_until::text from users
-         where id = ${Number(id)} and pass_until is not null and pass_until <= ${now.toISOString()}::timestamptz for update
+         where id = ${Number(id)} and pass_until is not null and pass_until <= ${now.toISOString()}::timestamptz for no key update
       `;
       // Changed under us (a renewal came in): leave it.
       if (!u) return false;
@@ -307,8 +396,20 @@ export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit =
 // Writes the owner's choice of features for one creator. A pass remembers which keys it added so it
 // can take away only those when it ends: whatever the owner unticks is forgotten there (so a later
 // manual tick is the owner's own), and "everything on" is the owner's own choice, so nothing is left
-// for the pass to remove. Call it inside the transaction that holds the user row.
+// for the pass to remove. Call it inside the transaction that holds the user row. Before migration
+// 0055 the pass columns do not exist; then only the features are written, so the owner's box keeps
+// working until the migration is run.
 export async function writeFeatureKeys(tx: Query, creatorId: number, keys: readonly string[], everything: boolean): Promise<void> {
+  const [col] = await tx<{ ok: boolean }[]>`
+    select exists (
+      select 1 from information_schema.columns
+       where table_schema = current_schema() and table_name = 'users' and column_name = 'pass_keys'
+    ) as ok
+  `;
+  if (!col?.ok) {
+    await tx`update users set paid_features = ${[...keys]}::text[] where id = ${creatorId}`;
+    return;
+  }
   await tx`
     update users set paid_features = ${[...keys]}::text[],
            pass_keys = case when ${everything} then '{}'::text[]

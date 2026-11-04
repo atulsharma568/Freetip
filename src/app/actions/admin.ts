@@ -9,7 +9,7 @@ import { syncBooks } from "@/lib/books-sync";
 import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
 import { takeDownAsset } from "@/lib/page-doc/asset-store";
-import { builtFeatureKeys, sanitizeFeatureKeys } from "@/lib/plans";
+import { builtFeatureKeys, featureSnapshot, sanitizeFeatureKeys } from "@/lib/plans";
 import { writeFeatureKeys } from "@/lib/plan-orders";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
@@ -157,6 +157,10 @@ export async function setCreatorFeatures(
         select paid_features from users where id = ${creatorId} for update
       `;
       if (!before) return false;
+      // A Save sends back the features the page was loaded with. If they are not what the creator has
+      // now (a payment switched a pass on, or another save came first) the old ticks would undo that,
+      // so ask for a reload instead.
+      if (intent === "save" && formData.get("loaded") !== featureSnapshot(before.paid_features)) return "stale" as const;
       await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all");
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
@@ -166,6 +170,7 @@ export async function setCreatorFeatures(
       `;
       return true;
     });
+    if (found === "stale") return fail("This creator's features changed since you opened this page (a payment or another save). Reload the page and try again.");
     if (!found) return fail("That creator was not found.");
   } catch (err) {
     console.error("Admin: could not save paid features (migrations 0035 and 0055 run?)", err);

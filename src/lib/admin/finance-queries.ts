@@ -180,9 +180,11 @@ export interface Turnover {
   yearLabel: string;
   // Live tips captured in the financial year, gross.
   grossTipsMinor: number;
-  // Our fee plus the processing charge we keep, posted to the ledger in the year. Plan sales
-  // will be added here once plans can be bought (none can yet).
+  // Our fee plus the processing charge we keep, posted to the ledger in the year, plus what live
+  // pass purchases brought in (the price is the final amount, so the whole of it counts).
   feesMinor: number;
+  // The pass-sales part of feesMinor, shown on its own.
+  planSalesMinor: number;
   triggerMinor: number;
   // The larger of the two, which is the figure the trigger is tested against.
   countedMinor: number;
@@ -211,12 +213,26 @@ export function getTurnover(db: LedgerDb, year: DateRange): Promise<Loaded<Turno
            and lt.effective_at <  ${to}::timestamptz
       `,
     ]);
+    // Pass sales (migration 0055). Before the migration is run the table is missing: that is zero
+    // sales, not a failed read.
+    let planSalesMinor = 0;
+    try {
+      const [sales] = await db<{ sold: string }[]>`
+        select coalesce(sum(amount_minor), 0)::text as sold from plan_orders
+         where status = 'paid' and livemode
+           and paid_at >= ${from}::timestamptz and paid_at < ${to}::timestamptz
+      `;
+      planSalesMinor = toWhole(sales?.sold ?? "0");
+    } catch (err) {
+      if ((err as { code?: string }).code !== "42P01") throw err;
+    }
     const grossTipsMinor = toWhole(tipRows[0]?.gross ?? "0");
-    const feesMinor = toWhole(feeRows[0]?.fees ?? "0");
+    const feesMinor = toWhole(feeRows[0]?.fees ?? "0") + planSalesMinor;
     return {
       yearLabel: year.label,
       grossTipsMinor,
       feesMinor,
+      planSalesMinor,
       triggerMinor: GST_TRIGGER_MINOR,
       countedMinor: Math.max(grossTipsMinor, feesMinor),
     };

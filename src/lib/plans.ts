@@ -235,6 +235,13 @@ export function sanitizeFeatureKeys(keys: readonly string[]): FeatureKey[] {
   return FEATURES.filter((f) => f.built && keys.includes(f.key)).map((f) => f.key);
 }
 
+// A short text of which built features a creator has, the same whoever writes it: the owner's feature
+// forms carry it as the state they were loaded with, so a Save from a stale page (a payment or
+// another save changed the creator since) can be refused instead of overwriting the change.
+export function featureSnapshot(keys: readonly string[]): string {
+  return sanitizeFeatureKeys(keys).sort().join(",");
+}
+
 export function builtFeatureKeys(): FeatureKey[] {
   return FEATURES.filter((f) => f.built).map((f) => f.key);
 }

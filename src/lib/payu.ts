@@ -103,8 +103,25 @@ function clean(value: string, fallback: string, max: number): string {
   return text || fallback;
 }
 
+// Thrown when something we are about to send PayU would be refused by PayU or cannot be signed
+// safely. The Buy form shows `message` to the creator.
+export class CheckoutInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CheckoutInputError";
+  }
+}
+
+// PayU's documented limits: firstname 20 characters (the test environment's limit; live allows more),
+// email 50, surl/furl/curl 50, a 10-digit mobile number.
+const FIRSTNAME_MAX = 20;
+const EMAIL_MAX = 50;
+const URL_MAX = 50;
+
 // The form fields to post to PayU, and where. `action` depends on the mode. The phone is the
-// creator's own mobile number, typed on our Buy form and passed straight on.
+// creator's own mobile number, typed on our Buy form and passed straight on. Throws
+// CheckoutInputError for a value PayU would refuse; every value that goes into the hash must be
+// exactly what is posted, so nothing is silently changed here except cleaning the name and product.
 export function checkoutForm(
   config: PayuConfig,
   order: CheckoutOrder,
@@ -112,10 +129,17 @@ export function checkoutForm(
   urls: CheckoutUrls,
 ): { action: string; fields: Record<string, string> } {
   const amount = payuAmount(order.amountMinor);
-  const firstname = clean(payer.firstname, "Creator", 60);
+  const firstname = clean(payer.firstname, "Creator", FIRSTNAME_MAX);
   const productinfo = clean(order.productinfo, "Freetip paid features", 100);
   const email = payer.email.trim();
-  const phone = payer.phone.replace(/\D/g, "").slice(-10);
+  if (!email || email.length > EMAIL_MAX || /[|\s]/.test(email) || !email.includes("@")) {
+    throw new CheckoutInputError("The email on your account cannot be used for this payment.");
+  }
+  const phone = payer.phone.replace(/[\s-]/g, "").replace(/^(\+91|91|0)(?=\d{10}$)/, "");
+  if (!/^[6-9]\d{9}$/.test(phone)) throw new CheckoutInputError("Enter a 10-digit Indian mobile number.");
+  for (const url of [urls.success, urls.failure, urls.cancel]) {
+    if (!/^https:\/\//.test(url) || url.length > URL_MAX) throw new CheckoutInputError("A return address is too long or not https.");
+  }
   const fields = {
     key: config.key,
     txnid: order.txnid,
@@ -154,11 +178,14 @@ export interface PayuReply {
   udf4: string;
   udf5: string;
   additionalCharges: string;
+  splitInfo: string;
   hash: string;
   error: string;
 }
 
 const text = (v: unknown): string => (typeof v === "string" ? v : "");
+// An id PayU may send as text or as a number, trimmed (PayU's own samples carry stray spaces).
+const idText = (v: unknown): string => (typeof v === "number" && Number.isFinite(v) ? String(v) : text(v).trim());
 
 // Picks the fields we use out of a form body (string values only; anything else is ignored).
 export function readReply(body: Record<string, unknown>): PayuReply {
@@ -171,32 +198,57 @@ export function readReply(body: Record<string, unknown>): PayuReply {
     productinfo: text(body.productinfo),
     firstname: text(body.firstname),
     email: text(body.email),
-    mihpayid: text(body.mihpayid),
+    mihpayid: idText(body.mihpayid),
     udf1: text(body.udf1),
     udf2: text(body.udf2),
     udf3: text(body.udf3),
     udf4: text(body.udf4),
     udf5: text(body.udf5),
     additionalCharges: text(body.additionalCharges) || text(body.additional_charges),
+    splitInfo: text(body.splitInfo),
     hash: text(body.hash).toLowerCase(),
     error: (text(body.error_Message) || text(body.error)).slice(0, 300),
   };
 }
 
-// SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key,
-// with additionalCharges in front when PayU sent one.
-export function replyHash(r: PayuReply, salt: string): string {
-  const core = [salt, r.status, "", "", "", "", "", r.udf5, r.udf4, r.udf3, r.udf2, r.udf1, r.email, r.firstname, r.productinfo, r.amount, r.txnid, r.key];
-  return sha512((r.additionalCharges ? [r.additionalCharges, ...core] : core).join("|"));
+// PayU documents four reverse-hash layouts (docs/payu-notes.md): the plain one, with
+// additional_charges in front, with splitInfo after the status, and both. The plain one is
+//   SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+// This is one layout, built from the fields as posted.
+function hashOf(r: PayuReply, salt: string, withCharges: boolean, withSplit: boolean): string {
+  const core = [
+    salt,
+    r.status,
+    ...(withSplit ? [r.splitInfo] : []),
+    "", "", "", "", "",
+    r.udf5, r.udf4, r.udf3, r.udf2, r.udf1,
+    r.email, r.firstname, r.productinfo, r.amount, r.txnid, r.key,
+  ];
+  return sha512((withCharges ? [r.additionalCharges, ...core] : core).join("|"));
 }
 
-// True only when the reply carries a hash and it matches. The hash is lowercase hex; PayU's
-// comparison is case-sensitive, and we lowercase both sides so a harmless case difference is not
-// a failure.
+// The plain layout (what a payment with nothing extra is signed with).
+export function replyHash(r: PayuReply, salt: string): string {
+  return hashOf(r, salt, false, false);
+}
+
+// True only when the reply carries a hash and it matches one of the documented layouts that the
+// reply's own fields allow: a layout with additional_charges only when the reply carries that
+// field, and likewise splitInfo. All of them need the salt, so offering a choice does not help a
+// forger. The hash is lowercase hex; PayU's comparison is case-sensitive and we lowercase both
+// sides so a harmless case difference is not a failure.
 export function replyHashIsValid(r: PayuReply, config: PayuConfig): boolean {
   if (!r.hash || !r.txnid || !r.status || !r.key) return false;
   if (r.key !== config.key) return false;
-  return safeEqual(r.hash.toLowerCase(), replyHash(r, config.salt));
+  const got = r.hash.toLowerCase();
+  const layouts: Array<[boolean, boolean]> = [[false, false]];
+  if (r.additionalCharges) layouts.push([true, false]);
+  if (r.splitInfo) layouts.push([false, true]);
+  if (r.additionalCharges && r.splitInfo) layouts.push([true, true]);
+  // Check every layout (no early exit) so the time taken does not say which one matched.
+  let ok = false;
+  for (const [charges, split] of layouts) if (safeEqual(got, hashOf(r, config.salt, charges, split))) ok = true;
+  return ok;
 }
 
 // ---- Asking PayU: the Verify Payment API ----------------------------------------------------
@@ -206,6 +258,9 @@ export type PayuPayment =
   | { kind: "failure"; reason: string }
   | { kind: "pending" }
   | { kind: "not_found" }
+  // PayU says paid, but not the plain amount we asked for (a discount or offer applied, or the
+  // amounts it reports disagree). Never a success; the owner has to look.
+  | { kind: "mismatch"; reason: string }
   // Could not get an answer (network, timeout, an answer we cannot read): decide nothing.
   | { kind: "unavailable"; reason: string };
 
@@ -216,28 +271,51 @@ export function verifyHash(config: PayuConfig, command: string, var1: string): s
   return sha512([config.key, command, var1, config.salt].join("|"));
 }
 
-// Reads PayU's answer for one txnid. Only `success` with `captured` (when PayU says so) is a
-// success; "Not Found" and unknown shapes never are.
+// One transaction entry from PayU's answer.
+function readEntry(e: Record<string, unknown>): PayuPayment {
+  const status = text(e.status).toLowerCase();
+  const unmapped = text(e.unmappedstatus).toLowerCase();
+  if (status === "not found") return { kind: "not_found" };
+  if (status === "success") {
+    // Only a captured payment is paid; anything else (auth, a missing value) is not yet.
+    if (unmapped !== "captured") return { kind: "pending" };
+    const amountMinor = parsePayuAmount(e.amt ?? e.transaction_amount);
+    const payuRef = idText(e.mihpayid);
+    if (amountMinor === null || !payuRef) return { kind: "unavailable", reason: "success without an amount or a payment id" };
+    // The plain price only: no discount, and the amounts PayU reports must agree. (A PayU offer
+    // lowers what is charged, and the request hash does not cover the offer fields.)
+    const discount = e.disc ?? e.discount;
+    if (discount !== undefined && discount !== null && discount !== "" && parsePayuAmount(discount) !== 0) {
+      return { kind: "mismatch", reason: "a discount was applied" };
+    }
+    if (e.transaction_amount !== undefined && e.transaction_amount !== "" && parsePayuAmount(e.transaction_amount) !== amountMinor) {
+      return { kind: "mismatch", reason: "the amounts PayU reports disagree" };
+    }
+    const net = e.net_amount_debit;
+    if (net !== undefined && net !== null && net !== "") {
+      const netMinor = parsePayuAmount(net);
+      if (netMinor === null || netMinor < amountMinor) return { kind: "mismatch", reason: "PayU debited less than the price" };
+    }
+    return { kind: "success", amountMinor, payuRef };
+  }
+  if (status === "failure" || status === "failed") return { kind: "failure", reason: (text(e.error_Message) || text(e.error_code) || "payment failed").slice(0, 300) };
+  // Pending, in progress, initiated, bounced, an empty or unknown status: not decided yet.
+  return { kind: "pending" };
+}
+
+// Reads PayU's answer for one txnid. Only `success` with `captured` and the plain amount is a
+// success; "Not Found" and unknown shapes never are. When PayU lists several attempts under one
+// txnid (a creator retrying in its page), a captured one wins, then a pending one, then a failure.
 export function readVerifyAnswer(answer: unknown, txnid: string): PayuPayment {
   if (!answer || typeof answer !== "object") return { kind: "unavailable", reason: "no readable answer" };
   const details = (answer as { transaction_details?: unknown }).transaction_details;
   if (!details || typeof details !== "object") return { kind: "unavailable", reason: "no transaction details" };
   const entry = (details as Record<string, unknown>)[txnid];
-  if (!entry || typeof entry !== "object") return { kind: "not_found" };
-  const e = entry as Record<string, unknown>;
-  const status = text(e.status).toLowerCase();
-  const unmapped = text(e.unmappedstatus).toLowerCase();
-  if (status === "not found") return { kind: "not_found" };
-  if (status === "success") {
-    const amountMinor = parsePayuAmount(e.amt ?? e.transaction_amount);
-    const payuRef = text(e.mihpayid);
-    if (unmapped && unmapped !== "captured") return { kind: "pending" };
-    if (amountMinor === null || !payuRef) return { kind: "unavailable", reason: "success without an amount or a payment id" };
-    return { kind: "success", amountMinor, payuRef };
-  }
-  if (status === "failure" || status === "failed") return { kind: "failure", reason: (text(e.error_Message) || text(e.error_code) || "payment failed").slice(0, 300) };
-  if (status === "pending" || status === "in progress" || status === "initiated" || status === "bounced" || status === "") return { kind: "pending" };
-  return { kind: "pending" };
+  const entries = (Array.isArray(entry) ? entry : [entry]).filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  if (entries.length === 0) return { kind: "not_found" };
+  const reads = entries.map(readEntry);
+  const rank = ["success", "mismatch", "pending", "unavailable", "failure", "not_found"] as const;
+  return reads.sort((x, y) => rank.indexOf(x.kind) - rank.indexOf(y.kind))[0];
 }
 
 // Asks PayU for the state of one transaction. Never throws: a failure is `unavailable`.

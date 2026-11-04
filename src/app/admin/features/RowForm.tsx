@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { ActionStatus } from "@/components/admin/ActionStatus";
 import { buttonClass } from "@/components/admin/tones";
 import { ADMIN_IDLE, type AdminAction } from "@/lib/admin/action-state";
-import { FEATURES } from "@/lib/plans";
+import { FEATURES, featureSnapshot } from "@/lib/plans";
 
 const BUILT = FEATURES.filter((f) => f.built);
 
@@ -13,6 +13,7 @@ export function RowForm({ action, granted }: { action: AdminAction; granted: str
   const [state, formAction, pending] = useActionState(action, ADMIN_IDLE);
   return (
     <form action={formAction} className="space-y-3">
+      <input type="hidden" name="loaded" value={featureSnapshot(granted)} />
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {BUILT.map((f) => (
           <label key={f.key} className="flex items-start gap-2 text-sm">

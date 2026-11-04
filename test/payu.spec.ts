@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
 import {
+  CheckoutInputError,
   PAYU_PAYMENT_URL,
   PAYU_VERIFY_URL,
   checkoutForm,
@@ -148,19 +149,73 @@ test.describe("the request", () => {
   });
 });
 
+test.describe("what the Buy form may send", () => {
+  const order = { txnid: values.txnid, amountMinor: 29900, productinfo: "Freetip paid features", orderRef: "42" };
+  const urls = { success: "https://freetip.in/api/payu/return", failure: "https://freetip.in/api/payu/return", cancel: "https://freetip.in/api/payu/cancel" };
+  const send = (payer: Partial<{ firstname: string; email: string; phone: string }>, u = urls) =>
+    checkoutForm(config, order, { firstname: "Riya", email: "riya@example.com", phone: "9876543210", ...payer }, u);
+
+  test("the mobile number is normalised and must be a 10-digit Indian mobile", () => {
+    for (const ok of ["9876543210", "+91 98765 43210", "+919876543210", "91 9876543210", "09876543210", "98765-43210"]) {
+      expect(send({ phone: ok }).fields.phone).toBe("9876543210");
+    }
+    for (const bad of ["", "12345", "5876543210", "98765432101234", "abcdefghij", "+1 2025550123"]) {
+      expect(() => send({ phone: bad }), bad).toThrow(CheckoutInputError);
+    }
+  });
+
+  test("an email PayU would refuse or that could confuse the hash is refused", () => {
+    for (const bad of ["", "no-at-sign", "a b@example.com", "a|b@example.com", `${"x".repeat(45)}@example.com`]) {
+      expect(() => send({ email: bad }), bad).toThrow(CheckoutInputError);
+    }
+    expect(send({ email: " riya@example.com " }).fields.email).toBe("riya@example.com");
+  });
+
+  test("a long name is cut to PayU's 20 characters and the hash covers what is sent", () => {
+    const f = send({ firstname: "Alexandria Bartholomew the Third" }).fields;
+    expect(f.firstname.length).toBeLessThanOrEqual(20);
+    expect(f.hash).toBe(requestHash({ key: f.key, txnid: f.txnid, amount: f.amount, productinfo: f.productinfo, firstname: f.firstname, email: f.email, udf1: f.udf1 }, "testsalt"));
+  });
+
+  test("the return addresses must be https and within PayU's 50 characters", () => {
+    expect(() => send({}, { ...urls, success: "http://freetip.in/api/payu/return" })).toThrow(CheckoutInputError);
+    expect(() => send({}, { ...urls, failure: "https://preview-branch-name.freetip.vercel.app/api/payu/return" })).toThrow(CheckoutInputError);
+    expect(urls.success.length).toBeLessThanOrEqual(50);
+  });
+});
+
 test.describe("the reply", () => {
   test("the hash is PayU's reverse formula with the reply's values", () => {
     expect(replyHash(reply(), "testsalt")).toBe(sha512(fill(REPLY_FORMULA, values)));
     expect(replyHashIsValid(reply(), config)).toBe(true);
   });
 
-  test("a reply that carries additional charges is hashed with them in front", () => {
-    const withCharges = readReply({ ...values, additionalCharges: "3.00", mihpayid: "1" });
-    const expected = sha512("3.00|" + fill(REPLY_FORMULA, values));
-    expect(replyHash(withCharges, "testsalt")).toBe(expected);
-    expect(replyHashIsValid({ ...withCharges, hash: expected }, config)).toBe(true);
-    // The same reply without the charges in its hash is not believed.
-    expect(replyHashIsValid({ ...withCharges, hash: sha512(fill(REPLY_FORMULA, values)) }, config)).toBe(false);
+  test("PayU's four documented layouts are all accepted, and only with the salt", () => {
+    const plain = sha512(fill(REPLY_FORMULA, values));
+    const withCharges = sha512("3.00|" + fill(REPLY_FORMULA, values));
+    const withSplit = sha512(fill("SALT|status|splitInfo||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key", { ...values, splitInfo: '{"a":1}' }));
+    const withBoth = sha512("3.00|" + fill("SALT|status|splitInfo||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key", { ...values, splitInfo: '{"a":1}' }));
+    const base = { ...values, mihpayid: "1" };
+    // additional_charges in front.
+    expect(replyHashIsValid({ ...readReply({ ...base, additionalCharges: "3.00" }), hash: withCharges }, config)).toBe(true);
+    // The field is present but PayU signed the plain layout (a posted "0.00" it did not sign).
+    expect(replyHashIsValid({ ...readReply({ ...base, additionalCharges: "0.00" }), hash: plain }, config)).toBe(true);
+    // splitInfo after the status.
+    expect(replyHashIsValid({ ...readReply({ ...base, splitInfo: '{"a":1}' }), hash: withSplit }, config)).toBe(true);
+    // Both.
+    expect(replyHashIsValid({ ...readReply({ ...base, additionalCharges: "3.00", splitInfo: '{"a":1}' }), hash: withBoth }, config)).toBe(true);
+    // A layout the reply's own fields do not allow is not tried: no additionalCharges field, so a
+    // hash made with one in front is refused.
+    expect(replyHashIsValid({ ...readReply(base), hash: withCharges }, config)).toBe(false);
+    // Every layout still needs the salt.
+    for (const extra of [{}, { additionalCharges: "3.00" }, { splitInfo: '{"a":1}' }, { additionalCharges: "3.00", splitInfo: '{"a":1}' }]) {
+      const r = readReply({ ...base, ...extra });
+      for (const guess of ["guess", "", "testkey"]) {
+        for (const fakeHash of [replyHash(r, guess), sha512("3.00|" + fill(REPLY_FORMULA, { ...values, SALT: guess }))]) {
+          expect(replyHashIsValid({ ...r, hash: fakeHash }, config)).toBe(false);
+        }
+      }
+    }
   });
 
   test("the case of the hash does not matter, but nothing else may differ", () => {
@@ -189,6 +244,9 @@ test.describe("the reply", () => {
     expect(r.amount).toBe("");
     expect(r.error).toBe("No Error");
     expect(r.hash).toBe("abc");
+    // PayU's own samples carry stray spaces in ids, and sometimes a number.
+    expect(readReply({ mihpayid: " 23907365951 " }).mihpayid).toBe("23907365951");
+    expect(readReply({ mihpayid: 23907365951 }).mihpayid).toBe("23907365951");
   });
 });
 
@@ -212,6 +270,36 @@ test.describe("asking PayU", () => {
     for (const junk of [null, "text", 5, {}, { transaction_details: "x" }]) {
       expect(readVerifyAnswer(junk, id).kind).toBe("unavailable");
     }
+  });
+
+  test("PayU's answer is read strictly: no discount, agreeing amounts, captured only, several attempts handled", () => {
+    const id = values.txnid;
+    const ok = { status: "success", unmappedstatus: "captured", amt: "299.00", mihpayid: "7" };
+    const ask = (entry: unknown) => readVerifyAnswer({ status: 1, transaction_details: { [id]: entry } }, id);
+    // A discount or offer makes it a mismatch, never a success (the offer fields are not covered by the request hash).
+    expect(ask({ ...ok, disc: "100.00" })).toMatchObject({ kind: "mismatch" });
+    expect(ask({ ...ok, disc: "0.00" })).toEqual({ kind: "success", amountMinor: 29900, payuRef: "7" });
+    expect(ask({ ...ok, transaction_amount: "399.00" })).toMatchObject({ kind: "mismatch" });
+    expect(ask({ ...ok, transaction_amount: "299.00" })).toEqual({ kind: "success", amountMinor: 29900, payuRef: "7" });
+    expect(ask({ ...ok, net_amount_debit: "250.00" })).toMatchObject({ kind: "mismatch" });
+    // Charges on top of the price are fine.
+    expect(ask({ ...ok, net_amount_debit: "305.00" })).toEqual({ kind: "success", amountMinor: 29900, payuRef: "7" });
+    expect(ask({ ...ok, net_amount_debit: "free" })).toMatchObject({ kind: "mismatch" });
+    // A number id, a padded id, a missing unmappedstatus, the other word for failure.
+    expect(ask({ ...ok, mihpayid: 403993715 })).toEqual({ kind: "success", amountMinor: 29900, payuRef: "403993715" });
+    expect(ask({ ...ok, mihpayid: " 403993715 " })).toEqual({ kind: "success", amountMinor: 29900, payuRef: "403993715" });
+    expect(ask({ status: "success", amt: "299.00", mihpayid: "7" })).toEqual({ kind: "pending" });
+    expect(ask({ ...ok, unmappedstatus: "captured " })).toEqual({ kind: "pending" }); // exactly captured
+    expect(ask({ status: "failed", error_code: "E1" })).toEqual({ kind: "failure", reason: "E1" });
+    // Several attempts under one reference: a captured one wins, then a mismatch, then pending, then failure.
+    const fail = { status: "failure", unmappedstatus: "failed", error_code: "E9" };
+    expect(ask([fail, ok])).toEqual({ kind: "success", amountMinor: 29900, payuRef: "7" });
+    expect(ask([ok, fail])).toEqual({ kind: "success", amountMinor: 29900, payuRef: "7" });
+    expect(ask([fail, { status: "pending" }])).toEqual({ kind: "pending" });
+    expect(ask([fail, fail])).toMatchObject({ kind: "failure" });
+    expect(ask([fail, { ...ok, disc: "5.00" }])).toMatchObject({ kind: "mismatch" });
+    expect(ask([])).toEqual({ kind: "not_found" });
+    expect(ask([null, 5, "x"])).toEqual({ kind: "not_found" });
   });
 
   test("the call is signed with PayU's formula and goes to the right address", async () => {

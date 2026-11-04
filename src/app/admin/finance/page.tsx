@@ -180,7 +180,7 @@ function TurnoverSection({ turnover }: { turnover: Awaited<ReturnType<typeof get
       <Heading>GST trigger, {t.yearLabel} so far</Heading>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Gross tips" value={formatINR(t.grossTipsMinor)} note="Live tips captured this financial year (the cautious reading)." />
-        <MetricCard label="Our fees and charges" value={formatINR(t.feesMinor)} note="Platform fee plus the processing charge, on the ledger. Plan sales will be added once plans can be bought." />
+        <MetricCard label="Our fees and charges" value={formatINR(t.feesMinor)} note={`Platform fee plus the processing charge, on the ledger, plus pass sales (${formatINR(t.planSalesMinor)} this year).`} />
         <MetricCard label="Counted against the trigger" value={`${pct}%`} sub={`${formatINR(t.countedMinor)} of ${formatINR(t.triggerMinor)}`} accent={pct >= 80} note="The larger of the two figures above." />
       </div>
       <p className="max-w-2xl text-sm text-muted">{word} A reading of public sources, not an accountant&rsquo;s advice; see docs/rules-check.md section 2.</p>

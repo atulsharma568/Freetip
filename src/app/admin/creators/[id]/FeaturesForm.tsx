@@ -6,7 +6,7 @@ import { ConfirmAction } from "@/components/admin/ConfirmAction";
 import { TONE_BADGE, TONE_MARK, TONE_TEXT, buttonClass } from "@/components/admin/tones";
 import { TickLoader } from "@/components/ui/TickLoader";
 import { ADMIN_IDLE, type AdminAction } from "@/lib/admin/action-state";
-import { FEATURES, type FeatureKey } from "@/lib/plans";
+import { FEATURES, featureSnapshot, type FeatureKey } from "@/lib/plans";
 
 // A feature that exists in the plan list but is held back by a decision, not by work.
 const BLOCKED: Partial<Record<FeatureKey, string>> = {};
@@ -53,6 +53,7 @@ export function FeaturesForm({
       </p>
 
       <form action={formAction} className="space-y-4">
+        <input type="hidden" name="loaded" value={featureSnapshot(granted)} />
         {GROUPS.map((group) => (
           <fieldset key={group} className="space-y-3 rounded-surface border border-control bg-surface p-4">
             <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted">{group}</legend>

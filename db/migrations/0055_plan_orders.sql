@@ -22,8 +22,10 @@
 --                            the reminder goes out once per end date.
 -- The mobile number PayU asks for is passed to PayU and is not stored here.
 --
--- Run BEFORE deploying the matching code (the Buy button stays off until prices are set, and the
--- code that reads these tables only runs once a payment is made or the daily job runs).
+-- Run BEFORE deploying the matching code. Until it is run: the owner's feature box still saves
+-- (it only writes the pass columns when they exist), the finance page counts no pass sales, the
+-- payment routes cannot settle anything (no order can exist), and the daily job reports an error
+-- instead of ending passes (there are none).
 
 create table if not exists plan_orders (
   id             bigint generated always as identity primary key,
