@@ -2,6 +2,12 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, admin overview: two new queue lines, "Go to" grid removed; NO migration)
+
+- **Done, owner chose "Remove it":** "Needs you today" now also counts **Alert media to review** (`creator_media.review_state = 'new'`, links to `/admin/media`) and **Tips not yet posted to the books** (live captured tips with no ledger posting, links to `/admin/reconciliation`; `readNotPosted` is now exported). Both also give the sidebar badges. The 19-tile "Go to" grid is gone (the sidebar and Ctrl K cover it). `test/admin-ops.spec.ts` extended: 9 passed; `tsc` and `eslint` pass. Not seen in a browser.
+- **Not done:** a separate line for payout requests unpaid 3+ days (the daily email nudge covers it).
+- **Next, one at a time:** the creator page of 9 boxes, then stale admin text.
+
 ## Current state (2026-11-04, admin: Close account only on the creator page; NO migration)
 
 - **Done:** the creator list rows no longer carry a Close account button next to Approve; closing is on the creator's own page (`/admin/creators/<id>`) with the same two steps and the typed handle. `CreatorActions` has an `allowClose` prop (default true; the list passes false). `tsc` and `eslint` pass; not seen in a browser.

@@ -59,7 +59,7 @@ const iso = (d: Date) => d.toISOString();
 // 0 - n rather than -n, so a zero balance is 0 and not -0.
 const negate = (n: number) => 0 - n;
 
-async function readNotPosted(db: LedgerDb): Promise<NotPosted> {
+export async function readNotPosted(db: LedgerDb): Promise<NotPosted> {
   const [row] = await db<{ n: string; gross: string; postable_n: string }[]>`
     select count(*)::text                                    as n,
            coalesce(sum(x.gross), 0)::text                   as gross,

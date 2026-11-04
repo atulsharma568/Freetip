@@ -193,12 +193,16 @@ test("the needs-you queue counts each thing once and badges follow it", async ()
   expect(q.awaitingCreators).toEqual({ ok: true, data: 2 });
   expect(n("planPaymentsToLook")).toBe(0);
   expect(n("payoutsToPay")).toBe(1);
+  expect(n("mediaToReview")).toBe(0);
+  expect(n("unpostedTips")).toBe(0);
   expect(badgesFrom(q)).toEqual({
     "/admin/creators": 2,
     "/admin/messages": 1,
     "/admin/handle-requests": 1,
     "/admin/plan-orders": 0,
     "/admin/payouts": 1,
+    "/admin/media": 0,
+    "/admin/reconciliation": 0,
   });
 });
 

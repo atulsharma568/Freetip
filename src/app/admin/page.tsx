@@ -1,20 +1,19 @@
 import Link from "next/link";
 import { getFinanceSummary, formatINR } from "@/lib/admin/finance-queries";
 import { rangeAllTime } from "@/lib/admin/date-range";
-import { badgesFrom, getQueue } from "@/lib/admin/queue";
+import { getQueue } from "@/lib/admin/queue";
 import { razorpayKeyMode } from "@/lib/admin/key-mode";
 import { adminDb } from "@/lib/admin/server-db";
 import { requireAdminViewer } from "@/lib/owner-auth";
 import { TONE_MARK, TONE_TEXT } from "@/components/admin/tones";
 import { CouldNotRead } from "./_components/Notices";
-import { navGroupsFor, viewerCanOpen } from "./_components/nav-items";
+import { viewerCanOpen } from "./_components/nav-items";
 import { PageHeader } from "./_components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
   const viewer = (await requireAdminViewer()) === "viewer";
-  const NAV_GROUPS = navGroupsFor(viewer);
 
   const db = adminDb();
   // A viewer sees only the queue items for pages they may open.
@@ -23,7 +22,6 @@ export default async function AdminOverviewPage() {
     : [null, null];
   const queue = fullQueue && viewer ? { ...fullQueue, items: fullQueue.items.filter((i) => viewerCanOpen(i.href)) } : fullQueue;
 
-  const badges = queue ? badgesFrom(queue) : {};
   const waitingTotal = queue
     ? queue.items.reduce((sum, i) => sum + (i.count.ok ? i.count.data : 0), 0)
     : 0;
@@ -116,49 +114,6 @@ export default async function AdminOverviewPage() {
             </div>
           </dl>
         )}
-      </section>
-
-      <section aria-labelledby="goto-heading" className="space-y-5">
-        <h2 id="goto-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
-          Go to <span className="font-normal normal-case tracking-normal">· or press Ctrl K from any page</span>
-        </h2>
-        {NAV_GROUPS.map((group) => (
-          <div key={group.title} className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{group.title}</h3>
-            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {group.items
-                .filter((item) => item.href !== "/admin")
-                .map((item) => {
-                  const Glyph = item.icon;
-                  const waiting = badges[item.href] ?? 0;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className="group flex h-full items-start gap-3 rounded-surface border border-control bg-surface p-4 hover:border-accent/60"
-                      >
-                        <span className="grid size-10 shrink-0 place-items-center rounded-field bg-raised text-accent transition-colors group-hover:bg-accent group-hover:text-ink">
-                          <Glyph aria-hidden="true" size={20} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center justify-between gap-2 font-semibold text-text group-hover:text-accent">
-                            {item.label}
-                            {waiting > 0 && (
-                              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-ink">
-                                {waiting}
-                                <span className="sr-only"> waiting</span>
-                              </span>
-                            )}
-                          </span>
-                          <span className="mt-0.5 block text-sm leading-snug text-muted">{item.hint}</span>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-            </ul>
-          </div>
-        ))}
       </section>
     </div>
   );

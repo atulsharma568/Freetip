@@ -1,5 +1,6 @@
 import type { LedgerDb } from "../accrual";
 import { CLOSED_EMAIL_DOMAIN } from "../account-close";
+import { readNotPosted } from "./finance-queries";
 import { countNeedsLook } from "./plan-order-queries";
 import { load, toWhole, type Loaded } from "./result";
 
@@ -7,7 +8,7 @@ import { load, toWhole, type Loaded } from "./result";
 // does not exist yet (a migration not run) shows as "could not read" for that one
 // line and never as zero.
 
-export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators" | "planPaymentsToLook" | "payoutsToPay";
+export type QueueKey = "pendingCreators" | "submittedSetups" | "newMessages" | "handleRequests" | "awaitingCreators" | "planPaymentsToLook" | "payoutsToPay" | "mediaToReview" | "unpostedTips";
 
 export interface QueueItem {
   key: QueueKey;
@@ -55,6 +56,14 @@ async function count(db: LedgerDb, which: QueueKey): Promise<number> {
       `;
       return toWhole(r.n);
     }
+    case "mediaToReview": {
+      // Uploaded alert files nobody has approved or taken down yet.
+      const [r] = await db<{ n: string }[]>`select count(*)::text as n from creator_media where review_state = 'new'`;
+      return toWhole(r.n);
+    }
+    case "unpostedTips":
+      // Live paid tips the books have not recorded yet (the Sync button in reconciliation posts them).
+      return (await readNotPosted(db)).count;
     case "handleRequests": {
       const [r] = await db<{ n: string }[]>`select count(*)::text as n from handle_requests where status = 'pending'`;
       return toWhole(r.n);
@@ -69,6 +78,8 @@ const ITEMS: { key: QueueKey; label: string; href: string }[] = [
   { key: "handleRequests", label: "Handle change requests", href: "/admin/handle-requests" },
   { key: "planPaymentsToLook", label: "Plan payments to look at", href: "/admin/plan-orders" },
   { key: "payoutsToPay", label: "Payout requests to pay", href: "/admin/payouts" },
+  { key: "mediaToReview", label: "Alert media to review", href: "/admin/media" },
+  { key: "unpostedTips", label: "Tips not yet posted to the books", href: "/admin/reconciliation" },
 ];
 
 export interface Queue {
@@ -98,5 +109,7 @@ export function badgesFrom(queue: Queue): Record<string, number> {
     "/admin/handle-requests": n("handleRequests"),
     "/admin/plan-orders": n("planPaymentsToLook"),
     "/admin/payouts": n("payoutsToPay"),
+    "/admin/media": n("mediaToReview"),
+    "/admin/reconciliation": n("unpostedTips"),
   };
 }
