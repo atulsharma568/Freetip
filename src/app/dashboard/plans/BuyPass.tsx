@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useEffect, useId, useState, useTransition } from "react";
 import { startPlanCheckout } from "@/app/actions/plan-checkout";
-import { OptionRadio } from "../parts/Controls";
+import { PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 import { Msg } from "../parts/Msg";
 import { field, label, pillPrimary } from "../parts/styles";
+import { TermSwitch } from "./TermSwitch";
 
 export interface BuyOption {
   term: 1 | 12;
   amountMinor: number;
   early: boolean;
+  // A running Creator pass already covers this Starter term to the end: buying it adds nothing.
+  covered: boolean;
 }
 
 const rupees = (minor: number) => `₹${new Intl.NumberFormat("en-IN").format(Math.floor(minor / 100))}`;
@@ -32,12 +35,30 @@ function postToPayu(action: string, fields: Record<string, string>) {
   form.submit();
 }
 
-export function BuyPass({ options, renewing, testMode }: { options: BuyOption[]; renewing: boolean; testMode: boolean }) {
+// The pay step for one plan and one term (both chosen above, on the plan cards). The amount shown is
+// the amount sent: the server refuses the order if the price changed since this page was drawn.
+export function BuyPass({
+  plan,
+  option,
+  renewing,
+  testMode,
+  onTermChange,
+  onBusyChange,
+}: {
+  plan: PlanKey;
+  option: BuyOption;
+  renewing: boolean;
+  testMode: boolean;
+  // The term switch inside the form (the one above the cards is the same state).
+  onTermChange: (term: 1 | 12) => void;
+  // True while a payment is being started, so the cards above can hold still.
+  onBusyChange?: (busy: boolean) => void;
+}) {
   const id = useId();
-  const [term, setTerm] = useState<1 | 12>(1);
   const [phone, setPhone] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState("");
+  // A message belongs to the plan and term it was about: it is not shown once either changes.
+  const [problem, setProblem] = useState<{ text: string; about: string } | null>(null);
   const [pending, start] = useTransition();
   // True from the moment PayU's form is posted until the browser leaves (or comes back with Back).
   const [leaving, setLeaving] = useState(false);
@@ -51,15 +72,21 @@ export function BuyPass({ options, renewing, testMode }: { options: BuyOption[];
     return () => window.removeEventListener("pageshow", back);
   }, []);
 
-  const chosen = options.find((o) => o.term === term) ?? options[0];
   const busy = pending || leaving;
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
+  const about = `${plan}-${option.term}`;
+  const error = problem?.about === about ? problem.text : "";
+  const name = PLAN_NAMES[plan];
+  const termText = option.term === 12 ? "12 months" : "1 month";
 
   function pay() {
-    setError("");
+    setProblem(null);
     start(async () => {
-      const result = await startPlanCheckout({ term: chosen.term, phone, expectAmountMinor: chosen.amountMinor, agreed });
+      const result = await startPlanCheckout({ plan, term: option.term, phone, expectAmountMinor: option.amountMinor, agreed });
       if (result.status === "error") {
-        setError(result.message);
+        setProblem({ text: result.message, about });
         return;
       }
       setLeaving(true);
@@ -75,27 +102,26 @@ export function BuyPass({ options, renewing, testMode }: { options: BuyOption[];
       }}
       className="space-y-5"
     >
-      <fieldset className="space-y-2">
-        <legend className={label}>{renewing ? "Add another term" : "Choose a term"}</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {options.map((o) => (
-            <OptionRadio
-              key={o.term}
-              name={`${id}-term`}
-              value={String(o.term)}
-              checked={term === o.term}
-              onChange={() => setTerm(o.term)}
-              hint={o.early ? "Early price" : o.term === 12 ? "Pay once for the year" : "Pay for one month"}
-            >
-              {rupees(o.amountMinor)} for {o.term === 12 ? "12 months" : "1 month"}
-            </OptionRadio>
-          ))}
-        </div>
+      <div className="space-y-2">
+        <h3 id="buy-step-title" tabIndex={-1} className="text-base font-medium text-text outline-none">
+          {renewing ? `Add another term of ${name}` : `Buy ${name}`}
+        </h3>
+        <TermSwitch term={option.term} onChange={onTermChange} disabled={busy} label="Term to buy" />
+        <p className="text-sm text-text">
+          <span className="numeric font-medium">{rupees(option.amountMinor)}</span> for {termText}
+          {option.early ? " · Early price" : ""}
+        </p>
         <p className="text-xs text-muted">
           A one-off payment, not a subscription. It does not renew by itself, and when it ends nothing is charged
           unless you pay again.{renewing ? " A new term starts when your current one ends, so you lose no days." : ""}
         </p>
-      </fieldset>
+        {option.covered && (
+          <p className="text-sm text-text">
+            Your Creator plan already includes everything in Starter for this long, so this term would add nothing.
+            Pick a longer term, or buy Starter after Creator ends.
+          </p>
+        )}
+      </div>
 
       <div className="space-y-2">
         <label htmlFor={`${id}-phone`} className={label}>
@@ -142,8 +168,8 @@ export function BuyPass({ options, renewing, testMode }: { options: BuyOption[];
       <Msg kind="error" text={error} />
 
       <div className="space-y-2">
-        <button type="submit" disabled={busy || !agreed || phone.trim().length < 10} aria-busy={busy} className={pillPrimary}>
-          {busy ? "Opening PayU…" : `Pay ${rupees(chosen.amountMinor)} with PayU`}
+        <button type="submit" disabled={busy || option.covered || !agreed || phone.trim().length < 10} aria-busy={busy} className={pillPrimary}>
+          {busy ? "Opening PayU…" : `Pay ${rupees(option.amountMinor)} with PayU`}
         </button>
         <p className="text-xs text-muted">
           You pay on PayU&apos;s page by UPI, card or net banking. Your features switch on as soon as PayU confirms.

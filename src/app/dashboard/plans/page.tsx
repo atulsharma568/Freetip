@@ -13,6 +13,7 @@ import {
   istMoment,
   latestOrder,
   paidOrders,
+  buyingOpen,
   passStatus,
   paymentNotice,
   receiptNumber,
@@ -21,7 +22,7 @@ import {
   type OrderSummary,
 } from "@/lib/plan-view";
 import { planFeatures } from "@/lib/plans";
-import { PLAN_PRICES, priceView } from "@/lib/pricing";
+import { LIVE_SALES_OPEN, PLAN_KEYS, PLAN_NAMES, TIER_PRICES, type PlanKey } from "@/lib/pricing";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
@@ -29,10 +30,9 @@ import { Msg } from "../parts/Msg";
 import { Tile } from "../parts/Tile";
 import { pillOutline } from "../parts/styles";
 import Link from "next/link";
-import { BuyPass, type BuyOption } from "./BuyPass";
 import { PendingRefresh } from "./PendingRefresh";
 import { PLAN_CARDS } from "./cards-data";
-import { PlanCards } from "./PlanCards";
+import { PlanCards, type BuyState } from "./PlanCards";
 
 const TIER_LABEL: Record<TierKey, string> = { starter: "Starter", creator: "Creator", custom: "Custom page" };
 
@@ -40,8 +40,6 @@ export const metadata: Metadata = {
   title: `Paid features: ${SITE_NAME}`,
   robots: { index: false },
 };
-
-const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 
 export default async function PlansPage({ searchParams }: { searchParams: Promise<{ payment?: string }> }) {
   const { payment } = await searchParams;
@@ -59,37 +57,51 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   const groups = buildCatalogue(planFeatures(user));
   const all = groups.flatMap((g) => g.items);
   const onCount = all.filter((i) => i.on).length;
-  const prices = priceView();
 
-  // Buying: the orders, the running pass and what each term costs this creator. Read apart so the
-  // page still opens before migration 0055 is run (then there is nothing to show but the features).
+  // Buying: the orders, the running passes and what each term of each plan costs this creator. Read
+  // apart so the page still opens before migrations 0055 and 0056 are run (then there is nothing to
+  // show but the features).
   const config = payuConfig();
   const isOwner = isOwnerGoogleId(googleId, configuredOwnerGoogleIds());
   let latest: OrderSummary | null = null;
   let payments: OrderSummary[] = [];
-  let passUntil: Date | null = null;
-  let options: BuyOption[] | null = null;
+  const until: Record<PlanKey, Date | null> = { starter: null, creator: null };
+  const buy: Record<PlanKey, BuyState> = { starter: { kind: "soon" }, creator: { kind: "soon" } };
+  const earlyOpen: Record<PlanKey, boolean | null> = { starter: null, creator: null };
   try {
     const ledger = db as unknown as LedgerDb;
     const creatorId = Number(user.id);
-    const [passRow] = await db<{ pass_until: Date | null }[]>`select pass_until from users where id = ${creatorId}`;
-    passUntil = passRow?.pass_until ?? null;
+    const [passRow] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
+      select starter_until, creator_until from users where id = ${creatorId}`;
+    until.starter = passRow?.starter_until ?? null;
+    until.creator = passRow?.creator_until ?? null;
     [latest, payments] = await Promise.all([latestOrder(ledger, creatorId), paidOrders(ledger, creatorId)]);
-    // Test-mode orders can be made only by the owner, so everyone else sees no button then.
-    if (prices && config && (config.mode === "live" || isOwner)) {
-      const quote = await quotePlan(ledger, creatorId, PLAN_PRICES);
-      if (quote) {
-        options = [
-          { term: 1, ...quote[1] },
-          { term: 12, ...quote[12] },
-        ];
+    // Live money only once the owner has opened sales; test money only for the owner.
+    if (buyingOpen(config?.mode ?? null, LIVE_SALES_OPEN, isOwner)) {
+      for (const plan of PLAN_KEYS) {
+        const quote = await quotePlan(ledger, creatorId, plan, TIER_PRICES[plan]);
+        if (!quote) continue;
+        buy[plan] = {
+          kind: "open",
+          options: { 1: { term: 1, ...quote[1] }, 12: { term: 12, ...quote[12] } },
+          renewing: passStatus(until[plan]).state !== "none",
+        };
+        earlyOpen[plan] = quote[1].early || quote[12].early;
       }
     }
   } catch (err) {
-    console.error("Plans page: could not read orders (migration 0055 run?)", err instanceof Error ? err.message : err);
+    console.error("Plans page: could not read orders (migrations 0055 and 0056 run?)", err instanceof Error ? err.message : err);
   }
   const notice = paymentNotice(payment, latest);
-  const pass = passStatus(passUntil);
+  const passes = PLAN_KEYS.map((plan) => ({ plan, status: passStatus(until[plan]) })).filter((p) => p.status.state !== "none");
+  const cardStatus = (plan: PlanKey): string | null => {
+    const st = passStatus(until[plan]);
+    if (st.state === "none") return null;
+    return st.state === "ending"
+      ? `Your ${PLAN_NAMES[plan]} plan ends on ${istMoment(st.endsAt)}. Add a term here: it starts when this one ends, so you lose no days.`
+      : `Your ${PLAN_NAMES[plan]} plan runs until ${istMoment(st.endsAt)}.`;
+  };
+  const creatorRunning = passStatus(until.creator).state !== "none";
 
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
@@ -118,58 +130,42 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           </div>
         )}
 
-        <PlanCards {...PLAN_CARDS} />
+        <PlanCards
+          testMode={config?.mode === "test"}
+          starter={{
+            ...PLAN_CARDS.starter,
+            buy: buy.starter,
+            status: cardStatus("starter"),
+            earlyOpen: earlyOpen.starter,
+            note: creatorRunning
+              ? "Your Creator plan already includes everything in Starter. A Starter term only adds anything after Creator ends."
+              : null,
+          }}
+          creator={{ ...PLAN_CARDS.creator, buy: buy.creator, status: cardStatus("creator"), earlyOpen: earlyOpen.creator }}
+          custom={PLAN_CARDS.custom}
+        />
 
         <Tile id="plan" level={2} title="Your plan">
-          <div className="space-y-4">
-            {prices ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-x-8 gap-y-3">
-                  <p>
-                    <span className="numeric text-3xl font-semibold text-text">{rupees(prices.monthly)}</span>
-                    <span className="text-sm text-muted"> a month</span>
-                  </p>
-                  <p>
-                    <span className="numeric text-3xl font-semibold text-text">{rupees(prices.yearly)}</span>
-                    <span className="text-sm text-muted"> a year</span>
-                    {prices.yearlySavingPercent > 0 && (
-                      <span className="ml-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink">
-                        Save {prices.yearlySavingPercent}%
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {prices.early && (
-                  <p className="text-sm text-text">
-                    Early plan for the first {prices.early.seats} creators: {rupees(prices.early.monthly)} a month
-                    or {rupees(prices.early.yearly)} a year, for as long as you keep renewing.
-                  </p>
-                )}
-              </div>
-            ) : null}
+          <div className="space-y-3">
             <p className="text-sm text-muted">
               {onCount > 0
                 ? `You have ${onCount} of ${all.length} paid features switched on.`
                 : "You have no paid features switched on yet."}
             </p>
-            {pass.state !== "none" && (
-              <p className="text-sm text-text">
-                {pass.state === "ending"
-                  ? `Your paid features end on ${istMoment(pass.endsAt)}. Buy another term below: it starts when this one ends, so you lose no days.`
-                  : `Your paid features run until ${istMoment(pass.endsAt)}.`}
+            {passes.length === 0 ? (
+              <p className="text-sm text-muted">
+                {buy.starter.kind === "open" || buy.creator.kind === "open" ? "You have no running plan. Choose one above." : "You have no running plan."}
               </p>
-            )}
-            {options ? (
-              <BuyPass options={options} renewing={pass.state !== "none"} testMode={config?.mode === "test"} />
             ) : (
-              <>
-                <button type="button" disabled aria-describedby="plan-buy-note" className={pillOutline}>
-                  Buying opens soon
-                </button>
-                <p id="plan-buy-note" className="text-xs text-muted">
-                  You will be able to pay here and your features switch on straight away.
-                </p>
-              </>
+              passes.map(({ plan, status }) =>
+                status.state === "none" ? null : (
+                  <p key={plan} className="text-sm text-text">
+                    {status.state === "ending"
+                      ? `Your ${PLAN_NAMES[plan]} plan ends on ${istMoment(status.endsAt)}. Add another term above: it starts when this one ends, so you lose no days.`
+                      : `Your ${PLAN_NAMES[plan]} plan runs until ${istMoment(status.endsAt)}.`}
+                  </p>
+                ),
+              )
             )}
           </div>
         </Tile>
@@ -180,7 +176,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
               {payments.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
                   <p className="min-w-0 text-sm text-text">
-                    <span className="numeric font-medium">{rupeesOf(o.amountMinor)}</span> for {termWords(o.termMonths)}
+                    <span className="numeric font-medium">{rupeesOf(o.amountMinor)}</span> for {PLAN_NAMES[o.plan]}, {termWords(o.termMonths)}
                     <span className="text-muted">
                       {" "}
                       · paid {istDay(o.paidAt ?? o.createdAt)}

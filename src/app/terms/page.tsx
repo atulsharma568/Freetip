@@ -157,16 +157,19 @@ const SECTIONS: LegalSection[] = [
           <li>
             <strong>Paid features:</strong> some extra features that change how
             a creator’s alerts, tip page and stream look and work are paid. A
-            creator buys a pass for 1 month or 12 months with a one-off payment
-            in Indian rupees through our payment partner, PayU. The price is
+            creator buys a plan, Starter or Creator, for 1 month or 12 months
+            with a one-off payment in Indian rupees through our payment
+            partner, PayU. Each plan is paid for and ends separately. A custom
+            tip page is built for a creator on request, at a price we agree
+            before any work starts. The price is
             shown in the creator’s dashboard before paying and is the full
             amount; nothing is added at checkout. The features switch on when
             the payment is confirmed. A pass does not renew by itself: when it
             ends the paid features switch off and nothing more is charged unless
             the creator buys again, and a new term bought before the end starts
             when the current one ends. We try to email a reminder about 5 days
-            before a pass ends. A pass covers the paid features available when
-            it is bought; a feature we add later may need a new term. A price
+            before a pass ends. A pass covers the features of its plan available
+            when it is bought; a feature we add later may need a new term. A price
             change never changes a pass already paid for. The fee on tips is the
             same with or without a pass. A pass is not refundable once its
             features are on, except for the payment errors in our{" "}

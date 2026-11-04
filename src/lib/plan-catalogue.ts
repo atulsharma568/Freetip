@@ -1,4 +1,5 @@
 import { FEATURES, type FeatureKey, type PlanFeatures } from "@/lib/plans";
+import type { PlanKey } from "@/lib/pricing";
 
 // What a creator sees on /dashboard/plans: the paid features in plain words, grouped by what
 // they are for. The wording here is for creators; `plans.ts` keeps the owner's own notes.
@@ -69,11 +70,13 @@ const GROUPS: readonly { title: string; blurb: string; entries: readonly Entry[]
 export type TierKey = "starter" | "creator" | "custom";
 
 export const STARTER_KEYS: readonly FeatureKey[] = [
-  "alertText", "alertMotion", "overlayThemes", "alertLayout", "alertRules",
+  "alertText", "alertMotion", "overlayThemes", "alertLayout",
   "supportStreak", "topSupporter", "recentSupporters", "timestamps", "tipMarks",
 ];
+// Tip page picks sit here, not in Starter: a pick is a GIF with its sound, and GIFs need the
+// custom alert media feature, which is Creator's.
 export const CREATOR_EXTRA_KEYS: readonly FeatureKey[] = [
-  "customAlertMedia", "regionalVoices", "alertVariations", "tipBanner", "fanLevels",
+  "customAlertMedia", "alertRules", "regionalVoices", "alertVariations", "tipBanner", "fanLevels",
   "fanCrm", "highlightsPage", "editorLink", "clipHelper", "streamlabs",
 ];
 export const CUSTOM_KEYS: readonly FeatureKey[] = ["pageBuilder", "pressureMeter"];
@@ -123,10 +126,13 @@ export function buildCatalogue(features: PlanFeatures): CatalogueGroup[] {
   })).filter((g) => g.items.length > 0);
 }
 
-// The keys a bought pass switches on: every built feature the page above offers, which leaves out
-// pinned messages (the owner has not decided to offer them). One list, so what the page shows and
-// what a pass grants cannot drift apart.
-export const PASS_FEATURE_KEYS: readonly FeatureKey[] = (() => {
-  const built = new Set<FeatureKey>(FEATURES.filter((f) => f.built).map((f) => f.key));
-  return GROUPS.flatMap((g) => g.entries.map((e) => e.key)).filter((k) => built.has(k) && k !== "highlightedMessages");
-})();
+// The keys a bought plan switches on, from the same lists the plan cards read, so what the page
+// shows and what a pass grants cannot drift apart. Creator includes everything in Starter. The Custom
+// page's two features are never granted by a pass (the owner ticks them by hand for each creator),
+// and neither are pinned messages (the owner has not decided to offer them).
+const BUILT = new Set<FeatureKey>(FEATURES.filter((f) => f.built).map((f) => f.key));
+const PLAN_KEYS_BY_PLAN: Record<PlanKey, readonly FeatureKey[]> = {
+  starter: STARTER_KEYS.filter((k) => BUILT.has(k)),
+  creator: [...STARTER_KEYS, ...CREATOR_EXTRA_KEYS].filter((k) => BUILT.has(k)),
+};
+export const planFeatureKeys = (plan: PlanKey): readonly FeatureKey[] => PLAN_KEYS_BY_PLAN[plan];

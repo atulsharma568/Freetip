@@ -10,7 +10,8 @@ import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests
 import { del } from "@vercel/blob";
 import { takeDownAsset } from "@/lib/page-doc/asset-store";
 import { builtFeatureKeys, featureSnapshot, sanitizeFeatureKeys } from "@/lib/plans";
-import { writeFeatureKeys } from "@/lib/plan-orders";
+import { endPlanNow, writeFeatureKeys } from "@/lib/plan-orders";
+import { PLAN_KEYS, PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
 import { getTtsFloorPaise, parseFloorRupees, TTS_FLOOR_KEY } from "@/lib/site-settings";
@@ -180,6 +181,33 @@ export async function setCreatorFeatures(
   revalidatePath("/admin/features");
   revalidatePath("/dashboard", "layout");
   return ok(keys.length === 0 ? "Saved. Everything is off." : `Saved. ${keys.length} feature${keys.length === 1 ? "" : "s"} on.`);
+}
+
+// Ends one of a creator's plans now, for a refund made by hand or a mistaken sale. The plan's end
+// date is cleared and the features nothing else covers are switched off, the same way the daily job
+// does it; features the owner ticked by hand stay. One audit line records who, what and why.
+export async function endCreatorPlan(
+  creatorId: number,
+  plan: PlanKey,
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(creatorId) || !PLAN_KEYS.includes(plan)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  const name = PLAN_NAMES[plan];
+  try {
+    const ended = await endPlanNow(db as unknown as LedgerDb, creatorId, plan, reasonOf(formData, `${name} plan ended by the owner`) ?? "");
+    if (!ended) return fail(`The ${name} plan is not running for this creator.`);
+  } catch (err) {
+    console.error("Admin: could not end a plan (migrations 0055 and 0056 run?)", err);
+    return fail("Could not end the plan. Have migrations 0055 and 0056 been run?");
+  }
+  refreshCreator(creatorId);
+  revalidatePath("/admin/features");
+  revalidatePath("/dashboard", "layout");
+  return ok(`${name} plan ended.`);
 }
 
 export async function rejectCreatorOnboarding(

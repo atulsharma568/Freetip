@@ -1,16 +1,19 @@
 import { randomBytes } from "node:crypto";
 import type { LedgerDb, Query } from "./accrual";
-import { PASS_FEATURE_KEYS } from "./plan-catalogue";
+import { planFeatureKeys } from "./plan-catalogue";
 import { parsePayuAmount, replyHashIsValid, type PayuConfig, type PayuPayment, type PayuReply } from "./payu";
-import { priceView, type PlanPrices } from "./pricing";
+import { PLAN_KEYS, priceView, type PlanKey, type PlanPrices } from "./pricing";
 
 // Buying a pass, in the database (migration 0055). No site imports and no `server-only`, so the
 // tests run all of it against an in-memory Postgres.
 //
-// What a pass is: a one-off 1 or 12 months of every feature the Paid features page offers. It is
-// not renewed by itself. Paying adds the features to users.paid_features and remembers which keys
-// it added (users.pass_keys), so when it ends only those are taken away and the owner's own
-// ticks stay. Paying again before the end adds the new term after the current end.
+// What a pass is: a one-off 1 or 12 months of one plan, Starter or Creator (migration 0056). It is
+// not renewed by itself. Each plan is its own pass with its own end date (users.starter_until,
+// users.creator_until): buying a plan extends only that plan, nothing is carried from one plan to
+// the other, and a creator may hold both. Paying adds the plan's features to users.paid_features
+// and remembers which keys it added (users.pass_keys), so when a plan ends only the keys no running
+// plan still covers are taken away and the owner's own ticks stay. Paying again before the end adds
+// the new term after the current end.
 //
 // The rules that keep money safe (docs/payu-notes.md):
 //  - An order is made first, with the amount fixed on our side. A reply is acted on only when its
@@ -54,8 +57,10 @@ export function newTxnid(): string {
 // ---- Making an order ------------------------------------------------------------------------
 
 export type CreateOrderResult =
-  | { ok: true; order: { id: number; txnid: string; amountMinor: number; term: Term; early: boolean } }
-  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" }
+  | { ok: true; order: { id: number; txnid: string; amountMinor: number; term: Term; plan: PlanKey; early: boolean } }
+  // "already_covered": a Starter term that a running Creator pass already covers to the end, so
+  // buying it would give the creator nothing.
+  | { ok: false; reason: "no_price" | "not_active" | "test_not_allowed" | "too_many" | "bad_term" | "bad_plan" | "already_covered" }
   // The price is not what the creator was shown (an early seat went, or the prices changed). Nothing
   // was made; `amountMinor` is what it costs now.
   | { ok: false; reason: "price_changed"; amountMinor: number };
@@ -75,19 +80,20 @@ const EARLY_SEAT_LOCK = 55001;
 async function quoteTerms(
   tx: Query,
   creatorId: number,
+  plan: PlanKey,
   prices: PlanPrices,
   now: string,
 ): Promise<Record<Term, { amountMinor: number; early: boolean } | null>> {
-  // Other creators who hold an early pass or are buying one right now (live money only).
+  // Other creators who hold an early pass of this plan or are buying one right now (live money only).
   const [taken] = await tx<{ n: string }[]>`
     select count(distinct creator_id)::text as n from plan_orders
-     where early and livemode and creator_id <> ${creatorId}
+     where early and livemode and plan = ${plan} and creator_id <> ${creatorId}
        and (status = 'paid' or (status = 'pending' and created_at > ${now}::timestamptz - make_interval(hours => ${EARLY_HOLD_HOURS}::int)))
   `;
-  // Renewing: the creator's latest paid order was an early one and ended recently (or still runs).
+  // Renewing: the creator's latest paid order of this plan was an early one and ended recently (or still runs).
   const [last] = await tx<{ early: boolean; ends: boolean }[]>`
     select early, pass_ends_at >= ${now}::timestamptz - make_interval(days => ${EARLY_GRACE_DAYS}::int) as ends
-      from plan_orders where creator_id = ${creatorId} and status = 'paid' and livemode
+      from plan_orders where creator_id = ${creatorId} and plan = ${plan} and status = 'paid' and livemode
      order by paid_at desc limit 1
   `;
   const earlyTaken = Number(taken?.n ?? "0");
@@ -95,15 +101,38 @@ async function quoteTerms(
   return { 1: chooseAmount(prices, 1, earlyTaken, keepsEarly), 12: chooseAmount(prices, 12, earlyTaken, keepsEarly) };
 }
 
-// The price of each term for the Buy form (what the creator is shown). Null when the prices are not set.
+// Which terms of a plan a running pass already covers to the end, so buying them would give the
+// creator nothing. Only a Starter term can be covered (by a Creator pass that runs past where the
+// new term would end, the same month arithmetic as `activate`, in UTC). Reads only; createPlanOrder
+// asks it again with the user row locked, so this one decides what the Buy form offers and that one
+// what is allowed.
+async function coveredTerms(tx: Query, creatorId: number, plan: PlanKey, now: string): Promise<Record<Term, boolean>> {
+  if (plan !== "starter") return { 1: false, 12: false };
+  const [row] = await tx<{ m1: boolean; m12: boolean }[]>`
+    select (creator_until is not null and creator_until >=
+              (((greatest(coalesce(starter_until, ${now}::timestamptz), ${now}::timestamptz)) at time zone 'UTC'
+                 + make_interval(months => 1)) at time zone 'UTC')) as m1,
+           (creator_until is not null and creator_until >=
+              (((greatest(coalesce(starter_until, ${now}::timestamptz), ${now}::timestamptz)) at time zone 'UTC'
+                 + make_interval(months => 12)) at time zone 'UTC')) as m12
+      from users where id = ${creatorId}
+  `;
+  return { 1: Boolean(row?.m1), 12: Boolean(row?.m12) };
+}
+
+// The price of each term of one plan for the Buy form (what the creator is shown), and whether a
+// term is already covered by a running pass. Null when the prices are not set.
 export async function quotePlan(
   db: LedgerDb,
   creatorId: number,
+  plan: PlanKey,
   prices: PlanPrices,
   now: Date = new Date(),
-): Promise<Record<Term, { amountMinor: number; early: boolean }> | null> {
-  const q = await quoteTerms(db, creatorId, prices, now.toISOString());
-  return q[1] && q[12] ? { 1: q[1], 12: q[12] } : null;
+): Promise<Record<Term, { amountMinor: number; early: boolean; covered: boolean }> | null> {
+  const q = await quoteTerms(db, creatorId, plan, prices, now.toISOString());
+  if (!q[1] || !q[12]) return null;
+  const covered = await coveredTerms(db, creatorId, plan, now.toISOString());
+  return { 1: { ...q[1], covered: covered[1] }, 12: { ...q[12], covered: covered[12] } };
 }
 
 export async function createPlanOrder(
@@ -111,6 +140,9 @@ export async function createPlanOrder(
   o: {
     creatorId: number;
     term: number;
+    // "starter" or "creator"; anything else is refused (the caller passes what the page sent).
+    plan: string;
+    // The prices of that plan.
     prices: PlanPrices;
     // True when the order is made with PayU's live key. The caller works this out from the settings,
     // never from anything the creator sent.
@@ -127,6 +159,8 @@ export async function createPlanOrder(
 ): Promise<CreateOrderResult> {
   const term = TERMS.find((t) => t === o.term);
   if (!term) return { ok: false, reason: "bad_term" };
+  const plan = PLAN_KEYS.find((p) => p === o.plan);
+  if (!plan) return { ok: false, reason: "bad_plan" };
   if (!o.livemode && !o.isOwner) return { ok: false, reason: "test_not_allowed" };
   const now = (o.now ?? new Date()).toISOString();
   return db.begin(async (tx) => {
@@ -134,8 +168,10 @@ export async function createPlanOrder(
       select creator_status from users where id = ${o.creatorId} for no key update
     `;
     if (!creator || creator.creator_status !== "active") return { ok: false, reason: "not_active" } as const;
+    // A Starter term that a running Creator pass already covers adds nothing (the user row is locked).
+    if ((await coveredTerms(tx, o.creatorId, plan, now))[term]) return { ok: false, reason: "already_covered" } as const;
     await tx`select pg_advisory_xact_lock(${EARLY_SEAT_LOCK})`;
-    const chosen = (await quoteTerms(tx, o.creatorId, o.prices, now))[term];
+    const chosen = (await quoteTerms(tx, o.creatorId, plan, o.prices, now))[term];
     if (!chosen) return { ok: false, reason: "no_price" } as const;
     if (o.expectAmountMinor !== undefined && o.expectAmountMinor !== chosen.amountMinor) {
       return { ok: false, reason: "price_changed", amountMinor: chosen.amountMinor } as const;
@@ -147,11 +183,11 @@ export async function createPlanOrder(
     if (Number(recent?.n ?? "0") >= PENDING_PER_HOUR) return { ok: false, reason: "too_many" } as const;
     const txnid = o.txnid ?? newTxnid();
     const [row] = await tx<{ id: string }[]>`
-      insert into plan_orders (creator_id, txnid, term_months, amount_minor, early, livemode, created_at)
-      values (${o.creatorId}, ${txnid}, ${term}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz)
+      insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at)
+      values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz)
       returning id::text
     `;
-    return { ok: true, order: { id: Number(row.id), txnid, amountMinor: chosen.amountMinor, term, early: chosen.early } } as const;
+    return { ok: true, order: { id: Number(row.id), txnid, amountMinor: chosen.amountMinor, term, plan, early: chosen.early } } as const;
   });
 }
 
@@ -186,6 +222,7 @@ interface OrderRow extends Record<string, unknown> {
   creator_id: string;
   status: string;
   term_months: number;
+  plan: string;
   amount_minor: string;
   livemode: boolean;
 }
@@ -257,49 +294,57 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
   try {
     return await db.begin(async (tx: Query) => {
       const [order] = await tx<OrderRow[]>`
-        select id::text, creator_id::text, status, term_months, amount_minor::text, livemode
+        select id::text, creator_id::text, status, term_months, plan, amount_minor::text, livemode
           from plan_orders where id = ${orderId} for update
       `;
       if (order.status === "paid") return { status: "already_paid", orderId } as const;
       const creatorId = Number(order.creator_id);
 
-      // Months are added in UTC, so the session's time zone can never move the end date.
-      const [user] = await tx<{ creator_status: string; paid_features: string[] | null; pass_keys: string[] | null; starts: string; ends: string }[]>`
+      // Which plan this order bought; the plan's own end date is the one that moves.
+      const plan: PlanKey = order.plan === "starter" ? "starter" : "creator";
+      const [user] = await tx<{ creator_status: string; paid_features: string[] | null; pass_keys: string[] | null; plan_until: string | null }[]>`
         select creator_status, paid_features, pass_keys,
-               greatest(coalesce(pass_until, ${stamp}::timestamptz), ${stamp}::timestamptz)::text as starts,
-               (((greatest(coalesce(pass_until, ${stamp}::timestamptz), ${stamp}::timestamptz)) at time zone 'UTC'
-                  + make_interval(months => ${order.term_months}::int)) at time zone 'UTC')::text as ends
+               (case when ${plan}::text = 'starter' then starter_until else creator_until end)::text as plan_until
           from users where id = ${creatorId} for no key update
       `;
-      if (user.creator_status !== "active") {
+      // Months are added in UTC, so the session's time zone can never move the end date. The new term
+      // starts when this plan's current pass ends, or now when it has ended (or never ran).
+      const [span] = await tx<{ starts: string; ends: string }[]>`
+        select greatest(coalesce(${user.plan_until}::text::timestamptz, ${stamp}::timestamptz), ${stamp}::timestamptz)::text as starts,
+               (((greatest(coalesce(${user.plan_until}::text::timestamptz, ${stamp}::timestamptz), ${stamp}::timestamptz)) at time zone 'UTC'
+                  + make_interval(months => ${order.term_months}::int)) at time zone 'UTC')::text as ends
+      `;
+      const user2 = { ...user, ...span };
+      if (user2.creator_status !== "active") {
         // Paid, but the account is suspended or closed. The pass is still recorded; the owner may
         // want to refund by hand.
-        console.error(`Plan order ${orderId} was paid for a creator whose account is ${user.creator_status}: check whether to refund.`);
+        console.error(`Plan order ${orderId} was paid for a creator whose account is ${user2.creator_status}: check whether to refund.`);
       }
-      const have = new Set(user.paid_features ?? []);
+      const have = new Set(user2.paid_features ?? []);
       // Only keys not already on are the pass's to take away later; a key the owner ticked stays theirs.
-      const added = PASS_FEATURE_KEYS.filter((k) => !have.has(k));
-      const features = [...(user.paid_features ?? []), ...added];
-      const passKeys = [...new Set([...(user.pass_keys ?? []), ...added])];
+      const added = planFeatureKeys(plan).filter((k) => !have.has(k));
+      const features = [...(user2.paid_features ?? []), ...added];
+      const passKeys = [...new Set([...(user2.pass_keys ?? []), ...added])];
 
       await tx`
         update users set paid_features = ${features}::text[], pass_keys = ${passKeys}::text[],
-                         pass_until = ${user.ends}::timestamptz
+                         starter_until = case when ${plan}::text = 'starter' then ${user2.ends}::timestamptz else starter_until end,
+                         creator_until = case when ${plan}::text = 'creator' then ${user2.ends}::timestamptz else creator_until end
          where id = ${creatorId}
       `;
       await tx`
         update plan_orders set status = 'paid', payu_ref = ${payuRef}, paid_at = ${stamp}::timestamptz,
-                               pass_starts_at = ${user.starts}::timestamptz, pass_ends_at = ${user.ends}::timestamptz,
+                               pass_starts_at = ${user2.starts}::timestamptz, pass_ends_at = ${user2.ends}::timestamptz,
                                added_keys = ${added}::text[], failed_at = null, failure_reason = null
          where id = ${orderId}
       `;
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
         values (null, 'system', 'plan.purchased', 'user', ${String(creatorId)},
-                ${{ order_id: orderId, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user.ends, added_keys: added, livemode: order.livemode }}::jsonb,
+                ${{ order_id: orderId, plan, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user2.ends, added_keys: added, livemode: order.livemode }}::jsonb,
                 'PayU payment confirmed')
       `;
-      return { status: "activated", orderId, creatorId, endsAt: user.ends } as const;
+      return { status: "activated", orderId, creatorId, endsAt: user2.ends } as const;
     });
   } catch (err) {
     // The same PayU payment id on another order: the unique index refused it, nothing changed.
@@ -390,39 +435,116 @@ export async function reconcilePendingOrders(
 
 // ---- When a pass ends -----------------------------------------------------------------------
 
-// Takes away the features a finished pass added, and only those, one creator at a time. Safe to run
-// as often as wanted: a creator whose pass is already cleared is not found again.
+// Switches off whatever has ended for one creator, inside a transaction. Takes away the features a
+// finished plan added, and only those: a key stays when the owner ticked it, or when the other plan,
+// if still running, covers it too. False when nothing had ended (a renewal came in meanwhile).
+async function expireUser(tx: Query, id: string, stamp: string, byOwner?: { reason: string }): Promise<boolean> {
+  const [u] = await tx<{
+    paid_features: string[] | null;
+    pass_keys: string[] | null;
+    starter_ended: boolean;
+    starter_running: boolean;
+    creator_ended: boolean;
+    creator_running: boolean;
+    starter_until: string | null;
+    creator_until: string | null;
+  }[]>`
+    select paid_features, pass_keys,
+           (starter_until is not null and starter_until <= ${stamp}::timestamptz) as starter_ended,
+           (starter_until is not null and starter_until >  ${stamp}::timestamptz) as starter_running,
+           (creator_until is not null and creator_until <= ${stamp}::timestamptz) as creator_ended,
+           (creator_until is not null and creator_until >  ${stamp}::timestamptz) as creator_running,
+           starter_until::text, creator_until::text
+      from users where id = ${Number(id)}
+       and ((starter_until is not null and starter_until <= ${stamp}::timestamptz)
+         or (creator_until is not null and creator_until <= ${stamp}::timestamptz))
+       for no key update
+  `;
+  // Changed under us (a renewal came in): leave it.
+  if (!u) return false;
+  // What the plans still running keep covering.
+  const covered = new Set<string>([
+    ...(u.starter_running ? planFeatureKeys("starter") : []),
+    ...(u.creator_running ? planFeatureKeys("creator") : []),
+  ]);
+  const passKeys = u.pass_keys ?? [];
+  const gone = new Set(passKeys.filter((k) => !covered.has(k)));
+  const kept = (u.paid_features ?? []).filter((k) => !gone.has(k));
+  const keptPassKeys = passKeys.filter((k) => covered.has(k));
+  await tx`
+    update users set paid_features = ${kept}::text[], pass_keys = ${keptPassKeys}::text[],
+           starter_until = case when ${u.starter_ended}::boolean then null else starter_until end,
+           starter_reminded_until = case when ${u.starter_ended}::boolean then null else starter_reminded_until end,
+           creator_until = case when ${u.creator_ended}::boolean then null else creator_until end,
+           creator_reminded_until = case when ${u.creator_ended}::boolean then null else creator_reminded_until end
+     where id = ${Number(id)}
+  `;
+  const ended = [u.starter_ended ? "starter" : null, u.creator_ended ? "creator" : null].filter(Boolean);
+  const before = { features: u.paid_features ?? [], starter_until: u.starter_until, creator_until: u.creator_until };
+  const after = { features: kept, ended };
+  if (byOwner) {
+    await tx`
+      insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
+      values (null, 'owner', 'plan.ended_by_owner', 'user', ${id}, ${before}::jsonb, ${after}::jsonb, ${byOwner.reason})
+    `;
+  } else {
+    await tx`
+      insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
+      values (null, 'system', 'plan.expired', 'user', ${id}, ${before}::jsonb, ${after}::jsonb,
+              ${ended.length === 2 ? "The Starter and Creator passes ended" : `The ${ended[0]} pass ended`})
+    `;
+  }
+  return true;
+}
+
+// Switches off the plans whose pass has ended, one creator at a time. Safe to run as often as wanted:
+// a plan already cleared is not found again.
 export async function expirePasses(db: LedgerDb, now: Date = new Date(), limit = 200): Promise<{ expired: number }> {
+  const stamp = now.toISOString();
   const due = await db<{ id: string }[]>`
-    select id::text from users where pass_until is not null and pass_until <= ${now.toISOString()}::timestamptz
-     order by pass_until limit ${limit}
+    select id::text from users
+     where (starter_until is not null and starter_until <= ${stamp}::timestamptz)
+        or (creator_until is not null and creator_until <= ${stamp}::timestamptz)
+     order by least(coalesce(starter_until, 'infinity'::timestamptz), coalesce(creator_until, 'infinity'::timestamptz)) limit ${limit}
   `;
   let expired = 0;
   for (const { id } of due) {
-    const done = await db.begin(async (tx) => {
-      const [u] = await tx<{ paid_features: string[] | null; pass_keys: string[] | null; pass_until: string }[]>`
-        select paid_features, pass_keys, pass_until::text from users
-         where id = ${Number(id)} and pass_until is not null and pass_until <= ${now.toISOString()}::timestamptz for no key update
-      `;
-      // Changed under us (a renewal came in): leave it.
-      if (!u) return false;
-      const gone = new Set(u.pass_keys ?? []);
-      const kept = (u.paid_features ?? []).filter((k) => !gone.has(k));
-      await tx`
-        update users set paid_features = ${kept}::text[], pass_keys = '{}', pass_until = null, pass_reminded_until = null
-         where id = ${Number(id)}
-      `;
-      await tx`
-        insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
-        values (null, 'system', 'plan.expired', 'user', ${id},
-                ${{ features: u.paid_features ?? [], pass_until: u.pass_until }}::jsonb, ${{ features: kept }}::jsonb,
-                'The pass ended')
-      `;
-      return true;
-    });
+    // One creator whose expiry fails must not stop everyone behind them being switched off.
+    const done = await db
+      .begin((tx) => expireUser(tx, id, stamp))
+      .catch((err: unknown) => {
+        console.error(`Plan expiry: creator ${id} could not be switched off, trying the rest:`, err instanceof Error ? err.message : err);
+        return false;
+      });
     if (done) expired += 1;
   }
   return { expired };
+}
+
+// The owner ends one plan now (after a refund by hand, say): its end date becomes now and the same
+// switch-off runs, so the features nothing else covers go and the rest stay. False when that plan
+// was not running. Writes one audit line, as the owner, with the reason given.
+export async function endPlanNow(
+  db: LedgerDb,
+  creatorId: number,
+  plan: PlanKey,
+  reason: string,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const stamp = now.toISOString();
+  return db.begin(async (tx) => {
+    const [u] = await tx<{ running: boolean }[]>`
+      select (case when ${plan}::text = 'starter' then starter_until else creator_until end) is not null as running
+        from users where id = ${creatorId} for no key update
+    `;
+    if (!u?.running) return false;
+    await tx`
+      update users set starter_until = case when ${plan}::text = 'starter' then ${stamp}::timestamptz else starter_until end,
+                       creator_until = case when ${plan}::text = 'creator' then ${stamp}::timestamptz else creator_until end
+       where id = ${creatorId}
+    `;
+    return expireUser(tx, String(creatorId), stamp, { reason });
+  });
 }
 
 // ---- The owner's own feature box ------------------------------------------------------------

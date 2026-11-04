@@ -1,20 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check } from "@phosphor-icons/react";
-import { perMonthOfYear, yearSaving, type TierPrices } from "@/lib/pricing";
-import { pillOutline } from "../parts/styles";
+import { perMonthOfYear, yearSaving, type PlanKey, type TierPrices } from "@/lib/pricing";
+import { BuyPass, type BuyOption } from "./BuyPass";
+import { pillOutline, pillPrimary } from "../parts/styles";
+import { TermSwitch } from "./TermSwitch";
+
+// What the Buy button of a plan can do right now, worked out on the server:
+//  - open: the creator can buy it (`options` is what each term costs this creator now);
+//  - soon: not for sale yet (no PayU keys, prices not confirmed, or test mode for someone else).
+export type BuyState =
+  | { kind: "open"; options: Record<1 | 12, BuyOption>; renewing: boolean }
+  | { kind: "soon" };
 
 export interface PlanCard {
+  plan: PlanKey;
   name: string;
   tagline: string;
   // "Everything in Starter, plus" or similar, shown above the list.
   lead: string | null;
-  // The first few features, then how many more the table below shows.
+  // The first few features, then how many more the list below the cards shows.
   highlights: string[];
   more: number;
   prices: TierPrices;
+  buy: BuyState;
+  // Plain words about this creator's running pass of the plan, or null.
+  status: string | null;
+  // A line under the price that is only about this plan (Creator covering Starter), or null.
+  note: string | null;
+  // Whether an early seat is still on offer: null while nothing can be bought (the line is then
+  // shown as the plan's standing offer).
+  earlyOpen: boolean | null;
 }
 
 export interface CustomCard {
@@ -45,7 +63,7 @@ function Highlights({ lead, items, more }: { lead: string | null; items: string[
   );
 }
 
-function Price({ prices, term }: { prices: TierPrices; term: 1 | 12 }) {
+function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; earlyOpen: boolean | null }) {
   const year = term === 12;
   const saving = yearSaving(prices.monthly, prices.yearly);
   return (
@@ -59,20 +77,44 @@ function Price({ prices, term }: { prices: TierPrices; term: 1 | 12 }) {
           ? `${rupees(perMonthOfYear(prices.yearly))} a month${saving > 0 ? `, save ${saving}%` : ""}`
           : "Pay month by month"}
       </p>
-      <p className="text-xs text-text">
-        Early price for the first {prices.early.seats} creators:{" "}
-        <span className="numeric font-medium">{rupees(year ? prices.early.yearly : prices.early.monthly)}</span>
-      </p>
+      {earlyOpen !== false && (
+        <p className="text-xs text-text">
+          Early price for the first {prices.early.seats} creators:{" "}
+          <span className="numeric font-medium">{rupees(year ? prices.early.yearly : prices.early.monthly)}</span>
+        </p>
+      )}
     </div>
   );
 }
 
-export function PlanCards({ starter, creator, custom }: { starter: PlanCard; creator: PlanCard; custom: CustomCard }) {
+export function PlanCards({
+  starter,
+  creator,
+  custom,
+  testMode = false,
+}: {
+  starter: PlanCard;
+  creator: PlanCard;
+  custom: CustomCard;
+  testMode?: boolean;
+}) {
   const [term, setTerm] = useState<1 | 12>(1);
-  const seg = (on: boolean) =>
-    `h-10 rounded-full px-4 text-sm transition-colors duration-200 ${
-      on ? "bg-accent font-semibold text-ink" : "text-muted hover:text-text"
-    }`;
+  const [selected, setSelected] = useState<PlanKey | null>(null);
+  // While a payment is being started the choices hold still, so what is posted to PayU is what is on screen.
+  const [busy, setBusy] = useState(false);
+  const onBusyChange = useCallback((b: boolean) => setBusy(b), []);
+
+  const picked = [starter, creator].find((p) => p.plan === selected);
+  const pickedBuy = picked?.buy.kind === "open" ? picked.buy : null;
+
+  // Choosing a plan opens the pay step under the cards; bring it into view on a phone and put the
+  // keyboard and screen reader there (it sits after both cards).
+  useEffect(() => {
+    if (!selected) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("buy-step")?.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "nearest" });
+    document.getElementById("buy-step-title")?.focus({ preventScroll: true });
+  }, [selected]);
 
   return (
     <section aria-labelledby="plan-cards-title" className="space-y-4">
@@ -80,14 +122,7 @@ export function PlanCards({ starter, creator, custom }: { starter: PlanCard; cre
         <h2 id="plan-cards-title" className="text-sm font-medium uppercase tracking-widest text-muted">
           Choose a plan
         </h2>
-        <div role="group" aria-label="Price shown for" className="inline-flex rounded-full border border-control p-0.5">
-          <button type="button" aria-pressed={term === 1} onClick={() => setTerm(1)} className={seg(term === 1)}>
-            1 month
-          </button>
-          <button type="button" aria-pressed={term === 12} onClick={() => setTerm(12)} className={seg(term === 12)}>
-            12 months
-          </button>
-        </div>
+        <TermSwitch term={term} onChange={setTerm} disabled={busy} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -97,19 +132,55 @@ export function PlanCards({ starter, creator, custom }: { starter: PlanCard; cre
               <h3 className="text-xl font-semibold text-text">{p.name}</h3>
               <p className="text-sm text-muted">{p.tagline}</p>
             </div>
-            <Price prices={p.prices} term={term} />
+            <Price prices={p.prices} term={term} earlyOpen={p.earlyOpen} />
             <Highlights lead={p.lead} items={p.highlights} more={p.more} />
+            {(p.status || p.note) && (
+              <div className="space-y-1 text-sm text-text">
+                {p.status && <p>{p.status}</p>}
+                {p.note && <p className="text-muted">{p.note}</p>}
+              </div>
+            )}
             <div className="mt-auto space-y-2">
-              <button type="button" disabled aria-describedby={`buy-note-${p.name}`} className={pillOutline}>
-                Buying opens soon
-              </button>
-              <p id={`buy-note-${p.name}`} className="text-xs text-muted">
-                A one-off payment, not a subscription. It does not renew by itself.
-              </p>
+              {p.buy.kind === "open" ? (
+                <button
+                  type="button"
+                  aria-pressed={selected === p.plan}
+                  aria-controls="buy-step"
+                  disabled={busy}
+                  onClick={() => setSelected(p.plan)}
+                  className={selected === p.plan ? pillPrimary : pillOutline}
+                >
+                  {selected === p.plan && <Check size={14} weight="bold" aria-hidden="true" />}
+                  {p.buy.renewing ? `Add a term of ${p.name}` : `Choose ${p.name}`}
+                </button>
+              ) : (
+                <>
+                  <button type="button" disabled aria-describedby={`buy-note-${p.plan}`} className={pillOutline}>
+                    Buying opens soon
+                  </button>
+                  <p id={`buy-note-${p.plan}`} className="text-xs text-muted">
+                    A one-off payment, not a subscription. It does not renew by itself.
+                  </p>
+                </>
+              )}
             </div>
           </article>
         ))}
       </div>
+
+      {picked && pickedBuy && (
+        <div id="buy-step" className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5">
+          {/* The amount follows either term switch; the mobile number and the tick stay while the plan or term is changed. */}
+          <BuyPass
+            plan={picked.plan}
+            option={pickedBuy.options[term]}
+            renewing={pickedBuy.renewing}
+            testMode={testMode}
+            onTermChange={setTerm}
+            onBusyChange={onBusyChange}
+          />
+        </div>
+      )}
 
       <article className={cardBox}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-x-6">

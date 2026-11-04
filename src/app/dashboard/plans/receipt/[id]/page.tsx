@@ -6,6 +6,7 @@ import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { OPERATOR } from "@/lib/legal";
 import { istMoment, paidOrder, receiptNumber, rupees, termWords } from "@/lib/plan-view";
+import { PLAN_NAMES } from "@/lib/pricing";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardShell } from "../../../parts/DashboardShell";
 import { PrintButton } from "../PrintButton";
@@ -36,7 +37,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   try {
     order = await paidOrder(db as unknown as LedgerDb, Number(user.id), orderId);
   } catch (err) {
-    console.error("Receipt: could not read the order (migration 0055 run?)", err instanceof Error ? err.message : err);
+    console.error("Receipt: could not read the order (migrations 0055 and 0056 run?)", err instanceof Error ? err.message : err);
   }
   if (!order) notFound();
 
@@ -45,7 +46,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     ["Date paid", istMoment(order.paidAt ?? order.createdAt)],
     ["Paid by", [user.name, user.email].filter(Boolean).join(", ")],
     ["Creator page", `${SITE_NAME} /${user.handle}`],
-    ["For", `${SITE_NAME} paid features, ${termWords(order.termMonths)}`],
+    ["For", `${SITE_NAME} ${PLAN_NAMES[order.plan]} plan, ${termWords(order.termMonths)}`],
     ["Covers", `${istMoment(order.passStartsAt ?? order.createdAt)} to ${istMoment(order.passEndsAt ?? order.createdAt)}`],
     ["Amount paid", rupees(order.amountMinor)],
     ["Paid with", `PayU, payment ID ${order.payuRef ?? "not recorded"}`],

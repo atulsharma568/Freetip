@@ -4,6 +4,7 @@ import { buildReminder, sendPassReminders, type ReminderTarget, type SendResult 
 import { checkPayer, CheckoutInputError } from "../src/lib/payu";
 import { createPlanOrder, quotePlan, settlePlanPayment, type SettleDeps } from "../src/lib/plan-orders";
 import {
+  buyingOpen,
   istMoment,
   latestOrder,
   paidOrder,
@@ -41,11 +42,12 @@ async function creator(pg: PGlite, o: { status?: string; name?: string | null } 
 }
 
 // Makes an order and, when asked, pays it through the real settle path.
-async function pay(pg: PGlite, creatorId: number, o: { term?: number; prices?: PlanPrices; now?: Date; livemode?: boolean } = {}) {
+async function pay(pg: PGlite, creatorId: number, o: { term?: number; plan?: string; prices?: PlanPrices; now?: Date; livemode?: boolean } = {}) {
   const db = asLedgerDb(pg);
   const r = await createPlanOrder(db, {
     creatorId,
     term: o.term ?? 1,
+    plan: o.plan ?? "creator",
     prices: o.prices ?? NO_EARLY,
     livemode: o.livemode ?? true,
     isOwner: true,
@@ -80,6 +82,7 @@ async function pay(pg: PGlite, creatorId: number, o: { term?: number; prices?: P
 const summary = (over: Partial<OrderSummary> = {}): OrderSummary => ({
   id: 7,
   status: "pending",
+  plan: "creator",
   termMonths: 1,
   amountMinor: 29900,
   livemode: true,
@@ -96,22 +99,31 @@ test.describe("the price shown and the price charged", () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const c = await creator(pg);
-    expect(await quotePlan(db, c, { monthly: null, yearly: null, early: null }, T0)).toBeNull();
-    expect(await quotePlan(db, c, NO_EARLY, T0)).toEqual({
-      1: { amountMinor: 29900, early: false },
-      12: { amountMinor: 249900, early: false },
+    expect(await quotePlan(db, c, "creator", { monthly: null, yearly: null, early: null }, T0)).toBeNull();
+    expect(await quotePlan(db, c, "creator", NO_EARLY, T0)).toEqual({
+      1: { amountMinor: 29900, early: false, covered: false },
+      12: { amountMinor: 249900, early: false, covered: false },
     });
-    expect(await quotePlan(db, c, PRICES, T0)).toEqual({
-      1: { amountMinor: 14900, early: true },
-      12: { amountMinor: 129900, early: true },
+    expect(await quotePlan(db, c, "creator", PRICES, T0)).toEqual({
+      1: { amountMinor: 14900, early: true, covered: false },
+      12: { amountMinor: 129900, early: true, covered: false },
     });
+  });
+
+  test("buyingOpen: live sales need the switch, test mode is the owner's only, no PayU settings is closed", () => {
+    expect(buyingOpen("live", false, true)).toBe(false); // placeholder prices: nobody, owner included
+    expect(buyingOpen("live", true, false)).toBe(true);
+    expect(buyingOpen("test", false, false)).toBe(false); // a creator never pays in test mode
+    expect(buyingOpen("test", false, true)).toBe(true);
+    expect(buyingOpen("test", true, false)).toBe(false);
+    expect(buyingOpen(null, true, true)).toBe(false);
   });
 
   test("an order is made only when the amount the creator saw is still the price", async () => {
     const pg = await freshDatabase();
     const db = asLedgerDb(pg);
     const c = await creator(pg);
-    const base = { creatorId: c, term: 1, prices: PRICES, livemode: true, isOwner: false, now: T0 };
+    const base = { creatorId: c, term: 1, plan: "creator", prices: PRICES, livemode: true, isOwner: false, now: T0 };
     const ok = await createPlanOrder(db, { ...base, expectAmountMinor: 14900 });
     expect(ok).toMatchObject({ ok: true, order: { amountMinor: 14900, early: true } });
     // Another creator now holds the only early seat, so this one's price has moved to the normal one.
@@ -194,7 +206,7 @@ test.describe("reading orders for the page and the receipt", () => {
     const c = await creator(pg);
     expect(await latestOrder(db, c, T0)).toBeNull();
     const first = await pay(pg, c, { now: T0 });
-    const second = await createPlanOrder(db, { creatorId: c, term: 12, prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 1) });
+    const second = await createPlanOrder(db, { creatorId: c, term: 12, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: addDays(T0, 1) });
     if (!second.ok) throw new Error("no order");
     const latest = await latestOrder(db, c, addDays(T0, 1));
     expect(latest).toMatchObject({ id: second.order.id, status: "pending", termMonths: 12, amountMinor: 249900 });
@@ -218,7 +230,7 @@ test.describe("reading orders for the page and the receipt", () => {
     expect(await paidOrder(db, mine, -1)).toBeNull();
     expect(await paidOrder(db, mine, Number.NaN)).toBeNull();
     // An unpaid order has no receipt.
-    const unpaid = await createPlanOrder(db, { creatorId: mine, term: 1, prices: NO_EARLY, livemode: true, isOwner: false, now: T0 });
+    const unpaid = await createPlanOrder(db, { creatorId: mine, term: 1, plan: "creator", prices: NO_EARLY, livemode: true, isOwner: false, now: T0 });
     if (!unpaid.ok) throw new Error("no order");
     expect(await paidOrder(db, mine, unpaid.order.id)).toBeNull();
   });
@@ -258,14 +270,14 @@ test.describe("words and the running pass", () => {
 test.describe("the reminder before a pass ends", () => {
   async function withPass(pg: PGlite, endsInDays: number, o: { status?: string; name?: string | null } = {}) {
     const id = await creator(pg, o);
-    await pg.query(`update users set pass_until = $2::timestamptz, pass_keys = '{alertText}', paid_features = '{alertText}' where id = $1`, [
+    await pg.query(`update users set creator_until = $2::timestamptz, pass_keys = '{alertText}', paid_features = '{alertText}' where id = $1`, [
       id,
       addDays(T0, endsInDays).toISOString(),
     ]);
     return id;
   }
   const reminded = async (pg: PGlite, id: number) =>
-    (await pg.query<{ pass_reminded_until: Date | null }>(`select pass_reminded_until from users where id = $1`, [id])).rows[0].pass_reminded_until;
+    (await pg.query<{ creator_reminded_until: Date | null }>(`select creator_reminded_until from users where id = $1`, [id])).rows[0].creator_reminded_until;
   const recorder = (result: SendResult | ((t: ReminderTarget) => SendResult) = "sent") => {
     const sent: ReminderTarget[] = [];
     return {
@@ -306,7 +318,7 @@ test.describe("the reminder before a pass ends", () => {
     await sendPassReminders(db, r.send, { now: T0 });
     expect(r.sent).toHaveLength(1);
     // The creator buys a month more: the end moves out, and the old reminder no longer counts.
-    await pg.query(`update users set pass_until = $2::timestamptz where id = $1`, [id, addDays(T0, 33).toISOString()]);
+    await pg.query(`update users set creator_until = $2::timestamptz where id = $1`, [id, addDays(T0, 33).toISOString()]);
     expect(await sendPassReminders(db, r.send, { now: addDays(T0, 10) })).toMatchObject({ looked: 0 });
     expect(await sendPassReminders(db, r.send, { now: addDays(T0, 29) })).toMatchObject({ looked: 1, sent: 1 });
     expect(r.sent).toHaveLength(2);
@@ -343,15 +355,15 @@ test.describe("the reminder before a pass ends", () => {
 
   test("the email holds only our own words in the subject, and no stray characters from the name", () => {
     const { subject, text } = buildReminder(
-      { name: "Riya\r\nBcc: x@y.z <b>Sharma</b>", email: "riya@example.com", endsAt: new Date("2026-12-10T06:00:00.000Z") },
+      { name: "Riya\r\nBcc: x@y.z <b>Sharma</b>", email: "riya@example.com", plan: "creator", endsAt: new Date("2026-12-10T06:00:00.000Z") },
       "https://freetip.in",
     );
-    expect(subject).toBe("Your Freetip paid features end on 10 December");
+    expect(subject).toBe("Your Freetip Creator plan ends on 10 December");
     expect(text).toContain("Hi Riya,");
     expect(text).not.toMatch(/[<>]/);
     expect(text).toContain("10 December 2026, 11:30 am IST");
     expect(text).toContain("https://freetip.in/dashboard/plans");
     expect(text).toMatch(/no automatic renewal/);
-    expect(buildReminder({ name: null, email: "a@b.c", endsAt: T0 }, "https://freetip.in").text).toContain("Hi there,");
+    expect(buildReminder({ name: null, email: "a@b.c", plan: "creator", endsAt: T0 }, "https://freetip.in").text).toContain("Hi there,");
   });
 });

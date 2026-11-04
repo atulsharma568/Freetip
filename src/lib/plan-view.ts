@@ -1,4 +1,5 @@
 import type { LedgerDb } from "./accrual";
+import { PLAN_NAMES, type PlanKey } from "./pricing";
 
 // What the Paid features page shows about buying: the message after PayU sends the creator back,
 // the creator's payments and the status of the running pass. No site imports and no `server-only`,
@@ -10,6 +11,7 @@ import type { LedgerDb } from "./accrual";
 export interface OrderSummary {
   id: number;
   status: "pending" | "paid" | "failed";
+  plan: PlanKey;
   termMonths: number;
   amountMinor: number;
   livemode: boolean;
@@ -23,6 +25,7 @@ export interface OrderSummary {
 interface OrderRow extends Record<string, unknown> {
   id: string;
   status: string;
+  plan: string;
   term_months: number;
   amount_minor: string;
   livemode: boolean;
@@ -39,6 +42,7 @@ function toSummary(r: OrderRow): OrderSummary {
   return {
     id: Number(r.id),
     status: r.status === "paid" ? "paid" : r.status === "failed" ? "failed" : "pending",
+    plan: r.plan === "starter" ? "starter" : "creator",
     termMonths: r.term_months,
     amountMinor: Number(r.amount_minor),
     livemode: r.livemode,
@@ -53,7 +57,7 @@ function toSummary(r: OrderRow): OrderSummary {
 // The creator's most recent order of any kind made in the last `withinDays` days, or null.
 export async function latestOrder(db: LedgerDb, creatorId: number, now: Date = new Date(), withinDays = 3): Promise<OrderSummary | null> {
   const [row] = await db<OrderRow[]>`
-    select id::text, status, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
       from plan_orders
      where creator_id = ${creatorId} and created_at > ${now.toISOString()}::timestamptz - make_interval(days => ${withinDays}::int)
      order by created_at desc, id desc limit 1
@@ -64,7 +68,7 @@ export async function latestOrder(db: LedgerDb, creatorId: number, now: Date = n
 // The creator's paid orders, newest first.
 export async function paidOrders(db: LedgerDb, creatorId: number, limit = 24): Promise<OrderSummary[]> {
   const rows = await db<OrderRow[]>`
-    select id::text, status, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
       from plan_orders where creator_id = ${creatorId} and status = 'paid'
      order by paid_at desc, id desc limit ${limit}
   `;
@@ -75,10 +79,20 @@ export async function paidOrders(db: LedgerDb, creatorId: number, limit = 24): P
 export async function paidOrder(db: LedgerDb, creatorId: number, orderId: number): Promise<OrderSummary | null> {
   if (!Number.isSafeInteger(orderId) || orderId <= 0) return null;
   const [row] = await db<OrderRow[]>`
-    select id::text, status, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
+    select id::text, status, plan, term_months, amount_minor::text, livemode, created_at, paid_at, pass_starts_at, pass_ends_at, payu_ref
       from plan_orders where id = ${orderId} and creator_id = ${creatorId} and status = 'paid'
   `;
   return row ? toSummary(row) : null;
+}
+
+// ---- Whether buying is open ---------------------------------------------------------------
+
+// The one rule for "may this creator buy now", used by the plans page (to show the button) and by
+// the Buy action (to refuse): with PayU's live key only once the owner has opened sales; with the
+// test key only the owner. No PayU settings at all means closed.
+export function buyingOpen(mode: "live" | "test" | null, liveSalesOpen: boolean, isOwner: boolean): boolean {
+  if (mode === null) return false;
+  return mode === "live" ? liveSalesOpen : isOwner;
 }
 
 // ---- Words ------------------------------------------------------------------------------
@@ -140,7 +154,7 @@ export function paymentNotice(hint: string | undefined, latest: OrderSummary | n
   if (latest.status === "paid") {
     return {
       kind: "ok",
-      text: `Payment received. Your paid features are on until ${istMoment(latest.passEndsAt ?? latest.createdAt)}. Your receipt is in Your payments below.`,
+      text: `Payment received. Your ${PLAN_NAMES[latest.plan]} plan is on until ${istMoment(latest.passEndsAt ?? latest.createdAt)}. Your receipt is in Your payments below.`,
     };
   }
   if (hint === "cancelled") return cancelled;

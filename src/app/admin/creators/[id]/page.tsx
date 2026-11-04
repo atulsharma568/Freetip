@@ -13,7 +13,9 @@ import { adminDb } from "@/lib/admin/server-db";
 import type { Query } from "@/lib/accrual";
 import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
-import { setCreatorFeatures } from "@/app/actions/admin";
+import { endCreatorPlan, setCreatorFeatures } from "@/app/actions/admin";
+import { ConfirmAction } from "@/components/admin/ConfirmAction";
+import { PLAN_KEYS, PLAN_NAMES } from "@/lib/pricing";
 import { setCreatorFeeRates } from "@/app/actions/fees";
 import { copyCreatorPage, resetCreatorPage, restoreCreatorPage } from "@/app/actions/page-doc";
 import { CouldNotRead, DatabaseNotSetUp } from "../../_components/Notices";
@@ -40,10 +42,16 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
   if (!c) notFound();
 
   // Each of these is read apart so one missing migration only affects its own box.
-  const [featuresRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
+  const [featuresRead, plansRead, lastChange, audit, pageRead, ratesRead, feeHistory, sourcesRead] = await Promise.all([
     load("the paid features", async () => {
       const [f] = await db<{ paid_features: string[] | null }[]>`select paid_features from users where id = ${creatorId}`;
       return f?.paid_features ?? [];
+    }),
+    load("the plan end dates", async () => {
+      const [p] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
+        select starter_until, creator_until from users where id = ${creatorId}
+      `;
+      return { starter: p?.starter_until ?? null, creator: p?.creator_until ?? null };
     }),
     getLastFeatureChange(db, creatorId),
     getAuditPage(db, { creatorId }, 5),
@@ -170,13 +178,52 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
         )}
       </section>
 
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Plans bought</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            Starter and Creator are separate passes with their own end dates. A plan ends by itself at its date (the daily
+            job switches its features off). End one now after a refund by hand: its features go, except the ones you ticked
+            below yourself or another running plan still covers.
+          </p>
+        </div>
+        {!plansRead.ok ? (
+          <CouldNotRead message="Could not read the plan dates. Run migration 0056 in Neon." detail={plansRead.error} />
+        ) : (
+          <div className="space-y-3">
+            {PLAN_KEYS.map((plan) => {
+              const until = plansRead.data[plan];
+              return (
+                <div key={plan} className="space-y-2">
+                  <p className="text-sm text-text">
+                    {PLAN_NAMES[plan]}:{" "}
+                    <span className="numeric">{until ? `runs until ${fmtIST(until)}` : "not running"}</span>
+                  </p>
+                  {until && (
+                    <ConfirmAction
+                      action={endCreatorPlan.bind(null, c.id, plan)}
+                      label={`End ${PLAN_NAMES[plan]} now`}
+                      confirmLabel={`End ${PLAN_NAMES[plan]} now`}
+                      pendingLabel="Ending…"
+                      description={`The ${PLAN_NAMES[plan]} plan stops now. Its features switch off for this creator, except ones you ticked by hand or the other plan still covers. The money is not touched: refund it in PayU yourself.`}
+                      askReason
+                      size="md"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <section className="space-y-3">
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-text">Paid features</h2>
           <p className="max-w-2xl text-xs text-muted">
-            Everything is off until you tick it here, for this creator only. Creators never see a plan or a price; a
-            feature that is off is simply not shown to them. Planned features are listed so you can see what is coming,
-            but cannot be switched on.
+            Everything is off until you tick it here or the creator buys a plan. A feature that is off is simply not
+            shown to them. Planned features are listed so you can see what is coming, but cannot be switched on.
           </p>
         </div>
         {!featuresRead.ok ? (
