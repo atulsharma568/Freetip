@@ -31,6 +31,10 @@ const WHAT: Record<string, { what: string; note?: string }> = {
     what: "Sends the Streamlabs alerts still waiting (a message awaiting approval, a spaced-out alert, a retry).",
     note: "Each tip is also sent straight after it is paid; for waiting alerts to go out on time, also call it every 2 minutes from a free outside scheduler with the CRON_SECRET header (OPERATIONS.md section 7).",
   },
+  "/api/cron/plan-orders": {
+    what: "Checks paid-feature orders left pending against PayU, and takes away the features of passes that have ended (only the ones the pass added).",
+    note: "Daily is enough: a payment is normally settled at once by PayU's return or notice; this catches the rest and ends passes.",
+  },
 };
 
 export function cronJobs(): CronJob[] {
@@ -110,6 +114,14 @@ export const ENV_GROUPS: { title: string; vars: EnvVar[] }[] = [
       { name: "YT_DATA_API_KEY", required: false, what: "YouTube lookups for stream timestamps" },
       { name: "YT_TOKEN_KEY", required: false, what: "Encrypts creators' YouTube and Discord details" },
       { name: "NEXT_PUBLIC_GA_ID", required: false, what: "Google Analytics (not set yet is fine)" },
+    ],
+  },
+  {
+    title: "PayU (buying paid features)",
+    vars: [
+      { name: "PAYU_KEY", required: false, what: "PayU merchant key (the Buy button needs it)" },
+      { name: "PAYU_SALT", required: false, what: "PayU salt: signs and checks every payment (the Buy button needs it)" },
+      { name: "PAYU_MODE", required: false, what: "live or test; anything else means test" },
     ],
   },
   {

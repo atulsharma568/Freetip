@@ -83,3 +83,11 @@ export function buildCatalogue(features: PlanFeatures): CatalogueGroup[] {
       })),
   })).filter((g) => g.items.length > 0);
 }
+
+// The keys a bought pass switches on: every built feature the page above offers, which leaves out
+// pinned messages (the owner has not decided to offer them). One list, so what the page shows and
+// what a pass grants cannot drift apart.
+export const PASS_FEATURE_KEYS: readonly FeatureKey[] = (() => {
+  const built = new Set<FeatureKey>(FEATURES.filter((f) => f.built).map((f) => f.key));
+  return GROUPS.flatMap((g) => g.entries.map((e) => e.key)).filter((k) => built.has(k) && k !== "highlightedMessages");
+})();

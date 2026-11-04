@@ -98,3 +98,37 @@ test.describe("creator dashboard routes", () => {
     expect(await response.text()).toBe("Unauthorized");
   });
 });
+
+test.describe("buying a pass: PayU's routes", () => {
+  // With no PayU settings or database on the test server nothing can be settled, and each route
+  // must say so plainly without a crash or a leak.
+  test("the browser return sends the creator to the plans page with a plain word", async ({ request }) => {
+    const response = await request.post("/api/payu/return", { form: { txnid: "FT0000000000000000", status: "success", hash: "x" }, maxRedirects: 0 });
+    expect(response.status()).toBe(303);
+    expect(response.headers().location).toMatch(/\/dashboard\/plans\?payment=(problem|pending)$/);
+    // Not a form at all: still a plain redirect, never an error page.
+    const odd = await request.post("/api/payu/return", { data: "not a form", headers: { "content-type": "text/plain" }, maxRedirects: 0 });
+    expect(odd.status()).toBe(303);
+    expect(odd.headers().location).toMatch(/payment=problem$/);
+  });
+
+  test("cancel goes back to the plans page", async ({ request }) => {
+    for (const method of ["get", "post"] as const) {
+      const response = await request[method]("/api/payu/cancel", { maxRedirects: 0 });
+      expect(response.status()).toBe(303);
+      expect(response.headers().location).toMatch(/\/dashboard\/plans\?payment=cancelled$/);
+    }
+  });
+
+  test("the webhook refuses what is not a form, acknowledges refund and dispute notices, and never settles an unsigned post", async ({ request }) => {
+    expect((await request.post("/api/webhooks/payu", { data: "x", headers: { "content-type": "text/plain" } })).status()).toBe(400);
+    expect((await request.post("/api/webhooks/payu", { data: { type: "refund" } })).status()).toBe(200);
+    const unsigned = await request.post("/api/webhooks/payu", { form: { txnid: "FT0000000000000000", status: "success", amount: "1.00" } });
+    // Not set up here (503) or set up and refused for its signature (400): never accepted.
+    expect([400, 503]).toContain(unsigned.status());
+  });
+
+  test("the plan-orders cron refuses a call without the secret", async ({ request }) => {
+    expect((await request.get("/api/cron/plan-orders")).status()).toBe(401);
+  });
+});

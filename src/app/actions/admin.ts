@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { BLOCKER_MESSAGE, CLOSED_EMAIL_DOMAIN, closeCreatorAccount } from "@/lib/account-close";
 import { requireOwner } from "@/lib/owner-auth";
 import { getDb } from "@/lib/db";
-import type { LedgerDb, SweepResult } from "@/lib/accrual";
+import type { LedgerDb, Query, SweepResult } from "@/lib/accrual";
 import { syncBooks } from "@/lib/books-sync";
 import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
 import { takeDownAsset } from "@/lib/page-doc/asset-store";
 import { builtFeatureKeys, sanitizeFeatureKeys } from "@/lib/plans";
+import { writeFeatureKeys } from "@/lib/plan-orders";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
 import { getTtsFloorPaise, parseFloorRupees, TTS_FLOOR_KEY } from "@/lib/site-settings";
@@ -156,7 +157,7 @@ export async function setCreatorFeatures(
         select paid_features from users where id = ${creatorId} for update
       `;
       if (!before) return false;
-      await tx`update users set paid_features = ${keys}::text[] where id = ${creatorId}`;
+      await writeFeatureKeys(tx as unknown as Query, creatorId, keys, intent === "all");
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
         values (null, 'owner', 'creator.features_changed', 'user', ${String(creatorId)},
@@ -167,8 +168,8 @@ export async function setCreatorFeatures(
     });
     if (!found) return fail("That creator was not found.");
   } catch (err) {
-    console.error("Admin: could not save paid features (migration 0035 run?)", err);
-    return fail("Could not save. Has migration 0035 been run?");
+    console.error("Admin: could not save paid features (migrations 0035 and 0055 run?)", err);
+    return fail("Could not save. Have migrations 0035 and 0055 been run?");
   }
   refreshCreator(creatorId);
   revalidatePath("/admin/features");
