@@ -87,3 +87,11 @@ test.describe("photo frame and banner effect", () => {
     }
   });
 });
+
+test.describe("the owner's own page", () => {
+  test("starts with the flame ring and the rising embers, and no other page does", async () => {
+    const { ownerPageDoc } = await import("../src/lib/page-doc/defaults");
+    expect(header(ownerPageDoc()).settings).toMatchObject({ frame: "flame", bannerFx: "embers" });
+    expect(header(defaultPageDoc()).settings).toMatchObject({ frame: "none", bannerFx: "none" });
+  });
+});

@@ -37,7 +37,9 @@ export function ownerPageDoc(): PageDoc {
     version: PAGE_DOC_VERSION,
     blocks: [
       make("backdrop", "background"),
-      make("header", "side"),
+      // A flame ring over the photo and rising embers over the banner, in the page's crimson. They are
+      // only the owner's default: another creator's page starts with neither (see decor.ts).
+      make("header", "side", { frame: "flame", bannerFx: "embers" }),
       make("creatorLinks", "side", { tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" }),
       make("alertPreview", "side"),
       make("qr", "side"),
