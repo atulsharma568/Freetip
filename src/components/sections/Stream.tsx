@@ -286,7 +286,7 @@ export function Stream() {
         </div>
       </div>
 
-      <div className="[perspective:1600px] md:col-span-7">
+      <div className="[perspective:1600px] md:col-span-7 md:[&>*]:h-full">
         <div
           data-screen
           className="flex min-h-[24rem] flex-col justify-between gap-8 rounded-surface border border-line bg-surface p-4 md:min-h-[30rem] md:p-6"

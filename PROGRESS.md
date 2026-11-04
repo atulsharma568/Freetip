@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, landing page columns line up; NO migration, nothing to run)
+
+- **Fixed:** on a wide screen the home hero had the headline at the bottom and the tip card at the top; both are now centred against each other (`Hero.tsx`). In "On your stream" the sample stream card on the right now stretches to the height of the left column (`Stream.tsx`). Checked in real Chrome at 1440 by 900 (reduced motion, so the splash is skipped), type check and lint clean. Not checked on a real phone; the changes only apply from the `md` width up (the hero centring has no effect in one column).
+- 2026-11-04 (log): landing alignment fix, pushed from a clean copy of `origin/main` (local PayU commits stay private).
+
 ## Current state (2026-11-04, creator earnings page built; NO migration, nothing to run)
 
 - **Built (no extra review, owner's choice):** `/dashboard/earnings` ("Earnings" in the dashboard menu), read-only. Balance, Pending (with the date the first tip frees up) and Paid out tiles; a statement with one row per live tip posted to the books (tip, Freetip fee, processing charge, what you keep, Pending, Released or Reversed); payout history (empty for now); a CSV of the whole statement. The share is the ledger's own figure per tip (credits minus debits, so a refunded tip is Reversed with nothing kept); the two charges are worked from the pair saved on each order, so a tip made before the 3% change keeps its old split. Balance and Pending reuse `workOutBalance` and the same query shape as `/admin/finance/balances`, so the two agree.
