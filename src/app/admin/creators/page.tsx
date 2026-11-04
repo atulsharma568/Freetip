@@ -34,7 +34,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
     <PageHeader
       eyebrow="Creators"
       title="Who is on Freetip"
-      note="Approve new creators, decide payout setups, suspend or close accounts. Open a creator for their paid features, tips, messages and history."
+      note="Approve new creators, decide payout setups, suspend accounts. Open a creator to close one or see their paid features, tips, messages and history."
     />
   );
 
@@ -232,6 +232,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
                           creatorStatus={c.creatorStatus}
                           onboardingState={c.onboardingState}
                           closed={c.closed}
+                          allowClose={false}
                         />
                       )}
                     </td>

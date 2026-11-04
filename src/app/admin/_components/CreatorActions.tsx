@@ -16,12 +16,15 @@ export function CreatorActions({
   creatorStatus,
   onboardingState,
   closed,
+  allowClose = true,
 }: {
   id: number;
   handle: string | null;
   creatorStatus: "pending" | "active" | "suspended";
   onboardingState: string;
   closed: boolean;
+  // The list leaves Close account out so it never sits beside Approve; the detail page keeps it.
+  allowClose?: boolean;
 }) {
   if (closed) return <span className="text-xs text-muted">Closed, kept for the records</span>;
 
@@ -65,6 +68,7 @@ export function CreatorActions({
           askReason
         />
       )}
+      {allowClose && (
       <ConfirmAction
         action={adminCloseCreator.bind(null, id)}
         label="Close account"
@@ -73,6 +77,7 @@ export function CreatorActions({
         description="Permanent. Removes their profile and sounds; money records stay. Money owed or a payout in progress stops it."
         typeToConfirm={handle ?? "close"}
       />
+      )}
     </div>
   );
 }

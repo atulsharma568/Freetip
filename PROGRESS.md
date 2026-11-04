@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, admin: Close account only on the creator page; NO migration)
+
+- **Done:** the creator list rows no longer carry a Close account button next to Approve; closing is on the creator's own page (`/admin/creators/<id>`) with the same two steps and the typed handle. `CreatorActions` has an `allowClose` prop (default true; the list passes false). `tsc` and `eslint` pass; not seen in a browser.
+- **Next, one at a time:** admin overview repeating the sidebar as 19 tiles and missing queues (media to review, payout requests unpaid 3+ days, unposted tips); creator page of 9 boxes; stale admin text.
+
 ## Current state (2026-11-04, dashboard page widths match within a menu group; NO migration)
 
 - **Done:** headings were already one style; widths follow three tiers (2xl lists, 3xl forms, 6xl alert-studio pages with a preview). Fixed the pages that jumped width when switching tabs: Picks is now 3xl like Automatic tiers and Banner; Pinned is now 2xl like Sounds and Media. Not seen in a browser.
