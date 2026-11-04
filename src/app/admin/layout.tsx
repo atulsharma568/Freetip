@@ -5,9 +5,10 @@ import { razorpayKeyMode } from "@/lib/admin/key-mode";
 import { adminDb } from "@/lib/admin/server-db";
 import { TONE_BADGE, TONE_MARK } from "@/components/admin/tones";
 import { AppBackdrop } from "@/components/AppBackdrop";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { AdminNav } from "./_components/AdminNav";
 import { CommandPalette } from "./_components/CommandPalette";
+import { viewerCanOpen } from "./_components/nav-items";
 
 export const metadata: Metadata = {
   title: "Owner console: Freetip",
@@ -17,12 +18,15 @@ export const metadata: Metadata = {
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  await requireOwner();
+  const viewer = (await requireAdminViewer()) === "viewer";
 
   // How many things are waiting, for the badges. A count that cannot be read just
   // has no badge (the overview says "could not read" for it).
   const db = adminDb();
-  const badges = db ? badgesFrom(await getQueue(db)) : {};
+  const allBadges = db ? badgesFrom(await getQueue(db)) : {};
+  const badges = viewer
+    ? Object.fromEntries(Object.entries(allBadges).filter(([href]) => viewerCanOpen(href)))
+    : allBadges;
   const keyMode = razorpayKeyMode();
 
   return (
@@ -57,7 +61,7 @@ export default async function AdminLayout({
               {TONE_MARK[keyMode.tone] && <span aria-hidden="true">{TONE_MARK[keyMode.tone]}</span>}
               {keyMode.short}
             </p>
-            <CommandPalette badges={badges} />
+            <CommandPalette badges={badges} viewer={viewer} />
             <Link
               href="/dashboard"
               className="inline-flex min-h-11 items-center rounded-full border border-control bg-surface/60 px-4 text-sm text-muted transition-colors hover:border-text/40 hover:text-text"
@@ -69,7 +73,7 @@ export default async function AdminLayout({
       </header>
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-8 lg:flex-row">
-        <AdminNav badges={badges} />
+        <AdminNav badges={badges} viewer={viewer} />
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
           {children}

@@ -70,3 +70,18 @@ export function isCurrent(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   return !EXACT.has(href) && pathname.startsWith(`${href}/`);
 }
+
+// The only pages a read-only viewer may open. Anything not listed here stays owner-only (each of
+// those pages also checks for itself).
+const VIEWER_PAGES = new Set(["/admin", "/admin/creators"]);
+
+export function viewerCanOpen(href: string): boolean {
+  return VIEWER_PAGES.has(href.split("?")[0]);
+}
+
+export function navGroupsFor(viewer: boolean) {
+  if (!viewer) return NAV_GROUPS;
+  return NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => viewerCanOpen(i.href)) })).filter(
+    (g) => g.items.length > 0,
+  );
+}

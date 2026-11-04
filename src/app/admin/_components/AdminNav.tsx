@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { FIELD_CLASS } from "@/components/admin/tones";
-import { NAV_GROUPS, isCurrent } from "./nav-items";
+import { isCurrent, navGroupsFor } from "./nav-items";
 
 // Finds a creator from any owner page. A plain GET form to the creators list (which
 // searches name, email, handle, channel and UPI ID across every tab), so it works without
@@ -59,7 +59,8 @@ function CreatorFinder() {
   );
 }
 
-export function AdminNav({ badges }: { badges: Record<string, number> }) {
+export function AdminNav({ badges, viewer = false }: { badges: Record<string, number>; viewer?: boolean }) {
+  const NAV_GROUPS = navGroupsFor(viewer);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const all = NAV_GROUPS.flatMap((g) => g.items);

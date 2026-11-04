@@ -14,7 +14,7 @@ import {
 import { fmtIST } from "@/lib/admin/format";
 import { load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { CouldNotRead, DatabaseNotSetUp } from "../_components/Notices";
 import { CreatorActions } from "../_components/CreatorActions";
 import { PageHeader, Pager } from "../_components/PageHeader";
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 type Params = { q?: string; tab?: string; page?: string };
 
 export default async function AdminCreatorsPage({ searchParams }: { searchParams: Promise<Params> }) {
-  await requireOwner();
+  const viewer = (await requireAdminViewer()) === "viewer";
   const params = await searchParams;
   const q = (params.q ?? "").trim().slice(0, 100);
   const tab = parseCreatorTab(params.tab, q !== "");
@@ -107,7 +107,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
           type="search"
           name="q"
           defaultValue={q}
-          placeholder="Search name, email, handle, channel or UPI ID"
+          placeholder={viewer ? "Search name, email, handle or channel" : "Search name, email, handle, channel or UPI ID"}
           aria-label="Search creators"
           className={`${FIELD_CLASS} w-full max-w-md`}
         />
@@ -191,7 +191,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
 
                     <td className="numeric px-4 py-3 text-text">
                       {c.handle ?? <span className="text-muted">not set</span>}
-                      {accents.has(c.id) && accents.get(c.id) !== DEFAULT_ACCENT && (
+                      {!viewer && accents.has(c.id) && accents.get(c.id) !== DEFAULT_ACCENT && (
                         <div className="mt-2 flex items-center gap-2">
                           <span
                             aria-hidden="true"
@@ -213,7 +213,7 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
 
                     <td className="px-4 py-3">
                       <StatusBadge status={c.onboardingState} />
-                      {c.upiVpa && (
+                      {!viewer && c.upiVpa && (
                         <p title={c.upiVpa} className="numeric mt-1 max-w-[160px] truncate text-xs text-muted">
                           {c.upiVpa}
                         </p>
@@ -221,13 +221,17 @@ export default async function AdminCreatorsPage({ searchParams }: { searchParams
                     </td>
 
                     <td className="px-4 py-3">
-                      <CreatorActions
-                        id={c.id}
-                        handle={c.handle}
-                        creatorStatus={c.creatorStatus}
-                        onboardingState={c.onboardingState}
-                        closed={c.closed}
-                      />
+                      {viewer ? (
+                        <span className="text-xs text-muted">View only</span>
+                      ) : (
+                        <CreatorActions
+                          id={c.id}
+                          handle={c.handle}
+                          creatorStatus={c.creatorStatus}
+                          onboardingState={c.onboardingState}
+                          closed={c.closed}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}

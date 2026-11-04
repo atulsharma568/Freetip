@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlass, UserCircle } from "@phosphor-icons/react/ssr";
 import type { Icon } from "@phosphor-icons/react";
-import { NAV_GROUPS } from "./nav-items";
+import { navGroupsFor } from "./nav-items";
 
 type Entry = { key: string; href: string; label: string; hint: string; group: string; icon: Icon; badge?: number };
 
 // Ctrl+K (or Cmd+K) opens a list of every owner page and a "find this creator" row. Arrow keys move,
 // Enter goes, Escape closes. Without scripts the header button is simply absent and the sidebar and
 // creator search still work.
-export function CommandPalette({ badges }: { badges: Record<string, number> }) {
+export function CommandPalette({ badges, viewer = false }: { badges: Record<string, number>; viewer?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -21,10 +21,10 @@ export function CommandPalette({ badges }: { badges: Record<string, number> }) {
 
   const entries = useMemo<Entry[]>(
     () =>
-      NAV_GROUPS.flatMap((g) =>
+      navGroupsFor(viewer).flatMap((g) =>
         g.items.map((i) => ({ key: i.href, href: i.href, label: i.label, hint: i.hint, group: g.title, icon: i.icon, badge: badges[i.href] })),
       ),
-    [badges],
+    [badges, viewer],
   );
 
   const q = query.trim().toLowerCase();

@@ -4,19 +4,24 @@ import { rangeAllTime } from "@/lib/admin/date-range";
 import { badgesFrom, getQueue } from "@/lib/admin/queue";
 import { razorpayKeyMode } from "@/lib/admin/key-mode";
 import { adminDb } from "@/lib/admin/server-db";
-import { requireOwner } from "@/lib/owner-auth";
+import { requireAdminViewer } from "@/lib/owner-auth";
 import { TONE_MARK, TONE_TEXT } from "@/components/admin/tones";
 import { CouldNotRead } from "./_components/Notices";
-import { NAV_GROUPS } from "./_components/nav-items";
+import { navGroupsFor, viewerCanOpen } from "./_components/nav-items";
 import { PageHeader } from "./_components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
-  await requireOwner();
+  const viewer = (await requireAdminViewer()) === "viewer";
+  const NAV_GROUPS = navGroupsFor(viewer);
 
   const db = adminDb();
-  const [result, queue] = db ? await Promise.all([getFinanceSummary(db, rangeAllTime()), getQueue(db)]) : [null, null];
+  // A viewer never reads the money figures, and sees only the queue items for pages they may open.
+  const [result, fullQueue] = db
+    ? await Promise.all([viewer ? null : getFinanceSummary(db, rangeAllTime()), getQueue(db)])
+    : [null, null];
+  const queue = fullQueue && viewer ? { ...fullQueue, items: fullQueue.items.filter((i) => viewerCanOpen(i.href)) } : fullQueue;
 
   const badges = queue ? badgesFrom(queue) : {};
   const waitingTotal = queue
@@ -77,6 +82,7 @@ export default async function AdminOverviewPage() {
         )}
       </section>
 
+      {!viewer && (
       <section className="rounded-surface border border-control bg-surface p-6">
         <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Current state</h2>
         {result && !result.ok ? (
@@ -112,6 +118,7 @@ export default async function AdminOverviewPage() {
           </dl>
         )}
       </section>
+      )}
 
       <section aria-labelledby="goto-heading" className="space-y-5">
         <h2 id="goto-heading" className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
