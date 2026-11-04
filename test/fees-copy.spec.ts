@@ -13,7 +13,7 @@ test.describe("published fee example", () => {
     expect(FEES.platformPercent).toBe(PLATFORM_BPS / 100);
     expect(FEES.gatewayPercent).toBe(PROCESSING_BPS / 100);
     expect(FEES.platformPercent).toBe(5);
-    expect(FEES.gatewayPercent).toBe(2.75);
+    expect(FEES.gatewayPercent).toBe(3);
   });
 
   test("feeBreakdown(100) is the example printed on the site", () => {
@@ -21,8 +21,8 @@ test.describe("published fee example", () => {
     expect(FEES.example).toEqual({
       tip: "₹100.00",
       platform: "−₹5.00",
-      gateway: "−₹2.75",
-      keep: "₹92.25",
+      gateway: "−₹3.00",
+      keep: "₹92.00",
     });
   });
 

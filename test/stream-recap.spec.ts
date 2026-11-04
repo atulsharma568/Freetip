@@ -44,8 +44,8 @@ test.describe("stream recap grouping", () => {
     const [s] = groupStreams([tip(0, "A", 100), tip(5, "B", 12.5)], LATER);
     expect(s.grossPaise).toBe(11250);
     expect(s.biggest).toEqual({ name: "A", amountPaise: 10000 });
-    // 10000 -> 9225 and 1250 -> 1153, as in the earnings tests.
-    expect(s.sharePaise).toBe(9225 + 1153);
+    // 10000 -> 9200 and 1250 -> 1149, as in the earnings tests.
+    expect(s.sharePaise).toBe(9200 + 1149);
   });
 
   test("the same name in a different case or spacing is one supporter", () => {

@@ -63,7 +63,7 @@ export const WAITLIST_CONSENT_VERSION = "privacy-2026-10-16";
 export const FEES = {
   platformPercent: PLATFORM_BPS / 100,
   gatewayPercent: PROCESSING_BPS / 100,
-  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹2.75", keep: "₹92.25" },
+  example: { tip: "₹100.00", platform: "−₹5.00", gateway: "−₹3.00", keep: "₹92.00" },
 };
 
 const money = (paise: number) =>

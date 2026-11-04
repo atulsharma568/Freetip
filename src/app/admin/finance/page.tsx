@@ -105,7 +105,7 @@ function FinanceBody({ summary, turnover }: { summary: FinanceSummary; turnover:
           <MetricCard
             label="Processing charge collected"
             value={formatINR(summary.processingChargeMinor)}
-            note="The flat 2.75% charge taken from creators. Razorpay's own charge is not posted yet; once it is, what is left here is our gain or loss on processing."
+            note="The processing charge taken from creators (3% at the standard rate). Razorpay's own charge is not posted yet; once it is, what is left here is our gain or loss on processing."
           />
         </div>
       </section>

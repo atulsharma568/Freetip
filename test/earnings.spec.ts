@@ -15,13 +15,13 @@ import {
 } from "../src/lib/earnings";
 
 test.describe("estimated creator share", () => {
-  test("a ₹100 tip leaves ₹92.25, the published example", () => {
-    expect(estimateShare(10000)).toBe(9225);
+  test("a ₹100 tip leaves ₹92.00, the published example", () => {
+    expect(estimateShare(10000)).toBe(9200);
   });
 
   test("rounds each charge to the paise, half up", () => {
-    // 1250 paise: 5% is 62.5 -> 63 and 2.75% is 34.375 -> 34, so 1153 stays.
-    expect(estimateShare(1250)).toBe(1153);
+    // 1250 paise: 5% is 62.5 -> 63 and 3% is 37.5 -> 38, so 1149 stays.
+    expect(estimateShare(1250)).toBe(1149);
   });
 
   // The dashboard's SQL (queries.ts) works the share as

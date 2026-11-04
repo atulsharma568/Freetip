@@ -9,7 +9,7 @@ import {
 } from "./money";
 
 // The owner's fee rates (2026-11-03). Three layers, the nearest one wins:
-//   1. the standard rates in `money.ts` (5% and 2.75%), used when nothing is saved;
+//   1. the standard rates in `money.ts` (5% and 3%), used when nothing is saved;
 //   2. the site-wide rates the owner saves in /admin/fees (site_settings), which every
 //      creator follows unless they have their own;
 //   3. a creator's own pair (users.platform_bps_override and processing_bps_override),
@@ -55,14 +55,14 @@ export function formatPercent(bps: number): string {
 export const sameRates = (a: FeeRates, b: FeeRates) =>
   a.platformBps === b.platformBps && a.processingBps === b.processingBps;
 
-// "5% + 2.75%", or "no fees" when both are nothing.
+// "5% + 3%", or "no fees" when both are nothing.
 export function describeRates(r: FeeRates): string {
   if (r.platformBps === 0 && r.processingBps === 0) return "no fees";
   return `${formatPercent(r.platformBps)}% + ${formatPercent(r.processingBps)}%`;
 }
 
 // The sentence the creator's dashboard uses for what the "you'd keep" figure leaves out, in the
-// creator's own rates ("each tip less our 5% fee and the 2.75% processing charge").
+// creator's own rates ("each tip less our 5% fee and the 3% processing charge").
 export function estimateNote(r: FeeRates): string {
   const parts = [
     r.platformBps > 0 ? `our ${formatPercent(r.platformBps)}% fee` : null,

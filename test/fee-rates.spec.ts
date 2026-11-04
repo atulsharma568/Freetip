@@ -16,6 +16,7 @@ import {
 } from "../src/lib/fee-rates";
 import {
   MAX_PLATFORM_BPS,
+  LEGACY_RATES,
   MAX_PROCESSING_BPS,
   STANDARD_RATES,
   capturePosting,
@@ -61,7 +62,7 @@ test.describe("a tip split with a pair of rates", () => {
 
   test("with no pair given it is the standard pair, as before", () => {
     expect(splitTip(10000)).toEqual(splitTip(10000, STANDARD_RATES));
-    expect(splitTip(10000).creatorSharePaise).toBe(9225);
+    expect(splitTip(10000).creatorSharePaise).toBe(9200);
   });
 
   test("the highest allowed pair never leaves the creator less than nothing, and always adds up", () => {
@@ -88,7 +89,7 @@ test.describe("a tip split with a pair of rates", () => {
   });
 
   test("the dashboard estimate follows the pair", () => {
-    expect(estimateShare(10000)).toBe(9225);
+    expect(estimateShare(10000)).toBe(9200);
     expect(estimateShare(10000, { platformBps: 0, processingBps: 0 })).toBe(10000);
   });
 });
@@ -113,7 +114,7 @@ test.describe("reading what the owner types", () => {
 
   test("a rate form is read as a pair, with a message naming the wrong box", () => {
     expect(parseRates("0", "0")).toEqual({ ok: true, rates: { platformBps: 0, processingBps: 0 } });
-    expect(parseRates("5", "2.75")).toEqual({ ok: true, rates: STANDARD_RATES });
+    expect(parseRates("5", "3")).toEqual({ ok: true, rates: STANDARD_RATES });
     const a = parseRates("50", "2");
     expect(a.ok === false && a.error).toContain("platform fee");
     const b = parseRates("5", "abc");
@@ -123,19 +124,26 @@ test.describe("reading what the owner types", () => {
   test("words for a pair", () => {
     expect(formatPercent(500)).toBe("5");
     expect(formatPercent(275)).toBe("2.75");
+    expect(formatPercent(300)).toBe("3");
     expect(formatPercent(450)).toBe("4.5");
     expect(formatPercent(0)).toBe("0");
-    expect(describeRates(STANDARD_RATES)).toBe("5% + 2.75%");
+    expect(describeRates(STANDARD_RATES)).toBe("5% + 3%");
     expect(describeRates({ platformBps: 0, processingBps: 0 })).toBe("no fees");
-    expect(keepOfHundred(STANDARD_RATES)).toBe("₹92.25");
+    expect(keepOfHundred(STANDARD_RATES)).toBe("₹92.00");
     expect(keepOfHundred({ platformBps: 0, processingBps: 0 })).toBe("₹100.00");
-    expect(estimateNote(STANDARD_RATES)).toBe("each tip less our 5% fee and the 2.75% processing charge");
+    expect(estimateNote(STANDARD_RATES)).toBe("each tip less our 5% fee and the 3% processing charge");
     expect(estimateNote({ platformBps: 0, processingBps: 275 })).toBe("each tip less the 2.75% processing charge");
     expect(estimateNote({ platformBps: 0, processingBps: 0 })).toContain("no fee");
   });
 
-  test("a tip saves its pair only when it is not the standard one", () => {
-    expect(tipExtraColumns({ soundId: null, voice: false, rates: STANDARD_RATES })).toEqual({});
+  test("a tip saves its pair unless it is the legacy one the columns default to", () => {
+    // The standard pair is 5% + 3% now, but the columns default to the old 5% + 2.75%, so a
+    // standard-rate tip must write its pair or it would be charged at the default by accident.
+    expect(tipExtraColumns({ soundId: null, voice: false, rates: STANDARD_RATES })).toEqual({
+      platform_bps: 500,
+      processing_bps: 300,
+    });
+    expect(tipExtraColumns({ soundId: null, voice: false, rates: LEGACY_RATES })).toEqual({});
     expect(tipExtraColumns({ soundId: null, voice: false })).toEqual({});
     expect(tipExtraColumns({ soundId: null, voice: false, rates: { platformBps: 0, processingBps: 0 } })).toEqual({
       platform_bps: 0,
@@ -368,7 +376,7 @@ test.describe("saving rates", () => {
     );
     expect(audit.rows).toEqual([
       {
-        before_json: { platformBps: 500, processingBps: 275 },
+        before_json: { platformBps: 500, processingBps: 300 },
         after_json: { platformBps: 400, processingBps: 200 },
         reason: "spring",
       },
@@ -426,6 +434,7 @@ test.describe("only the owner can change a rate", () => {
       expect(firstCall.startsWith("await requireOwner();")).toBe(true);
     }
     expect(read("app/admin/fees/page.tsx")).toContain("await requireOwner();");
-    expect(read("app/admin/layout.tsx")).toContain("await requireOwner();");
+    // The layout lets a read-only viewer in (07c128d); the fees page and every action above are owner-only.
+    expect(read("app/admin/layout.tsx")).toContain("await requireAdminViewer()");
   });
 });

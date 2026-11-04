@@ -3,7 +3,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { findUnpostableCaptures, postCaptureAccrual, postMissingAccruals } from "../src/lib/accrual";
 import { postTipReversal } from "../src/lib/reversal";
 import { afterCapture } from "../src/lib/capture-follow-up";
-import { splitTip } from "../src/lib/money";
+import { LEGACY_RATES, splitTip } from "../src/lib/money";
 import { asLedgerDb, freshDatabase, migrationFiles, readMigration } from "./helpers/pg";
 
 // Runs the real schema and the real money code in an in-memory Postgres. It
@@ -192,13 +192,15 @@ test.describe("posting a captured tip", () => {
           where a.code = 'creator_payable' and lt.source_ref = $1`,
         [String(t.tipId)],
       );
-      expect(Number(share.rows[0].share)).toBe(splitTip(gross).creatorSharePaise);
+      // The fixture saves no pair on the order, so it carries the column default, the legacy
+      // 5% + 2.75%; the ledger reads the pair saved on the order, not today's standard.
+      expect(Number(share.rows[0].share)).toBe(splitTip(gross, LEGACY_RATES).creatorSharePaise);
       // The dashboard's SQL rounding gives the same figure.
       const sql = await pg.query<{ share: string }>(
         `select ($1::bigint - (($1::bigint * 500 + 5000) / 10000) - (($1::bigint * 275 + 5000) / 10000))::text as share`,
         [gross],
       );
-      expect(Number(sql.rows[0].share)).toBe(splitTip(gross).creatorSharePaise);
+      expect(Number(sql.rows[0].share)).toBe(splitTip(gross, LEGACY_RATES).creatorSharePaise);
     }
     expect(await everyTransactionBalances(pg)).toBe(true);
   });

@@ -54,7 +54,7 @@ export function RateFields({ state, idPrefix, disabled = false }: { state: RateF
   );
 }
 
-// "On a ₹100 tip: ₹92.25 to the creator, ₹5.00 fee, ₹2.75 processing." or what is wrong with the boxes.
+// "On a ₹100 tip: ₹92.00 to the creator, ₹5.00 fee, ₹3.00 processing." or what is wrong with the boxes.
 export function RatePreview({ parsed, id }: { parsed: ParsedRates; id?: string }) {
   if (!parsed.ok) {
     return (

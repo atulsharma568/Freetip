@@ -6,7 +6,7 @@
 // A tip is split into our platform fee and a processing charge (owner's choice,
 // 2026-10-30), each worked in basis points and rounded half up to the paise. The
 // creator keeps what is left. The rates are the owner's to set (2026-11-03): a
-// site-wide standard (5% and 2.75% until the owner changes it) and, per creator,
+// site-wide standard (5% and 3%, 8% in all, from 2026-11-04, until the owner changes it) and, per creator,
 // an optional pair of their own. The pair a tip is charged at is saved on the
 // order when it is created (`tip_orders.platform_bps`, `processing_bps`), so a
 // later change of rate never rewrites an old tip. `RULE_VERSION` is saved with
@@ -17,7 +17,7 @@ export const RULE_VERSION = "2026-11-03.1";
 export const PLATFORM_BPS = 500; // 5%
 // The smallest tip, the same for every creator (owner, 2026-11-01).
 export const MIN_TIP_PAISE = 2000;
-export const PROCESSING_BPS = 275; // 2.75%, shown as Freetip's processing charge
+export const PROCESSING_BPS = 300; // 3%, shown as Freetip's processing charge (2.75% until 2026-11-04)
 
 // The highest the owner can set, so a slip of the finger (50 for 5) is refused. Together they
 // can never take more than 40% of a tip, so the creator's share cannot go below nothing.
@@ -30,6 +30,11 @@ export interface FeeRates {
 }
 
 export const STANDARD_RATES: FeeRates = { platformBps: PLATFORM_BPS, processingBps: PROCESSING_BPS };
+
+// The pair every tip made before 2026-11-04 was charged at. It is also what the database
+// columns `tip_orders.platform_bps` and `processing_bps` default to (migration 0054), so an order
+// saved without its own pair means this one. Never change it.
+export const LEGACY_RATES: FeeRates = { platformBps: 500, processingBps: 275 };
 
 export function checkRates(rates: FeeRates): FeeRates {
   const { platformBps, processingBps } = rates;
