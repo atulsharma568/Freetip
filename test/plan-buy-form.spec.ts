@@ -67,6 +67,27 @@ test.describe("the Buy form", () => {
     }
   });
 
+  test("the plan cards show month prices, switch to year prices, and cannot be bought yet", async ({ page }) => {
+    await page.goto("/dev-fixtures/plans");
+    const cards = page.getByRole("article");
+    await expect(cards).toHaveCount(3);
+    await expect(cards.nth(0)).toContainText("Starter");
+    await expect(cards.nth(0)).toContainText("₹149");
+    await expect(cards.nth(1)).toContainText("Everything in Starter, plus");
+    await expect(cards.nth(1)).toContainText("₹299");
+
+    await page.getByRole("button", { name: "12 months" }).click();
+    await expect(cards.nth(0)).toContainText("₹1,199 a year");
+    await expect(cards.nth(1)).toContainText("₹2,499 a year");
+    await expect(cards.nth(1)).toContainText("save 30%");
+    await expect(cards.nth(1)).toContainText("₹1,299"); // the early price for a year
+
+    await expect(page.getByRole("button", { name: "Buying opens soon" })).toHaveCount(2);
+    for (const b of await page.getByRole("button", { name: "Buying opens soon" }).all()) await expect(b).toBeDisabled();
+    await expect(cards.nth(2)).toContainText("From ₹2,999");
+    await expect(cards.nth(2).getByRole("link", { name: "Ask about it" })).toHaveAttribute("href", "/contact#message");
+  });
+
   for (const width of [320, 390]) {
     test(`fits a ${width}px screen with no sideways scroll`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });

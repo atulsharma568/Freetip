@@ -63,7 +63,44 @@ const GROUPS: readonly { title: string; blurb: string; entries: readonly Entry[]
   },
 ];
 
-export type CatalogueItem = { key: FeatureKey; title: string; benefit: string; on: boolean; href: string | null };
+// The two plans and the by-request offer. Each built feature sits in exactly one list; the plan
+// cards and the comparison table read these. Starter's features are in Creator too, the Custom
+// page is sold apart. Order matters: the cards show the first few of each list.
+export type TierKey = "starter" | "creator" | "custom";
+
+export const STARTER_KEYS: readonly FeatureKey[] = [
+  "alertText", "alertMotion", "overlayThemes", "alertLayout", "alertRules",
+  "supportStreak", "topSupporter", "recentSupporters", "timestamps", "tipMarks",
+];
+export const CREATOR_EXTRA_KEYS: readonly FeatureKey[] = [
+  "customAlertMedia", "regionalVoices", "alertVariations", "tipBanner", "fanLevels",
+  "fanCrm", "highlightsPage", "editorLink", "clipHelper", "streamlabs",
+];
+export const CUSTOM_KEYS: readonly FeatureKey[] = ["pageBuilder", "pressureMeter"];
+
+// Not finished enough to promise: the clip helper is run from source, Streamlabs lets in only
+// accounts the Streamlabs app has whitelisted.
+export const BETA_KEYS: ReadonlySet<FeatureKey> = new Set<FeatureKey>(["clipHelper", "streamlabs"]);
+
+export function tierOf(key: FeatureKey): TierKey | null {
+  if (STARTER_KEYS.includes(key)) return "starter";
+  if (CREATOR_EXTRA_KEYS.includes(key)) return "creator";
+  if (CUSTOM_KEYS.includes(key)) return "custom";
+  return null;
+}
+
+const TITLES = new Map<FeatureKey, string>(GROUPS.flatMap((g) => g.entries.map((e) => [e.key, e.title] as const)));
+export const featureTitle = (key: FeatureKey): string => TITLES.get(key) ?? key;
+
+export type CatalogueItem = {
+  key: FeatureKey;
+  title: string;
+  benefit: string;
+  on: boolean;
+  href: string | null;
+  tier: TierKey | null;
+  beta: boolean;
+};
 export type CatalogueGroup = { title: string; blurb: string; items: CatalogueItem[] };
 
 export function buildCatalogue(features: PlanFeatures): CatalogueGroup[] {
@@ -80,6 +117,8 @@ export function buildCatalogue(features: PlanFeatures): CatalogueGroup[] {
         on: features[e.key],
         // A link only for a feature that is on: a page that is off redirects.
         href: features[e.key] && e.href ? e.href : null,
+        tier: tierOf(e.key),
+        beta: BETA_KEYS.has(e.key),
       })),
   })).filter((g) => g.items.length > 0);
 }

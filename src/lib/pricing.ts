@@ -15,6 +15,27 @@ export const PLAN_PRICES: PlanPrices = {
   early: null,
 };
 
+// The prices the plan cards show for the three offers (Starter, Creator, and the Custom page).
+// Placeholders the owner can change here at any time. Display only for now: nothing can be bought
+// at these prices yet, because the Buy form still sells one pass at `PLAN_PRICES` above. The
+// Custom page is a one-time price, "from", quoted for each creator.
+export type TierPrices = {
+  monthly: number;
+  yearly: number;
+  early: { monthly: number; yearly: number; seats: number };
+};
+
+export const TIER_PRICES: { starter: TierPrices; creator: TierPrices; customFrom: number } = {
+  starter: { monthly: 149, yearly: 1199, early: { monthly: 79, yearly: 599, seats: 50 } },
+  creator: { monthly: 299, yearly: 2499, early: { monthly: 149, yearly: 1299, seats: 50 } },
+  customFrom: 2999,
+};
+
+// Whole percent a year saves against twelve months, and the monthly equivalent of a year.
+export const yearSaving = (monthly: number, yearly: number) =>
+  Math.max(0, Math.round((1 - yearly / (monthly * 12)) * 100));
+export const perMonthOfYear = (yearly: number) => Math.round(yearly / 12);
+
 export type PriceView = {
   monthly: number;
   yearly: number;

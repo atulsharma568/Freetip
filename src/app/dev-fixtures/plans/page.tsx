@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fixturesEnabled } from "@/lib/page-fixtures";
 import { BuyPass } from "@/app/dashboard/plans/BuyPass";
+import { PLAN_CARDS } from "@/app/dashboard/plans/cards-data";
+import { PlanCards } from "@/app/dashboard/plans/PlanCards";
 import { DashboardShell } from "@/app/dashboard/parts/DashboardShell";
 import { Msg } from "@/app/dashboard/parts/Msg";
 import { paymentNotice, type OrderSummary } from "@/lib/plan-view";
@@ -41,6 +43,7 @@ export default async function PlansFixturePage({ searchParams }: { searchParams:
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4">
         <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Paid features</h1>
         {shown && <Msg kind={shown.kind} text={shown.text} />}
+        <PlanCards {...PLAN_CARDS} />
         <BuyPass
           options={[
             { term: 1, amountMinor: isEarly ? 14900 : 29900, early: isEarly },

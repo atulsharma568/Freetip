@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { buildCatalogue } from "../src/lib/plan-catalogue";
+import { CREATOR_EXTRA_KEYS, CUSTOM_KEYS, STARTER_KEYS, buildCatalogue, tierOf } from "../src/lib/plan-catalogue";
 import { FEATURES, NO_FEATURES, builtFeatureKeys, planFeatures } from "../src/lib/plans";
-import { priceView } from "../src/lib/pricing";
+import { TIER_PRICES, perMonthOfYear, priceView, yearSaving } from "../src/lib/pricing";
 
 const items = (f = NO_FEATURES) => buildCatalogue(f).flatMap((g) => g.items);
 
@@ -36,6 +36,41 @@ test.describe("the paid features catalogue", () => {
   test("a feature that needs another reads as off while that one is off", () => {
     const f = planFeatures({ paid_features: ["tipMarks"] });
     expect(items(f).find((i) => i.key === "tipMarks")?.on).toBe(false);
+  });
+});
+
+test.describe("the plan tiers", () => {
+  const offered = FEATURES.filter((f) => f.built && f.key !== "highlightedMessages");
+
+  test("every offered feature is in exactly one tier, and pinned messages in none", () => {
+    const all = [...STARTER_KEYS, ...CREATOR_EXTRA_KEYS, ...CUSTOM_KEYS];
+    expect([...all].sort()).toEqual(offered.map((f) => f.key).sort());
+    expect(new Set(all).size).toBe(all.length);
+    expect(tierOf("highlightedMessages")).toBeNull();
+  });
+
+  test("a feature never sits in a cheaper tier than the one it needs", () => {
+    const rank = { starter: 0, creator: 1, custom: 2 } as const;
+    for (const f of offered) {
+      for (const need of f.needs ?? []) {
+        const a = tierOf(f.key);
+        const b = tierOf(need);
+        if (a && b && b !== "custom") expect(rank[b]).toBeLessThanOrEqual(rank[a]);
+        // The Pressure meter needs the Custom page, so they are sold together.
+        if (b === "custom") expect(a).toBe("custom");
+      }
+    }
+  });
+
+  test("the shown prices make sense", () => {
+    for (const t of [TIER_PRICES.starter, TIER_PRICES.creator]) {
+      expect(t.yearly).toBeLessThan(t.monthly * 12);
+      expect(t.early.monthly).toBeLessThan(t.monthly);
+      expect(t.early.yearly).toBeLessThan(t.yearly);
+    }
+    expect(TIER_PRICES.starter.monthly).toBeLessThan(TIER_PRICES.creator.monthly);
+    expect(yearSaving(299, 2499)).toBe(30);
+    expect(perMonthOfYear(2499)).toBe(208);
   });
 });
 

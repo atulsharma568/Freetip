@@ -6,7 +6,7 @@ import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { payuConfig } from "@/lib/payu";
-import { buildCatalogue } from "@/lib/plan-catalogue";
+import { buildCatalogue, type TierKey } from "@/lib/plan-catalogue";
 import { quotePlan } from "@/lib/plan-orders";
 import {
   istDay,
@@ -31,6 +31,10 @@ import { pillOutline } from "../parts/styles";
 import Link from "next/link";
 import { BuyPass, type BuyOption } from "./BuyPass";
 import { PendingRefresh } from "./PendingRefresh";
+import { PLAN_CARDS } from "./cards-data";
+import { PlanCards } from "./PlanCards";
+
+const TIER_LABEL: Record<TierKey, string> = { starter: "Starter", creator: "Creator", custom: "Custom page" };
 
 export const metadata: Metadata = {
   title: `Paid features: ${SITE_NAME}`,
@@ -114,7 +118,9 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           </div>
         )}
 
-        <Tile id="plan" level={2} title="The paid plan">
+        <PlanCards {...PLAN_CARDS} />
+
+        <Tile id="plan" level={2} title="Your plan">
           <div className="space-y-4">
             {prices ? (
               <div className="space-y-3">
@@ -140,9 +146,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                   </p>
                 )}
               </div>
-            ) : (
-              <p className="text-base text-text">The price will be announced soon.</p>
-            )}
+            ) : null}
             <p className="text-sm text-muted">
               {onCount > 0
                 ? `You have ${onCount} of ${all.length} paid features switched on.`
@@ -225,7 +229,8 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                       </>
                     ) : (
                       <span className="rounded-full border border-control px-3 py-1 text-xs text-muted">
-                        In the paid plan
+                        {item.tier ? `In ${TIER_LABEL[item.tier]}` : "In the paid plan"}
+                        {item.beta ? " · Beta" : ""}
                       </span>
                     )}
                   </div>
