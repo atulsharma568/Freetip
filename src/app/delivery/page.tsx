@@ -76,10 +76,9 @@ const SECTIONS: LegalSection[] = [
           our fee and the processing fee.
         </li>
         <li>
-          Payouts are made on a regular schedule, not the moment a tip lands.
-          We show the status of every payout in the creator’s dashboard and
-          don’t promise a particular day. We will tell creators before the
-          schedule changes.
+          Payouts are not made the moment a tip lands. We show the status of
+          every payout in the creator’s dashboard and don’t promise a
+          particular day.
         </li>
         <li>
           Payouts can be delayed by bank holidays, incomplete KYC, or a hold

@@ -31,7 +31,7 @@ const ITEMS = [
   },
   {
     q: "How do I get paid?",
-    a: "Payouts go to the bank account or UPI ID you register, in INR, on a regular schedule. Each payout shows in your dashboard. A payout can be delayed by bank holidays, verification checks, or a hold while we look into fraud or a chargeback.",
+    a: "Payouts go to the bank account or UPI ID you register, in INR. Each payout shows in your dashboard. A payout can be delayed by bank holidays, verification checks, or a hold while we look into fraud or a chargeback.",
   },
   {
     q: "Can a tip be refunded?",
