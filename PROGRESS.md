@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard page widths match within a menu group; NO migration)
+
+- **Done:** headings were already one style; widths follow three tiers (2xl lists, 3xl forms, 6xl alert-studio pages with a preview). Fixed the pages that jumped width when switching tabs: Picks is now 3xl like Automatic tiers and Banner; Pinned is now 2xl like Sounds and Media. Not seen in a browser.
+- **Next:** the admin items (creator page is one 377-line stack of 9 boxes, Close account beside Approve in list rows, overview repeats the sidebar, stale admin text).
+
 ## Current state (2026-11-04, Tips no longer repeats what you keep; NO migration)
 
 - **Done, owner chose to drop it from Tips:** `/dashboard/tips` rows show name, amount, date and message only; the "You'd keep about" line and its estimate note are gone and the footnote links to Earnings, where the per-tip split and balance live. The CSV export is unchanged. `tsc` and `eslint` pass; not seen in a browser.
