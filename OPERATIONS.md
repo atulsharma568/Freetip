@@ -235,7 +235,7 @@ Run `0054_creator_fee_rates.sql` in Neon BEFORE the deploy. Fans always pay exac
 
 - Creators see `/dashboard/plans` ("Paid features" in the dashboard menu): every built paid feature in plain words, which are on for them, and a plan box. Wording lives in `src/lib/plan-catalogue.ts`; add a line there when a feature is added to `src/lib/plans.ts`. Pinned messages show only for a creator who already has them.
 - Prices live only in `src/lib/pricing.ts` (whole rupees: monthly, yearly, optional early plan with seats). All empty until you decide: the page says "The price will be announced soon" and the button stays off. Fill the numbers in, deploy; the yearly saving is worked out for you.
-- Buying is not built yet: features are still switched on by hand in `/admin/creators/<id>`. The plan is a PayU one-time payment for 1 or 12 months (a pass that ends, no automatic renewal), switched on after PayU's signed reply; it needs PayU test keys and a decision on GST first.
+- Buying is not built yet: features are still switched on by hand in `/admin/creators/<id>`. The plan is a PayU one-time payment for 1 or 12 months (a pass that ends, no automatic renewal), switched on after PayU's signed reply; it needs PayU test keys and the prices. GST is decided (`docs/rules-check.md` section 2): no registration while turnover is under the trigger, price shown as the final amount, plain receipt. Watch the ₹15 lakh trigger yourself until a finance-page figure is built.
 
 ## 8. The owner console (`/admin`)
 
