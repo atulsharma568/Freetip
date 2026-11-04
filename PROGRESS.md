@@ -6,7 +6,7 @@ Living status of the project. Read this first; it is updated with every commit. 
 
 - **Done, owner's decision:** the public pages no longer say payouts follow "a regular schedule" (terms, delivery, FAQ, `docs/hindi-copy.md` rows). They still promise no particular day. The 5% fee plus processing charge wording is unchanged (owner: fine as is). Type check and lint pass.
 - **Owner's decision:** PayU is a dead end for now; payouts are the manual flow built earlier.
-- **Not changed:** the terms and delivery pages still say payouts go "through our payment partner", which no longer matches paying by hand; say if you want it reworded.
+- **Also reworded:** terms and delivery no longer say payouts go "through our payment partner"; they say payouts are made once the creator requests one. Other "payment partner" mentions are about tip payments and stay.
 
 ## Current state (2026-11-04, unpaid payout nudge built; NO migration, nothing to run)
 

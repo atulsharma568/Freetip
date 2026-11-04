@@ -71,9 +71,9 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          Payouts are sent through our payment partner to the bank account or
-          UPI ID the creator registers and we verify, in Indian rupees, after
-          our fee and the processing fee.
+          Payouts are sent to the bank account or UPI ID the creator registers
+          and we verify, in Indian rupees, after our fee and the processing
+          fee, once the creator requests one.
         </li>
         <li>
           Payouts are not made the moment a tip lands. We show the status of

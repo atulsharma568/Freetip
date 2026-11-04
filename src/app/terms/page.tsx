@@ -191,9 +191,9 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             <strong>Payouts</strong> go to the bank account or UPI ID the creator
-            registers and we verify, in Indian rupees, through our payment
-            partner. We show each payout in the creator’s dashboard and do not
-            promise a particular day.
+            registers and we verify, in Indian rupees, once the creator
+            requests it. We show each payout in the creator’s dashboard and do
+            not promise a particular day.
           </li>
           <li>
             <strong>Holds:</strong> we may hold or delay a payout while we look
