@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-04, dashboard overview stale payout sentence fixed; NO migration)
+
+- **Done, owner chose "Dashboard cleanup"; Cashfree work is on hold until their KYC approval (owner):** the overview note no longer says "Payouts have not started yet"; it now points to Earnings (`OverviewStrip.tsx`). Type check and lint pass.
+- **Still open from the audit:** the public FAQ (`Faq.tsx`) still says "Payouts to creators have not started yet" (public wording, owner to decide); nav names vs headings; 12-tile overview; Tips and Earnings repeat figures; inconsistent page widths; admin creator page and overview items. Switched-off pages only bounce on a typed URL, since the menu hides them.
+
 ## Current state (2026-11-04, Paid features page rebuilt; NO migration)
 
 - **Built (an independent review, owner's request):** `/dashboard/plans` no longer says "and N more". The two plan cards are short and equal (name, one line, price, early price, Choose); under them **Every feature, side by side** (`PlanTable.tsx`, server component) names every feature in seven groups with two tick columns, Starter and Creator. Starter's groups are Alert looks, Stream overlays, Stream moments; the Creator-only groups (solid lime bar, "Only in Creator") are Your own media, Your voice, Your fans, Your workflow. A feature on for the creator shows "On for you" and Open; features no plan sells (custom page, meter, pinned messages) show apart as "Switched on for you by hand". The Custom card is replaced by **One-time extras** (`OneTimeExtras.tsx`, list `ONE_TIME_EXTRAS` in `src/lib/pricing.ts`: Custom tip page from ₹2,999, Alert makeover ₹999, QR poster and panels ₹699, Launch kit ₹3,999; placeholders, price shown only while plan prices are shown). The Pressure meter is no longer shown as an item (the key and the code stay). "Your plan" moved above the cards. Big prices use the body font's tabular figures (the mono font put a gap at the comma). Tiers, grants and tests of the tier lists are untouched; `COMPARISON_GROUPS` and `buildComparison` in `src/lib/plan-catalogue.ts` are new and tested.

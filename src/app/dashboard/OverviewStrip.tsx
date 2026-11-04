@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatRupees } from "@/lib/earnings";
 import { estimateNote } from "@/lib/fee-rates";
 import { STANDARD_RATES, type FeeRates } from "@/lib/money";
@@ -66,8 +67,8 @@ export function OverviewStrip({
         </div>
       )}
       <p className="text-sm text-muted">
-        The amount you&apos;d keep is an estimate: {estimateNote(rates)}. Payouts have not started yet, so there is no
-        balance to show.
+        The amount you&apos;d keep is an estimate: {estimateNote(rates)}. See <Link href="/dashboard/earnings" className="underline">Earnings</Link> for what is available to
+        withdraw.
       </p>
     </section>
   );
