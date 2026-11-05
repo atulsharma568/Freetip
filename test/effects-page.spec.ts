@@ -31,6 +31,13 @@ test.describe("the Effects picker", () => {
     await expect(page.locator(".pf-custom")).toHaveCount(0);
   });
 
+  test("an animated profile picture is a pick that plays over the photo, round", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    await page.getByRole("button", { name: /Killua/ }).click();
+    await expect(page.locator(".pf-custom img")).toHaveAttribute("src", /\/decorations\/killua(\.poster)?\.webp$/);
+    await expect(page.locator(".bfx img")).toHaveCount(0);
+  });
+
   test("an animated banner picture is a pick that plays over the banner strip", async ({ page }) => {
     await page.goto("/dev-fixtures/effects");
     await page.getByRole("button", { name: /Sakura/ }).click();

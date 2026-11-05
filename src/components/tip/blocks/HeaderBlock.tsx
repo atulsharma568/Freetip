@@ -21,7 +21,7 @@ function decor(style: string, id: number | null, use: AssetUse, assets: Record<n
   if (style === "none") return null;
   if (use === "frame" && isFileFrame(style)) {
     const f = FILE_FRAMES[style];
-    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, scale: f.scale, round: f.round };
   }
   if (use === "fx" && isFileFx(style)) {
     const f = FILE_FX[style];

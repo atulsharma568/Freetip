@@ -10,7 +10,7 @@ export type DecorRender =
   | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom" | FileFrame> | Exclude<BannerFx, "none" | "custom" | FileFx> }
   // `scale` (frames only) is the size as a percent of the photo; left out it is the standard size.
   // `wholeHeader` (effects only) is a finished animation made for the whole header: it always covers it.
-  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number; wholeHeader?: boolean }
+  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number; round?: boolean; wholeHeader?: boolean }
   | null;
 
 // A GIF shows its still until the device may play motion (the same rule the banner and backdrop use).
@@ -33,9 +33,16 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
       <span
         aria-hidden="true"
         className="pf pf-custom"
-        style={render.scale === undefined ? undefined : ({ "--pf-inset": `${(-(render.scale - 100) / 2).toFixed(1)}%` } as React.CSSProperties)}
+        style={
+          render.scale === undefined && !render.round
+            ? undefined
+            : ({
+                ...(render.scale === undefined ? {} : { "--pf-inset": `${(-(render.scale - 100) / 2).toFixed(1)}%` }),
+                ...(render.round ? { borderRadius: "9999px", overflow: "hidden" } : {}),
+              } as React.CSSProperties)
+        }
       >
-        <CustomPicture render={render} className="object-contain" />
+        <CustomPicture render={render} className={render.round ? "object-cover" : "object-contain"} />
       </span>
     );
   }

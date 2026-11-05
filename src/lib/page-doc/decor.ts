@@ -6,16 +6,19 @@ import type { PageDoc } from "./types";
 // are drawn in CSS (so no file is loaded and they follow the page accent) or are a finished animation
 // that ships with the site, or "custom", a picture or GIF the owner uploaded to the page's library. Pure, so the parser, the editor and the tests share it.
 
-export const FRAME_STYLES = ["none", "widow", "custom"] as const;
+// Square animated pictures that are profile pictures, not banners: they play in the photo's own
+// place, cut round, like an animated avatar. Same ids and files as before, moved out of the banner list.
+export const AVATAR_PIC_IDS = ["peakyblinders", "applekitty", "explosivecat", "killua", "angel", "nanami", "naoya"] as const;
+export type AvatarPicId = (typeof AVATAR_PIC_IDS)[number];
+
+export const FRAME_STYLES = ["none", "widow", ...AVATAR_PIC_IDS, "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
 // The ready-made animations that ship with the site, one file each (see FILE_FX below). Listed here
 // so the stored value can be checked; the ids are the file names without the extension.
-export const FILE_FX_IDS = [
-  "peakyblinders", "sakura", "sololeveling", "applekitty", "toney", "eternal", "fkimgworkkk", "explosivecat", "killua", "angel", "nanami", "naoya",
-] as const;
+export const FILE_FX_IDS = ["sakura", "sololeveling", "toney", "eternal", "fkimgworkkk"] as const;
 
-export const FILE_FX_INFO: Record<(typeof FILE_FX_IDS)[number], { label: string; file: string; still?: boolean }> = {
+const FILE_INFO: Record<AvatarPicId | (typeof FILE_FX_IDS)[number], { label: string; file: string; still?: boolean }> = {
   peakyblinders: { label: "Peaky Blinders", file: "peaky-blinders" },
   sakura: { label: "Sakura", file: "sakura" },
   sololeveling: { label: "Solo Leveling", file: "solo-leveling" },
@@ -29,12 +32,15 @@ export const FILE_FX_INFO: Record<(typeof FILE_FX_IDS)[number], { label: string;
   nanami: { label: "Nanami", file: "nanami" },
   naoya: { label: "Naoya", file: "naoya" },
 };
+export const FILE_FX_INFO: Record<(typeof FILE_FX_IDS)[number], { label: string; file: string; still?: boolean }> = FILE_INFO;
+export const AVATAR_PIC_INFO: Record<AvatarPicId, { label: string; file: string; still?: boolean }> = FILE_INFO;
 export const BANNER_FX = ["none", "embers", "clutch", "petals", ...FILE_FX_IDS, "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
   { value: "none", label: "No frame" },
   { value: "widow", label: "Black Widow (a spider walks the rim of the photo, small ones crawl over it)" },
+  ...AVATAR_PIC_IDS.map((id) => ({ value: id, label: `${AVATAR_PIC_INFO[id].label} (animated profile picture)` })),
   { value: "custom", label: "Your own picture or GIF" },
 ];
 
@@ -50,9 +56,16 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
 // Frames that are a finished animation shipped with the site (drawn once by tools/decor-render and
 // saved as an animated WebP with a still of its first frame), not drawn in CSS. `scale` is the size
 // as a percent of the photo's ring, the same number as the `frameScale` setting of an uploaded frame.
-export const FILE_FRAMES = {
-  widow: { url: "/decorations/black-widow.webp", posterUrl: "/decorations/black-widow.poster.webp", scale: 220 },
-} as const;
+// `round` cuts the picture to a circle (the animated profile pictures, which are opaque squares at the photo's own size).
+export const FILE_FRAMES: Record<"widow" | AvatarPicId, { url: string; posterUrl: string; scale: number; round?: boolean; animated: boolean }> = {
+  widow: { url: "/decorations/black-widow.webp", posterUrl: "/decorations/black-widow.poster.webp", scale: 220, animated: true },
+  ...(Object.fromEntries(
+    AVATAR_PIC_IDS.map((id) => {
+      const i = AVATAR_PIC_INFO[id];
+      return [id, { url: `/decorations/${i.file}.webp`, posterUrl: `/decorations/${i.file}.poster.webp`, scale: 100, round: true, animated: !i.still }];
+    }),
+  ) as Record<AvatarPicId, { url: string; posterUrl: string; scale: number; round?: boolean; animated: boolean }>),
+};
 export type FileFrame = keyof typeof FILE_FRAMES;
 export const isFileFrame = (v: string): v is FileFrame => Object.hasOwn(FILE_FRAMES, v);
 

@@ -26,7 +26,7 @@ export default async function DecorFixture({ searchParams }: { searchParams: Pro
   const frame: DecorRender = fxFile
     ? null
     : file
-    ? { kind: "custom", url: file.url, posterUrl: file.posterUrl, animated: true, scale: file.scale }
+    ? { kind: "custom", url: file.url, posterUrl: file.posterUrl, animated: file.animated, scale: file.scale, round: file.round }
     : { kind: "custom", url: RING, posterUrl: null, animated: false, scale: scale ? Number(scale) : undefined };
   const fx: DecorRender = fxFile
     ? { kind: "custom", url: fxFile.url, posterUrl: fxFile.posterUrl, animated: true, wholeHeader: true }

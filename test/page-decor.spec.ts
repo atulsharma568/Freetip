@@ -132,7 +132,7 @@ test.describe("the pick saved from the dashboard", () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
     expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ frame: "widow", bannerFx: "clutch" });
     expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ frame: "none", bannerFx: "none" });
-    for (const fx of ["embers", "petals", "sakura", "killua"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
+    for (const fx of ["embers", "petals", "sakura", "toney"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
     expect(parseTipDecor({})).toEqual({ frame: "none", bannerFx: "none" });
     for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
   });
@@ -201,10 +201,31 @@ test.describe("the Black Widow frame, a finished animation that ships with the s
   });
 });
 
+test.describe("the animated profile pictures that ship with the site", () => {
+  test("each is a round frame at the photo's own size, no longer a banner", async () => {
+    const { AVATAR_PIC_IDS, FILE_FRAMES, FRAME_OPTIONS, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(AVATAR_PIC_IDS.length).toBe(7);
+    for (const id of AVATAR_PIC_IDS) {
+      const f = FILE_FRAMES[id];
+      expect(PRESET_FRAMES).toContain(id);
+      expect(FRAME_OPTIONS.map((o) => o.value)).toContain(id);
+      expect(PRESET_BANNER_FX).not.toContain(id);
+      expect(isFileFrame(id)).toBe(true);
+      expect(f.scale).toBe(100);
+      expect(f.round).toBe(true);
+      expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
+      expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
+      expect(header(parsePageDoc(withHeader({ frame: id }))!.doc).settings.frame).toBe(id);
+      expect(parseTipDecor({ frame: id, bannerFx: "none" })).toEqual({ frame: id, bannerFx: "none" });
+    }
+    expect(FILE_FRAMES.angel.animated).toBe(false);
+  });
+});
+
 test.describe("the animated banner pictures that ship with the site", () => {
   test("each is a ready-made choice with its files in place and a size inside the limits", async () => {
     const { BANNER_FX_OPTIONS, FILE_FX, FILE_FX_IDS, PRESET_BANNER_FX, isFileFx, parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(FILE_FX_IDS.length).toBe(12);
+    expect(FILE_FX_IDS.length).toBe(5);
     expect(isFileFx("toString")).toBe(false);
     expect(isFileFx("embers")).toBe(false);
     for (const id of FILE_FX_IDS) {
@@ -220,7 +241,6 @@ test.describe("the animated banner pictures that ship with the site", () => {
       expect(statSync(join(process.cwd(), "public", f.posterUrl)).size).toBeLessThan(60 * 1024);
       expect(header(parsePageDoc(withHeader({ bannerFx: id }))!.doc).settings.bannerFx).toBe(id);
     }
-    expect(FILE_FX.angel.animated).toBe(false);
     expect(FILE_FX.sakura.animated).toBe(true);
     expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toEqual({ frame: "widow", bannerFx: "sakura" });
   });

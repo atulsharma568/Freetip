@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTipDecor } from "@/app/actions/tip-decor";
 import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
-import { FILE_FRAMES, FILE_FX, FILE_FX_IDS, FILE_FX_INFO, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
+import { AVATAR_PIC_IDS, AVATAR_PIC_INFO, FILE_FRAMES, FILE_FX, FILE_FX_IDS, FILE_FX_INFO, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type AvatarPicId, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -15,6 +15,9 @@ import { pillPrimary } from "../parts/styles";
 const FRAME_INFO: Record<PresetFrame, { label: string; about: string }> = {
   none: { label: "No frame", about: "Just your photo." },
   widow: { label: "Black Widow", about: "A big spider walks the rim of your photo and settles; small ones crawl over your face." },
+  ...(Object.fromEntries(
+    AVATAR_PIC_IDS.map((id) => [id, { label: AVATAR_PIC_INFO[id].label, about: AVATAR_PIC_INFO[id].still ? "A picture that replaces your photo." : "An animated picture that replaces your photo." }]),
+  ) as Record<AvatarPicId, { label: string; about: string }>),
 };
 
 const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
@@ -31,7 +34,7 @@ const preset = (style: string): DecorRender => {
   if (style === "none") return null;
   if (isFileFrame(style)) {
     const f = FILE_FRAMES[style];
-    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, scale: f.scale, round: f.round };
   }
   if (isFileFx(style)) {
     const f = FILE_FX[style];
@@ -133,7 +136,7 @@ export function EffectsManager({
       <Tile id="effects-frame" title="Frame over your photo" level={2}>
         <div role="group" aria-label="Frame over your photo" className="grid gap-2 sm:grid-cols-2">
           {PRESET_FRAMES.map((f) => (
-            <Choice key={f} on={frame === f} label={FRAME_INFO[f].label} about={FRAME_INFO[f].about} onPick={() => setFrame(f)} />
+            <Choice key={f} on={frame === f} label={FRAME_INFO[f].label} about={FRAME_INFO[f].about} thumb={isFileFrame(f) && f !== "widow" ? FILE_FRAMES[f].posterUrl : undefined} onPick={() => setFrame(f)} />
           ))}
         </div>
       </Tile>
