@@ -6,7 +6,7 @@ import type { PageDoc } from "./types";
 // are drawn in CSS (so no file is loaded and they follow the page accent), or "custom", a picture or
 // GIF the owner uploaded to the page's library. Pure, so the parser, the editor and the tests share it.
 
-export const FRAME_STYLES = ["none", "flame", "aura", "slash", "foxfire", "custom"] as const;
+export const FRAME_STYLES = ["none", "flame", "aura", "slash", "foxfire", "widow", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
 export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "spider", "storm", "glitch", "petals", "custom"] as const;
@@ -18,6 +18,7 @@ export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
   { value: "aura", label: "Pulsing aura with sparks" },
   { value: "slash", label: "Slash ring" },
   { value: "foxfire", label: "Fox-fire (flames crawl over the top of the photo)" },
+  { value: "widow", label: "Black Widow (a spider walks the rim of the photo, small ones crawl over it)" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
 
@@ -33,6 +34,15 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "petals", label: "Falling petals" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
+
+// Frames that are a finished animation shipped with the site (drawn once by tools/decor-render and
+// saved as an animated WebP with a still of its first frame), not drawn in CSS. `scale` is the size
+// as a percent of the photo's ring, the same number as the `frameScale` setting of an uploaded frame.
+export const FILE_FRAMES = {
+  widow: { url: "/decorations/black-widow.webp", posterUrl: "/decorations/black-widow.poster.webp", scale: 220 },
+} as const;
+export type FileFrame = keyof typeof FILE_FRAMES;
+export const isFileFrame = (v: string): v is FileFrame => Object.hasOwn(FILE_FRAMES, v);
 
 // How big a picture or animation frame is drawn, as a percent of the photo (100 is the photo's own
 // size; the ready-made rings are about 134). Standard is the size custom frames always had.

@@ -1,3 +1,5 @@
+import { existsSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { usableFor, usedAssetIds } from "../src/lib/page-doc/assets";
 import { EMBER_COUNT, steady } from "../src/lib/page-doc/decor";
@@ -171,7 +173,40 @@ test.describe("the pick saved from the dashboard", () => {
   });
 });
 
+test.describe("the Black Widow frame, a finished animation that ships with the site", () => {
+  test("it is a ready-made choice with its files in place and a size inside the limits", async () => {
+    const { FILE_FRAMES, FRAME_OPTIONS, FRAME_SCALE, PRESET_FRAMES, isFileFrame } = await import("../src/lib/page-doc/decor");
+    expect(PRESET_FRAMES).toContain("widow");
+    expect(FRAME_OPTIONS.map((o) => o.value)).toContain("widow");
+    expect(isFileFrame("widow")).toBe(true);
+    expect(isFileFrame("flame")).toBe(false);
+    expect(isFileFrame("toString")).toBe(false);
+    for (const f of Object.values(FILE_FRAMES)) {
+      expect(f.scale).toBeGreaterThanOrEqual(FRAME_SCALE.min);
+      expect(f.scale).toBeLessThanOrEqual(FRAME_SCALE.max);
+      expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
+      expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
+      // A phone downloads this only when the device may play motion, but keep it light all the same.
+      expect(statSync(join(process.cwd(), "public", f.url)).size).toBeLessThan(2.6 * 1024 * 1024);
+      expect(statSync(join(process.cwd(), "public", f.posterUrl)).size).toBeLessThan(60 * 1024);
+    }
+    const kept = parsePageDoc(withHeader({ frame: "widow" }))!;
+    expect(header(kept.doc).settings.frame).toBe("widow");
+  });
+});
+
 test.describe("a picture frame and effect in the browser", () => {
+  test("the Black Widow frame is drawn at 2.2 times the photo ring and does not widen the page", async ({ page }) => {
+    await page.goto("/dev-fixtures/decor?frame=widow");
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /--pf-inset:\s*-60\.0%/);
+    // The animation itself, or its still when the device asks for less motion.
+    await expect(page.locator(".pf-custom img")).toHaveAttribute("src", /\/decorations\/black-widow(\.poster)?\.webp$/);
+    const ring = await page.locator("span.rounded-full.border-accent").boundingBox();
+    const frame = await page.locator(".pf-custom").boundingBox();
+    expect(ring && frame && Math.abs(frame.width / ring.width - 2.2) < 0.1).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+
   test("the frame is drawn at the size set, and the standard size when none is set", async ({ page }) => {
     await page.goto("/dev-fixtures/decor?scale=180");
     await expect(page.locator(".pf-custom")).toHaveAttribute("style", /--pf-inset:\s*-40\.0%/);

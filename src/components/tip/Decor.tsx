@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FileFrame, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
 // library (`posterUrl` is the still of a GIF). Null draws nothing.
 export type DecorRender =
-  | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom"> | Exclude<BannerFx, "none" | "custom"> }
+  | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom" | FileFrame> | Exclude<BannerFx, "none" | "custom"> }
   // `scale` (frames only) is the size as a percent of the photo; left out it is the standard size.
   | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number }
   | null;

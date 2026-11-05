@@ -1,6 +1,6 @@
 # Avatar decorations and banner effects: plan (2026-11-05)
 
-Status: PLAN ONLY. Nothing here is built. Written after reading the code and after looking at the owner's screen recording of a Discord profile (11 s, frames pulled out with ffmpeg).
+Status (2026-11-05): Part A is built. Part B is under way: the Black Widow frame is built (section 9); Flame Fist, Storm Eye and the widow's fog-and-creature banner effect are not. Written after reading the code and after looking at the owner's screen recording of a Discord profile (11 s, frames pulled out with ffmpeg).
 
 ## 1. What the reference does
 
@@ -78,3 +78,15 @@ Budget and safety rules for every one: no work while off-screen; capped frame ra
 - Part A: (touches the upload rules, the parser, the editor and the renderer).
 - Part B, the widow rig and timeline: xhigh (the hard part is the motion, and it needs many rounds against the reference).
 - A review of the creator-upload opening (moderation, copyright):, before it opens to anyone but the owner.
+
+## 9. Part B status (2026-11-05)
+
+Owner's answers to section 7: render once as a file (decision 2), the first set of three is right (decision 3), owner only for now with a paid switch wired in Part A (decision 4), Part A first (decision 5).
+
+**Black Widow frame, built (no extra review, no migration).** Code in `tools/decor-render/` (see its README): a spider rig with a stepping gait and shaded drawing, one 14 s timeline, recorded in the Mac's Chrome and saved as `public/decorations/black-widow.webp` (480 px, about 2.0 MB, 278 frames, 24 frames a second while it walks and 15 while it rests) with a still `black-widow.poster.webp`. It is a new ready-made frame, "Black Widow", offered in the Effects tab and the page editor (`FILE_FRAMES` in `src/lib/page-doc/decor.ts`), drawn at 220 percent of the photo ring through the same path as an uploaded animation (still until the device may play motion). What it does: the widow perches on the rim facing the middle of the photo, turns, walks along the rim to the other side head first, perches again, and back; three small red spiders crawl out from under its head over the face and go back; a front leg lifts and feels the air now and then; the loop starts and ends settled and closes (mean difference 0.001 of 255).
+
+Honest limits: this is procedural art, shaded and lit like the reference but not painted; the widow covers part of the photo while it rests (the reference does too); the frame size is fixed at 220 percent because the spider's legs reach that far.
+
+Not built yet: the fog-and-creature banner effect that goes with the widow in the reference (a whole-header layer), Flame Fist, Storm Eye. The plan's live-canvas option was not chosen.
+
+Weight: the 2.0 MB file is loaded only after the page has loaded and only when the device may play motion (`mayPlayMotion`: not with reduced motion, data saver, a 3G or slower connection, or 2 GB of memory or less); every other device gets the 17 KB still. If it is too heavy for the owner, the levers are `--out 400`, `--calm 12` and `--aq 25`, each in `tools/decor-render/README.md`.

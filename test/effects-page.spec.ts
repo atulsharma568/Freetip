@@ -22,10 +22,21 @@ test.describe("the Effects picker", () => {
     await expect(page.locator(".bfx-clutch")).toHaveCount(0);
   });
 
+  test("Black Widow is a pick that draws the finished animation over the photo", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    await page.getByRole("button", { name: /Black Widow/ }).click();
+    await expect(page.getByRole("button", { name: /Black Widow/ })).toHaveAttribute("aria-pressed", "true");
+    // The animation itself, or its still when the device asks for less motion; no CSS ring beside it.
+    await expect(page.locator(".pf-custom img")).toHaveAttribute("src", /\/decorations\/black-widow(\.poster)?\.webp$/);
+    await expect(page.locator(".pf-foxfire")).toHaveCount(0);
+    await page.getByRole("button", { name: /^No frame/ }).click();
+    await expect(page.locator(".pf-custom")).toHaveCount(0);
+  });
+
   test("every look can be picked and the page does not scroll sideways at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/dev-fixtures/effects");
-    for (const label of ["Flame ring", "Pulsing aura", "Slash ring", "Fox-fire", "Sweeping slashes", "Soft glow sweep", "Spider crawl", "Storm", "Neon glitch", "Falling petals", "No effect"]) {
+    for (const label of ["Flame ring", "Pulsing aura", "Slash ring", "Fox-fire", "Sweeping slashes", "Soft glow sweep", "Spider crawl", "Storm", "Neon glitch", "Falling petals", "No effect", "Black Widow"]) {
       await page.getByRole("button", { name: new RegExp(label) }).click();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

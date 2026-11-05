@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTipDecor } from "@/app/actions/tip-decor";
 import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
-import { PRESET_BANNER_FX, PRESET_FRAMES, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
+import { FILE_FRAMES, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -18,6 +18,7 @@ const FRAME_INFO: Record<PresetFrame, { label: string; about: string }> = {
   aura: { label: "Pulsing aura", about: "A soft pulse with sparks rising." },
   slash: { label: "Slash ring", about: "A dashed ring with a blade of light." },
   foxfire: { label: "Fox-fire", about: "Small flames crawl over the top of your photo." },
+  widow: { label: "Black Widow", about: "A big spider walks the rim of your photo and settles; small ones crawl over your face." },
 };
 
 const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
@@ -32,7 +33,14 @@ const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
 };
 
-const preset = (style: string): DecorRender => (style === "none" ? null : ({ kind: "preset", style } as DecorRender));
+const preset = (style: string): DecorRender => {
+  if (style === "none") return null;
+  if (isFileFrame(style)) {
+    const f = FILE_FRAMES[style];
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+  }
+  return { kind: "preset", style } as DecorRender;
+};
 
 // A card you tap to pick a look.
 function Choice({ on, label, about, onPick }: { on: boolean; label: string; about: string; onPick: () => void }) {

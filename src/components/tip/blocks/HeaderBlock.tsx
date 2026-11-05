@@ -4,6 +4,7 @@ import { CreatorPanel } from "@/components/tip/CreatorPanel";
 import type { DecorRender } from "@/components/tip/Decor";
 import { useTipForm } from "@/components/tip/TipFormContext";
 import { usableFor, type AssetUse, type ResolvedAsset } from "@/lib/page-doc/assets";
+import { FILE_FRAMES, isFileFrame } from "@/lib/page-doc/decor";
 import type { Block } from "@/lib/page-doc/types";
 import { useMotionAllowed } from "./use-motion";
 
@@ -14,10 +15,14 @@ function GifBanner({ asset, render }: { asset: ResolvedAsset; render: (url: stri
   return <>{render(motion ? asset.url : asset.posterUrl)}</>;
 }
 
-// What to draw for the frame or the effect: the ready-made look, or the library file when the choice
-// is "custom" and the file is there and fits (otherwise nothing, so the page is plain).
+// What to draw for the frame or the effect: the ready-made look (drawn in CSS, or a finished animation
+// that ships with the site), or the library file when the choice is "custom" and the file is there and fits (otherwise nothing, so the page is plain).
 function decor(style: string, id: number | null, use: AssetUse, assets: Record<number, ResolvedAsset | undefined>, scale?: number): DecorRender {
   if (style === "none") return null;
+  if (use === "frame" && isFileFrame(style)) {
+    const f = FILE_FRAMES[style];
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+  }
   if (style !== "custom") return { kind: "preset", style } as DecorRender;
   const asset = id === null ? undefined : assets[id];
   if (!asset || !usableFor(asset.kind, use)) return null;

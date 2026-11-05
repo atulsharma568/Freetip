@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>decor-render</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+</style>
+<script type="module">
+  import { createScene, BUSY } from "./widow.js";
+
+  const SS = 2; // drawn at twice the size and shrunk once, so the thin legs have clean edges
+  const scene = createScene();
+  const { W } = scene;
+
+  const layer = () => {
+    const c = document.createElement("canvas");
+    c.width = c.height = W * SS;
+    const x = c.getContext("2d");
+    x.scale(SS, SS);
+    return [c, x];
+  };
+  const [bodyCanvas, bodyCtx] = layer();
+  const [shadowCanvas, shadowCtx] = layer();
+  const out = document.createElement("canvas");
+  out.width = out.height = W * SS;
+  const outCtx = out.getContext("2d");
+  // The size of the saved picture; the drawing itself is always laid out on W.
+  const OUT = Number(new URLSearchParams(location.search).get("out")) || W;
+  const fin = document.createElement("canvas");
+  fin.width = fin.height = OUT;
+  const finCtx = fin.getContext("2d");
+
+  const clear = (c, x) => {
+    x.save();
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.clearRect(0, 0, c.width, c.height);
+    x.restore();
+  };
+
+  let now = 0;
+  const STEP = 1 / 120;
+
+  window.scene = {
+    info: () => ({ T: scene.T, W, OUT, busy: BUSY, R: scene.R, scalePercent: scene.SCALE_PERCENT, now }),
+    advance(to) {
+      while (now < to - 1e-9) {
+        const dt = Math.min(STEP, to - now);
+        now += dt;
+        for (const s of scene.spiders) s.update(now, dt);
+      }
+      return now;
+    },
+    render() {
+      clear(bodyCanvas, bodyCtx);
+      clear(shadowCanvas, shadowCtx);
+      for (const s of scene.spiders) s.draw(bodyCtx, shadowCtx, now);
+      clear(out, outCtx);
+      outCtx.filter = `blur(${3.4 * SS}px)`;
+      outCtx.drawImage(shadowCanvas, 0, 0);
+      outCtx.filter = "none";
+      outCtx.drawImage(bodyCanvas, 0, 0);
+      clear(fin, finCtx);
+      finCtx.imageSmoothingEnabled = true;
+      finCtx.imageSmoothingQuality = "high";
+      finCtx.drawImage(out, 0, 0, OUT, OUT);
+      return fin.toDataURL("image/png");
+    },
+  };
+  window.sceneReady = true;
+</script>
