@@ -11,7 +11,13 @@ import type { PageDoc } from "./types";
 export const AVATAR_PIC_IDS = ["peakyblinders", "applekitty", "explosivecat", "killua", "angel", "nanami", "naoya"] as const;
 export type AvatarPicId = (typeof AVATAR_PIC_IDS)[number];
 
-export const FRAME_STYLES = ["none", "widow", ...AVATAR_PIC_IDS, "custom"] as const;
+// Three separate things on the header: the profile picture (the creator's own photo, or one of these
+// animated pictures in its place), the frame drawn over it, and the effect over the banner.
+export const AVATAR_STYLES = ["none", ...AVATAR_PIC_IDS] as const;
+export type AvatarStyle = (typeof AVATAR_STYLES)[number];
+export const isAvatarStyle = (v: unknown): v is AvatarStyle => typeof v === "string" && (AVATAR_STYLES as readonly string[]).includes(v);
+
+export const FRAME_STYLES = ["none", "widow", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
 // The ready-made animations that ship with the site, one file each (see FILE_FX below). Listed here
@@ -40,8 +46,12 @@ export type BannerFx = (typeof BANNER_FX)[number];
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
   { value: "none", label: "No frame" },
   { value: "widow", label: "Black Widow (a spider walks the rim of the photo, small ones crawl over it)" },
-  ...AVATAR_PIC_IDS.map((id) => ({ value: id, label: `${AVATAR_PIC_INFO[id].label} (animated profile picture)` })),
   { value: "custom", label: "Your own picture or GIF" },
+];
+
+export const AVATAR_OPTIONS: { value: AvatarStyle; label: string }[] = [
+  { value: "none", label: "Your own photo" },
+  ...AVATAR_PIC_IDS.map((id) => ({ value: id, label: `${AVATAR_PIC_INFO[id].label} (animated profile picture)` })),
 ];
 
 export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
@@ -57,17 +67,27 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
 // saved as an animated WebP with a still of its first frame), not drawn in CSS. `scale` is the size
 // as a percent of the photo's ring, the same number as the `frameScale` setting of an uploaded frame.
 // `round` cuts the picture to a circle (the animated profile pictures, which are opaque squares at the photo's own size).
-export const FILE_FRAMES: Record<"widow" | AvatarPicId, { url: string; posterUrl: string; scale: number; round?: boolean; animated: boolean }> = {
+export const FILE_FRAMES: Record<"widow", { url: string; posterUrl: string; scale: number; round?: boolean; animated: boolean }> = {
   widow: { url: "/decorations/black-widow.webp", posterUrl: "/decorations/black-widow.poster.webp", scale: 220, animated: true },
-  ...(Object.fromEntries(
-    AVATAR_PIC_IDS.map((id) => {
-      const i = AVATAR_PIC_INFO[id];
-      return [id, { url: `/decorations/${i.file}.webp`, posterUrl: `/decorations/${i.file}.poster.webp`, scale: 100, round: true, animated: !i.still }];
-    }),
-  ) as Record<AvatarPicId, { url: string; posterUrl: string; scale: number; round?: boolean; animated: boolean }>),
 };
 export type FileFrame = keyof typeof FILE_FRAMES;
 export const isFileFrame = (v: string): v is FileFrame => Object.hasOwn(FILE_FRAMES, v);
+
+// The animated profile pictures: opaque squares cut round that play in the photo's own place.
+export const AVATAR_PICS: Record<AvatarPicId, { url: string; posterUrl: string; animated: boolean }> = Object.fromEntries(
+  AVATAR_PIC_IDS.map((id) => {
+    const i = AVATAR_PIC_INFO[id];
+    return [id, { url: `/decorations/${i.file}.webp`, posterUrl: `/decorations/${i.file}.poster.webp`, animated: !i.still }];
+  }),
+) as Record<AvatarPicId, { url: string; posterUrl: string; animated: boolean }>;
+export const isAvatarPic = (v: string): v is AvatarPicId => Object.hasOwn(AVATAR_PICS, v);
+
+// Before the profile picture had its own setting, an animated one was stored as the frame. Read it
+// back as a profile picture so a saved page keeps its look.
+export function splitLegacyFrame(frame: unknown, avatar: unknown): { frame: unknown; avatar: unknown } {
+  if (avatar === undefined && isAvatarStyle(frame) && frame !== "none") return { frame: "none", avatar: frame };
+  return { frame, avatar };
+}
 
 // Effects that are a finished animation too: ready-made animated pictures (the files in
 // public/decorations, converted to animated WebP by tools/decor-render/import-gifs.mjs, each with a
@@ -120,6 +140,7 @@ export function steady(index: number, salt: number): number {
 export type PresetFrame = Exclude<FrameStyle, "custom">;
 export type PresetBannerFx = Exclude<BannerFx, "custom">;
 export interface TipDecor {
+  avatar: AvatarStyle;
   frame: PresetFrame;
   bannerFx: PresetBannerFx;
 }
@@ -132,8 +153,10 @@ export const PRESET_BANNER_FX: readonly PresetBannerFx[] = BANNER_FX.filter((f):
 export function parseTipDecor(raw: unknown): TipDecor | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
+  const split = splitLegacyFrame(r.frame, r.avatar);
   return {
-    frame: PRESET_FRAMES.find((f) => f === r.frame) ?? "none",
+    avatar: AVATAR_STYLES.find((a) => a === split.avatar) ?? "none",
+    frame: PRESET_FRAMES.find((f) => f === split.frame) ?? "none",
     bannerFx: PRESET_BANNER_FX.find((f) => f === r.bannerFx) ?? "none",
   };
 }
@@ -145,7 +168,7 @@ export function applyTipDecor(doc: PageDoc, decor: TipDecor | null): PageDoc {
   return {
     ...doc,
     blocks: doc.blocks.map((b) =>
-      b.type === "header" ? { ...b, settings: { ...b.settings, frame: decor.frame, frameAsset: null, bannerFx: decor.bannerFx, bannerFxAsset: null } } : b,
+      b.type === "header" ? { ...b, settings: { ...b.settings, avatar: decor.avatar, frame: decor.frame, frameAsset: null, bannerFx: decor.bannerFx, bannerFxAsset: null } } : b,
     ),
   };
 }

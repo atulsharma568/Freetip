@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTipDecor } from "@/app/actions/tip-decor";
-import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
-import { AVATAR_PIC_IDS, AVATAR_PIC_INFO, FILE_FRAMES, FILE_FX, FILE_FX_IDS, FILE_FX_INFO, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type AvatarPicId, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
+import { AvatarPicture, BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
+import { AVATAR_PICS, AVATAR_PIC_IDS, AVATAR_PIC_INFO, FILE_FRAMES, FILE_FX, FILE_FX_IDS, FILE_FX_INFO, PRESET_BANNER_FX, PRESET_FRAMES, isAvatarPic, isFileFrame, isFileFx, type AvatarStyle, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -13,12 +13,13 @@ import { useUnsavedWarning } from "../parts/useUnsavedWarning";
 import { pillPrimary } from "../parts/styles";
 
 const FRAME_INFO: Record<PresetFrame, { label: string; about: string }> = {
-  none: { label: "No frame", about: "Just your photo." },
+  none: { label: "No frame", about: "Your photo or profile picture with nothing around it." },
   widow: { label: "Black Widow", about: "A big spider walks the rim of your photo and settles; small ones crawl over your face." },
-  ...(Object.fromEntries(
-    AVATAR_PIC_IDS.map((id) => [id, { label: AVATAR_PIC_INFO[id].label, about: AVATAR_PIC_INFO[id].still ? "A picture that replaces your photo." : "An animated picture that replaces your photo." }]),
-  ) as Record<AvatarPicId, { label: string; about: string }>),
 };
+
+const AVATAR_INFO = Object.fromEntries(
+  AVATAR_PIC_IDS.map((id) => [id, { label: AVATAR_PIC_INFO[id].label, about: AVATAR_PIC_INFO[id].still ? "A picture that replaces your photo." : "An animated picture that replaces your photo." }]),
+) as Record<(typeof AVATAR_PIC_IDS)[number], { label: string; about: string }>;
 
 const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   none: { label: "No effect", about: "Your banner as it is." },
@@ -32,6 +33,10 @@ const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
 
 const preset = (style: string): DecorRender => {
   if (style === "none") return null;
+  if (isAvatarPic(style)) {
+    const f = AVATAR_PICS[style];
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, round: true };
+  }
   if (isFileFrame(style)) {
     const f = FILE_FRAMES[style];
     return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, scale: f.scale, round: f.round };
@@ -73,21 +78,22 @@ export function EffectsManager({
   name: string;
 }) {
   const router = useRouter();
+  const [avatar, setAvatar] = useState<AvatarStyle>(saved.avatar);
   const [frame, setFrame] = useState<PresetFrame>(saved.frame);
   const [fx, setFx] = useState<PresetBannerFx>(saved.bannerFx);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [live, setLive] = useState<TipDecor>(saved);
-  const same = frame === live.frame && fx === live.bannerFx;
+  const same = avatar === live.avatar && frame === live.frame && fx === live.bannerFx;
   useUnsavedWarning(!same);
 
   async function save() {
     setBusy(true);
     setMessage(null);
-    const result = await saveTipDecor({ frame, bannerFx: fx });
+    const result = await saveTipDecor({ avatar, frame, bannerFx: fx });
     setBusy(false);
     if (result.status === "ok") {
-      setLive({ frame, bannerFx: fx });
+      setLive({ avatar, frame, bannerFx: fx });
       setMessage({ kind: "ok", text: "Saved. It is live on your tip page now." });
       router.refresh();
     } else {
@@ -114,6 +120,7 @@ export function EffectsManager({
             {!(isFileFx(fx) && FILE_FX[fx].wholeHeader) && <BannerEffect render={preset(fx)} />}
           </div>
           <span className="relative z-10 -mt-14 ml-6 inline-block rounded-full border-2 border-accent bg-ground p-1.5 sm:-mt-16">
+            <AvatarPicture render={preset(avatar)} />
             <PhotoFrame render={preset(frame)} />
             {pictureUrl ? (
               <Image src={pictureUrl} alt={`${name}'s profile photo`} width={96} height={96} className="block size-20 rounded-full sm:size-24" />
@@ -133,10 +140,20 @@ export function EffectsManager({
       }
     >
 
+      <Tile id="effects-avatar" title="Profile picture" level={2}>
+        <p className="text-sm text-muted">Your own photo, or a ready-made animated picture in its place. The frame below goes over whichever you pick.</p>
+        <div role="group" aria-label="Profile picture" className="grid gap-2 sm:grid-cols-2">
+          <Choice on={avatar === "none"} label="Your own photo" about="The photo from your account." onPick={() => setAvatar("none")} />
+          {AVATAR_PIC_IDS.map((id) => (
+            <Choice key={id} on={avatar === id} label={AVATAR_INFO[id].label} about={AVATAR_INFO[id].about} thumb={AVATAR_PICS[id].posterUrl} onPick={() => setAvatar(id)} />
+          ))}
+        </div>
+      </Tile>
+
       <Tile id="effects-frame" title="Frame over your photo" level={2}>
         <div role="group" aria-label="Frame over your photo" className="grid gap-2 sm:grid-cols-2">
           {PRESET_FRAMES.map((f) => (
-            <Choice key={f} on={frame === f} label={FRAME_INFO[f].label} about={FRAME_INFO[f].about} thumb={isFileFrame(f) && f !== "widow" ? FILE_FRAMES[f].posterUrl : undefined} onPick={() => setFrame(f)} />
+            <Choice key={f} on={frame === f} label={FRAME_INFO[f].label} about={FRAME_INFO[f].about} onPick={() => setFrame(f)} />
           ))}
         </div>
       </Tile>

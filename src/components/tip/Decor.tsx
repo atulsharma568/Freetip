@@ -50,6 +50,17 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
   return null;
 }
 
+// An animated profile picture, drawn in the photo's own place and cut round. It is a picture of
+// its own, not a frame: the frame (if any) is drawn over it.
+export function AvatarPicture({ render }: { render: DecorRender }) {
+  if (!render || render.kind !== "custom") return null;
+  return (
+    <span aria-hidden="true" className="pf pf-custom" style={{ inset: 0, borderRadius: "9999px", overflow: "hidden" }}>
+      <CustomPicture render={render} className="object-cover" />
+    </span>
+  );
+}
+
 // The effect layer over a banner. It sits inside the banner's own box, so it is cut to its shape.
 export function BannerEffect({ render }: { render: DecorRender }) {
   if (!render) return null;

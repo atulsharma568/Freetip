@@ -10,10 +10,10 @@ import { mayPickTipDecor, parseTipDecor } from "@/lib/page-doc/decor";
 
 export type TipDecorActionResult = { status: "ok" } | { status: "error"; message: string };
 
-// Saves the pick of the frame over the photo and the effect over the banner. Checked here, not only
+// Saves the pick of the profile picture, the frame over the photo and the effect over the banner. Checked here, not only
 // in the page: only the owner's own page and a creator with "Photo frame and banner effects" switched on have it, and each choice must be one of the
 // ready-made looks (anything else would be stored as "none", so it is refused instead).
-export async function saveTipDecor(input: { frame: string; bannerFx: string }): Promise<TipDecorActionResult> {
+export async function saveTipDecor(input: { avatar: string; frame: string; bannerFx: string }): Promise<TipDecorActionResult> {
   const session = await auth();
   const googleId = (session?.user as { googleId?: string } | undefined)?.googleId;
   if (!googleId) return { status: "error", message: "Sign in again to change your photo and banner effects." };
@@ -25,7 +25,7 @@ export async function saveTipDecor(input: { frame: string; bannerFx: string }): 
   if (!mayPickTipDecor(isOwnerTipPage(row.handle, googleId), row)) return { status: "error", message: "Photo and banner effects are not switched on for your account." };
 
   const parsed = parseTipDecor(input);
-  if (!parsed || parsed.frame !== input.frame || parsed.bannerFx !== input.bannerFx) {
+  if (!parsed || parsed.avatar !== input.avatar || parsed.frame !== input.frame || parsed.bannerFx !== input.bannerFx) {
     return { status: "error", message: "That is not one of the looks on offer." };
   }
   try {

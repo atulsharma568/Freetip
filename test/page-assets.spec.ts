@@ -241,7 +241,7 @@ test.describe("reading the picture settings of a stored document", () => {
     };
     const parsed = parsePageDoc(old)!;
     expect(find(parsed.doc, "backdrop")!.settings).toEqual({ style: "ember", asset: null, dim: 40 });
-    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
+    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: null, avatar: "none", frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
     expect(parsed.notes).toEqual([]);
   });
 
@@ -250,7 +250,7 @@ test.describe("reading the picture settings of a stored document", () => {
     const parsed = parsePageDoc(doc)!;
     expect(find(parsed.doc, "backdrop")!.settings).toEqual({ style: "media", asset: 5, dim: 65 });
     // The owner's page starts with the Clutch pulse banner; picking a banner picture leaves that alone.
-    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "clutch", bannerFxAsset: null, fxArea: "banner" });
+    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, avatar: "none", frame: "none", frameAsset: null, frameScale: 144, bannerFx: "clutch", bannerFxAsset: null, fxArea: "banner" });
     expect(usedAssetIds(parsed.doc)).toEqual([5, 6]);
   });
 

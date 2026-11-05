@@ -36,6 +36,11 @@ test.describe("the Effects picker", () => {
     await page.getByRole("button", { name: /Killua/ }).click();
     await expect(page.locator(".pf-custom img")).toHaveAttribute("src", /\/decorations\/killua(\.poster)?\.webp$/);
     await expect(page.locator(".bfx img")).toHaveCount(0);
+    // The frame is a separate pick: with a profile picture and the widow frame both on, two layers are drawn.
+    await page.getByRole("button", { name: /Black Widow/ }).click();
+    await expect(page.locator(".pf-custom")).toHaveCount(2);
+    await page.getByRole("button", { name: /Your own photo/ }).click();
+    await expect(page.locator(".pf-custom")).toHaveCount(1);
   });
 
   test("an animated banner picture is a pick that plays over the banner strip", async ({ page }) => {

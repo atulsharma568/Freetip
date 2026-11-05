@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Lightning, MonitorPlay, UserMinus } from "@phosphor-icons/react";
 import { INK_HEX, SITE_HOST } from "@/lib/site";
 import { isUploadedBannerUrl } from "@/lib/tip-banner";
-import { BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
+import { AvatarPicture, BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
 
 const PERKS = [
   { Icon: Lightning, text: "UPI and cards" },
@@ -25,6 +25,7 @@ export function CreatorPanel({
   bio,
   previewMode,
   headingAs: Heading = "h1",
+  avatar = null,
   frame = null,
   bannerFx = null,
   fxWholeHeader = false,
@@ -40,6 +41,8 @@ export function CreatorPanel({
   // The tip page's one h1; the dashboard preview sits under its own h1, so it passes "h3".
   headingAs?: "h1" | "h3";
   // An animated frame over the photo and an effect over the banner (custom tip page); null draws none.
+  // `avatar` is an animated profile picture in the photo's place; `frame` is the ring drawn over it.
+  avatar?: DecorRender;
   frame?: DecorRender;
   bannerFx?: DecorRender;
   // The effect covers the banner, photo, name and bio instead of only the banner strip.
@@ -82,6 +85,7 @@ export function CreatorPanel({
           </div>
         )}
         <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : fxBehind ? "z-[2]" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
+          <AvatarPicture render={avatar} />
           <PhotoFrame render={frame} />
           {pictureUrl ? (
             <Image

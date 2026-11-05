@@ -40,7 +40,7 @@ export function ownerPageDoc(): PageDoc {
       // The "Clutch pulse" banner (a heartbeat line and a crosshair lock-on, in the page's crimson) and
       // no ring over the photo. They are only the owner's default: another creator's page starts with
       // neither (see decor.ts).
-      make("header", "side", { frame: "none", bannerFx: "clutch" }),
+      make("header", "side", { avatar: "none", frame: "none", bannerFx: "clutch" }),
       make("creatorLinks", "side", { tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" }),
       make("alertPreview", "side"),
       make("qr", "side"),

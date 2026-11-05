@@ -4,7 +4,7 @@ import { CreatorPanel } from "@/components/tip/CreatorPanel";
 import type { DecorRender } from "@/components/tip/Decor";
 import { useTipForm } from "@/components/tip/TipFormContext";
 import { usableFor, type AssetUse, type ResolvedAsset } from "@/lib/page-doc/assets";
-import { FILE_FRAMES, FILE_FX, isFileFrame, isFileFx } from "@/lib/page-doc/decor";
+import { AVATAR_PICS, FILE_FRAMES, FILE_FX, isAvatarPic, isFileFrame, isFileFx } from "@/lib/page-doc/decor";
 import type { Block } from "@/lib/page-doc/types";
 import { useMotionAllowed } from "./use-motion";
 
@@ -40,11 +40,13 @@ export function HeaderBlock({ block }: { block: Block<"header"> }) {
   const { displayName, pictureUrl, bannerUrl, ytChannelName, ytChannelUrl, bio, previewMode, assets } = useTipForm();
   const id = block.settings.bannerAsset;
   const asset = id === null ? undefined : assets[id];
-  const { frame, frameAsset, frameScale, bannerFx, bannerFxAsset, fxArea } = block.settings;
+  const { avatar, frame, frameAsset, frameScale, bannerFx, bannerFxAsset, fxArea } = block.settings;
+  const avatarRender: DecorRender = isAvatarPic(avatar) ? { kind: "custom", ...AVATAR_PICS[avatar], round: true } : null;
   const frameRender = decor(frame, frameAsset, "frame", assets, frameScale);
   const fxRender = decor(bannerFx, bannerFxAsset, "fx", assets);
   const panel = (banner: string | null) => (
     <CreatorPanel
+      avatar={avatarRender}
       frame={frameRender}
       bannerFx={fxRender}
       // Only a picture or animation of the library can cover the whole header; a ready-made effect is

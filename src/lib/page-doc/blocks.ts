@@ -83,7 +83,7 @@ export function isBlockType(value: unknown): value is BlockType {
 
 const DEFAULTS: { [K in BlockType]: () => SettingsByType[K] } = {
   backdrop: () => ({ style: "ember", asset: null, dim: 40 }),
-  header: () => ({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: FRAME_SCALE.standard, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" }),
+  header: () => ({ bannerAsset: null, avatar: "none", frame: "none", frameAsset: null, frameScale: FRAME_SCALE.standard, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" }),
   creatorLinks: () => ({ tagline: "", instagram: "" }),
   alertPreview: () => ({ label: "" }),
   qr: () => ({}),

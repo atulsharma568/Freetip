@@ -39,6 +39,7 @@ export default async function EffectsPage() {
   const start = header && header.type === "header" ? header.settings : null;
   const saved = await readTipDecor(user.id);
   const current = saved ?? {
+    avatar: start ? start.avatar : "none",
     frame: start && start.frame !== "custom" ? start.frame : "none",
     bannerFx: start && start.bannerFx !== "custom" ? start.bannerFx : "none",
   };
@@ -61,7 +62,7 @@ export default async function EffectsPage() {
           <DashboardNav current="decor" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Photo and banner effects</h1>
           <p className="text-pretty text-base text-muted">
-            Pick an animated frame for your photo and an animated effect for your banner. Tap a look to see it on the preview, then
+            Pick a profile picture, an animated frame over it and an animated effect for your banner. Tap a look to see it on the preview, then
             press Save and it is live on your tip page straight away. You can change or switch it off any time.
           </p>
         </div>

@@ -19,7 +19,7 @@ const withHeader = (patch: Record<string, unknown>): PageDoc => {
 
 test.describe("photo frame and banner effect", () => {
   test("a page that sets nothing has no frame and no effect", () => {
-    expect(header(defaultPageDoc()).settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
+    expect(header(defaultPageDoc()).settings).toEqual({ bannerAsset: null, avatar: "none", frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
   });
 
   test("a chosen look is kept, an unknown one becomes none", () => {
@@ -130,18 +130,18 @@ test.describe("the owner's own page", () => {
 test.describe("the pick saved from the dashboard", () => {
   test("only ready-made looks are read back, anything else is none", async () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ frame: "widow", bannerFx: "clutch" });
-    expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ frame: "none", bannerFx: "none" });
-    for (const fx of ["embers", "petals", "sakura", "toney"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
-    expect(parseTipDecor({})).toEqual({ frame: "none", bannerFx: "none" });
+    expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ avatar: "none", frame: "widow", bannerFx: "clutch" });
+    expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
+    for (const fx of ["embers", "petals", "sakura", "toney"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ avatar: "none", frame: "none", bannerFx: fx });
+    expect(parseTipDecor({})).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
     for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
   });
 
   test("it replaces the header's two settings and any uploaded file there, and nothing else", async () => {
     const { applyTipDecor } = await import("../src/lib/page-doc/decor");
     const doc = withHeader({ frame: "custom", frameAsset: 4, bannerFx: "custom", bannerFxAsset: 5, bannerAsset: 6 });
-    const out = applyTipDecor(doc, { frame: "widow", bannerFx: "embers" });
-    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "widow", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
+    const out = applyTipDecor(doc, { avatar: "none", frame: "widow", bannerFx: "embers" });
+    expect(header(out).settings).toEqual({ bannerAsset: 6, avatar: "none", frame: "widow", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
     expect(out.blocks.length).toBe(doc.blocks.length);
     expect(applyTipDecor(doc, null)).toBe(doc);
   });
@@ -169,12 +169,12 @@ test.describe("the pick saved from the dashboard", () => {
     for (const gone of ["flame", "aura", "slash", "foxfire"]) {
       expect(FRAME_OPTIONS.map((o) => o.value)).not.toContain(gone);
       expect(header(parsePageDoc(withHeader({ frame: gone }))!.doc).settings.frame).toBe("none");
-      expect(parseTipDecor({ frame: gone, bannerFx: "none" })).toEqual({ frame: "none", bannerFx: "none" });
+      expect(parseTipDecor({ frame: gone, bannerFx: "none" })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
     }
     for (const gone of ["slashes", "shimmer", "spider", "storm", "glitch", "widowfog"]) {
       expect(BANNER_FX_OPTIONS.map((o) => o.value)).not.toContain(gone);
       expect(header(parsePageDoc(withHeader({ bannerFx: gone }))!.doc).settings.bannerFx).toBe("none");
-      expect(parseTipDecor({ frame: "none", bannerFx: gone })).toEqual({ frame: "none", bannerFx: "none" });
+      expect(parseTipDecor({ frame: "none", bannerFx: gone })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
     }
   });
 });
@@ -202,23 +202,31 @@ test.describe("the Black Widow frame, a finished animation that ships with the s
 });
 
 test.describe("the animated profile pictures that ship with the site", () => {
-  test("each is a round frame at the photo's own size, no longer a banner", async () => {
-    const { AVATAR_PIC_IDS, FILE_FRAMES, FRAME_OPTIONS, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, parseTipDecor } = await import("../src/lib/page-doc/decor");
+  test("each is its own setting, not a frame and not a banner effect", async () => {
+    const { AVATAR_PICS, AVATAR_PIC_IDS, FRAME_OPTIONS, AVATAR_OPTIONS, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, parseTipDecor } = await import("../src/lib/page-doc/decor");
     expect(AVATAR_PIC_IDS.length).toBe(7);
     for (const id of AVATAR_PIC_IDS) {
-      const f = FILE_FRAMES[id];
-      expect(PRESET_FRAMES).toContain(id);
-      expect(FRAME_OPTIONS.map((o) => o.value)).toContain(id);
+      const f = AVATAR_PICS[id];
+      expect(PRESET_FRAMES).not.toContain(id);
+      expect(FRAME_OPTIONS.map((o) => o.value)).not.toContain(id);
+      expect(AVATAR_OPTIONS.map((o) => o.value)).toContain(id);
       expect(PRESET_BANNER_FX).not.toContain(id);
-      expect(isFileFrame(id)).toBe(true);
-      expect(f.scale).toBe(100);
-      expect(f.round).toBe(true);
+      expect(isFileFrame(id)).toBe(false);
       expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
       expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
-      expect(header(parsePageDoc(withHeader({ frame: id }))!.doc).settings.frame).toBe(id);
-      expect(parseTipDecor({ frame: id, bannerFx: "none" })).toEqual({ frame: id, bannerFx: "none" });
+      expect(header(parsePageDoc(withHeader({ avatar: id }))!.doc).settings).toMatchObject({ avatar: id, frame: "none" });
+      expect(parseTipDecor({ avatar: id, frame: "widow", bannerFx: "none" })).toEqual({ avatar: id, frame: "widow", bannerFx: "none" });
     }
-    expect(FILE_FRAMES.angel.animated).toBe(false);
+    expect(AVATAR_PICS.angel.animated).toBe(false);
+  });
+
+  test("a profile picture saved as a frame before the split is read back as a profile picture", async () => {
+    const { parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(parseTipDecor({ frame: "killua", bannerFx: "none" })).toEqual({ avatar: "killua", frame: "none", bannerFx: "none" });
+    // A page stored before the split has no avatar key at all.
+    const old = withHeader({ frame: "killua" });
+    delete (header(old).settings as Record<string, unknown>).avatar;
+    expect(header(parsePageDoc(old)!.doc).settings).toMatchObject({ avatar: "killua", frame: "none" });
   });
 });
 
@@ -242,7 +250,7 @@ test.describe("the animated banner pictures that ship with the site", () => {
       expect(header(parsePageDoc(withHeader({ bannerFx: id }))!.doc).settings.bannerFx).toBe(id);
     }
     expect(FILE_FX.sakura.animated).toBe(true);
-    expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toEqual({ frame: "widow", bannerFx: "sakura" });
+    expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toEqual({ avatar: "none", frame: "widow", bannerFx: "sakura" });
   });
 
   test("one plays over the banner strip and does not widen the page", async ({ page }) => {
