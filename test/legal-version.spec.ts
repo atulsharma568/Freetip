@@ -17,6 +17,8 @@ const PINNED: Record<string, string> = {
   "4 November 2026, text 3": "a8e944a39d55082f6364c31db5434619fe164298ac06ef99c4d4414d659eb18c",
   // The Terms and pricing page now show the 3% payment processing fee next to the 5% fee.
   "4 November 2026, text 4": "622a8c5ec69c99fd08e6e74a369d9ce512d8a2a6b0c9e6ec5b25074e965370c5",
+  // The payout wording in the Terms and the other public pages no longer promises a schedule or names a payment partner.
+  "5 November 2026, text 5": "414824d032e58f09a4f6a03a53cc4f05fcc815f3f955838735e68879e205602b",
 };
 
 function fingerprint(): string {
