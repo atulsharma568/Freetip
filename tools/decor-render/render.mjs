@@ -41,9 +41,9 @@ const page = await browser.newPage({ viewport: { width: 600, height: 600 } });
 page.on("pageerror", (e) => console.error("page error:", e.message));
 page.on("console", (m) => m.type() === "error" && console.error("console:", m.text()));
 const outSize = flag("out", "");
-// --scene fog is the whole-header effect (fog.html); the default is the photo frame (index.html).
-const sceneName = flag("scene", "frame");
-const pageFile = sceneName === "fog" ? "fog.html" : "index.html";
+// The scene is the photo frame (index.html). The Dragon's fog scene (fog.html) was removed on 2026-11-05;
+// it is in git history, commit b15c778.
+const pageFile = "index.html";
 await page.goto(`http://127.0.0.1:${port}/${pageFile}${outSize ? `?out=${outSize}` : ""}`);
 await page.waitForFunction(() => window.sceneReady === true);
 const info = await page.evaluate(() => window.scene.info());

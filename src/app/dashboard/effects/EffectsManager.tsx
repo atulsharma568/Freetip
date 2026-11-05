@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTipDecor } from "@/app/actions/tip-decor";
 import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
-import { FILE_FRAMES, FILE_FX, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
+import { FILE_FRAMES, FILE_FX, FILE_FX_IDS, FILE_FX_INFO, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -14,24 +14,17 @@ import { pillPrimary } from "../parts/styles";
 
 const FRAME_INFO: Record<PresetFrame, { label: string; about: string }> = {
   none: { label: "No frame", about: "Just your photo." },
-  flame: { label: "Flame ring", about: "A glowing ring turns around your photo." },
-  aura: { label: "Pulsing aura", about: "A soft pulse with sparks rising." },
-  slash: { label: "Slash ring", about: "A dashed ring with a blade of light." },
-  foxfire: { label: "Fox-fire", about: "Small flames crawl over the top of your photo." },
   widow: { label: "Black Widow", about: "A big spider walks the rim of your photo and settles; small ones crawl over your face." },
 };
 
 const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   none: { label: "No effect", about: "Your banner as it is." },
   embers: { label: "Rising embers", about: "Embers drift up over the banner." },
-  slashes: { label: "Sweeping slashes", about: "Slashes of light sweep across." },
-  shimmer: { label: "Soft glow sweep", about: "A soft glow passes over the banner." },
   clutch: { label: "Clutch pulse", about: "A heartbeat line, a flash and a crosshair that locks on." },
-  spider: { label: "Spider crawl", about: "A spider scuttles along the bottom, another drops on a thread, a web in the corner." },
-  storm: { label: "Storm", about: "Fog drifting across with a lightning flash now and then." },
-  glitch: { label: "Neon glitch", about: "Scanlines, a sweeping beam and glitch bars." },
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
-  widowfog: { label: "Dragon's fog", about: "Fog and a forest roll over your whole header, a dragon rises, roars, breathes fire and sinks back, then it clears." },
+  ...(Object.fromEntries(
+    FILE_FX_IDS.map((id) => [id, { label: FILE_FX_INFO[id].label, about: FILE_FX_INFO[id].still ? "A picture that replaces the banner." : "An animated picture that replaces the banner." }]),
+  ) as Record<Exclude<PresetBannerFx, "none" | "embers" | "clutch" | "petals">, { label: string; about: string }>),
 };
 
 const preset = (style: string): DecorRender => {
@@ -42,13 +35,13 @@ const preset = (style: string): DecorRender => {
   }
   if (isFileFx(style)) {
     const f = FILE_FX[style];
-    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, wholeHeader: true };
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, wholeHeader: f.wholeHeader };
   }
   return { kind: "preset", style } as DecorRender;
 };
 
 // A card you tap to pick a look.
-function Choice({ on, label, about, onPick }: { on: boolean; label: string; about: string; onPick: () => void }) {
+function Choice({ on, label, about, onPick, thumb }: { on: boolean; label: string; about: string; onPick: () => void; thumb?: string }) {
   return (
     <button
       type="button"
@@ -58,6 +51,7 @@ function Choice({ on, label, about, onPick }: { on: boolean; label: string; abou
         on ? "border-accent bg-accent font-semibold text-ink" : "border-control text-text hover:border-muted"
       }`}
     >
+      {thumb && <Image src={thumb} alt="" width={160} height={64} unoptimized className="mb-1 h-14 w-full rounded-field object-cover" />}
       <span className="text-sm">{label}</span>
       <span className={`text-xs font-normal ${on ? "text-ink/80" : "text-muted"}`}>{about}</span>
     </button>
@@ -105,7 +99,7 @@ export function EffectsManager({
         {/* The tip page's header in your page colour: the banner strip with your photo overlapping its corner. */}
         <div className="relative space-y-3 rounded-surface bg-ground p-4" style={style}>
           {/* A finished whole-header effect covers the banner, photo and name, as it does on the tip page. */}
-          {isFileFx(fx) && (
+          {isFileFx(fx) && FILE_FX[fx].wholeHeader && (
             <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-surface">
               <BannerEffect render={preset(fx)} />
             </div>
@@ -114,7 +108,7 @@ export function EffectsManager({
             className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60"
             style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
           >
-            {!isFileFx(fx) && <BannerEffect render={preset(fx)} />}
+            {!(isFileFx(fx) && FILE_FX[fx].wholeHeader) && <BannerEffect render={preset(fx)} />}
           </div>
           <span className="relative z-10 -mt-14 ml-6 inline-block rounded-full border-2 border-accent bg-ground p-1.5 sm:-mt-16">
             <PhotoFrame render={preset(frame)} />
@@ -146,8 +140,17 @@ export function EffectsManager({
 
       <Tile id="effects-banner" title="Effect over your banner" level={2}>
         <div role="group" aria-label="Effect over your banner" className="grid gap-2 sm:grid-cols-2">
-          {PRESET_BANNER_FX.map((f) => (
+          {PRESET_BANNER_FX.filter((f) => !isFileFx(f)).map((f) => (
             <Choice key={f} on={fx === f} label={FX_INFO[f].label} about={FX_INFO[f].about} onPick={() => setFx(f)} />
+          ))}
+        </div>
+      </Tile>
+
+      <Tile id="effects-pictures" title="Animated banner pictures" level={2}>
+        <p className="text-sm text-muted">These replace your banner picture with a ready-made animation.</p>
+        <div role="group" aria-label="Animated banner pictures" className="grid gap-2 sm:grid-cols-2">
+          {PRESET_BANNER_FX.filter(isFileFx).map((f) => (
+            <Choice key={f} on={fx === f} label={FX_INFO[f].label} about={FX_INFO[f].about} thumb={FILE_FX[f].posterUrl} onPick={() => setFx(f)} />
           ))}
         </div>
       </Tile>

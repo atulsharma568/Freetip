@@ -1,6 +1,6 @@
 # Avatar decorations and banner effects: plan (2026-11-05)
 
-Status (2026-11-05): Part A is built. Part B is under way: the Black Widow frame is built (section 9); Flame Fist, Storm Eye and the widow's fog-and-creature banner effect are not. Written after reading the code and after looking at the owner's screen recording of a Discord profile (11 s, frames pulled out with ffmpeg).
+Status (2026-11-05): Part A is built. Part B was cut back the same day: the Black Widow frame stays (section 9); the owner judged the code-drawn Dragon's fog bad and it is removed, and Flame Fist and Storm Eye are no longer planned; ready-made animated banner pictures supplied by the owner replaced them (section 12). Written after reading the code and after looking at the owner's screen recording of a Discord profile (11 s, frames pulled out with ffmpeg).
 
 ## 1. What the reference does
 
@@ -102,3 +102,11 @@ Not built: Flame Fist, Storm Eye. The pfps.gg suggestion is a separate question 
 ## 11. pfps.gg (2026-11-05): not used so far
 
 The owner suggested taking avatars and banners from pfps.gg (animated pfps and banners). Its terms (read 2026-11-05): uploaders keep ownership and must hold the rights; the licence they grant runs to pfps.gg only; the site describes the files as "free to use on social media platforms"; commercial use, re-hosting and redistribution are not addressed. This repo is public and decorations are a paid feature, so shipping those files in `public/` is not safe. Nothing was downloaded. Options to put to the owner: (a) use the site for inspiration only and keep drawing our own; (b) let a creator download a file for themselves and upload it to their own page (their rights to answer for, which needs the moderation and copyright review that is already ahead); (c) ask individual artists for written permission, per file.
+
+## 12. Animated banner pictures supplied by the owner (2026-11-05, no migration)
+
+The owner called the code-drawn dragon "the shittest" they had seen, removed it, and supplied twelve files from `~/Downloads` (Peaky Blinders, Sakura, Solo Leveling, Apple kitty, Toney, Eternal, Fkimgworkkk, Explosive cat, Killua, Angel, Nanami, Naoya) to be shipped as ready-made paid effects. `tools/decor-render/import-gifs.mjs` converts each to an animated WebP plus a first-frame still in `public/decorations/` (0.4 to 1.8 MB; Angel is a still JPEG). They are listed in `FILE_FX_INFO` in `decor.ts` and show in the Effects tab under "Animated banner pictures" (with thumbnails) and in the page editor's banner-effect list.
+
+Also removed on the owner's order: the CSS looks Flame ring, Pulsing aura, Slash ring, Fox-fire, Sweeping slashes, Soft glow sweep, Spider crawl, Storm, Neon glitch, and Dragon's fog (its files and `fog.html`/`fog.js`; in git history, commit b15c778). Kept: Rising embers, Clutch pulse, Falling petals, and the Black Widow frame (not named by the owner). A stored page or pick naming a removed look reads back as none.
+
+Limits: the files are opaque pictures, so they replace the banner (they cannot be photo frames) and play over the banner strip, cut to fit; they are 128 to 637 px wide and stretch to the header, so the small ones (Apple kitty, Explosive cat, about 128 px) look blocky. **Licensing:** these are other people's anime and TV clips. The owner was told they would sit in a public repo and be given out as a paid feature, and chose to ship them anyway, accepting the risk (2026-11-05). A take-down request means deleting the file, its still, and its entry in `FILE_FX_INFO`.

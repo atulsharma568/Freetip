@@ -8,7 +8,7 @@ import { FILE_FRAMES, FILE_FX, isFileFrame, isFileFx } from "@/lib/page-doc/deco
 // A test-only creator header with a picture frame and a picture effect (a small drawing standing in
 // for an uploaded animated WebP), so the browser tests can check the frame's size and that an effect
 // can cover the whole header. `?scale=` is the frame size in percent, `?area=header` makes the effect
-// cover the whole header, `?fx=widowfog` shows a finished whole-header effect that ships with the site, `?frame=widow` shows a finished animation that ships with the site (over a plain
+// cover the whole header, `?fx=sakura` shows an animated banner picture that ships with the site, `?frame=widow` shows a finished animation that ships with the site (over a plain
 // banner picture, no effect). 404 unless PAGE_FIXTURES=1.
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Decor fixture", robots: { index: false, follow: false } };
@@ -45,7 +45,7 @@ export default async function DecorFixture({ searchParams }: { searchParams: Pro
         previewMode
         frame={frame}
         bannerFx={fx}
-        fxWholeHeader={area === "header" || fxFile !== null}
+        fxWholeHeader={area === "header" || fxFile?.wholeHeader === true}
       />
     </main>
   );

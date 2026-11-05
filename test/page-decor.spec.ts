@@ -23,8 +23,8 @@ test.describe("photo frame and banner effect", () => {
   });
 
   test("a chosen look is kept, an unknown one becomes none", () => {
-    const kept = parsePageDoc(withHeader({ frame: "flame", bannerFx: "embers" }))!;
-    expect(header(kept.doc).settings).toMatchObject({ frame: "flame", bannerFx: "embers" });
+    const kept = parsePageDoc(withHeader({ frame: "widow", bannerFx: "embers" }))!;
+    expect(header(kept.doc).settings).toMatchObject({ frame: "widow", bannerFx: "embers" });
     const bad = parsePageDoc(withHeader({ frame: "rainbow", bannerFx: 5 }))!;
     expect(header(bad.doc).settings).toMatchObject({ frame: "none", bannerFx: "none" });
   });
@@ -90,9 +90,9 @@ test.describe("photo frame and banner effect", () => {
   });
 
   test("the choices are set through the editor and refuse an unknown one", () => {
-    const doc = setChoice(defaultPageDoc(), "header", "frame", "slash").doc;
-    expect(header(doc).settings.frame).toBe("slash");
-    expect(setChoice(doc, "header", "bannerFx", "slashes").doc).not.toBe(doc);
+    const doc = setChoice(defaultPageDoc(), "header", "frame", "widow").doc;
+    expect(header(doc).settings.frame).toBe("widow");
+    expect(setChoice(doc, "header", "bannerFx", "petals").doc).not.toBe(doc);
     expect(setChoice(doc, "header", "frame", "rainbow").problems.length).toBe(1);
   });
 
@@ -130,9 +130,9 @@ test.describe("the owner's own page", () => {
 test.describe("the pick saved from the dashboard", () => {
   test("only ready-made looks are read back, anything else is none", async () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(parseTipDecor({ frame: "foxfire", bannerFx: "clutch" })).toEqual({ frame: "foxfire", bannerFx: "clutch" });
+    expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ frame: "widow", bannerFx: "clutch" });
     expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ frame: "none", bannerFx: "none" });
-    for (const fx of ["spider", "storm", "glitch", "petals"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
+    for (const fx of ["embers", "petals", "sakura", "killua"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ frame: "none", bannerFx: fx });
     expect(parseTipDecor({})).toEqual({ frame: "none", bannerFx: "none" });
     for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
   });
@@ -140,8 +140,8 @@ test.describe("the pick saved from the dashboard", () => {
   test("it replaces the header's two settings and any uploaded file there, and nothing else", async () => {
     const { applyTipDecor } = await import("../src/lib/page-doc/decor");
     const doc = withHeader({ frame: "custom", frameAsset: 4, bannerFx: "custom", bannerFxAsset: 5, bannerAsset: 6 });
-    const out = applyTipDecor(doc, { frame: "foxfire", bannerFx: "embers" });
-    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "foxfire", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
+    const out = applyTipDecor(doc, { frame: "widow", bannerFx: "embers" });
+    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "widow", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
     expect(out.blocks.length).toBe(doc.blocks.length);
     expect(applyTipDecor(doc, null)).toBe(doc);
   });
@@ -164,12 +164,18 @@ test.describe("the pick saved from the dashboard", () => {
     expect(wearsTipDecor(false, null)).toBe(false);
   });
 
-  test("the new fox-fire frame is a ready-made look the editor offers too", async () => {
-    const { FRAME_OPTIONS, PRESET_FRAMES } = await import("../src/lib/page-doc/decor");
-    expect(PRESET_FRAMES).toContain("foxfire");
-    expect(FRAME_OPTIONS.map((o) => o.value)).toContain("foxfire");
-    const kept = parsePageDoc(withHeader({ frame: "foxfire" }))!;
-    expect(header(kept.doc).settings.frame).toBe("foxfire");
+  test("the looks taken away are read back as none, both from a page and from a creator's pick", async () => {
+    const { BANNER_FX_OPTIONS, FRAME_OPTIONS, parseTipDecor } = await import("../src/lib/page-doc/decor");
+    for (const gone of ["flame", "aura", "slash", "foxfire"]) {
+      expect(FRAME_OPTIONS.map((o) => o.value)).not.toContain(gone);
+      expect(header(parsePageDoc(withHeader({ frame: gone }))!.doc).settings.frame).toBe("none");
+      expect(parseTipDecor({ frame: gone, bannerFx: "none" })).toEqual({ frame: "none", bannerFx: "none" });
+    }
+    for (const gone of ["slashes", "shimmer", "spider", "storm", "glitch", "widowfog"]) {
+      expect(BANNER_FX_OPTIONS.map((o) => o.value)).not.toContain(gone);
+      expect(header(parsePageDoc(withHeader({ bannerFx: gone }))!.doc).settings.bannerFx).toBe("none");
+      expect(parseTipDecor({ frame: "none", bannerFx: gone })).toEqual({ frame: "none", bannerFx: "none" });
+    }
   });
 });
 
@@ -195,33 +201,34 @@ test.describe("the Black Widow frame, a finished animation that ships with the s
   });
 });
 
-test.describe("the Dragon's fog effect, a finished whole-header animation that ships with the site", () => {
-  test("it is a ready-made choice with its files in place and a size inside the limits", async () => {
-    const { BANNER_FX_OPTIONS, FILE_FX, PRESET_BANNER_FX, isFileFx, parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(PRESET_BANNER_FX).toContain("widowfog");
-    expect(BANNER_FX_OPTIONS.map((o) => o.value)).toContain("widowfog");
-    expect(isFileFx("widowfog")).toBe(true);
-    expect(isFileFx("storm")).toBe(false);
+test.describe("the animated banner pictures that ship with the site", () => {
+  test("each is a ready-made choice with its files in place and a size inside the limits", async () => {
+    const { BANNER_FX_OPTIONS, FILE_FX, FILE_FX_IDS, PRESET_BANNER_FX, isFileFx, parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(FILE_FX_IDS.length).toBe(12);
     expect(isFileFx("toString")).toBe(false);
-    for (const f of Object.values(FILE_FX)) {
+    expect(isFileFx("embers")).toBe(false);
+    for (const id of FILE_FX_IDS) {
+      const f = FILE_FX[id];
+      expect(PRESET_BANNER_FX).toContain(id);
+      expect(BANNER_FX_OPTIONS.map((o) => o.value)).toContain(id);
+      expect(isFileFx(id)).toBe(true);
+      // Opaque pictures: they play over the banner strip, never over the whole header.
+      expect(f.wholeHeader).toBe(false);
       expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
       expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
-      expect(statSync(join(process.cwd(), "public", f.url)).size).toBeLessThan(2.6 * 1024 * 1024);
-      expect(statSync(join(process.cwd(), "public", f.posterUrl)).size).toBeLessThan(80 * 1024);
+      expect(statSync(join(process.cwd(), "public", f.url)).size).toBeLessThan(2.2 * 1024 * 1024);
+      expect(statSync(join(process.cwd(), "public", f.posterUrl)).size).toBeLessThan(60 * 1024);
+      expect(header(parsePageDoc(withHeader({ bannerFx: id }))!.doc).settings.bannerFx).toBe(id);
     }
-    expect(header(parsePageDoc(withHeader({ bannerFx: "widowfog" }))!.doc).settings.bannerFx).toBe("widowfog");
-    expect(parseTipDecor({ frame: "widow", bannerFx: "widowfog" })).toEqual({ frame: "widow", bannerFx: "widowfog" });
+    expect(FILE_FX.angel.animated).toBe(false);
+    expect(FILE_FX.sakura.animated).toBe(true);
+    expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toEqual({ frame: "widow", bannerFx: "sakura" });
   });
 
-  test("it covers the whole header, with no banner strip of its own, and does not widen the page", async ({ page }) => {
-    await page.goto("/dev-fixtures/decor?fx=widowfog");
-    const heading = await page.getByRole("heading", { name: "Fixture" }).boundingBox();
-    // It plays behind the photo and the words (z-[1] under their z-[2]), so it never hides them.
-    const overlay = await page.locator("section[aria-label='Creator'] > div > .absolute.inset-0.z-\\[1\\] .bfx").boundingBox();
-    expect(await page.getByRole("heading", { name: "Fixture" }).evaluate((h) => h.parentElement?.className.includes("z-[2]"))).toBe(true);
-    expect(heading && overlay && overlay.y <= heading.y && overlay.y + overlay.height >= heading.y + heading.height).toBe(true);
-    await expect(page.locator(".bfx img")).toHaveAttribute("src", /\/decorations\/widow-fog(\.poster)?\.webp$/);
-    await expect(page.locator(".bfx img")).toHaveClass(/object-bottom/);
+  test("one plays over the banner strip and does not widen the page", async ({ page }) => {
+    await page.goto("/dev-fixtures/decor?fx=sakura");
+    await expect(page.locator(".aspect-\\[16\\/5\\] .bfx img")).toHaveAttribute("src", /\/decorations\/sakura(\.poster)?\.webp$/);
+    await expect(page.locator(".bfx img")).toHaveClass(/object-cover/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 });

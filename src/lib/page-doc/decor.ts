@@ -3,21 +3,37 @@ import type { PageDoc } from "./types";
 
 // The animated frame over a creator's photo and the effect over their banner (the way Discord's
 // avatar decorations and profile effects work): a choice from a short list of ready-made looks that
-// are drawn in CSS (so no file is loaded and they follow the page accent), or "custom", a picture or
-// GIF the owner uploaded to the page's library. Pure, so the parser, the editor and the tests share it.
+// are drawn in CSS (so no file is loaded and they follow the page accent) or are a finished animation
+// that ships with the site, or "custom", a picture or GIF the owner uploaded to the page's library. Pure, so the parser, the editor and the tests share it.
 
-export const FRAME_STYLES = ["none", "flame", "aura", "slash", "foxfire", "widow", "custom"] as const;
+export const FRAME_STYLES = ["none", "widow", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
-export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "spider", "storm", "glitch", "petals", "widowfog", "custom"] as const;
+// The ready-made animations that ship with the site, one file each (see FILE_FX below). Listed here
+// so the stored value can be checked; the ids are the file names without the extension.
+export const FILE_FX_IDS = [
+  "peakyblinders", "sakura", "sololeveling", "applekitty", "toney", "eternal", "fkimgworkkk", "explosivecat", "killua", "angel", "nanami", "naoya",
+] as const;
+
+export const FILE_FX_INFO: Record<(typeof FILE_FX_IDS)[number], { label: string; file: string; still?: boolean }> = {
+  peakyblinders: { label: "Peaky Blinders", file: "peaky-blinders" },
+  sakura: { label: "Sakura", file: "sakura" },
+  sololeveling: { label: "Solo Leveling", file: "solo-leveling" },
+  applekitty: { label: "Apple kitty", file: "apple-kitty" },
+  toney: { label: "Toney", file: "toney" },
+  eternal: { label: "Eternal", file: "eternal" },
+  fkimgworkkk: { label: "Fkimgworkkk", file: "fkimgworkkk" },
+  explosivecat: { label: "Explosive cat", file: "explosive-cat" },
+  killua: { label: "Killua", file: "killua" },
+  angel: { label: "Angel", file: "angel", still: true },
+  nanami: { label: "Nanami", file: "nanami" },
+  naoya: { label: "Naoya", file: "naoya" },
+};
+export const BANNER_FX = ["none", "embers", "clutch", "petals", ...FILE_FX_IDS, "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
   { value: "none", label: "No frame" },
-  { value: "flame", label: "Flame ring" },
-  { value: "aura", label: "Pulsing aura with sparks" },
-  { value: "slash", label: "Slash ring" },
-  { value: "foxfire", label: "Fox-fire (flames crawl over the top of the photo)" },
   { value: "widow", label: "Black Widow (a spider walks the rim of the photo, small ones crawl over it)" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
@@ -25,14 +41,9 @@ export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
 export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "none", label: "No effect" },
   { value: "embers", label: "Rising embers" },
-  { value: "slashes", label: "Sweeping slashes" },
-  { value: "shimmer", label: "Soft glow sweep" },
   { value: "clutch", label: "Clutch pulse (heartbeat and crosshair lock-on)" },
-  { value: "spider", label: "Spider crawl (a spider scuttles across, another drops on a thread)" },
-  { value: "storm", label: "Storm (drifting fog and lightning)" },
-  { value: "glitch", label: "Neon glitch (scanlines, a sweeping beam and glitch bars)" },
   { value: "petals", label: "Falling petals" },
-  { value: "widowfog", label: "Dragon's fog (fog and forest roll over the whole header, a dragon rises, roars, breathes fire and goes back)" },
+  ...FILE_FX_IDS.map((id) => ({ value: id, label: `${FILE_FX_INFO[id].label} (animated picture)` })),
   { value: "custom", label: "Your own picture or GIF" },
 ];
 
@@ -45,12 +56,20 @@ export const FILE_FRAMES = {
 export type FileFrame = keyof typeof FILE_FRAMES;
 export const isFileFrame = (v: string): v is FileFrame => Object.hasOwn(FILE_FRAMES, v);
 
-// Effects that are a finished animation too. Each covers the whole header (banner, photo, name and
-// bio), drawn once by tools/decor-render at the header's shape and shown cut to fit, anchored at the
-// bottom, so only its middle is ever trimmed. Most of the loop is clean; the still is a calm frame.
-export const FILE_FX = {
-  widowfog: { url: "/decorations/widow-fog.webp", posterUrl: "/decorations/widow-fog.poster.webp" },
-} as const;
+// Effects that are a finished animation too: ready-made animated pictures (the files in
+// public/decorations, converted to animated WebP by tools/decor-render/import-gifs.mjs, each with a
+// still of its first frame). They are opaque pictures, so they play over the banner strip, cut to
+// fit; `wholeHeader` is for a see-through animation made for the whole header (none ships now).
+// They are third-party clips the owner chose to ship; see docs/avatar-decorations-plan.md.
+export const FILE_FX: Record<
+  (typeof FILE_FX_IDS)[number],
+  { url: string; posterUrl: string; animated: boolean; wholeHeader: boolean }
+> = Object.fromEntries(
+  FILE_FX_IDS.map((id) => {
+    const i = FILE_FX_INFO[id];
+    return [id, { url: `/decorations/${i.file}.webp`, posterUrl: `/decorations/${i.file}.poster.webp`, animated: !i.still, wholeHeader: false }];
+  }),
+) as Record<(typeof FILE_FX_IDS)[number], { url: string; posterUrl: string; animated: boolean; wholeHeader: boolean }>;
 export type FileFx = keyof typeof FILE_FX;
 export const isFileFx = (v: string): v is FileFx => Object.hasOwn(FILE_FX, v);
 
@@ -74,7 +93,6 @@ export const isBannerFx = (v: unknown): v is BannerFx => typeof v === "string" &
 // How many little lights a ready-made effect draws. Fixed counts and fixed positions (computed from
 // the index, never random), so the server's page and the browser's first draw agree.
 export const EMBER_COUNT = 14;
-export const SPARK_COUNT = 6;
 export const PETAL_COUNT = 12;
 
 // A number between 0 and 1 that is always the same for the same index and salt.

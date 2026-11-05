@@ -25,7 +25,7 @@ function decor(style: string, id: number | null, use: AssetUse, assets: Record<n
   }
   if (use === "fx" && isFileFx(style)) {
     const f = FILE_FX[style];
-    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, wholeHeader: true };
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: f.animated, wholeHeader: f.wholeHeader };
   }
   if (style !== "custom") return { kind: "preset", style } as DecorRender;
   const asset = id === null ? undefined : assets[id];

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
@@ -24,15 +24,6 @@ function CustomPicture({ render, className }: { render: Extract<DecorRender, { k
 // The heart-monitor trace of the Clutch pulse banner: flat, two small bumps, then one tall spike.
 const ECG_PATH = "M0 78 H70 l8 -7 l8 7 H128 l6 5 l10 -52 l10 66 l9 -34 l6 15 H236 l10 -9 l10 9 H400";
 
-// The fox-fire wisps: little flames that crawl back and forth along the top of the photo, only the
-// part above the middle (a swing of at most 75 degrees each way from straight up). Angles are from
-// straight up, positive to the right; each has its own speed so they never line up.
-const FOX_WISPS = [
-  { from: -68, to: 24, secs: 5.2, delay: -1.2, size: 1 },
-  { from: -22, to: 70, secs: 6.6, delay: -3.9, size: 0.8 },
-  { from: -46, to: 52, secs: 8.4, delay: -6.1, size: 0.62 },
-];
-
 // The ring over a creator's photo. It is drawn bigger than the photo (like a Discord decoration) and
 // never takes a click. Decoration only: the photo's own description is what a screen reader reads.
 export function PhotoFrame({ render }: { render: DecorRender }) {
@@ -48,24 +39,8 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
       </span>
     );
   }
-  return (
-    <span aria-hidden="true" className={`pf pf-${render.style}`}>
-      {render.style === "foxfire" &&
-        FOX_WISPS.map((w, i) => (
-          <span key={i} className="pf-fox" style={{ "--a0": `${w.from}deg`, "--a1": `${w.to}deg`, "--t": `${w.secs}s`, "--d": `${w.delay}s`, "--k": w.size } as React.CSSProperties}>
-            <span className="pf-wisp" />
-          </span>
-        ))}
-      {render.style === "aura" &&
-        Array.from({ length: SPARK_COUNT }, (_, i) => (
-          <span
-            key={i}
-            className="pf-spark"
-            style={{ "--x": `${12 + steady(i, 1) * 76}%`, "--d": `${(steady(i, 2) * 2.4).toFixed(2)}s`, "--s": `${3 + Math.round(steady(i, 3) * 3)}px` } as React.CSSProperties}
-          />
-        ))}
-    </span>
-  );
+  // Every ready-made frame is a finished animation (a custom render); none is drawn in CSS now.
+  return null;
 }
 
 // The effect layer over a banner. It sits inside the banner's own box, so it is cut to its shape.
@@ -113,52 +88,6 @@ export function BannerEffect({ render }: { render: DecorRender }) {
           </svg>
         </>
       )}
-      {render.style === "spider" && (
-        <>
-          {/* A web in the corner, a spider that scuttles along the bottom edge and another that drops
-              down a thread now and then. All drawn here, nothing loaded. */}
-          <svg className="bfx-web" viewBox="0 0 80 80" focusable="false">
-            <path d="M0 0L80 0M0 0L80 30M0 0L66 66M0 0L30 80M0 0L0 80" />
-            <path d="M22 0Q20 18 0 22M44 0Q40 36 0 44M66 0Q60 54 0 66" />
-          </svg>
-          <span className="bfx-crawler">
-            <SpiderShape />
-          </span>
-          <span className="bfx-dropper">
-            <span className="bfx-thread" />
-            <SpiderShape />
-          </span>
-        </>
-      )}
-      {render.style === "storm" && (
-        <>
-          <span className="bfx-fog bfx-fog-a" />
-          <span className="bfx-fog bfx-fog-b" />
-          <span className="bfx-lightning" />
-          <svg className="bfx-bolt" viewBox="0 0 40 100" preserveAspectRatio="none" focusable="false">
-            <path d="M24 0L10 44H20L8 100L34 36H23L32 0Z" />
-          </svg>
-        </>
-      )}
-      {render.style === "glitch" && (
-        <>
-          <span className="bfx-scan" />
-          <span className="bfx-beam" />
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="bfx-gbar"
-              style={
-                {
-                  "--y": `${Math.round(18 + steady(i, 9) * 60)}%`,
-                  "--h": `${6 + Math.round(steady(i, 10) * 10)}%`,
-                  "--d": `${(-i * 1.7).toFixed(1)}s`,
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </>
-      )}
       {render.style === "petals" &&
         Array.from({ length: PETAL_COUNT }, (_, i) => (
           <span
@@ -176,32 +105,6 @@ export function BannerEffect({ render }: { render: DecorRender }) {
             }
           />
         ))}
-      {render.style === "slashes" && (
-        <>
-          <span className="bfx-slash" style={{ "--d": "0s" } as React.CSSProperties} />
-          <span className="bfx-slash" style={{ "--d": "-2.3s", "--k": "0.6" } as React.CSSProperties} />
-          <span className="bfx-slash" style={{ "--d": "-4.6s", "--k": "0.8" } as React.CSSProperties} />
-        </>
-      )}
     </span>
-  );
-}
-
-// A small spider seen from above: body, head, eight legs that take turns. Dark, with an accent glow so
-// it shows on a light or a dark banner.
-function SpiderShape() {
-  return (
-    <svg className="bfx-spider" viewBox="0 0 44 30" focusable="false">
-      <g className="bfx-legs bfx-legs-a">
-        <path d="M18 13L7 5L2 9M17 16L5 15L1 20M18 18L8 26L4 28M21 11L14 2L10 3" />
-      </g>
-      <g className="bfx-legs bfx-legs-b">
-        <path d="M26 13L37 5L42 9M27 16L39 15L43 20M26 18L36 26L40 28M23 11L30 2L34 3" />
-      </g>
-      <ellipse cx="22" cy="18" rx="7" ry="6.5" className="bfx-sbody" />
-      <circle cx="22" cy="10.5" r="4" className="bfx-sbody" />
-      <circle cx="20.3" cy="9.6" r="0.9" className="bfx-seye" />
-      <circle cx="23.7" cy="9.6" r="0.9" className="bfx-seye" />
-    </svg>
   );
 }
