@@ -2,6 +2,11 @@
 
 Living status of the project. Read this first; it is updated with every commit. Product decisions are in `PRODUCT.md`, the design system is in `DESIGN.md`, the next steps, research findings and owner direction are in `docs/next-steps.md`, and `git log` has the detail.
 
+## Current state (2026-11-05, plan for avatar decorations and banner effects written; NOTHING built, no migration)
+
+- **Done:** the owner shared a screen recording of a Discord profile (animated spider avatar decoration plus a fog-and-creature profile effect) and asked for the same quality, with creator uploads, our own decorations in code and a written plan. Found that frames, banner effects (including a flat spider and a storm) and picture or GIF uploads already exist (`decor.ts`, `Decor.tsx`, `/dashboard/effects`). The plan is `docs/avatar-decorations-plan.md`: Part A lets frame and effect take animated WebP (optionally transparent WebM) with scale and area settings, Part B builds a stepping spider rig, a fog shader and one timeline, rendered once to files or drawn live, first set Black Widow, Flame Fist, Storm Eye.
+- **Not done:** any code. Five decisions for the owner are listed in section 7 of the plan (format, render-once or live, first set, who may use it, order).
+
 ## Current state (2026-11-04, stale admin wording fixed; NO migration)
 
 - **Done:** the admin overview note no longer says payouts are not built (they are paid by hand from Payouts to pay); the features page's "Planned, not built yet" is now "Dropped, not built" (only Fan voice notes, dropped by the owner 2026-11-01). The reconciliation line "settlement reports ... not built yet" is still true and stays. `tsc` and `eslint` pass.
