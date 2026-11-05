@@ -47,12 +47,10 @@ next-env.d.ts
 /.playwright/
 /.playwright-cli/
 
-
 # design reference copies (kept locally)
 /design-refs/
 
 waitlist-*.csv
-
 
 # voice word exports (fan-typed words, keep private) and the offline model venv
 /voice-words*.csv
@@ -61,9 +59,6 @@ waitlist-*.csv
 
 # helper apps keep their own dependencies
 /tools/*/node_modules
-
-# private files: keep them in private storage, never in this public repo
-/docs/global-instructions.md
 
 # helper app settings hold a helper token and a Discord webhook address
 /tools/*/config.json
@@ -76,9 +71,6 @@ waitlist-*.csv
 service-account*.json
 client_secret*.json
 credentials*.json
-
-# local tooling, kept on disk only
-
 
 # Screenshots of today's tip pages for the page builder gate (local only; see test/gate)
 /test-baseline/

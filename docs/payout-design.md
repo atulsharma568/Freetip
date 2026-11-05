@@ -28,6 +28,7 @@ Status: design. Nothing in steps 2 to 6 is built. Nothing may move money until t
 6. **New UPI MDR** (Finance Ministry gazette 14 Sep 2026, NPCI framework 15 Sep 2026; secondary summaries read, NPCI's PDF not read): 0.4% of the whole amount on UPI payments **to merchants (P2M)** above ₹2,000, capped at ₹300 from ₹75,000; paid by the receiving merchant out of settlement, not by the sender, and it must not be passed on to customers as a surcharge. Person-to-person (P2P) transfers stay free at any amount. Merchants receiving up to ₹1 lakh a month by UPI QR stay exempt. **Not in force**: the 15 Oct 2026 start was deferred until after Diwali, no new date as of 22 Oct. Consequences: fans' UPI tips above ₹2,000 are P2M with Freetip as the merchant, so Freetip could be charged once it starts (Razorpay passing it on is UNVERIFIED); a manual payout to a creator's personal UPI ID is P2P and should not carry it, but a creator whose UPI ID is a business/merchant one could be charged as the receiver (UNVERIFIED for our case).
 7. **Tax touchpoints** (questions for an accountant, no conclusion): GST on our fee; GST TCS (s.52) and TDS (s.194-O) apply only if Freetip counts as an e-commerce operator; one note says viewer donations fall outside withholding.
 
+## 3. Decisions (made under the owner's delegation of 2026-10-30; the owner may change any)
 
 | Item | Decision | Why |
 |---|---|---|
@@ -90,6 +91,7 @@ Dropped from v1 as over-built for a manual rail where the owner is the approver:
 
 **Update 2026-10-31:** the owner has no budget for a lawyer or accountant, so the rules were read from public sources instead: see `docs/rules-check.md`. Its finding: paying creators from our own account looks like payment aggregation under the 2025 RBI directions, so step 4 (manual sheet) should not be built; ask Razorpay and Cashfree about split settlement instead. The lawyer and accountant questions below are kept as the list of what is still unsettled.
 
+## 7. Questions the owner must ask (drafts can be written)
 
 - **Razorpay support**: may our payment gateway account plus RazorpayX pay creators' UPI IDs given RazorpayX terms GT 2.15(a)? Is Route open to a new business under ₹40 lakh turnover? Exact per-payout fee for UPI and the daily UPI limit on our account. Is `fee`/`tax` filled at capture for UPI and cards? Is the 0.4% MDR passed on to us for fans' tips above ₹2,000, and would it apply to UPI payouts if we use RazorpayX? How is `payout.failed` tested?
 - **Lawyer**: does collecting tips for creators and paying them out make Freetip a payment aggregator or a marketplace; who is the "merchant"; do the escrow and anti-pooling rules apply; are tips refundable or taxable supplies?

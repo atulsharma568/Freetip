@@ -42,6 +42,7 @@ Owner request, 2026-11-02: add the kind of controls Streamlabs gives for its don
 - Migration 0044 onwards (next free number); run in Neon BEFORE the deploy; `OPERATIONS.md` gets the migration and any new admin step in the same commit.
 - Tests in the style of `test/pinned.spec.ts`: rules, validation, the overlay resolver with the switch on and off, fallbacks. Not verified until seen in real OBS (nobody has seen the existing overlays there yet either).
 
+## Decisions (owner delegated them on 2026-11-02, so they were chosen here; the owner can change any)
 
 1. Build items 1, 2 and 3 in that order, item 4 later.
 2. For item 3, a fan's pick always wins; a variation applies only to a tip with no pick.

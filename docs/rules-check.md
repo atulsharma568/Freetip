@@ -1,3 +1,4 @@
+# Rules check, read from public sources (2026-10-31), replacing the lawyer and accountant for now
 
 **Update 2026-11-04:** no provider has agreed to split and settle, so the owner decided to pay creators by hand from their own account anyway (`OPERATIONS.md` 7k). The reading below has not changed and the risk it describes is still open; the owner accepted it.
 

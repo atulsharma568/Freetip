@@ -245,6 +245,7 @@ Question asked by the owner: do the competitors pass tip money through their own
 - Razorpay's merchant terms (via a third-party archive) bar letting third parties use the service, limit marketplace payments to onboarded sellers, and let Razorpay suspend settlement at once. No documented freeze of a small tipping platform was found.
 - Easebuzz declined by phone on 2026-11-03 (it does not onboard social media platforms).
 
+### What it means for Freetip (our reading, the owner decides)
 
 - HyperChat and probably SuperTips (supertips.store) do what a manual payout sheet would do: collect into one gateway account and pay creators themselves. They are small and nobody has stopped them yet, but that is not evidence it is allowed.
 - The clean models are creator-owned accounts (StreamTipz, supertip.live) or a licensed aggregator's split product. Two open questions to ask in writing: Razorpay's partner team (can each creator keep their own Razorpay account while we create orders and take a commission, and is there a turnover rule?), and Cashfree (Embedded Payments and Easy Split for a new platform). PayU is a third provider not yet asked.
@@ -267,6 +268,7 @@ Seen on each site's public page today unless marked "inferred". HyperChat and St
 - Stream Alert (`streamalert.in`): an Android app that reads UPI notifications, 0% commission, ₹49 to ₹499 a month, Indic TTS, viewer GIF, voice note or video with approval through Discord, Telegram or web. Its 12,500+ streamers is its own unverified claim.
 - StreamerHub (`streamerhub.in`): direct UPI at 0%, optional Razorpay tipping at 5%, free plan and ₹99 Pro, StreamElements and Streamlabs mirroring; the page contradicts itself on some counts.
 
+### Where Freetip stands (our reading, the owner decides)
 
 - Behind on the headline fee against the direct-UPI and subscription models (0% to 5%). Freetip's 5% plus 2.75% is 7.75%. Ahead of the 10% sites. Against SuperStreamer it is better only than Starter (10%); Premium is 7% and Ultra 4%. So any "lowest total cost" claim would be false; the public pages make none and must not start.
 - Ahead: no fan email, UPI and card in one flow, one flat fee with no subscription, Hinglish and regional voices, overlay variety (except SuperStreamer), the page builder.

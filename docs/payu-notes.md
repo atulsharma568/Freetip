@@ -15,6 +15,7 @@ Read on 2026-11-04 from PayU's own developer documentation (docs.payu.in). Nothi
 - **Verify Payment API:** POST `application/x-www-form-urlencoded` to `https://info.payu.in/merchant/postservice.php?form=2` (live) or `https://test.payu.in/merchant/postservice.php?form=2` (test), fields `key`, `command=verify_payment`, `var1=<txnid>` (several joined with `|`), `hash=sha512(key|command|var1|salt)`. The answer has `status` (1 or 0), `msg`, and `transaction_details` keyed by `txnid`, each with `status`, `unmappedstatus`, `amt`, `mihpayid`, `error_code`. A txnid PayU never saw comes back with `status` "Not Found".
 - **Test data:** card `5123456789012346`, any future expiry, CVV `123`, OTP `123456` (a failing card is `5123456789012340`); UPI `anything@payu`.
 
+## How we use it (decisions made here, 2026-11-04; the owner may change any)
 
 1. **A payment is believed only when everything agrees:** the reply hash matches (constant-time), the amount, our own order id (`udf1`) and the mode (live or test) match the order we created, and PayU's Verify Payment API, called by our server, says the transaction is `success` with `unmappedstatus` `captured`, at the plain price (no discount, the amounts it reports agree, the debit is not lower). The payment id we keep comes from PayU's answer, never from the posted form. The browser return and the webhook both lead to this one check, so a forged form post cannot switch anything on.
 2. **Exactly once.** The order row, then the user row, is locked and the order moves `pending` to `paid` in one database transaction together with the switch-on; a second delivery finds it already `paid` and does nothing. A failure only fills a pending order and never overwrites a paid one; a failed order can still be paid later. One PayU payment id pays one order (unique index).
@@ -33,7 +34,6 @@ Read on 2026-11-04 from PayU's own developer documentation (docs.payu.in). Nothi
 12. **Receipt:** a plain receipt, not a tax invoice, nothing about GST (`docs/rules-check.md` section 2). Only the paying creator can open it; a test payment says it is a test. No receipt email: PayU sends its own payment confirmation, and the receipt is always on the page. If wanted later, it would be one more call after a pass is switched on.
 13. **Reminder:** the daily job emails a creator whose pass ends within 5 days, once per end date and plan (`users.starter_reminded_until`, `users.creator_reminded_until`); the row is claimed before sending and given back when the send fails or is off, so tomorrow tries again. The plans page shows the same warning on screen during those 5 days, so it works without email. Email needs `RESEND_API_KEY` and `CONTACT_FROM_EMAIL` on a verified domain.
 14. **The mobile number** is typed on our form, posted to PayU and not stored on our side (it is in the privacy policy).
-
 
 ## Plans decisions (2026-11-04; the owner may change any)
 
