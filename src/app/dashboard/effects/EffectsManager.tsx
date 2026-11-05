@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTipDecor } from "@/app/actions/tip-decor";
 import { BannerEffect, PhotoFrame, type DecorRender } from "@/components/tip/Decor";
-import { FILE_FRAMES, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
+import { FILE_FRAMES, FILE_FX, PRESET_BANNER_FX, PRESET_FRAMES, isFileFrame, isFileFx, type PresetBannerFx, type PresetFrame, type TipDecor } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -31,6 +31,7 @@ const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   storm: { label: "Storm", about: "Fog drifting across with a lightning flash now and then." },
   glitch: { label: "Neon glitch", about: "Scanlines, a sweeping beam and glitch bars." },
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
+  widowfog: { label: "Widow's fog", about: "Fog and a forest roll over your whole header, a big spider crosses and vanishes in smoke, then it clears." },
 };
 
 const preset = (style: string): DecorRender => {
@@ -38,6 +39,10 @@ const preset = (style: string): DecorRender => {
   if (isFileFrame(style)) {
     const f = FILE_FRAMES[style];
     return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+  }
+  if (isFileFx(style)) {
+    const f = FILE_FX[style];
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, wholeHeader: true };
   }
   return { kind: "preset", style } as DecorRender;
 };
@@ -98,12 +103,18 @@ export function EffectsManager({
       preview={
         <Tile id="effects-preview" title="Preview" level={2}>
         {/* The tip page's header in your page colour: the banner strip with your photo overlapping its corner. */}
-        <div className="space-y-3 rounded-surface bg-ground p-4" style={style}>
+        <div className="relative space-y-3 rounded-surface bg-ground p-4" style={style}>
+          {/* A finished whole-header effect covers the banner, photo and name, as it does on the tip page. */}
+          {isFileFx(fx) && (
+            <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-surface">
+              <BannerEffect render={preset(fx)} />
+            </div>
+          )}
           <div
             className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60"
             style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
           >
-            <BannerEffect render={preset(fx)} />
+            {!isFileFx(fx) && <BannerEffect render={preset(fx)} />}
           </div>
           <span className="relative z-10 -mt-14 ml-6 inline-block rounded-full border-2 border-accent bg-ground p-1.5 sm:-mt-16">
             <PhotoFrame render={preset(frame)} />
@@ -115,6 +126,7 @@ export function EffectsManager({
               </span>
             )}
           </span>
+          <p className="display text-3xl">{name}</p>
         </div>
         <p className="text-sm text-muted">
           On your tip page the effect plays over your banner picture if you have one, and over a dark strip of your page colour if not.

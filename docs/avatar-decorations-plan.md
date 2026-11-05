@@ -90,3 +90,15 @@ Honest limits: this is procedural art, shaded and lit like the reference but not
 Not built yet: the fog-and-creature banner effect that goes with the widow in the reference (a whole-header layer), Flame Fist, Storm Eye. The plan's live-canvas option was not chosen.
 
 Weight: the 2.0 MB file is loaded only after the page has loaded and only when the device may play motion (`mayPlayMotion`: not with reduced motion, data saver, a 3G or slower connection, or 2 GB of memory or less); every other device gets the 17 KB still. If it is too heavy for the owner, the levers are `--out 400`, `--calm 12` and `--aq 25`, each in `tools/decor-render/README.md`.
+
+## 10. Widow's fog banner effect (2026-11-05, no migration)
+
+Built: the other half of the Black Widow set, the reference's profile effect. A ready-made banner effect "Widow's fog" (`widowfog`, `FILE_FX` in `decor.ts`): about 14 s, fog and a fir forest roll over the whole header, a big dark widow (the frame's rig, darker) crosses it from the lower left and slows to a stop, vanishes in a puff of white smoke, and the fog thins out to clean; the rest of the time the header is clean, like the reference. Drawn once by `tools/decor-render/` (`--scene fog`), saved as `public/decorations/widow-fog.webp` (360 by 432, 149 frames, 2.3 MB, loop closes exactly because the first and last stretches are empty) with a 40 KB still. Offered in the Effects tab and the page editor; goes through the same motion rules as every file (loaded after the page has loaded and only where `mayPlayMotion` allows, otherwise the still).
+
+Decisions and limits: it plays behind the photo and the words (the forest and fog would hide the name otherwise); the art is a fixed 5 to 6 shape shown cut to the header, anchored at the bottom; fog is kept thin over the middle; no forest above the middle except at the sides. Honest limit: procedural art, not painted; the forest reads as soft dark fir shapes in fog, not detailed trees; a faint rectangular band can show in the fog on some frames (the animation encoder updates only the part that changed). The earlier plan's WebGL shader was not used (render once was the owner's choice).
+
+Not built: Flame Fist, Storm Eye. The pfps.gg suggestion is a separate question (section 11).
+
+## 11. pfps.gg (2026-11-05): not used so far
+
+The owner suggested taking avatars and banners from pfps.gg (animated pfps and banners). Its terms (read 2026-11-05): uploaders keep ownership and must hold the rights; the licence they grant runs to pfps.gg only; the site describes the files as "free to use on social media platforms"; commercial use, re-hosting and redistribution are not addressed. This repo is public and decorations are a paid feature, so shipping those files in `public/` is not safe. Nothing was downloaded. Options to put to the owner: (a) use the site for inspiration only and keep drawing our own; (b) let a creator download a file for themselves and upload it to their own page (their rights to answer for, which needs the moderation and copyright review that is already ahead); (c) ask individual artists for written permission, per file.

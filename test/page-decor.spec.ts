@@ -195,6 +195,37 @@ test.describe("the Black Widow frame, a finished animation that ships with the s
   });
 });
 
+test.describe("the Widow's fog effect, a finished whole-header animation that ships with the site", () => {
+  test("it is a ready-made choice with its files in place and a size inside the limits", async () => {
+    const { BANNER_FX_OPTIONS, FILE_FX, PRESET_BANNER_FX, isFileFx, parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(PRESET_BANNER_FX).toContain("widowfog");
+    expect(BANNER_FX_OPTIONS.map((o) => o.value)).toContain("widowfog");
+    expect(isFileFx("widowfog")).toBe(true);
+    expect(isFileFx("storm")).toBe(false);
+    expect(isFileFx("toString")).toBe(false);
+    for (const f of Object.values(FILE_FX)) {
+      expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
+      expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
+      expect(statSync(join(process.cwd(), "public", f.url)).size).toBeLessThan(2.6 * 1024 * 1024);
+      expect(statSync(join(process.cwd(), "public", f.posterUrl)).size).toBeLessThan(80 * 1024);
+    }
+    expect(header(parsePageDoc(withHeader({ bannerFx: "widowfog" }))!.doc).settings.bannerFx).toBe("widowfog");
+    expect(parseTipDecor({ frame: "widow", bannerFx: "widowfog" })).toEqual({ frame: "widow", bannerFx: "widowfog" });
+  });
+
+  test("it covers the whole header, with no banner strip of its own, and does not widen the page", async ({ page }) => {
+    await page.goto("/dev-fixtures/decor?fx=widowfog");
+    const heading = await page.getByRole("heading", { name: "Fixture" }).boundingBox();
+    // It plays behind the photo and the words (z-[1] under their z-[2]), so it never hides them.
+    const overlay = await page.locator("section[aria-label='Creator'] > div > .absolute.inset-0.z-\\[1\\] .bfx").boundingBox();
+    expect(await page.getByRole("heading", { name: "Fixture" }).evaluate((h) => h.parentElement?.className.includes("z-[2]"))).toBe(true);
+    expect(heading && overlay && overlay.y <= heading.y && overlay.y + overlay.height >= heading.y + heading.height).toBe(true);
+    await expect(page.locator(".bfx img")).toHaveAttribute("src", /\/decorations\/widow-fog(\.poster)?\.webp$/);
+    await expect(page.locator(".bfx img")).toHaveClass(/object-bottom/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+});
+
 test.describe("a picture frame and effect in the browser", () => {
   test("the Black Widow frame is drawn at 2.2 times the photo ring and does not widen the page", async ({ page }) => {
     await page.goto("/dev-fixtures/decor?frame=widow");

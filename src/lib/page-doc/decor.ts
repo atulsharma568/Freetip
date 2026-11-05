@@ -9,7 +9,7 @@ import type { PageDoc } from "./types";
 export const FRAME_STYLES = ["none", "flame", "aura", "slash", "foxfire", "widow", "custom"] as const;
 export type FrameStyle = (typeof FRAME_STYLES)[number];
 
-export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "spider", "storm", "glitch", "petals", "custom"] as const;
+export const BANNER_FX = ["none", "embers", "slashes", "shimmer", "clutch", "spider", "storm", "glitch", "petals", "widowfog", "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
@@ -32,6 +32,7 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "storm", label: "Storm (drifting fog and lightning)" },
   { value: "glitch", label: "Neon glitch (scanlines, a sweeping beam and glitch bars)" },
   { value: "petals", label: "Falling petals" },
+  { value: "widowfog", label: "Widow's fog (fog and forest roll over the whole header, a big spider crosses and vanishes in smoke)" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
 
@@ -43,6 +44,15 @@ export const FILE_FRAMES = {
 } as const;
 export type FileFrame = keyof typeof FILE_FRAMES;
 export const isFileFrame = (v: string): v is FileFrame => Object.hasOwn(FILE_FRAMES, v);
+
+// Effects that are a finished animation too. Each covers the whole header (banner, photo, name and
+// bio), drawn once by tools/decor-render at the header's shape and shown cut to fit, anchored at the
+// bottom, so only its middle is ever trimmed. Most of the loop is clean; the still is a calm frame.
+export const FILE_FX = {
+  widowfog: { url: "/decorations/widow-fog.webp", posterUrl: "/decorations/widow-fog.poster.webp" },
+} as const;
+export type FileFx = keyof typeof FILE_FX;
+export const isFileFx = (v: string): v is FileFx => Object.hasOwn(FILE_FX, v);
 
 // How big a picture or animation frame is drawn, as a percent of the photo (100 is the photo's own
 // size; the ready-made rings are about 134). Standard is the size custom frames always had.

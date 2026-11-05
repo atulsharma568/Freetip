@@ -50,11 +50,14 @@ export function CreatorPanel({
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
   // ground), so a creator can have an animated banner without uploading one.
   const hasBanner = Boolean(bannerUrl) || (bannerFx !== null && !fxWholeHeader);
+  // A finished whole-header animation (drawn with dark fog and a forest) plays behind the photo and the
+  // words, so it never hides them; an uploaded one plays over everything, as its maker drew it.
+  const fxBehind = fxWholeHeader && bannerFx?.kind === "custom" && bannerFx.wholeHeader === true;
   return (
     <section className="space-y-6" aria-label="Creator">
       <div className="relative space-y-4">
         {fxWholeHeader && (
-          <div className="pointer-events-none absolute inset-0 z-20">
+          <div className={`pointer-events-none absolute inset-0 ${fxBehind ? "z-[1]" : "z-20"}`}>
             <BannerEffect render={bannerFx} />
           </div>
         )}
@@ -78,7 +81,7 @@ export function CreatorPanel({
             {!fxWholeHeader && <BannerEffect render={bannerFx} />}
           </div>
         )}
-        <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
+        <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : fxBehind ? "z-[2]" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
           <PhotoFrame render={frame} />
           {pictureUrl ? (
             <Image
@@ -98,7 +101,7 @@ export function CreatorPanel({
             </span>
           )}
         </span>
-        <div className="min-w-0 space-y-3">
+        <div className={`min-w-0 space-y-3 ${fxBehind ? "relative z-[2]" : ""}`}>
           <p className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-muted">
             <span aria-hidden="true" className="live-dot" />
             {previewMode ? "Preview" : "Tips open"}

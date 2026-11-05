@@ -1,15 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FileFrame, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, SPARK_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
 // library (`posterUrl` is the still of a GIF). Null draws nothing.
 export type DecorRender =
-  | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom" | FileFrame> | Exclude<BannerFx, "none" | "custom"> }
+  | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom" | FileFrame> | Exclude<BannerFx, "none" | "custom" | FileFx> }
   // `scale` (frames only) is the size as a percent of the photo; left out it is the standard size.
-  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number }
+  // `wholeHeader` (effects only) is a finished animation made for the whole header: it always covers it.
+  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number; wholeHeader?: boolean }
   | null;
 
 // A GIF shows its still until the device may play motion (the same rule the banner and backdrop use).
@@ -73,7 +74,7 @@ export function BannerEffect({ render }: { render: DecorRender }) {
   if (render.kind === "custom") {
     return (
       <span aria-hidden="true" className="bfx pointer-events-none absolute inset-0">
-        <CustomPicture render={render} className="object-cover" />
+        <CustomPicture render={render} className={render.wholeHeader ? "object-cover object-bottom" : "object-cover"} />
       </span>
     );
   }

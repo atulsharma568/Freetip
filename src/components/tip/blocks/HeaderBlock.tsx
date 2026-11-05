@@ -4,7 +4,7 @@ import { CreatorPanel } from "@/components/tip/CreatorPanel";
 import type { DecorRender } from "@/components/tip/Decor";
 import { useTipForm } from "@/components/tip/TipFormContext";
 import { usableFor, type AssetUse, type ResolvedAsset } from "@/lib/page-doc/assets";
-import { FILE_FRAMES, isFileFrame } from "@/lib/page-doc/decor";
+import { FILE_FRAMES, FILE_FX, isFileFrame, isFileFx } from "@/lib/page-doc/decor";
 import type { Block } from "@/lib/page-doc/types";
 import { useMotionAllowed } from "./use-motion";
 
@@ -22,6 +22,10 @@ function decor(style: string, id: number | null, use: AssetUse, assets: Record<n
   if (use === "frame" && isFileFrame(style)) {
     const f = FILE_FRAMES[style];
     return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, scale: f.scale };
+  }
+  if (use === "fx" && isFileFx(style)) {
+    const f = FILE_FX[style];
+    return { kind: "custom", url: f.url, posterUrl: f.posterUrl, animated: true, wholeHeader: true };
   }
   if (style !== "custom") return { kind: "preset", style } as DecorRender;
   const asset = id === null ? undefined : assets[id];
@@ -45,7 +49,7 @@ export function HeaderBlock({ block }: { block: Block<"header"> }) {
       bannerFx={fxRender}
       // Only a picture or animation of the library can cover the whole header; a ready-made effect is
       // drawn for the banner's own box.
-      fxWholeHeader={fxRender?.kind === "custom" && fxArea === "header"}
+      fxWholeHeader={fxRender?.kind === "custom" && (fxRender.wholeHeader === true || fxArea === "header")}
       displayName={displayName}
       pictureUrl={pictureUrl}
       bannerUrl={banner ?? bannerUrl}
