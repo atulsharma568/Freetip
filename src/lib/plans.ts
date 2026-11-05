@@ -36,6 +36,7 @@ export type FeatureKey =
   | "alertLayout"
   // The tip page itself.
   | "tipBanner"
+  | "tipDecor"
   | "pageBuilder"
   | "pressureMeter";
 
@@ -207,6 +208,13 @@ export const FEATURES: readonly FeatureInfo[] = [
     label: "Banner on the tip page",
     group: "Tip page",
     description: "A banner shows behind the creator's photo at the top of their tip page: their own YouTube channel banner (one button, needs YT_DATA_API_KEY) or a picture or animated GIF or WebP they upload from their computer (up to 6 MB, needs the Blob store); they can remove it any time (/dashboard/banner).",
+    built: true,
+  },
+  {
+    key: "tipDecor",
+    label: "Photo frame and banner effects",
+    group: "Tip page",
+    description: "The creator picks a ready-made animated frame for their photo and an animated effect for their banner (/dashboard/effects). Their own pictures and animations are part of the done-for-you Custom tip page, not this switch. A published Custom tip page decides the look while it is on.",
     built: true,
   },
   {

@@ -136,7 +136,7 @@ export async function prepareFile(file: File): Promise<Prepared> {
     let poster: Blob | null = null;
     if (needsPoster(sniffed.kind)) {
       poster = await drawPoster(img, width, height);
-      if (!poster) return refuse("The first frame could not be made small enough. Try a smaller GIF.");
+      if (!poster) return refuse("The first frame could not be made small enough. Try a smaller or shorter animation.");
     }
     return { ok: true, file: { kind: sniffed.kind, mime: sniffed.mime, width, height, durationMs: null, poster } };
   } finally {

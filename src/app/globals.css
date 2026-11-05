@@ -1384,7 +1384,7 @@ html.menu-open body {
    than the photo and never takes a click; with reduced motion the rings stand still and the
    drifting lights are not drawn. */
 .pf { position: absolute; inset: -17%; border-radius: 9999px; pointer-events: none; }
-.pf-custom { inset: -22%; border-radius: 0; }
+.pf-custom { inset: var(--pf-inset, -22%); border-radius: 0; }
 .pf-flame::before,
 .pf-slash::before,
 .pf-slash::after {

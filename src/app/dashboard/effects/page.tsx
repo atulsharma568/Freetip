@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { isOwnerTipPage } from "@/lib/owner-page";
-import { ownerPageDoc } from "@/lib/page-doc/defaults";
+import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { themeFor } from "@/lib/page-doc/theme";
 import { hasFeature } from "@/lib/plans";
+import { mayPickTipDecor } from "@/lib/page-doc/decor";
 import { safePhotoUrl } from "@/lib/tip-banner";
 import { readTipDecor } from "@/lib/tip-decor-store";
 import { SITE_NAME } from "@/lib/site";
@@ -24,14 +25,17 @@ export default async function EffectsPage() {
   const googleId = (session.user as { googleId?: string }).googleId;
   const db = getDb();
   if (!db || !googleId) redirect("/dashboard");
-  const [user] = await db<{ id: number; handle: string | null; creator_status: string; picture_url: string | null; name: string | null }[]>`
-    select id, handle, creator_status, picture_url, name from users where google_id = ${googleId}
+  const [user] = await db<{ id: number; handle: string | null; creator_status: string; picture_url: string | null; name: string | null; paid_features: string[] | null; accent: string | null }[]>`
+    select id, handle, creator_status, picture_url, name, paid_features, accent from users where google_id = ${googleId}
   `;
-  // Only the owner's own page has these for now.
-  if (!user?.handle || !isOwnerTipPage(user.handle, googleId)) redirect("/dashboard");
+  // The owner's own page, or a creator the owner has switched "Photo frame and banner effects" on for.
+  const ownerPage = Boolean(user?.handle) && isOwnerTipPage(user!.handle!, googleId);
+  if (!user?.handle || !mayPickTipDecor(ownerPage, user)) redirect("/dashboard");
 
-  // Until something is saved, the page shows what the owner's page document says (the Clutch pulse banner).
-  const header = ownerPageDoc().blocks.find((b) => b.type === "header");
+  // Until something is saved, the page shows what the page document says (for the owner, the Clutch
+  // pulse banner; for a creator, nothing).
+  const baseDoc = ownerPage ? ownerPageDoc() : defaultPageDoc();
+  const header = baseDoc.blocks.find((b) => b.type === "header");
   const start = header && header.type === "header" ? header.settings : null;
   const saved = await readTipDecor(user.id);
   const current = saved ?? {
@@ -64,7 +68,7 @@ export default async function EffectsPage() {
 
         <EffectsManager
           saved={current}
-          style={themeFor(ownerPageDoc(), null).style ?? {}}
+          style={themeFor(baseDoc, ownerPage ? null : user.accent).style ?? {}}
           pictureUrl={channelPhoto ?? user.picture_url}
           name={user.name ?? "You"}
         />

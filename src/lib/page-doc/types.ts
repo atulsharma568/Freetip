@@ -4,7 +4,7 @@
 // limit, the minimum tip, fee wording, the anonymous option, what the Pay button does) are not
 // in here on purpose: they come from the real values, never from a document.
 
-import type { BannerFx, FrameStyle } from "./decor";
+import type { BannerFx, FrameStyle, FxArea } from "./decor";
 
 export const PAGE_DOC_VERSION = 1 as const;
 
@@ -49,7 +49,9 @@ export interface SettingsByType {
   // `frame` is an animated ring over the photo and `bannerFx` an effect over the banner (see
   // decor.ts); "custom" draws the picture or GIF `frameAsset` / `bannerFxAsset` of the library over
   // them, and draws nothing when that file is missing or does not fit.
-  header: { bannerAsset: number | null; frame: FrameStyle; frameAsset: number | null; bannerFx: BannerFx; bannerFxAsset: number | null };
+  // `frameScale` is the size of a picture or animation frame as a percent of the photo, and `fxArea`
+  // is where a picture or animation effect plays (see decor.ts); both apply to "custom" only.
+  header: { bannerAsset: number | null; frame: FrameStyle; frameAsset: number | null; frameScale: number; bannerFx: BannerFx; bannerFxAsset: number | null; fxArea: FxArea };
   creatorLinks: { tagline: string; instagram: string };
   alertPreview: { label: string };
   qr: Record<string, never>;

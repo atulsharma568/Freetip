@@ -21,6 +21,9 @@ export type AssetUse = "backdrop" | "banner" | "meter" | "frame" | "fx";
 export const ASSET_LIMITS = {
   // A picture or GIF; a WebM is capped by `media.ts` at 8 MB.
   imageBytes: 3 * 1024 * 1024,
+  // An animated WebP (a transparent photo frame or banner effect), which carries motion and so is
+  // larger than a still picture of the same size.
+  animatedBytes: 6 * 1024 * 1024,
   webmBytes: 8 * 1024 * 1024,
   // The length of a looping video background. The browser measures it before uploading.
   webmMs: 15_000,
@@ -45,7 +48,7 @@ const KINDS_FOR: Record<AssetUse, readonly AssetKind[]> = {
   // The emblem on the Pressure meter: a picture or a GIF, like a banner.
   meter: ["image", "gif"],
   // A frame over the photo and an effect over the banner: a picture (a transparent PNG or WebP) or a
-  // GIF, like a banner. An animated WebP or PNG is refused for every use, as before.
+  // GIF or animated WebP (both stored as "gif", see checkAssetFile), like a banner.
   frame: ["image", "gif"],
   fx: ["image", "gif"],
 };
@@ -180,15 +183,39 @@ export function pictureSize(bytes: Uint8Array): { width: number; height: number 
   return null;
 }
 
+// Whether these bytes are an animated WebP (not an animated PNG, which is refused).
+function isAnimatedWebp(bytes: Uint8Array): boolean {
+  return ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP") && isAnimatedPicture(bytes);
+}
+
 // The server's check of an uploaded file, from its bytes (the whole file for a picture). A picture
-// or GIF may be 3 MB, a WebM 8 MB. An animated WebP or PNG is refused (use a GIF or WebM, which
-// carry a still and follow the motion rules), and a JPEG or WebP gets its size read here rather
-// than trusted from the browser.
+// or GIF may be 3 MB, an animated WebP 6 MB, a WebM 8 MB. An animated WebP is kept as a "gif" (an
+// animated picture with a still of its first frame), so it follows the same motion rules as a GIF
+// everywhere. An animated PNG is refused (use an animated WebP, a GIF or a WebM), and a JPEG or
+// WebP gets its size read here rather than trusted from the browser.
+// The head of a file (its first 64 bytes) is enough to tell the kind but not whether a WebP moves,
+// so the browser checks the whole file again before it uploads.
 export function checkAssetFile(bytes: Uint8Array, sizeBytes: number) {
-  const checked = checkMediaFile(bytes, sizeBytes, ASSET_LIMITS.imageBytes);
-  if (!checked.ok || checked.sniffed.kind !== "image") return checked;
+  const checked = checkMediaFile(bytes, sizeBytes, ASSET_LIMITS.animatedBytes);
+  if (!checked.ok) return checked;
+  if (checked.sniffed.kind === "gif") {
+    return sizeBytes > ASSET_LIMITS.imageBytes
+      ? { ok: false as const, reason: `A picture or GIF can be at most ${ASSET_LIMITS.imageBytes / (1024 * 1024)} MB.` }
+      : checked;
+  }
+  if (checked.sniffed.kind !== "image") return checked;
+  if (isAnimatedWebp(bytes)) {
+    const size = pictureSize(bytes);
+    if (!size || size.width < 1 || size.height < 1 || size.width > ASSET_LIMITS.side || size.height > ASSET_LIMITS.side) {
+      return { ok: false as const, reason: `The animation must be at most ${ASSET_LIMITS.side} pixels on each side.` };
+    }
+    return { ok: true as const, sniffed: { kind: "gif" as const, mime: "image/webp", ...size } };
+  }
   if (isAnimatedPicture(bytes)) {
-    return { ok: false as const, reason: "An animated WebP or PNG cannot be used. Save it as a GIF or a WebM video instead." };
+    return { ok: false as const, reason: "An animated PNG cannot be used. Save it as an animated WebP, a GIF or a WebM video instead." };
+  }
+  if (sizeBytes > ASSET_LIMITS.imageBytes) {
+    return { ok: false as const, reason: `A picture or GIF can be at most ${ASSET_LIMITS.imageBytes / (1024 * 1024)} MB.` };
   }
   if (checked.sniffed.width !== null && checked.sniffed.height !== null) return checked;
   const size = pictureSize(bytes);

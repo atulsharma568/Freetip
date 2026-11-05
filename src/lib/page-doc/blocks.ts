@@ -1,3 +1,4 @@
+import { FRAME_SCALE } from "./decor";
 import { ONE_PIECE_LADDER } from "./ladder";
 import type { Block, BlockType, PageDoc, SettingsByType, Slot } from "./types";
 
@@ -82,7 +83,7 @@ export function isBlockType(value: unknown): value is BlockType {
 
 const DEFAULTS: { [K in BlockType]: () => SettingsByType[K] } = {
   backdrop: () => ({ style: "ember", asset: null, dim: 40 }),
-  header: () => ({ bannerAsset: null, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null }),
+  header: () => ({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: FRAME_SCALE.standard, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" }),
   creatorLinks: () => ({ tagline: "", instagram: "" }),
   alertPreview: () => ({ label: "" }),
   qr: () => ({}),

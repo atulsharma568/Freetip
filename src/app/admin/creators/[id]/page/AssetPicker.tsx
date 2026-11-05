@@ -30,7 +30,7 @@ function usedBy(a: AssetListItem, draftIds: readonly number[]): string[] {
   return [...(draftIds.includes(a.id) ? ["the draft"] : []), ...a.usedBy.filter((label) => label !== "the draft")];
 }
 
-const KIND_LABEL = { image: "Picture", gif: "GIF", webm: "Video" } as const;
+const KIND_LABEL = { image: "Picture", gif: "GIF or animation", webm: "Video" } as const;
 
 function size(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -237,8 +237,8 @@ export function AssetPicker({
       </div>
       <p className="text-xs text-muted">
         {use !== "backdrop"
-          ? "A picture or GIF up to 3 MB."
-          : "A picture or GIF up to 3 MB, or a WebM video up to 8 MB and 15 seconds."}{" "}
+          ? "A picture or GIF up to 3 MB, or an animated WebP up to 6 MB (it keeps see-through areas, so use it for a photo frame or a banner effect)."
+          : "A picture or GIF up to 3 MB, an animated WebP up to 6 MB, or a WebM video up to 8 MB and 15 seconds."}{" "}
         Clips made with AI tools are usually bigger: compress them first. Replace changes the draft only, and the old file stays in the
         library until you remove it.
       </p>

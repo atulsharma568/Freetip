@@ -17,7 +17,7 @@ const withHeader = (patch: Record<string, unknown>): PageDoc => {
 
 test.describe("photo frame and banner effect", () => {
   test("a page that sets nothing has no frame and no effect", () => {
-    expect(header(defaultPageDoc()).settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null });
+    expect(header(defaultPageDoc()).settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
   });
 
   test("a chosen look is kept, an unknown one becomes none", () => {
@@ -45,6 +45,35 @@ test.describe("photo frame and banner effect", () => {
       expect(usableFor("gif", use)).toBe(true);
       expect(usableFor("webm", use)).toBe(false);
     }
+  });
+
+  test("the size of a picture frame and where a picture effect plays are kept, clamped and defaulted", async () => {
+    const { FRAME_SCALE } = await import("../src/lib/page-doc/decor");
+    const kept = parsePageDoc(withHeader({ frameScale: 180, fxArea: "header" }))!;
+    expect(header(kept.doc).settings).toMatchObject({ frameScale: 180, fxArea: "header" });
+    const big = parsePageDoc(withHeader({ frameScale: 9999 }))!;
+    expect(header(big.doc).settings.frameScale).toBe(FRAME_SCALE.max);
+    expect(big.notes.join(" ")).toMatch(/size of the photo frame was kept between/);
+    const small = parsePageDoc(withHeader({ frameScale: 3 }))!;
+    expect(header(small.doc).settings.frameScale).toBe(FRAME_SCALE.min);
+    const junk = parsePageDoc(withHeader({ frameScale: "big", fxArea: "everywhere" }))!;
+    expect(header(junk.doc).settings).toMatchObject({ frameScale: FRAME_SCALE.standard, fxArea: "banner" });
+    // A document stored before these settings existed still opens, with the standard size and the banner.
+    const old = parsePageDoc(withHeader({ frameScale: undefined, fxArea: undefined }))!;
+    expect(header(old.doc).settings).toMatchObject({ frameScale: FRAME_SCALE.standard, fxArea: "banner" });
+  });
+
+  test("the editor sets the size and the area, and shows the size only for a picture frame", async () => {
+    const { setNumber } = await import("../src/lib/page-doc/edit");
+    const { rangeFieldsFor } = await import("../src/lib/page-doc/fields");
+    let doc = setNumber(defaultPageDoc(), "header", "frameScale", 180).doc;
+    expect(header(doc).settings.frameScale).toBe(180);
+    expect(setNumber(doc, "header", "frameScale", 400).problems.length).toBe(1);
+    doc = setChoice(doc, "header", "fxArea", "header").doc;
+    expect(header(doc).settings.fxArea).toBe("header");
+    expect(setChoice(doc, "header", "fxArea", "elsewhere").problems.length).toBe(1);
+    expect(rangeFieldsFor("header", header(doc).settings).length).toBe(0);
+    expect(rangeFieldsFor("header", { ...header(doc).settings, frame: "custom" }).map((f) => f.key)).toEqual(["frameScale"]);
   });
 
   test("setAsset sets each of the header's three places on its own", () => {
@@ -110,9 +139,27 @@ test.describe("the pick saved from the dashboard", () => {
     const { applyTipDecor } = await import("../src/lib/page-doc/decor");
     const doc = withHeader({ frame: "custom", frameAsset: 4, bannerFx: "custom", bannerFxAsset: 5, bannerAsset: 6 });
     const out = applyTipDecor(doc, { frame: "foxfire", bannerFx: "embers" });
-    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "foxfire", frameAsset: null, bannerFx: "embers", bannerFxAsset: null });
+    expect(header(out).settings).toEqual({ bannerAsset: 6, frame: "foxfire", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
     expect(out.blocks.length).toBe(doc.blocks.length);
     expect(applyTipDecor(doc, null)).toBe(doc);
+  });
+
+  test("who may pick and whose pick the page wears", async () => {
+    const { mayPickTipDecor, wearsTipDecor } = await import("../src/lib/page-doc/decor");
+    const off = { paid_features: [] as string[] };
+    const on = { paid_features: ["tipDecor"] };
+    const onWithPage = { paid_features: ["tipDecor", "pageBuilder"] };
+    // The owner's page always; anyone else only with the switch, and a Custom tip page decides its own look.
+    expect(mayPickTipDecor(true, off)).toBe(true);
+    expect(mayPickTipDecor(false, off)).toBe(false);
+    expect(mayPickTipDecor(false, on)).toBe(true);
+    expect(mayPickTipDecor(false, null)).toBe(false);
+    expect(wearsTipDecor(true, off)).toBe(true);
+    expect(wearsTipDecor(true, onWithPage)).toBe(true);
+    expect(wearsTipDecor(false, off)).toBe(false);
+    expect(wearsTipDecor(false, on)).toBe(true);
+    expect(wearsTipDecor(false, onWithPage)).toBe(false);
+    expect(wearsTipDecor(false, null)).toBe(false);
   });
 
   test("the new fox-fire frame is a ready-made look the editor offers too", async () => {
@@ -121,5 +168,34 @@ test.describe("the pick saved from the dashboard", () => {
     expect(FRAME_OPTIONS.map((o) => o.value)).toContain("foxfire");
     const kept = parsePageDoc(withHeader({ frame: "foxfire" }))!;
     expect(header(kept.doc).settings.frame).toBe("foxfire");
+  });
+});
+
+test.describe("a picture frame and effect in the browser", () => {
+  test("the frame is drawn at the size set, and the standard size when none is set", async ({ page }) => {
+    await page.goto("/dev-fixtures/decor?scale=180");
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /--pf-inset:\s*-40\.0%/);
+    const photo = await page.locator("span.rounded-full.border-accent").boundingBox();
+    const frame = await page.locator(".pf-custom").boundingBox();
+    expect(photo && frame && Math.abs(frame.width / photo.width - 1.8) < 0.08).toBe(true);
+    await page.goto("/dev-fixtures/decor");
+    const standard = await page.locator(".pf-custom").boundingBox();
+    const photo2 = await page.locator("span.rounded-full.border-accent").boundingBox();
+    expect(photo2 && standard && Math.abs(standard.width / photo2.width - 1.44) < 0.08).toBe(true);
+  });
+
+  test("an effect set to the whole header covers the name and bio, not only the banner strip", async ({ page }) => {
+    await page.goto("/dev-fixtures/decor?area=header");
+    const heading = await page.getByRole("heading", { name: "Fixture" }).boundingBox();
+    const overlay = await page.locator("section[aria-label='Creator'] > div > .absolute.inset-0.z-20 .bfx").boundingBox();
+    expect(heading && overlay && overlay.y <= heading.y && overlay.y + overlay.height >= heading.y + heading.height).toBe(true);
+    // No banner strip is drawn for an effect that covers the header.
+    await expect(page.locator(".aspect-\\[16\\/5\\]")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: "/tmp/decor-header.png" });
+
+    await page.goto("/dev-fixtures/decor");
+    await expect(page.locator(".aspect-\\[16\\/5\\]")).toHaveCount(1);
+    await expect(page.locator(".aspect-\\[16\\/5\\] .bfx")).toHaveCount(1);
   });
 });

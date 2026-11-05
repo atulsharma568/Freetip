@@ -29,8 +29,8 @@ const PAGE_GROUPS = {
     { key: "rules", href: "/dashboard/rules", label: "Picks", feature: "alertRules" },
     { key: "variations", href: "/dashboard/variations", label: "Automatic tiers", feature: "alertVariations" },
     { key: "banner", href: "/dashboard/banner", label: "Banner", feature: "tipBanner" },
-    // The photo frame and banner effect: the owner's own page only for now (no paid switch yet).
-    { key: "decor", href: "/dashboard/effects", label: "Effects", feature: "owner" },
+    // The photo frame and banner effect: the paid switch, and always the owner's own page.
+    { key: "decor", href: "/dashboard/effects", label: "Effects", feature: "tipDecor" },
   ],
 } as const;
 
@@ -43,7 +43,7 @@ const GROUP_OF: Record<string, PageGroup> = { sounds: "sounds", media: "sounds",
 export async function DashboardNav({ current }: { current: "overview" | "tips" | "earnings" | "recap" | "sounds" | "media" | "rules" | "variations" | "style" | "text" | "motion" | "layout" | "banner" | "decor" | "pinned" | "fans" | "timestamps" | "streamlabs" | "plans" }) {
   const features = await getSessionFeatures();
   const ownerPage = await getSessionIsOwnerPage();
-  const onTabs = (g: PageGroup) => PAGE_GROUPS[g].filter((t) => t.feature === null || (t.feature === "owner" ? ownerPage : features[t.feature]));
+  const onTabs = (g: PageGroup) => PAGE_GROUPS[g].filter((t) => t.feature === null || (t.key === "decor" && ownerPage) || features[t.feature]);
   const links = LINKS.filter(
     (l) => (l.key !== "timestamps" || features.timestamps) && (l.key !== "tippage" || onTabs("tippage").length > 0) &&
       (l.key !== "look" || features.overlayThemes || features.alertLayout) && (l.key !== "words" || features.alertText || features.alertMotion) &&

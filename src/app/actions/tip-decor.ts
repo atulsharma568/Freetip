@@ -5,12 +5,13 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import type { LedgerDb } from "@/lib/accrual";
 import { isOwnerTipPage } from "@/lib/owner-page";
-import { parseTipDecor } from "@/lib/page-doc/decor";
+import { mayPickTipDecor, parseTipDecor } from "@/lib/page-doc/decor";
+
 
 export type TipDecorActionResult = { status: "ok" } | { status: "error"; message: string };
 
 // Saves the pick of the frame over the photo and the effect over the banner. Checked here, not only
-// in the page: only the owner's own page has it for now, and each choice must be one of the
+// in the page: only the owner's own page and a creator with "Photo frame and banner effects" switched on have it, and each choice must be one of the
 // ready-made looks (anything else would be stored as "none", so it is refused instead).
 export async function saveTipDecor(input: { frame: string; bannerFx: string }): Promise<TipDecorActionResult> {
   const session = await auth();
@@ -19,9 +20,9 @@ export async function saveTipDecor(input: { frame: string; bannerFx: string }): 
   const db = getDb();
   if (!db) return { status: "error", message: "Database unavailable, try again shortly" };
 
-  const [row] = await db<{ id: number; handle: string }[]>`select id, handle from users where google_id = ${googleId} and handle is not null`;
+  const [row] = await db<{ id: number; handle: string; paid_features: string[] | null }[]>`select id, handle, paid_features from users where google_id = ${googleId} and handle is not null`;
   if (!row) return { status: "error", message: "Sign in again to change your photo and banner effects." };
-  if (!isOwnerTipPage(row.handle, googleId)) return { status: "error", message: "Photo and banner effects are not switched on for your account." };
+  if (!mayPickTipDecor(isOwnerTipPage(row.handle, googleId), row)) return { status: "error", message: "Photo and banner effects are not switched on for your account." };
 
   const parsed = parseTipDecor(input);
   if (!parsed || parsed.frame !== input.frame || parsed.bannerFx !== input.bannerFx) {

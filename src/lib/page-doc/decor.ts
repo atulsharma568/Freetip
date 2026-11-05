@@ -1,3 +1,4 @@
+import { hasFeature, type FeatureSource } from "../plans";
 import type { PageDoc } from "./types";
 
 // The animated frame over a creator's photo and the effect over their banner (the way Discord's
@@ -32,6 +33,20 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "petals", label: "Falling petals" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
+
+// How big a picture or animation frame is drawn, as a percent of the photo (100 is the photo's own
+// size; the ready-made rings are about 134). Standard is the size custom frames always had.
+export const FRAME_SCALE = { min: 100, max: 220, step: 4, standard: 144 } as const;
+
+// Where a picture or animation effect plays: only over the banner strip, or over the whole header
+// (banner, photo, name and bio), the way a Discord profile effect covers the card.
+export const FX_AREAS = ["banner", "header"] as const;
+export type FxArea = (typeof FX_AREAS)[number];
+export const FX_AREA_OPTIONS: { value: FxArea; label: string }[] = [
+  { value: "banner", label: "Over the banner only" },
+  { value: "header", label: "Over the whole header (banner, photo, name)" },
+];
+export const isFxArea = (v: unknown): v is FxArea => typeof v === "string" && (FX_AREAS as readonly string[]).includes(v);
 
 export const isFrameStyle = (v: unknown): v is FrameStyle => typeof v === "string" && (FRAME_STYLES as readonly string[]).includes(v);
 export const isBannerFx = (v: unknown): v is BannerFx => typeof v === "string" && (BANNER_FX as readonly string[]).includes(v);
@@ -82,4 +97,16 @@ export function applyTipDecor(doc: PageDoc, decor: TipDecor | null): PageDoc {
       b.type === "header" ? { ...b, settings: { ...b.settings, frame: decor.frame, frameAsset: null, bannerFx: decor.bannerFx, bannerFxAsset: null } } : b,
     ),
   };
+}
+
+// Who may pick a frame and an effect on the dashboard: the owner's own page, or a creator the owner
+// has switched "Photo frame and banner effects" on for.
+export function mayPickTipDecor(ownerPage: boolean, row: FeatureSource): boolean {
+  return ownerPage || hasFeature(row, "tipDecor");
+}
+
+// Whose saved pick the tip page wears. The owner's page always; a creator's only while their switch is
+// on and no Custom tip page is on, because a done-for-you page decides its own frame and effect.
+export function wearsTipDecor(ownerPage: boolean, row: FeatureSource): boolean {
+  return ownerPage || (hasFeature(row, "tipDecor") && !hasFeature(row, "pageBuilder"));
 }

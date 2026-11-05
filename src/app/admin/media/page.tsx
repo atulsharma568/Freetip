@@ -256,7 +256,7 @@ async function PageAssetsSection({ like, idMatch, all }: { like: string; idMatch
                   <td className="px-4 py-3">
                     <p className="font-medium text-text">{a.name}</p>
                     <p className="text-xs text-muted">
-                      {a.kind === "image" ? "Picture" : a.kind === "gif" ? "GIF" : "Video"} · {(a.size_bytes / 1024).toFixed(0)} KB · {fmtIST(a.created_at, "date")}
+                      {a.kind === "image" ? "Picture" : a.kind === "gif" ? "GIF or animation" : "Video"} · {(a.size_bytes / 1024).toFixed(0)} KB · {fmtIST(a.created_at, "date")}
                     </p>
                   </td>
                   <td className="px-4 py-3">

@@ -8,7 +8,8 @@ import { useMotionAllowed } from "./blocks/use-motion";
 // library (`posterUrl` is the still of a GIF). Null draws nothing.
 export type DecorRender =
   | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom"> | Exclude<BannerFx, "none" | "custom"> }
-  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean }
+  // `scale` (frames only) is the size as a percent of the photo; left out it is the standard size.
+  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number }
   | null;
 
 // A GIF shows its still until the device may play motion (the same rule the banner and backdrop use).
@@ -37,7 +38,11 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
   if (!render) return null;
   if (render.kind === "custom") {
     return (
-      <span aria-hidden="true" className="pf pf-custom">
+      <span
+        aria-hidden="true"
+        className="pf pf-custom"
+        style={render.scale === undefined ? undefined : ({ "--pf-inset": `${(-(render.scale - 100) / 2).toFixed(1)}%` } as React.CSSProperties)}
+      >
         <CustomPicture render={render} className="object-contain" />
       </span>
     );

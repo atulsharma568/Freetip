@@ -1,6 +1,6 @@
 import { GROUND, MIN_GROUND_CONTRAST, contrast, inkFor, pairChecks } from "../accent";
 import { ASSET_LIMITS, cleanAssetId } from "./assets";
-import { isBannerFx, isFrameStyle } from "./decor";
+import { FRAME_SCALE, isBannerFx, isFrameStyle, isFxArea } from "./decor";
 import { ALLOWED_SLOTS, BLOCK_LABELS, INSTAGRAM_PATTERN, LIMITS, PROTECTED, defaultSettings, isBlockType } from "./blocks";
 import { PAGE_DOC_VERSION, type Block, type BlockType, type Ladder, type PageDoc, type SettingsByType, type Slot, type Theme } from "./types";
 
@@ -118,6 +118,18 @@ function cleanDim(v: unknown, notes: Notes): number {
   return Math.min(max, Math.max(min, n));
 }
 
+function cleanFrameScale(v: unknown, notes: Notes): number {
+  const { min, max, standard } = FRAME_SCALE;
+  if (v === undefined || v === null) return standard;
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    notes.add("The size of the photo frame was not a number and was put back to standard.");
+    return standard;
+  }
+  const n = Math.round(v);
+  if (n < min || n > max) notes.add(`The size of the photo frame was kept between ${min} and ${max} percent.`);
+  return Math.min(max, Math.max(min, n));
+}
+
 // A goal id: a positive whole number, or none (the creator's first goal). Whether it is one of
 // the creator's own goals is checked when the meter is read (see pressure.ts).
 function goalRef(v: unknown, notes: Notes): number | null {
@@ -137,8 +149,10 @@ const SETTINGS: { [K in BlockType]: (raw: Record<string, unknown>, notes: Notes)
     bannerAsset: assetRef(raw.bannerAsset, notes, "The banner picture"),
     frame: isFrameStyle(raw.frame) ? raw.frame : "none",
     frameAsset: assetRef(raw.frameAsset, notes, "The photo frame picture"),
+    frameScale: cleanFrameScale(raw.frameScale, notes),
     bannerFx: isBannerFx(raw.bannerFx) ? raw.bannerFx : "none",
     bannerFxAsset: assetRef(raw.bannerFxAsset, notes, "The banner effect picture"),
+    fxArea: isFxArea(raw.fxArea) ? raw.fxArea : "banner",
   }),
   creatorLinks: (raw, notes) => {
     const instagram = typeof raw.instagram === "string" && INSTAGRAM_PATTERN.test(raw.instagram) ? raw.instagram : "";

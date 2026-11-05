@@ -27,6 +27,7 @@ export function CreatorPanel({
   headingAs: Heading = "h1",
   frame = null,
   bannerFx = null,
+  fxWholeHeader = false,
 }: {
   displayName: string;
   pictureUrl: string | null;
@@ -41,15 +42,22 @@ export function CreatorPanel({
   // An animated frame over the photo and an effect over the banner (custom tip page); null draws none.
   frame?: DecorRender;
   bannerFx?: DecorRender;
+  // The effect covers the banner, photo, name and bio instead of only the banner strip.
+  fxWholeHeader?: boolean;
 }) {
   // A channel with the same name as the display name would just repeat it.
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
   // ground), so a creator can have an animated banner without uploading one.
-  const hasBanner = Boolean(bannerUrl) || bannerFx !== null;
+  const hasBanner = Boolean(bannerUrl) || (bannerFx !== null && !fxWholeHeader);
   return (
     <section className="space-y-6" aria-label="Creator">
-      <div className="space-y-4">
+      <div className="relative space-y-4">
+        {fxWholeHeader && (
+          <div className="pointer-events-none absolute inset-0 z-20">
+            <BannerEffect render={bannerFx} />
+          </div>
+        )}
         {hasBanner && (
           <div
             className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface"
@@ -67,7 +75,7 @@ export function CreatorPanel({
                 className="object-cover"
               />
             )}
-            <BannerEffect render={bannerFx} />
+            {!fxWholeHeader && <BannerEffect render={bannerFx} />}
           </div>
         )}
         <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>

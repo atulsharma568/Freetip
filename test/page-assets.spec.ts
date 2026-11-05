@@ -135,19 +135,37 @@ test.describe("the server's check of an uploaded file", () => {
     expect(checkAssetFile(pad([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0]), 1000).ok).toBe(false);
   });
 
-  test("an animated WebP or PNG is refused, because it would ignore the motion rules", () => {
+  test("an animated WebP is kept as an animated picture (a \"gif\" with a still), an animated PNG is refused", () => {
     expect(isAnimatedPicture(animatedWebp())).toBe(true);
     expect(isAnimatedPicture(apng())).toBe(true);
     expect(isAnimatedPicture(webp())).toBe(false);
     expect(isAnimatedPicture(png(10, 10))).toBe(false);
     expect(isAnimatedPicture(gif())).toBe(false);
     const a = checkAssetFile(animatedWebp(), 1000);
+    // Stored as a gif so it follows the same still-until-motion-is-allowed rules everywhere.
+    expect(a.ok && a.sniffed).toMatchObject({ kind: "gif", mime: "image/webp", width: 800, height: 600 });
     const b = checkAssetFile(apng(), 1000);
-    expect(a.ok).toBe(false);
     expect(b.ok).toBe(false);
-    if (!a.ok) expect(a.reason).toMatch(/animated/i);
+    if (!b.ok) expect(b.reason).toMatch(/animated png/i);
+    // A poster is always a still.
     expect(checkPosterFile(animatedWebp(), 1000).ok).toBe(false);
     expect(checkPosterFile(apng(), 1000).ok).toBe(false);
+  });
+
+  test("an animated WebP may be 6 MB, a still picture or a GIF only 3 MB", () => {
+    expect(checkAssetFile(animatedWebp(), 6 * MB).ok).toBe(true);
+    expect(checkAssetFile(animatedWebp(), 6 * MB + 1).ok).toBe(false);
+    expect(checkAssetFile(webp(), 3 * MB).ok).toBe(true);
+    expect(checkAssetFile(webp(), 3 * MB + 1).ok).toBe(false);
+    expect(checkAssetFile(jpeg(100, 100), 3 * MB + 1).ok).toBe(false);
+    expect(checkAssetFile(gif(), 3 * MB + 1).ok).toBe(false);
+  });
+
+  test("an animated WebP can be a frame or an effect, like a GIF", () => {
+    const a = checkAssetFile(animatedWebp(), 1000);
+    expect(a.ok && usableFor(a.sniffed.kind, "frame")).toBe(true);
+    expect(a.ok && usableFor(a.sniffed.kind, "fx")).toBe(true);
+    expect(a.ok && needsPoster(a.sniffed.kind)).toBe(true);
   });
 
   test("truncated or odd bytes never throw", () => {
@@ -223,7 +241,7 @@ test.describe("reading the picture settings of a stored document", () => {
     };
     const parsed = parsePageDoc(old)!;
     expect(find(parsed.doc, "backdrop")!.settings).toEqual({ style: "ember", asset: null, dim: 40 });
-    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, bannerFx: "none", bannerFxAsset: null });
+    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: null, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "none", bannerFxAsset: null, fxArea: "banner" });
     expect(parsed.notes).toEqual([]);
   });
 
@@ -232,7 +250,7 @@ test.describe("reading the picture settings of a stored document", () => {
     const parsed = parsePageDoc(doc)!;
     expect(find(parsed.doc, "backdrop")!.settings).toEqual({ style: "media", asset: 5, dim: 65 });
     // The owner's page starts with the Clutch pulse banner; picking a banner picture leaves that alone.
-    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, frame: "none", frameAsset: null, bannerFx: "clutch", bannerFxAsset: null });
+    expect(find(parsed.doc, "header")!.settings).toEqual({ bannerAsset: 6, frame: "none", frameAsset: null, frameScale: 144, bannerFx: "clutch", bannerFxAsset: null, fxArea: "banner" });
     expect(usedAssetIds(parsed.doc)).toEqual([5, 6]);
   });
 

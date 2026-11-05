@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { COMPARISON_GROUPS, CREATOR_EXTRA_KEYS, CUSTOM_KEYS, STARTER_KEYS, buildCatalogue, buildComparison, tierOf } from "../src/lib/plan-catalogue";
+import { COMPARISON_GROUPS, CREATOR_EXTRA_KEYS, CUSTOM_KEYS, STARTER_KEYS, buildCatalogue, buildComparison, planFeatureKeys, tierOf } from "../src/lib/plan-catalogue";
 import { FEATURES, NO_FEATURES, builtFeatureKeys, planFeatures } from "../src/lib/plans";
 import { TIER_PRICES, perMonthOfYear, priceView, yearSaving } from "../src/lib/pricing";
 
@@ -105,6 +105,16 @@ test.describe("the side-by-side table", () => {
       const want = g.creatorOnly ? "creator" : "starter";
       for (const k of g.keys) expect(tierOf(k)).toBe(want);
     }
+  });
+
+  test("Photo frame and banner effects is hand-ticked: in the catalogue, in no plan, linked only while on", () => {
+    const off = buildCatalogue(NO_FEATURES).flatMap((g) => g.items).find((i) => i.key === "tipDecor");
+    expect(off).toMatchObject({ on: false, href: null, tier: "custom" });
+    const on = buildCatalogue(planFeatures({ paid_features: ["tipDecor"] })).flatMap((g) => g.items).find((i) => i.key === "tipDecor");
+    expect(on).toMatchObject({ on: true, href: "/dashboard/effects" });
+    expect(planFeatureKeys("starter")).not.toContain("tipDecor");
+    expect(planFeatureKeys("creator")).not.toContain("tipDecor");
+    expect(buildComparison(planFeatures({ paid_features: ["tipDecor"] })).handPicked.map((i) => i.key)).toEqual(["tipDecor"]);
   });
 
   test("marks Starter's ticks from the group, and keeps hand-ticked features in view", () => {
