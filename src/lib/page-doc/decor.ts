@@ -32,7 +32,7 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "storm", label: "Storm (drifting fog and lightning)" },
   { value: "glitch", label: "Neon glitch (scanlines, a sweeping beam and glitch bars)" },
   { value: "petals", label: "Falling petals" },
-  { value: "widowfog", label: "Widow's fog (fog and forest roll over the whole header, a big spider crosses and vanishes in smoke)" },
+  { value: "widowfog", label: "Dragon's fog (fog and forest roll over the whole header, a dragon rises, roars, breathes fire and goes back)" },
   { value: "custom", label: "Your own picture or GIF" },
 ];
 

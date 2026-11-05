@@ -195,7 +195,7 @@ test.describe("the Black Widow frame, a finished animation that ships with the s
   });
 });
 
-test.describe("the Widow's fog effect, a finished whole-header animation that ships with the site", () => {
+test.describe("the Dragon's fog effect, a finished whole-header animation that ships with the site", () => {
   test("it is a ready-made choice with its files in place and a size inside the limits", async () => {
     const { BANNER_FX_OPTIONS, FILE_FX, PRESET_BANNER_FX, isFileFx, parseTipDecor } = await import("../src/lib/page-doc/decor");
     expect(PRESET_BANNER_FX).toContain("widowfog");

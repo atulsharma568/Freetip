@@ -31,7 +31,7 @@ const FX_INFO: Record<PresetBannerFx, { label: string; about: string }> = {
   storm: { label: "Storm", about: "Fog drifting across with a lightning flash now and then." },
   glitch: { label: "Neon glitch", about: "Scanlines, a sweeping beam and glitch bars." },
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
-  widowfog: { label: "Widow's fog", about: "Fog and a forest roll over your whole header, a big spider crosses and vanishes in smoke, then it clears." },
+  widowfog: { label: "Dragon's fog", about: "Fog and a forest roll over your whole header, a dragon rises, roars, breathes fire and sinks back, then it clears." },
 };
 
 const preset = (style: string): DecorRender => {
