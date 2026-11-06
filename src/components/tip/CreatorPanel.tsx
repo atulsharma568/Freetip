@@ -28,6 +28,7 @@ export function CreatorPanel({
   avatar = null,
   frame = null,
   bannerFx = null,
+  bannerPic = null,
   fxWholeHeader = false,
 }: {
   displayName: string;
@@ -45,6 +46,9 @@ export function CreatorPanel({
   avatar?: DecorRender;
   frame?: DecorRender;
   bannerFx?: DecorRender;
+  // A ready-made animated banner picture. It is drawn over the banner picture and under the effect, so
+  // an effect (embers, petals, clutch) plays on top of it.
+  bannerPic?: DecorRender;
   // The effect covers the banner, photo, name and bio instead of only the banner strip.
   fxWholeHeader?: boolean;
 }) {
@@ -52,7 +56,7 @@ export function CreatorPanel({
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
   // ground), so a creator can have an animated banner without uploading one.
-  const hasBanner = Boolean(bannerUrl) || (bannerFx !== null && !fxWholeHeader);
+  const hasBanner = Boolean(bannerUrl) || bannerPic !== null || (bannerFx !== null && !fxWholeHeader);
   // A finished whole-header animation (drawn with dark fog and a forest) plays behind the photo and the
   // words, so it never hides them; an uploaded one plays over everything, as its maker drew it.
   const fxBehind = fxWholeHeader && bannerFx?.kind === "custom" && bannerFx.wholeHeader === true;
@@ -67,7 +71,7 @@ export function CreatorPanel({
         {hasBanner && (
           <div
             className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface"
-            style={bannerUrl ? undefined : { background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
+            style={bannerUrl || bannerPic ? undefined : { background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
           >
             {bannerUrl && (
               <Image
@@ -81,6 +85,7 @@ export function CreatorPanel({
                 className="object-cover"
               />
             )}
+            <BannerEffect render={bannerPic} />
             {!fxWholeHeader && <BannerEffect render={bannerFx} />}
           </div>
         )}

@@ -9,7 +9,7 @@ import { loadPageAssets, resolveAssets } from "@/lib/page-doc/asset-store";
 import { loadGoalProgress, type GoalProgress } from "@/lib/goal-progress";
 import { loadMeterReading, type MeterReading } from "@/lib/page-doc/pressure";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
-import { applyTipDecor, wearsTipDecor } from "@/lib/page-doc/decor";
+import { applyTipDecor, decorLayers, wearsTipDecor } from "@/lib/page-doc/decor";
 import { readTipDecor } from "@/lib/tip-decor-store";
 import { resolvePageDoc } from "@/lib/page-doc/store";
 import type { PageDoc } from "@/lib/page-doc/types";
@@ -57,7 +57,8 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   // The frame and banner effect picked on the dashboard (Effects) replace the header's two settings
   // when something was saved. The owner's page always has them; a creator needs "Photo frame and banner
   // effects" on, and a Custom tip page that is on decides the look itself.
-  const doc = wearsTipDecor(ownerPage, pageRow) ? applyTipDecor(baseDoc, await readTipDecor(creator.id)) : baseDoc;
+  const decor = wearsTipDecor(ownerPage, pageRow) ? await readTipDecor(creator.id) : null;
+  const doc = applyTipDecor(baseDoc, decor);
   const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
   // The pictures the document uses, read in one query and only when it uses any, so a page without
   // pictures costs nothing more. The owner's editor preview gets every live file of the creator
@@ -77,6 +78,7 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
     storedAccent,
     pictureUrl: tipPhoto ?? creator.picture_url,
     bannerUrl,
+    decorLayers: decorLayers(decor),
     ytChannelName: creator.yt_channel_name,
     ytChannelUrl: creator.yt_channel_url,
     minTipPaise: MIN_TIP_PAISE,

@@ -12,6 +12,7 @@ import type { Extra } from "@/components/tip/ExtraPicker";
 import { TipFormProvider, type Phase, type TipFormState } from "@/components/tip/TipFormContext";
 import { rupeeText } from "@/components/tip/format";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { DecorLayers } from "@/lib/page-doc/decor";
 import type { MeterReading } from "@/lib/page-doc/pressure";
 import { findBlock } from "@/lib/page-doc/blocks";
 import type { PageDoc } from "@/lib/page-doc/types";
@@ -91,6 +92,8 @@ interface Props {
   pictureUrl: string | null;
   // The creator's YouTube banner (paid), drawn behind their photo; null shows no banner.
   bannerUrl?: string | null;
+  // The creator's uploaded profile picture and frame and animated banner picture; null draws none.
+  decorLayers?: DecorLayers | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   minTipPaise: number;
@@ -124,6 +127,7 @@ export function TipForm({
   displayName,
   pictureUrl,
   bannerUrl = null,
+  decorLayers = null,
   ytChannelName,
   ytChannelUrl,
   minTipPaise,
@@ -389,6 +393,7 @@ export function TipForm({
     displayName,
     pictureUrl,
     bannerUrl,
+    decorLayers,
     assets,
     ytChannelName,
     ytChannelUrl,

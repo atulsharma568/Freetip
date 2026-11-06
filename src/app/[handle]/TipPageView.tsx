@@ -5,6 +5,7 @@ import { BackdropBlock } from "@/components/tip/blocks/BackdropBlock";
 import { findBlock } from "@/lib/page-doc/blocks";
 import { themeFor } from "@/lib/page-doc/theme";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { DecorLayers } from "@/lib/page-doc/decor";
 import type { GoalProgress } from "@/lib/goal-progress";
 import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { PageDoc } from "@/lib/page-doc/types";
@@ -33,6 +34,8 @@ export interface TipPageData {
   storedAccent: string | null;
   pictureUrl: string | null;
   bannerUrl: string | null;
+  // The creator's uploaded profile picture and frame and animated banner picture; null when none is worn.
+  decorLayers?: DecorLayers | null;
   ytChannelName: string | null;
   ytChannelUrl: string | null;
   minTipPaise: number;
@@ -68,6 +71,7 @@ export function TipPageView({ data }: { data: TipPageData }) {
           displayName={data.displayName}
           pictureUrl={data.pictureUrl}
           bannerUrl={data.bannerUrl}
+          decorLayers={data.decorLayers}
           ytChannelName={data.ytChannelName}
           ytChannelUrl={data.ytChannelUrl}
           minTipPaise={data.minTipPaise}

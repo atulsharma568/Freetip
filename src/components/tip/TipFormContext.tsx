@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import type { TipRule, TipSound } from "@/app/[handle]/creator";
 import type { ResolvedAsset } from "@/lib/page-doc/assets";
+import type { DecorLayers } from "@/lib/page-doc/decor";
 import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { PinOffer } from "@/lib/pinned";
 import type { nextMessageStep } from "@/lib/message-limit";
@@ -20,6 +21,9 @@ export interface TipFormState {
   displayName: string;
   pictureUrl: string | null;
   bannerUrl: string | null;
+  // The creator's own uploaded profile picture and frame and their animated banner picture (from the
+  // dashboard's Effects page); null when the page wears none of them.
+  decorLayers: DecorLayers | null;
   // The pictures the page document may use, by id (empty when it uses none).
   assets: Record<number, ResolvedAsset>;
   ytChannelName: string | null;

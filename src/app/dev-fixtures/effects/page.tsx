@@ -14,7 +14,7 @@ export default function EffectsFixturePage() {
   if (!fixturesEnabled()) notFound();
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-8">
-      <EffectsManager saved={{ avatar: "none", frame: "none", bannerFx: "clutch" }} style={themeFor(ownerPageDoc(), null).style ?? {}} pictureUrl={null} name="AcePressure" />
+      <EffectsManager saved={{ avatar: "none", frame: "none", bannerFx: "clutch", bannerPic: "none", avatarUpload: null, frameUpload: null, frameScale: 144 }} style={themeFor(ownerPageDoc(), null).style ?? {}} pictureUrl={null} name="AcePressure" />
     </main>
   );
 }

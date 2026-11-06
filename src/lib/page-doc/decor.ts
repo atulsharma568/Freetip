@@ -1,4 +1,5 @@
 import { hasFeature, type FeatureSource } from "../plans";
+import { BLOB_HOST_SUFFIX } from "../media";
 import type { PageDoc } from "./types";
 
 // The animated frame over a creator's photo and the effect over their banner (the way Discord's
@@ -134,35 +135,106 @@ export function steady(index: number, salt: number): number {
   return x - Math.floor(x);
 }
 
-// A creator's own pick from the dashboard (the owner's page for now): ready-made looks only, no
-// uploaded files. Stored as jsonb in users.tip_decor; null means nothing was ever saved, and the page's
-// own document decides.
+// The effects drawn in CSS over a banner, and the ready-made animated banner pictures. They are two
+// separate layers on a creator's page: a picture (or the creator's own banner) is the background and
+// an effect plays on top of it, so the two can be saved together.
+export const PRESET_EFFECTS = ["none", "embers", "clutch", "petals"] as const;
+export type PresetEffect = (typeof PRESET_EFFECTS)[number];
+export const BANNER_PICS = ["none", ...FILE_FX_IDS] as const;
+export type BannerPic = (typeof BANNER_PICS)[number];
+
+// A picture the creator uploaded for their profile picture or for the ring over it. Only an address in
+// our own Blob store under the creator's decor folder is ever kept (see safeDecorUrl). `posterUrl` is
+// a still of the first frame so a visitor who asks for less motion sees it standing still.
+export interface DecorUpload {
+  url: string;
+  posterUrl: string | null;
+  animated: boolean;
+}
+
+export const DECOR_UPLOAD_MAX_BYTES = 3 * 1024 * 1024;
+export const DECOR_POSTER_MAX_BYTES = 300 * 1024;
+export const decorPathPrefix = (creatorId: number) => `decor/${creatorId}/`;
+// What a file under the decor folder is for, from its name: an avatar, a frame, or the still of one.
+export const DECOR_UPLOAD_KINDS = ["avatar", "frame"] as const;
+export type DecorUploadKind = (typeof DECOR_UPLOAD_KINDS)[number];
+
+// The address to draw, or null when it is not one of our own decor files.
+export function safeDecorUrl(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw || raw.length > 600 || raw.includes("..")) return null;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || url.username || url.password || url.port) return null;
+  if (!url.hostname.endsWith(BLOB_HOST_SUFFIX)) return null;
+  return /^\/decor\/\d+\/[\w.-]+$/.test(url.pathname) && !url.pathname.includes("..") ? url.toString() : null;
+}
+
+// A Blob file that is animated: a GIF always is here; a WebP says so in its header (a VP8X chunk with the
+// animation flag set). Used where the file is saved, so an animated one gets a still and the motion rule.
+export function isAnimatedWebp(bytes: Uint8Array): boolean {
+  if (bytes.length < 21) return false;
+  const tag = (i: number, t: string) => t.split("").every((c, k) => bytes[i + k] === c.charCodeAt(0));
+  return tag(0, "RIFF") && tag(8, "WEBP") && tag(12, "VP8X") && (bytes[20] & 0x02) !== 0;
+}
+
+function parseUpload(raw: unknown): DecorUpload | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const url = safeDecorUrl(r.url);
+  if (!url) return null;
+  return { url, posterUrl: safeDecorUrl(r.posterUrl), animated: r.animated === true };
+}
+
+export const clampFrameScale = (raw: unknown): number => {
+  const n = typeof raw === "number" && Number.isFinite(raw) ? Math.round(raw) : FRAME_SCALE.standard;
+  return Math.min(FRAME_SCALE.max, Math.max(FRAME_SCALE.min, n));
+};
+
+// A creator's own pick from the dashboard: the ready-made looks (the profile picture, the frame, the
+// effect over the banner and an animated banner picture) and the pictures they uploaded themselves
+// (a profile picture and a frame). Stored as jsonb in users.tip_decor; null means nothing was ever
+// saved, and the page's own document decides.
 export type PresetFrame = Exclude<FrameStyle, "custom">;
 export type PresetBannerFx = Exclude<BannerFx, "custom">;
 export interface TipDecor {
   avatar: AvatarStyle;
   frame: PresetFrame;
-  bannerFx: PresetBannerFx;
+  bannerFx: PresetEffect;
+  bannerPic: BannerPic;
+  avatarUpload: DecorUpload | null;
+  frameUpload: DecorUpload | null;
+  frameScale: number;
 }
 
 export const PRESET_FRAMES: readonly PresetFrame[] = FRAME_STYLES.filter((f): f is PresetFrame => f !== "custom");
 export const PRESET_BANNER_FX: readonly PresetBannerFx[] = BANNER_FX.filter((f): f is PresetBannerFx => f !== "custom");
 
 // What is stored, read back leniently: anything that is not a ready-made look becomes "none". Not an
-// object at all (nothing saved) gives null.
+// object at all (nothing saved) gives null. Before the effect and the picture were two settings, an
+// animated picture was stored as the effect; it is read back as the picture.
 export function parseTipDecor(raw: unknown): TipDecor | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   const split = splitLegacyFrame(r.frame, r.avatar);
+  const legacyPic = typeof r.bannerFx === "string" && isFileFx(r.bannerFx) ? r.bannerFx : null;
   return {
     avatar: AVATAR_STYLES.find((a) => a === split.avatar) ?? "none",
     frame: PRESET_FRAMES.find((f) => f === split.frame) ?? "none",
-    bannerFx: PRESET_BANNER_FX.find((f) => f === r.bannerFx) ?? "none",
+    bannerFx: PRESET_EFFECTS.find((f) => f === r.bannerFx) ?? "none",
+    bannerPic: BANNER_PICS.find((f) => f === (r.bannerPic ?? legacyPic)) ?? "none",
+    avatarUpload: parseUpload(r.avatarUpload),
+    frameUpload: parseUpload(r.frameUpload),
+    frameScale: clampFrameScale(r.frameScale),
   };
 }
 
 // The page document with the creator's own pick in its header (and no uploaded file in those two
-// places, since the pick replaces them). Nothing saved leaves the document as it is.
+// places, since the pick replaces them). Nothing saved leaves the document as it is. The uploaded
+// pictures and the animated banner picture are drawn from `TipDecor` by the header, not the document.
 export function applyTipDecor(doc: PageDoc, decor: TipDecor | null): PageDoc {
   if (!decor) return doc;
   return {
@@ -171,6 +243,19 @@ export function applyTipDecor(doc: PageDoc, decor: TipDecor | null): PageDoc {
       b.type === "header" ? { ...b, settings: { ...b.settings, avatar: decor.avatar, frame: decor.frame, frameAsset: null, bannerFx: decor.bannerFx, bannerFxAsset: null } } : b,
     ),
   };
+}
+
+// What the tip page draws from a creator's pick beyond the document: their uploaded pictures and the
+// animated banner picture. Plain data, so it can go from the server page to the browser.
+export interface DecorLayers {
+  avatarUpload: DecorUpload | null;
+  frameUpload: DecorUpload | null;
+  frameScale: number;
+  bannerPic: BannerPic;
+}
+export function decorLayers(decor: TipDecor | null): DecorLayers | null {
+  if (!decor) return null;
+  return { avatarUpload: decor.avatarUpload, frameUpload: decor.frameUpload, frameScale: decor.frameScale, bannerPic: decor.bannerPic };
 }
 
 // Who may pick a frame and an effect on the dashboard: the owner's own page, or a creator the owner

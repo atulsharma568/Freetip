@@ -128,19 +128,72 @@ test.describe("the owner's own page", () => {
 });
 
 test.describe("the pick saved from the dashboard", () => {
+  const BLANK = { avatar: "none", frame: "none", bannerFx: "none", bannerPic: "none", avatarUpload: null, frameUpload: null, frameScale: 144 };
+  const BLOB = "https://abc123.public.blob.vercel-storage.com";
+
   test("only ready-made looks are read back, anything else is none", async () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ avatar: "none", frame: "widow", bannerFx: "clutch" });
-    expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
-    for (const fx of ["embers", "petals", "sakura", "toney"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ avatar: "none", frame: "none", bannerFx: fx });
-    expect(parseTipDecor({})).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
+    expect(parseTipDecor({ frame: "widow", bannerFx: "clutch" })).toEqual({ ...BLANK, frame: "widow", bannerFx: "clutch" });
+    expect(parseTipDecor({ frame: "custom", bannerFx: "rainbow" })).toEqual(BLANK);
+    for (const fx of ["embers", "petals"]) expect(parseTipDecor({ frame: "none", bannerFx: fx })).toEqual({ ...BLANK, bannerFx: fx });
+    expect(parseTipDecor({})).toEqual(BLANK);
     for (const nothing of [null, undefined, "x", 5, []]) expect(parseTipDecor(nothing), String(nothing)).toBeNull();
+  });
+
+  test("an effect and an animated banner picture are two settings that are kept together", async () => {
+    const { parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(parseTipDecor({ bannerFx: "petals", bannerPic: "sakura" })).toEqual({ ...BLANK, bannerFx: "petals", bannerPic: "sakura" });
+    // A picture that is not on offer, or an effect given as the picture, is none.
+    expect(parseTipDecor({ bannerPic: "embers" })).toEqual(BLANK);
+    expect(parseTipDecor({ bannerPic: "rainbow" })).toEqual(BLANK);
+    // Saved before they were separate: the picture was stored as the effect, and is read back as the picture.
+    for (const pic of ["sakura", "toney", "eternal"]) expect(parseTipDecor({ bannerFx: pic })).toEqual({ ...BLANK, bannerPic: pic });
+  });
+
+  test("uploaded pictures are kept only from our own decor folder, and the frame size is clamped", async () => {
+    const { parseTipDecor, safeDecorUrl } = await import("../src/lib/page-doc/decor");
+    const good = `${BLOB}/decor/7/avatar-xyz.png`;
+    expect(safeDecorUrl(good)).toBe(good);
+    for (const bad of [
+      `${BLOB}/banners/7/avatar-xyz.png`,
+      `${BLOB}/decor/7/../8/x.png`,
+      `${BLOB}/decor/x/a.png`,
+      "http://abc.public.blob.vercel-storage.com/decor/7/a.png",
+      "https://evil.example.com/decor/7/a.png",
+      `https://u:p@abc.public.blob.vercel-storage.com/decor/7/a.png`,
+      5,
+      null,
+    ]) {
+      expect(safeDecorUrl(bad), String(bad)).toBeNull();
+    }
+    const kept = parseTipDecor({ avatarUpload: { url: good, posterUrl: `${BLOB}/decor/7/poster-a.webp`, animated: true }, frameUpload: { url: "https://evil.example.com/a.png" }, frameScale: 9999 })!;
+    expect(kept.avatarUpload).toEqual({ url: good, posterUrl: `${BLOB}/decor/7/poster-a.webp`, animated: true });
+    expect(kept.frameUpload).toBeNull();
+    expect(kept.frameScale).toBe(220);
+    expect(parseTipDecor({ frameScale: 3 })!.frameScale).toBe(100);
+    expect(parseTipDecor({ frameScale: "big" })!.frameScale).toBe(144);
+  });
+
+  test("an animated WebP is told from a still one by its header", async () => {
+    const { isAnimatedWebp } = await import("../src/lib/page-doc/decor");
+    const webp = (flags: number) => {
+      const b = new Uint8Array(30);
+      b.set([..."RIFF"].map((c) => c.charCodeAt(0)), 0);
+      b.set([..."WEBP"].map((c) => c.charCodeAt(0)), 8);
+      b.set([..."VP8X"].map((c) => c.charCodeAt(0)), 12);
+      b[20] = flags;
+      return b;
+    };
+    expect(isAnimatedWebp(webp(0x02))).toBe(true);
+    expect(isAnimatedWebp(webp(0x10))).toBe(false);
+    expect(isAnimatedWebp(new Uint8Array(30))).toBe(false);
+    expect(isAnimatedWebp(new Uint8Array(4))).toBe(false);
   });
 
   test("it replaces the header's two settings and any uploaded file there, and nothing else", async () => {
     const { applyTipDecor } = await import("../src/lib/page-doc/decor");
     const doc = withHeader({ frame: "custom", frameAsset: 4, bannerFx: "custom", bannerFxAsset: 5, bannerAsset: 6 });
-    const out = applyTipDecor(doc, { avatar: "none", frame: "widow", bannerFx: "embers" });
+    const out = applyTipDecor(doc, { ...BLANK, frame: "widow", bannerFx: "embers" } as never);
     expect(header(out).settings).toEqual({ bannerAsset: 6, avatar: "none", frame: "widow", frameAsset: null, frameScale: 144, bannerFx: "embers", bannerFxAsset: null, fxArea: "banner" });
     expect(out.blocks.length).toBe(doc.blocks.length);
     expect(applyTipDecor(doc, null)).toBe(doc);
@@ -169,12 +222,12 @@ test.describe("the pick saved from the dashboard", () => {
     for (const gone of ["flame", "aura", "slash", "foxfire"]) {
       expect(FRAME_OPTIONS.map((o) => o.value)).not.toContain(gone);
       expect(header(parsePageDoc(withHeader({ frame: gone }))!.doc).settings.frame).toBe("none");
-      expect(parseTipDecor({ frame: gone, bannerFx: "none" })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
+      expect(parseTipDecor({ frame: gone, bannerFx: "none" })).toMatchObject({ avatar: "none", frame: "none", bannerFx: "none" });
     }
     for (const gone of ["slashes", "shimmer", "spider", "storm", "glitch", "widowfog"]) {
       expect(BANNER_FX_OPTIONS.map((o) => o.value)).not.toContain(gone);
       expect(header(parsePageDoc(withHeader({ bannerFx: gone }))!.doc).settings.bannerFx).toBe("none");
-      expect(parseTipDecor({ frame: "none", bannerFx: gone })).toEqual({ avatar: "none", frame: "none", bannerFx: "none" });
+      expect(parseTipDecor({ frame: "none", bannerFx: gone })).toMatchObject({ avatar: "none", frame: "none", bannerFx: "none" });
     }
   });
 });
@@ -215,14 +268,14 @@ test.describe("the animated profile pictures that ship with the site", () => {
       expect(existsSync(join(process.cwd(), "public", f.url))).toBe(true);
       expect(existsSync(join(process.cwd(), "public", f.posterUrl))).toBe(true);
       expect(header(parsePageDoc(withHeader({ avatar: id }))!.doc).settings).toMatchObject({ avatar: id, frame: "none" });
-      expect(parseTipDecor({ avatar: id, frame: "widow", bannerFx: "none" })).toEqual({ avatar: id, frame: "widow", bannerFx: "none" });
+      expect(parseTipDecor({ avatar: id, frame: "widow", bannerFx: "none" })).toMatchObject({ avatar: id, frame: "widow", bannerFx: "none" });
     }
     expect(AVATAR_PICS.angel.animated).toBe(false);
   });
 
   test("a profile picture saved as a frame before the split is read back as a profile picture", async () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");
-    expect(parseTipDecor({ frame: "killua", bannerFx: "none" })).toEqual({ avatar: "killua", frame: "none", bannerFx: "none" });
+    expect(parseTipDecor({ frame: "killua", bannerFx: "none" })).toMatchObject({ avatar: "killua", frame: "none", bannerFx: "none" });
     // A page stored before the split has no avatar key at all.
     const old = withHeader({ frame: "killua" });
     delete (header(old).settings as Record<string, unknown>).avatar;
@@ -250,7 +303,8 @@ test.describe("the animated banner pictures that ship with the site", () => {
       expect(header(parsePageDoc(withHeader({ bannerFx: id }))!.doc).settings.bannerFx).toBe(id);
     }
     expect(FILE_FX.sakura.animated).toBe(true);
-    expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toEqual({ avatar: "none", frame: "widow", bannerFx: "sakura" });
+    // Saved before the picture and the effect were separate settings, it is read back as the picture.
+    expect(parseTipDecor({ frame: "widow", bannerFx: "sakura" })).toMatchObject({ avatar: "none", frame: "widow", bannerFx: "none", bannerPic: "sakura" });
   });
 
   test("one plays over the banner strip and does not widen the page", async ({ page }) => {

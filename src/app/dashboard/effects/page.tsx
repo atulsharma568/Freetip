@@ -6,8 +6,8 @@ import { isOwnerTipPage } from "@/lib/owner-page";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { themeFor } from "@/lib/page-doc/theme";
 import { hasFeature } from "@/lib/plans";
-import { mayPickTipDecor } from "@/lib/page-doc/decor";
-import { safePhotoUrl } from "@/lib/tip-banner";
+import { FRAME_SCALE, isFileFx, mayPickTipDecor, type PresetEffect, type TipDecor } from "@/lib/page-doc/decor";
+import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 import { readTipDecor } from "@/lib/tip-decor-store";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
@@ -38,21 +38,33 @@ export default async function EffectsPage() {
   const header = baseDoc.blocks.find((b) => b.type === "header");
   const start = header && header.type === "header" ? header.settings : null;
   const saved = await readTipDecor(user.id);
-  const current = saved ?? {
+  const startFx = start && start.bannerFx !== "custom" ? start.bannerFx : "none";
+  const current: TipDecor = saved ?? {
     avatar: start ? start.avatar : "none",
     frame: start && start.frame !== "custom" ? start.frame : "none",
-    bannerFx: start && start.bannerFx !== "custom" ? start.bannerFx : "none",
+    bannerFx: isFileFx(startFx) ? "none" : (startFx as PresetEffect),
+    bannerPic: isFileFx(startFx) ? startFx : "none",
+    avatarUpload: null,
+    frameUpload: null,
+    frameScale: FRAME_SCALE.standard,
   };
 
   // The photo the tip page and the dashboard show: the YouTube channel photo while the banner switch is on.
   let channelPhoto: string | null = null;
+  // The saved banner (when the banner switch is on), so the preview and the upload tile show the real one.
+  let banner: string | null = null;
+  let bannerOn = false;
   try {
-    const [row] = await db<{ paid_features: string[] | null; tip_photo_url: string | null }[]>`
-      select paid_features, tip_photo_url from users where id = ${user.id}
+    const [row] = await db<{ paid_features: string[] | null; tip_photo_url: string | null; tip_banner_url: string | null }[]>`
+      select paid_features, tip_photo_url, tip_banner_url from users where id = ${user.id}
     `;
-    if (row && hasFeature(row, "tipBanner")) channelPhoto = safePhotoUrl(row.tip_photo_url);
+    if (row && hasFeature(row, "tipBanner")) {
+      bannerOn = true;
+      channelPhoto = safePhotoUrl(row.tip_photo_url);
+      banner = safeBannerUrl(row.tip_banner_url);
+    }
   } catch (err) {
-    console.error("Effects: could not read the channel photo.", err);
+    console.error("Effects: could not read the channel photo and banner.", err);
   }
 
   return (
@@ -62,7 +74,7 @@ export default async function EffectsPage() {
           <DashboardNav current="decor" />
           <h1 className="display text-[clamp(2.25rem,8vw,3.5rem)]">Photo and banner effects</h1>
           <p className="text-pretty text-base text-muted">
-            Pick a profile picture, an animated frame over it and an animated effect for your banner. Tap a look to see it on the preview, then
+            Pick or upload a profile picture, a decoration over it, a banner and an effect that plays over the banner. Tap a look to see it on the preview, then
             press Save and it is live on your tip page straight away. You can change or switch it off any time.
           </p>
         </div>
@@ -72,6 +84,10 @@ export default async function EffectsPage() {
           style={themeFor(baseDoc, ownerPage ? null : user.accent).style ?? {}}
           pictureUrl={channelPhoto ?? user.picture_url}
           name={user.name ?? "You"}
+          bannerUrl={banner}
+          creatorId={user.id}
+          uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
+          canUploadBanner={bannerOn}
         />
       </div>
     </DashboardShell>

@@ -37,18 +37,29 @@ function decor(style: string, id: number | null, use: AssetUse, assets: Record<n
 // own account data. A banner picture chosen from the library replaces the creator's own banner. A
 // picture that is missing, taken down or the wrong kind leaves the creator's own banner.
 export function HeaderBlock({ block }: { block: Block<"header"> }) {
-  const { displayName, pictureUrl, bannerUrl, ytChannelName, ytChannelUrl, bio, previewMode, assets } = useTipForm();
+  const { displayName, pictureUrl, bannerUrl, ytChannelName, ytChannelUrl, bio, previewMode, assets, decorLayers } = useTipForm();
   const id = block.settings.bannerAsset;
   const asset = id === null ? undefined : assets[id];
   const { avatar, frame, frameAsset, frameScale, bannerFx, bannerFxAsset, fxArea } = block.settings;
-  const avatarRender: DecorRender = isAvatarPic(avatar) ? { kind: "custom", ...AVATAR_PICS[avatar], round: true } : null;
-  const frameRender = decor(frame, frameAsset, "frame", assets, frameScale);
+  // The creator's own uploads fill a layer only while no ready-made look is chosen for it.
+  const up = decorLayers?.avatarUpload;
+  const fup = decorLayers?.frameUpload;
+  const avatarRender: DecorRender = isAvatarPic(avatar)
+    ? { kind: "custom", ...AVATAR_PICS[avatar], round: true }
+    : up
+      ? { kind: "custom", url: up.url, posterUrl: up.posterUrl, animated: up.animated, round: true }
+      : null;
+  const frameChosen = decor(frame, frameAsset, "frame", assets, frameScale);
+  const frameRender: DecorRender =
+    frameChosen ?? (fup ? { kind: "custom", url: fup.url, posterUrl: fup.posterUrl, animated: fup.animated, scale: decorLayers?.frameScale } : null);
   const fxRender = decor(bannerFx, bannerFxAsset, "fx", assets);
+  const picRender: DecorRender = decorLayers && isFileFx(decorLayers.bannerPic) ? decor(decorLayers.bannerPic, null, "fx", assets) : null;
   const panel = (banner: string | null) => (
     <CreatorPanel
       avatar={avatarRender}
       frame={frameRender}
       bannerFx={fxRender}
+      bannerPic={picRender}
       // Only a picture or animation of the library can cover the whole header; a ready-made effect is
       // drawn for the banner's own box.
       fxWholeHeader={fxRender?.kind === "custom" && (fxRender.wholeHeader === true || fxArea === "header")}

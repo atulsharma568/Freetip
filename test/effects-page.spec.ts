@@ -51,10 +51,37 @@ test.describe("the Effects picker", () => {
     await expect(page.getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
+  test("an effect and an animated banner picture play together, each saved on its own", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    await page.getByRole("button", { name: /Sakura/ }).click();
+    await page.getByRole("button", { name: /Falling petals/ }).click();
+    // Both stay picked: the picture is the background and the effect plays on top of it.
+    await expect(page.getByRole("button", { name: /Sakura/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: /Falling petals/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".bfx img")).toHaveAttribute("src", /\/decorations\/sakura(\.poster)?\.webp$/);
+    await expect(page.locator(".bfx-petals")).toHaveCount(1);
+    // Taking the picture away leaves the effect, and the other way round.
+    await page.getByRole("button", { name: /No banner picture/ }).click();
+    await expect(page.locator(".bfx img")).toHaveCount(0);
+    await expect(page.locator(".bfx-petals")).toHaveCount(1);
+    await page.getByRole("button", { name: /Sakura/ }).click();
+    await page.getByRole("button", { name: /No effect/ }).click();
+    await expect(page.locator(".bfx-petals")).toHaveCount(0);
+    await expect(page.locator(".bfx img")).toHaveCount(1);
+  });
+
+  test("the upload buttons are there for the profile picture, the decoration and the banner", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    await expect(page.getByText("Upload your own picture")).toBeVisible();
+    await expect(page.getByText("Upload your own decoration")).toBeVisible();
+    // The fixture has the banner switch off and no upload store, so the banner says so and nothing is offered.
+    await expect(page.getByText(/not switched on for your account/)).toBeVisible();
+  });
+
   test("every look can be picked and the page does not scroll sideways at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/dev-fixtures/effects");
-    for (const label of ["Falling petals", "Rising embers", "Clutch pulse", "Peaky Blinders", "Sakura", "Solo Leveling", "Apple kitty", "Toney", "Eternal", "Fkimgworkkk", "Explosive cat", "Killua", "Angel", "Nanami", "Naoya", "No effect", "Black Widow"]) {
+    for (const label of ["Falling petals", "Rising embers", "Clutch pulse", "Peaky Blinders", "Sakura", "Solo Leveling", "Apple kitty", "Toney", "Eternal", "Fkimgworkkk", "Explosive cat", "Killua", "Angel", "Nanami", "Naoya", "No effect", "No banner picture", "Black Widow"]) {
       await page.getByRole("button", { name: new RegExp(label) }).click();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
