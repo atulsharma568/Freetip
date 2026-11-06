@@ -6,7 +6,6 @@ import { TIER_PRICES } from "../src/lib/pricing";
 // server has none, so pressing Pay shows the sign-in message. What is checked here is the cards and
 // the form: what turns the button on, what it says, and that it fits a 320 px screen.
 
-const PHONE = /Your mobile number/;
 // Prices are read from the one place they are set, so changing them there does not break these checks.
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const S = TIER_PRICES.starter;
@@ -61,40 +60,36 @@ test.describe("the plan cards", () => {
     await page.goto("/dev-fixtures/plans?buy=off");
     await expect(page.getByRole("button", { name: "Buying opens soon" })).toHaveCount(2);
     for (const b of await page.getByRole("button", { name: "Buying opens soon" }).all()) await expect(b).toBeDisabled();
-    await expect(page.getByLabel(PHONE)).toHaveCount(0);
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
     await expect(page.getByText("Early price for the first 50 creators").first()).toBeVisible();
   });
 });
 
 test.describe("the Buy form", () => {
-  test("opens for the chosen plan, says the price of the chosen term, and needs a number and the tick", async ({ page }) => {
+  test("opens for the chosen plan, says the price of the chosen term, and needs the tick", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
-    await expect(page.getByLabel(PHONE)).toHaveCount(0); // nothing until a plan is chosen
+    await expect(page.getByRole("checkbox")).toHaveCount(0); // nothing until a plan is chosen
     await page.getByRole("button", { name: "Choose Creator" }).click();
     await expect(page.getByRole("heading", { name: "Buy Creator" })).toBeVisible();
     const pay = page.getByRole("button", { name: /^Pay / });
     await expect(pay).toBeDisabled();
-    await expect(pay).toHaveText(`Pay ${inr(C.monthly)} with PayU`);
+    await expect(pay).toHaveText(`Pay ${inr(C.monthly)}`);
+    // No mobile number box: Razorpay's own window asks for it if it needs it.
+    await expect(page.getByLabel(/mobile number/i)).toHaveCount(0);
 
-    await page.getByLabel(PHONE).fill("98765");
     await page.getByRole("checkbox").check();
-    await expect(pay).toBeDisabled(); // number still too short
-
-    await page.getByLabel(PHONE).fill("98765 43210");
     await expect(pay).toBeEnabled();
 
-    // The switch above the cards changes the term; the number and the tick stay.
+    // The switch above the cards changes the term; the tick stays.
     await page.getByRole("button", { name: "12 months" }).first().click();
-    await expect(pay).toHaveText(`Pay ${inr(C.yearly)} with PayU`);
+    await expect(pay).toHaveText(`Pay ${inr(C.yearly)}`);
     await expect(pay).toBeEnabled();
-    await expect(page.getByLabel(PHONE)).toHaveValue("98765 43210");
     await expect(page.getByRole("checkbox")).toBeChecked();
 
-    // Choosing the other plan changes the amount and the heading, and keeps what was typed.
+    // Choosing the other plan changes the amount and the heading, and keeps the tick.
     await page.getByRole("button", { name: "Choose Starter" }).click();
     await expect(page.getByRole("heading", { name: "Buy Starter" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(S.yearly)} with PayU`);
-    await expect(page.getByLabel(PHONE)).toHaveValue("98765 43210");
+    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(S.yearly)}`);
     await expect(page.getByRole("checkbox")).toBeChecked();
     await expect(page.getByRole("button", { name: /^Pay / })).toBeEnabled();
 
@@ -105,19 +100,18 @@ test.describe("the Buy form", () => {
   test("the term switch inside the form is the same choice as the one above the cards", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
     await page.getByRole("button", { name: "Choose Creator" }).click();
-    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.monthly)} with PayU`);
+    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.monthly)}`);
     // Two switches now: the one above the cards and the one in the form.
     const switches = page.getByRole("button", { name: "12 months" });
     await expect(switches).toHaveCount(2);
     await switches.nth(1).click();
-    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.yearly)} with PayU`);
+    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.yearly)}`);
     await expect(page.getByRole("article").nth(1)).toContainText(`${inr(C.yearly)} a year`);
   });
 
   test("a Starter term a running Creator pass already covers says so and cannot be paid; a longer term can", async ({ page }) => {
     await page.goto("/dev-fixtures/plans?covered=1");
     await page.getByRole("button", { name: "Choose Starter" }).click();
-    await page.getByLabel(PHONE).fill("9876543210");
     await page.getByRole("checkbox").check();
     await expect(page.getByText("Your Creator plan already includes everything in Starter for this long")).toBeVisible();
     await expect(page.getByRole("button", { name: /^Pay / })).toBeDisabled();
@@ -132,26 +126,25 @@ test.describe("the Buy form", () => {
     await page.getByRole("button", { name: "Add a term of Creator" }).click();
     await expect(page.getByRole("heading", { name: "Add another term of Creator" })).toBeVisible();
     await expect(page.getByText("· Early price")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.early.monthly)} with PayU`);
+    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.early.monthly)}`);
     await expect(page.getByText("A new term starts when your current one ends")).toBeVisible();
   });
 
   test("pressing Pay without a signed-in creator shows a plain message and turns the button back on", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
     await page.getByRole("button", { name: "Choose Creator" }).click();
-    await page.getByLabel(PHONE).fill("9876543210");
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: /^Pay / }).click();
     await expect(page.getByText("Sign in again to buy paid features.")).toBeVisible();
     await expect(page.getByRole("button", { name: /^Pay / })).toBeEnabled();
-    // Nothing was sent to PayU.
+    // Nothing was sent to Razorpay.
     expect(page.url()).toContain("/dev-fixtures/plans");
   });
 
-  test("says why the mobile number is asked and that it is not kept, and links the terms and refund policy", async ({ page }) => {
+  test("says the payment happens in Razorpay's window, and links the terms and refund policy", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
     await page.getByRole("button", { name: "Choose Starter" }).click();
-    await expect(page.getByText("We pass it to PayU and do not keep it.")).toBeVisible();
+    await expect(page.getByText("You pay in Razorpay's secure window")).toBeVisible();
     const form = page.locator("form");
     await expect(form.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
     await expect(form.getByRole("link", { name: "Refund Policy" })).toHaveAttribute("href", "/refunds");
@@ -160,7 +153,7 @@ test.describe("the Buy form", () => {
   test("the payment messages read plainly", async ({ page }) => {
     for (const [notice, text] of [
       ["paid", "Payment received."],
-      ["pending", "We are waiting for PayU"],
+      ["pending", "We are waiting for the payment to be confirmed"],
       ["failed", "The payment did not go through."],
       ["cancelled", "You cancelled the payment"],
     ] as const) {

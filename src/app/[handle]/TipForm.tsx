@@ -17,41 +17,10 @@ import type { MeterReading } from "@/lib/page-doc/pressure";
 import { findBlock } from "@/lib/page-doc/blocks";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
+// Razorpay checkout is loaded via a <script> tag at payment time.
+import { loadRazorpayScript } from "@/lib/razorpay-checkout";
 
 export type { Extra };
-
-// Razorpay checkout is loaded via a <script> tag at payment time.
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Razorpay: new (options: Record<string, any>) => { open(): void };
-  }
-}
-
-function loadRazorpayScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window !== "undefined" && typeof window.Razorpay !== "undefined") {
-      resolve();
-      return;
-    }
-    const existing = document.getElementById("rzp-script");
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Script load error")));
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "rzp-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve();
-    script.onerror = () => {
-      // Drop the dead tag so a retry builds a fresh one instead of waiting on this.
-      script.remove();
-      reject(new Error("Failed to load Razorpay"));
-    };
-    document.body.appendChild(script);
-  });
-}
 
 // The creator's minimum first, then fixed steps above it (₹20, ₹50, ₹100 ...), so a
 // ₹20 minimum gives ₹20, ₹50, ₹100, ₹200, ₹500. A step too close to the minimum is skipped.

@@ -23,7 +23,7 @@ export default async function PlanOrdersPage() {
       <PageHeader
         eyebrow="Money · Plan payments"
         title="Plan payments"
-        note="Every attempt to buy Starter or Creator through PayU, newest first, with the proof of what the creator agreed to."
+        note="Every attempt to buy Starter or Creator (through Razorpay since 6 November 2026, PayU before), newest first, with the proof of what the creator agreed to."
       />
 
       <section aria-labelledby="look-heading" className="space-y-3">
@@ -31,9 +31,10 @@ export default async function PlanOrdersPage() {
           To look at
         </h2>
         <DefinitionNote>
-          PayU says these orders are paid, but not at the plain price (an offer or discount was applied, or its amounts
-          disagree). Nothing was switched on. Open the payment in PayU&apos;s dashboard, then either refund it there or
-          give the creator the features yourself in their page, then press Mark handled to take it off this list.
+          The payment gateway says these orders are paid, but not at the plain price (another amount, an offer, or a
+          refund). Nothing was switched on. Open the payment in Razorpay&apos;s dashboard (PayU&apos;s for an old order),
+          then either refund it there or give the creator the features yourself in their page, then press Mark handled
+          to take it off this list.
         </DefinitionNote>
         {!look.ok ? (
           <CouldNotRead message="Could not read these orders. Is migration 0057 run?" detail={look.error} />

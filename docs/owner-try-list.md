@@ -207,3 +207,14 @@ None of this has been seen in a browser with a real login or in real OBS.
 - [ ] On the GitHub repository page, check that the Contributors list shows only your account (GitHub can take hours or a day or two to recalculate), and that the Commits page shows no co-author avatars.
 - [ ] In Vercel, check that the next deployment from `main` builds and the live site loads (the history was rewritten, so the first deploy after it is a full build).
 - [ ] If you ever clone the project again, create `.env.local` from the variable names in `.env.example` and `OPERATIONS.md` section 6.
+
+## Buying a plan through Razorpay (2026-11-06, run migration 0060 BEFORE the deploy)
+
+- [ ] Run `db/migrations/0060_plan_orders_razorpay.sql` in Neon (and 0059 if not yet run), then let the deploy go out. Before 0060 the Pay button says "Buying is not open yet" and charges nothing.
+- [ ] In Razorpay's dashboard, Webhooks: the existing webhook for `https://freetip.in/api/webhooks/razorpay` has **payment.captured** and **payment.failed** ticked (tips already use them).
+- [ ] With Razorpay's TEST keys in Vercel, sign in as yourself and open `/dashboard/plans`: press Choose Starter, tick the box. There is no mobile number box; the button says "Pay ₹..." and the note says you pay in Razorpay's secure window. A different creator's account sees "Buying opens soon".
+- [ ] Press Pay: Razorpay's popup opens on the same page with your name and email filled in. Pay with a Razorpay test UPI ID or card. The page reloads with "Payment received. Your Starter plan is on until ..."; Your payments lists it, and the receipt says "Paid with Razorpay" and that it was a test payment. `/admin/plan-orders` shows it paid and `/admin/audit` has `plan.purchased` with "Razorpay payment confirmed".
+- [ ] Press Pay and close the popup without paying: the page says nothing was charged. Pay with Razorpay's failing test card: it says the payment did not go through, and paying again works.
+- [ ] Pay once more but close the browser tab the moment Razorpay says it is paid: reopen `/dashboard/plans` within a minute and the plan is on (the webhook or the page's own check settled it).
+- [ ] Tips still work as before: send a small test tip to your own page and check the alert and `/dashboard/tips`.
+- [ ] For real money: the Razorpay account must be live and its live keys in Vercel; with `LIVE_SALES_OPEN` still false only you can buy, and the Buy form warns it is real money. Pay the smallest term, check the receipt, then refund it in Razorpay's dashboard and press End ... now in `/admin/creators/<id>`.

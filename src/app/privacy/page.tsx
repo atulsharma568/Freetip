@@ -112,15 +112,12 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>your name, from your Google account;</li>
           <li>your email address, from your Google account;</li>
-          <li>
-            your mobile number, which you type on our Buy form because the
-            provider needs it. We pass it on and do not store it;
-          </li>
           <li>the amount and our order reference.</li>
         </ul>
         <p>
-          You then pay on the provider&apos;s own page, and it handles your card,
-          UPI or net banking details itself. We never receive your full card number, UPI
+          You then pay in the provider&apos;s own secure window, which may ask
+          you for your mobile number, and it handles your card, UPI or net
+          banking details itself. We never receive your full card number, UPI
           PIN or net banking password. What the provider does with the data it
           receives is covered by its own privacy policy, which is shown on its
           payment page.
@@ -332,7 +329,7 @@ const SECTIONS: LegalSection[] = [
           </tr>
           <tr>
             <td>Take payment for a paid features pass (through our payment provider), switch the features on, show your receipt, email you before a pass ends, and keep proof of what you agreed to</td>
-            <td>Pass orders and payment ID, your sign-in email and name, the mobile number you type (sent to the payment provider only, not kept by us), the time you agreed to the terms and which version</td>
+            <td>Pass orders and payment ID, your sign-in email and name (sent to the payment provider), the time you agreed to the terms and which version</td>
             <td>Providing the service you asked for; legal duties as to accounts</td>
           </tr>
           <tr>

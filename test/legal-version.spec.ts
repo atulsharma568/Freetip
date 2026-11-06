@@ -21,6 +21,8 @@ const PINNED: Record<string, string> = {
   "5 November 2026, text 5": "414824d032e58f09a4f6a03a53cc4f05fcc815f3f955838735e68879e205602b",
   // Payouts are started by us every morning once ₹500 is available; the creator no longer asks.
   "6 November 2026, text 6": "ba2c46f7a33ca4bfa63736976a278f2a1fb5a3082a9750ba2112b8eab178eaba",
+  // Plans are paid in Razorpay's popup; the Buy form no longer asks for a mobile number or names PayU.
+  "6 November 2026, text 7": "b8dfb722c3eb00f0b4aee643eaa93a7baa24573fcd81aa6c56086f2368c6cc34",
 };
 
 function fingerprint(): string {

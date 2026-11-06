@@ -15,6 +15,12 @@ import { PLAN_KEYS, priceView, type PlanKey, type PlanPrices } from "./pricing";
 // plan still covers are taken away and the owner's own ticks stay. Paying again before the end adds
 // the new term after the current end.
 //
+// Gateways: since 2026-11-06 new orders are paid through Razorpay (migration 0060, settleRazorpayOrder
+// and src/lib/razorpay-plan.ts); PayU declined the site and its code below only settles orders made for
+// PayU. The same rules hold for both: the amount is ours, nothing is switched on until the gateway's
+// own word (a signed webhook or its API, asked by our server) says the order was paid at its price,
+// and paid happens once.
+//
 // The rules that keep money safe (docs/payu-notes.md):
 //  - An order is made first, with the amount fixed on our side. A reply is acted on only when its
 //    hash matches, it names an order we made, the amount and our own order id agree, the mode
@@ -166,6 +172,9 @@ export async function createPlanOrder(
     // date in LEGAL_UPDATED). Required: an order is never made without the record of what was agreed.
     // The agreement time is `now` (the server's clock), never a time the browser sent.
     termsVersion: string;
+    // The gateway the creator pays through (migration 0060 adds the column). PayU when not given, so an
+    // order made by the old code path is written exactly as before.
+    provider?: "payu" | "razorpay";
     txnid?: string;
     now?: Date;
   },
@@ -215,13 +224,43 @@ export async function createPlanOrder(
        where creator_id = ${o.creatorId} and status = 'pending' and livemode = ${o.livemode}
     `;
     const txnid = o.txnid ?? newTxnid();
-    const [row] = await tx<{ id: string }[]>`
-      insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at, agreed_at, terms_version)
-      values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz, ${now}::timestamptz, ${termsVersion})
-      returning id::text
-    `;
+    const [row] =
+      o.provider === "razorpay"
+        ? await tx<{ id: string }[]>`
+            insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at, agreed_at, terms_version, provider)
+            values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz, ${now}::timestamptz, ${termsVersion}, 'razorpay')
+            returning id::text
+          `
+        : await tx<{ id: string }[]>`
+            insert into plan_orders (creator_id, txnid, term_months, plan, amount_minor, early, livemode, created_at, agreed_at, terms_version)
+            values (${o.creatorId}, ${txnid}, ${term}, ${plan}, ${chosen.amountMinor}, ${chosen.early}, ${o.livemode}, ${now}::timestamptz, ${now}::timestamptz, ${termsVersion})
+            returning id::text
+          `;
     return { ok: true, order: { id: Number(row.id), txnid, amountMinor: chosen.amountMinor, term, plan, early: chosen.early } } as const;
   });
+}
+
+// Saves Razorpay's order id on a plan order made for Razorpay, right after the Razorpay order was made.
+// Only an order with no id yet takes one, so a retry cannot point it at another Razorpay order.
+export async function attachProviderOrder(db: LedgerDb, orderId: number, providerOrderRef: string): Promise<boolean> {
+  const rows = await db<{ id: string }[]>`
+    update plan_orders set provider_order_ref = ${providerOrderRef}
+     where id = ${orderId} and provider = 'razorpay' and provider_order_ref is null and status = 'pending'
+    returning id::text
+  `;
+  return rows.length === 1;
+}
+
+// What an order is marked with when the gateway's own order could not be made, so nobody could pay it.
+export const NOT_STARTED_REASON = "could not be started at the payment gateway";
+
+// Closes an order whose Razorpay order could not be made (nothing can be paid against it), so it stops
+// holding an early seat. Only a pending order with no Razorpay order is closed.
+export async function failUnstartedOrder(db: LedgerDb, orderId: number): Promise<void> {
+  await db`
+    update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${NOT_STARTED_REASON}
+     where id = ${orderId} and status = 'pending' and provider_order_ref is null
+  `;
 }
 
 // ---- Settling a payment ---------------------------------------------------------------------
@@ -269,6 +308,25 @@ export interface SettleDeps {
   sleep?: (ms: number) => Promise<void>;
 }
 
+// The same, for any gateway (Razorpay since 2026-11-06). `ask` is told the order's own reference and
+// the gateway's order id (null when the gateway's order was never made) and answers in the same words
+// as PayU's check. Only orders of `provider` made in the same mode (`live`) are ever looked at.
+export interface GatewayDeps {
+  provider: "payu" | "razorpay";
+  live: boolean;
+  ask: (order: { txnid: string; providerOrderRef: string | null }) => Promise<PayuPayment>;
+  now?: () => Date;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const gateway = (deps: SettleDeps | GatewayDeps): GatewayDeps =>
+  "provider" in deps
+    ? deps
+    : { provider: "payu", live: deps.config.mode === "live", ask: (o) => deps.fetchPayment(o.txnid), now: deps.now, sleep: deps.sleep };
+
+// What the audit line and the "closed out" mark say, per gateway.
+const GATEWAY_NAME = { payu: "PayU", razorpay: "Razorpay" } as const;
+
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 // PayU's check can trail its own notice by a moment; ask once more after this long.
 const VERIFY_RETRY_MS = 2000;
@@ -278,10 +336,11 @@ export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: Se
   if (!replyHashIsValid(reply, config)) return { status: "rejected", reason: "bad_hash" };
 
   const [order] = await db<OrderRow[]>`
-    select id::text, creator_id::text, status, term_months, amount_minor::text, livemode
+    select id::text, creator_id::text, status, term_months, amount_minor::text, livemode, provider
       from plan_orders where txnid = ${reply.txnid}
   `;
-  if (!order) return { status: "rejected", reason: "unknown_order" };
+  // A PayU reply can only settle an order made for PayU.
+  if (!order || order.provider !== "payu") return { status: "rejected", reason: "unknown_order" };
   const orderId = Number(order.id);
   if (order.livemode !== (config.mode === "live")) return { status: "rejected", reason: "mode_mismatch" };
   if (parsePayuAmount(reply.amount) !== Number(order.amount_minor)) return { status: "rejected", reason: "amount_mismatch" };
@@ -328,6 +387,53 @@ export async function settlePlanPayment(db: LedgerDb, reply: PayuReply, deps: Se
   return activate(db, orderId, answer.payuRef, (deps.now ?? (() => new Date()))());
 }
 
+// Settles the plan order that belongs to one Razorpay order. Called from the Razorpay webhook (with
+// `known`: the payment in its signed payload, already checked by the webhook route) and from the Buy
+// form once the popup reports a payment (no `known`: Razorpay's API is asked). Either way the order is
+// found by Razorpay's order id, the mode must agree and only a captured payment for exactly the order's
+// price switches anything on, once. A failure only marks a pending or failed order (never a paid one).
+export async function settleRazorpayOrder(
+  db: LedgerDb,
+  providerOrderRef: string,
+  deps: GatewayDeps,
+  known?: PayuPayment,
+): Promise<SettleResult> {
+  const [order] = await db<OrderRow[]>`
+    select id::text, creator_id::text, status, term_months, amount_minor::text, livemode, provider, txnid
+      from plan_orders where provider_order_ref = ${providerOrderRef} and provider = 'razorpay'
+  `;
+  if (!order) return { status: "rejected", reason: "unknown_order" };
+  const orderId = Number(order.id);
+  if (order.livemode !== deps.live) return { status: "rejected", reason: "mode_mismatch" };
+  if (order.status === "paid") return { status: "already_paid", orderId };
+
+  const answer = known ?? (await deps.ask({ txnid: String(order.txnid), providerOrderRef }));
+  switch (answer.kind) {
+    case "unavailable":
+      return { status: "unavailable", reason: answer.reason };
+    case "pending":
+    case "not_found":
+      return { status: "pending", orderId };
+    case "failure": {
+      const changed = await db<{ id: string }[]>`
+        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
+         where id = ${orderId} and status in ('pending', 'failed')
+        returning id::text
+      `;
+      return changed.length ? { status: "failed", orderId } : { status: "already_paid", orderId };
+    }
+    case "mismatch":
+      await flagNeedsLook(db, orderId, answer.reason, "razorpay");
+      return { status: "rejected", reason: "not_confirmed", detail: answer.reason };
+    case "success":
+      if (answer.amountMinor !== Number(order.amount_minor)) {
+        await flagNeedsLook(db, orderId, "the amount differs", "razorpay");
+        return { status: "rejected", reason: "amount_mismatch" };
+      }
+      return activate(db, orderId, answer.payuRef, (deps.now ?? (() => new Date()))(), "razorpay");
+  }
+}
+
 // The term a payment adds to one plan, worked out in the database in UTC so the session's time zone
 // can never move it. The term starts when the plan's current pass ends, or at `stamp` when it has
 // ended (or never ran). A month is added by the calendar and then put back on the day of the month
@@ -362,7 +468,13 @@ async function termSpan(
 }
 
 // Pays the order and switches the features on, in one transaction with both rows locked.
-async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Date): Promise<SettleResult> {
+async function activate(
+  db: LedgerDb,
+  orderId: number,
+  payuRef: string,
+  now: Date,
+  provider: "payu" | "razorpay" = "payu",
+): Promise<SettleResult> {
   const stamp = now.toISOString();
   try {
     return await db.begin(async (tx: Query) => {
@@ -433,13 +545,13 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
       await tx`
         insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
         values (null, 'system', 'plan.purchased', 'user', ${String(creatorId)},
-                ${{ order_id: orderId, plan, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user2.ends, added_keys: added, skipped_blocked_keys: skipped, livemode: order.livemode }}::jsonb,
-                'PayU payment confirmed')
+                ${{ order_id: orderId, plan, term_months: order.term_months, amount_minor: Number(order.amount_minor), pass_ends_at: user2.ends, added_keys: added, skipped_blocked_keys: skipped, livemode: order.livemode, provider }}::jsonb,
+                ${`${GATEWAY_NAME[provider]} payment confirmed`})
       `;
       return { status: "activated", orderId, creatorId, endsAt: user2.ends } as const;
     });
   } catch (err) {
-    // The same PayU payment id on another order: the unique index refused it, nothing changed.
+    // The same gateway payment id on another order: the unique index refused it, nothing changed.
     if (/plan_orders_payu_ref/.test((err as Error).message ?? "")) {
       return { status: "rejected", reason: "payment_already_used" };
     }
@@ -452,6 +564,8 @@ async function activate(db: LedgerDb, orderId: number, payuRef: string, now: Dat
 // What the daily check writes on an order PayU has never heard of after a day, so it stops being
 // asked about. Such an order can still be paid later (a stored checkout form); its reply settles it.
 export const ABANDONED_REASON = "never paid at PayU";
+export const RAZORPAY_ABANDONED_REASON = "never paid at Razorpay";
+const ABANDONED: Record<"payu" | "razorpay", string> = { payu: ABANDONED_REASON, razorpay: RAZORPAY_ABANDONED_REASON };
 
 export interface ReconcileResult {
   looked: number;
@@ -471,6 +585,7 @@ const emptyResult = (): ReconcileResult => ({ looked: 0, activated: 0, failed: 0
 interface UnsettledRow extends Record<string, unknown> {
   id: string;
   txnid: string;
+  provider_order_ref: string | null;
   status: string;
   amount_minor: string;
   old: boolean;
@@ -482,13 +597,13 @@ export const NEEDS_LOOK_ACTION = "plan.payment_needs_look";
 
 // Writes the "needs a look" line once per order (a second look at the same order adds nothing), so
 // the owner sees it without reading the server log. Never throws: the check goes on without it.
-async function flagNeedsLook(db: LedgerDb, orderId: number, detail: string): Promise<void> {
+async function flagNeedsLook(db: LedgerDb, orderId: number, detail: string, provider: "payu" | "razorpay" = "payu"): Promise<void> {
   try {
     await db`
       insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, after_json, reason)
       select null, 'system', ${NEEDS_LOOK_ACTION}, 'plan_order', ${String(orderId)},
              ${{ order_id: orderId, detail: detail.slice(0, 300) }}::jsonb,
-             'PayU says this order is paid, but not at the plain price. Nothing was switched on.'
+             ${`${GATEWAY_NAME[provider]} says this order is paid, but not at the plain price. Nothing was switched on.`}
        where not exists (select 1 from audit_events where action = ${NEEDS_LOOK_ACTION} and entity_type = 'plan_order' and entity_ref = ${String(orderId)})
     `;
   } catch (err) {
@@ -499,19 +614,19 @@ async function flagNeedsLook(db: LedgerDb, orderId: number, detail: string): Pro
 // Asks PayU about one unsettled order and acts on the answer: pays it, fails it, closes it out, or
 // leaves it. Adds what it did to `out`. Never believes anything but PayU's own Verify answer for the
 // plain price (the same rule as a reply: see settlePlanPayment).
-async function checkUnsettled(db: LedgerDb, deps: SettleDeps, row: UnsettledRow, now: Date, out: ReconcileResult): Promise<void> {
+async function checkUnsettled(db: LedgerDb, g: GatewayDeps, row: UnsettledRow, now: Date, out: ReconcileResult): Promise<void> {
   out.looked += 1;
   try {
-    const answer = await deps.fetchPayment(row.txnid);
+    const answer = await g.ask({ txnid: row.txnid, providerOrderRef: row.provider_order_ref ?? null });
     if (answer.kind === "unavailable") out.unavailable += 1;
     else if (answer.kind === "success" && answer.amountMinor === Number(row.amount_minor)) {
-      const r = await activate(db, Number(row.id), answer.payuRef, now);
+      const r = await activate(db, Number(row.id), answer.payuRef, now, g.provider);
       if (r.status === "activated") out.activated += 1;
     } else if (answer.kind === "success" || answer.kind === "mismatch") {
       out.needsLook += 1;
       const detail = answer.kind === "mismatch" ? answer.reason : "the amount differs";
-      console.error(`Plan order ${row.id} (txnid ${row.txnid}) is paid at PayU but not at the plain price: ${detail}. Look at it by hand.`);
-      await flagNeedsLook(db, Number(row.id), detail);
+      console.error(`Plan order ${row.id} (txnid ${row.txnid}) is paid at ${GATEWAY_NAME[g.provider]} but not at the plain price: ${detail}. Look at it by hand.`);
+      await flagNeedsLook(db, Number(row.id), detail, g.provider);
     } else if (answer.kind === "failure") {
       const changed = await db<{ id: string }[]>`
         update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${answer.reason.slice(0, 300)}
@@ -522,7 +637,7 @@ async function checkUnsettled(db: LedgerDb, deps: SettleDeps, row: UnsettledRow,
       else out.stillPending += 1;
     } else if (answer.kind === "not_found" && row.status === "pending" && row.old) {
       await db`
-        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${ABANDONED_REASON}
+        update plan_orders set status = 'failed', failed_at = now(), failure_reason = ${ABANDONED[g.provider]}
          where id = ${Number(row.id)} and status = 'pending'
       `;
       out.abandoned += 1;
@@ -533,25 +648,26 @@ async function checkUnsettled(db: LedgerDb, deps: SettleDeps, row: UnsettledRow,
   }
 }
 
-// Orders that were never settled by a return or a notice are asked about at PayU: pending ones, and
-// failed ones PayU itself reported failed (a retry under the same reference may have succeeded).
-// Newest first, so a real payment whose notice was lost is never starved behind abandoned
-// checkouts; only this server's own settings' mode is asked about; one bad order cannot stop
-// the rest; and the loop stops when its time budget is used.
+// Orders that were never settled by a return or a notice are asked about at their gateway: pending
+// ones, and failed ones the gateway itself reported failed (a retry under the same reference may have
+// succeeded). Newest first, so a real payment whose notice was lost is never starved behind abandoned
+// checkouts; only this gateway's orders in this server's own settings' mode are asked about; one bad
+// order cannot stop the rest; and the loop stops when its time budget is used.
 export async function reconcilePendingOrders(
   db: LedgerDb,
-  deps: SettleDeps,
+  deps: SettleDeps | GatewayDeps,
   opts: { minAgeMinutes?: number; maxAgeDays?: number; limit?: number; budgetMs?: number } = {},
 ): Promise<ReconcileResult> {
-  const now = (deps.now ?? (() => new Date()))();
+  const g = gateway(deps);
+  const now = (g.now ?? (() => new Date()))();
   const stamp = now.toISOString();
-  const live = deps.config.mode === "live";
   const rows = await db<UnsettledRow[]>`
-    select id::text, txnid, status, amount_minor::text,
+    select id::text, txnid, provider_order_ref, status, amount_minor::text,
            (created_at <= ${stamp}::timestamptz - interval '1 day') as old
       from plan_orders
-     where livemode = ${live}
-       and (status = 'pending' or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}))
+     where livemode = ${g.live} and provider = ${g.provider}
+       and (status = 'pending' or (status = 'failed' and failure_reason is distinct from ${ABANDONED[g.provider]}
+                                   and failure_reason is distinct from ${NOT_STARTED_REASON}))
        and created_at <= ${stamp}::timestamptz - make_interval(mins => ${opts.minAgeMinutes ?? 10}::int)
        and created_at >  ${stamp}::timestamptz - make_interval(days => ${opts.maxAgeDays ?? 3}::int)
      order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 50}
@@ -560,7 +676,7 @@ export async function reconcilePendingOrders(
   const started = Date.now();
   for (const row of rows) {
     if (Date.now() - started > (opts.budgetMs ?? 40_000)) break;
-    await checkUnsettled(db, deps, row, now, out);
+    await checkUnsettled(db, g, row, now, out);
   }
   return out;
 }
@@ -582,19 +698,20 @@ const PAGE_FAILED_HOURS = 2;
 export async function settleCreatorOrders(
   db: LedgerDb,
   creatorId: number,
-  deps: SettleDeps,
+  deps: SettleDeps | GatewayDeps,
   opts: { limit?: number } = {},
 ): Promise<ReconcileResult> {
-  const now = (deps.now ?? (() => new Date()))();
+  const g = gateway(deps);
+  const now = (g.now ?? (() => new Date()))();
   const stamp = now.toISOString();
-  const live = deps.config.mode === "live";
   const rows = await db<UnsettledRow[]>`
     with picked as (
       select id from plan_orders
-       where creator_id = ${creatorId} and livemode = ${live}
+       where creator_id = ${creatorId} and livemode = ${g.live} and provider = ${g.provider}
          and (checked_at is null or checked_at <= ${stamp}::timestamptz - make_interval(secs => ${PAGE_CHECK_GAP_SECONDS}::int))
          and ((status = 'pending' and created_at > ${stamp}::timestamptz - make_interval(hours => ${PAGE_PENDING_HOURS}::int))
-           or (status = 'failed' and failure_reason is distinct from ${ABANDONED_REASON}
+           or (status = 'failed' and failure_reason is distinct from ${ABANDONED[g.provider]}
+               and failure_reason is distinct from ${NOT_STARTED_REASON}
                and created_at > ${stamp}::timestamptz - make_interval(hours => ${PAGE_FAILED_HOURS}::int)))
        order by (status = 'pending') desc, created_at desc limit ${opts.limit ?? 8}
          for update skip locked
@@ -602,11 +719,11 @@ export async function settleCreatorOrders(
     update plan_orders o set checked_at = ${stamp}::timestamptz
       from picked
      where o.id = picked.id
-    returning o.id::text, o.txnid, o.status, o.amount_minor::text,
+    returning o.id::text, o.txnid, o.provider_order_ref, o.status, o.amount_minor::text,
               (o.created_at <= ${stamp}::timestamptz - interval '1 day') as old
   `;
   const out = emptyResult();
-  await Promise.all(rows.map((row) => checkUnsettled(db, deps, row, now, out)));
+  await Promise.all(rows.map((row) => checkUnsettled(db, g, row, now, out)));
   return out;
 }
 

@@ -1,13 +1,20 @@
 import "server-only";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
-import { fetchPayment, payuConfig, readReply } from "@/lib/payu";
-import { settleCreatorOrders, settlePlanPayment, type ReconcileResult, type SettleResult } from "@/lib/plan-orders";
+import { fetchPayment, payuConfig, readReply, type PayuPayment } from "@/lib/payu";
+import {
+  settleCreatorOrders,
+  settlePlanPayment,
+  settleRazorpayOrder,
+  type ReconcileResult,
+  type SettleResult,
+} from "@/lib/plan-orders";
+import { razorpayConfig, razorpayDeps } from "@/lib/razorpay-plan";
 
-// Turns a form body PayU posted (the browser return or the webhook) into a settled order. The
-// rules are in plan-orders.ts; this only wires in the database, the settings and PayU's check.
-// Nothing here logs the hash, the salt or the key, and nothing from a request is logged raw
-// (anyone on the internet can post here).
+// Wires the plan-order rules (plan-orders.ts) to the database, the settings and the gateways: Razorpay
+// for every order made since 2026-11-06, PayU only for the older PayU orders (its routes stay so a late
+// PayU notice is still understood). Nothing here logs a hash, a salt, a key or a signature, and nothing
+// from a request is logged raw (anyone on the internet can post to the PayU routes).
 
 export type SettleOutcome = SettleResult | { status: "not_set_up" };
 
@@ -65,6 +72,7 @@ export async function readJsonBody(request: Request): Promise<Record<string, str
   }
 }
 
+// A PayU reply (the browser return or PayU's notice) for an order made for PayU.
 export async function settleFromBody(body: Record<string, unknown>): Promise<SettleOutcome> {
   const config = payuConfig();
   const db = getDb();
@@ -86,23 +94,58 @@ export async function settleFromBody(body: Record<string, unknown>): Promise<Set
   return result;
 }
 
+// ---- Razorpay ---------------------------------------------------------------------------------
+
+// Settles the plan order behind one Razorpay order. `known` is the payment from a signed webhook (the
+// route checked the signature); without it Razorpay's API is asked. Null when this Razorpay order is not
+// a plan order (it is a tip), so the webhook carries on with the tip path. Throws only on a database
+// error, so the webhook answers 500 and Razorpay sends the event again.
+export async function settleRazorpayPlan(providerOrderRef: string, known?: PayuPayment): Promise<SettleOutcome | null> {
+  const db = getDb();
+  if (!db) return null;
+  const ledger = db as unknown as LedgerDb;
+  let isPlan: boolean;
+  try {
+    const [row] = await db<{ one: number }[]>`
+      select 1 as one from plan_orders where provider_order_ref = ${providerOrderRef} limit 1
+    `;
+    isPlan = Boolean(row);
+  } catch (err) {
+    // Before migration 0060 there can be no Razorpay plan order: this is a tip.
+    if ((err as { code?: string }).code === "42703" || (err as { code?: string }).code === "42P01") return null;
+    throw err;
+  }
+  if (!isPlan) return null;
+  // A plan order, but the keys are gone: decide nothing, so the sender tries again later.
+  const config = razorpayConfig();
+  if (!config) return { status: "not_set_up" };
+  const result = await settleRazorpayOrder(ledger, providerOrderRef, razorpayDeps(config), known);
+  const ref = forLog(providerOrderRef, 40);
+  if (result.status === "rejected") {
+    console.error(`Razorpay plan payment not believed: ${result.reason}${result.detail ? ` (${forLog(result.detail, 120)})` : ""} order ${ref}.`);
+  } else if (result.status === "unavailable") {
+    console.error(`Razorpay could not confirm plan order ${ref}: ${forLog(result.reason, 120)}`);
+  }
+  return result;
+}
+
 // ---- A creator's own unsettled orders, on the Paid features page ---------------------------
 
-// How long the page waits for PayU, per question. The page opens either way; a slow PayU only means
-// the order is looked at again on the next load (the page refreshes itself while an order is open).
+// How long the page waits for the gateway, per question. The page opens either way; a slow answer only
+// means the order is looked at again on the next load (the page refreshes itself while an order is open).
 const PAGE_VERIFY_TIMEOUT_MS = 3000;
 // One question about the same creator per this long, on this server instance (a brake, not a lock:
-// the refresh timer and a reload together would otherwise ask PayU twice in a second).
+// the refresh timer and a reload together would otherwise ask twice in a second).
 const PAGE_CHECK_EVERY_MS = 3000;
 const lastCheck = new Map<number, number>();
 
-// Asks PayU about this creator's pending (and recently failed) orders and settles what PayU says is
-// paid. Called when the creator opens the plans page, so a payment whose browser return and notice
-// were both lost is switched on in seconds instead of at the daily job. Never throws and never
+// Asks Razorpay about this creator's pending (and recently failed) orders and settles what Razorpay
+// says is paid. Called when the creator opens the plans page, so a payment whose popup reply and
+// webhook were both lost is switched on in seconds instead of at the daily job. Never throws and never
 // blocks the page for long: any problem is a log line and the page shows what the database says.
 export async function settleOwnOrders(creatorId: number): Promise<ReconcileResult | null> {
   try {
-    const config = payuConfig();
+    const config = razorpayConfig();
     const db = getDb();
     if (!config || !db) return null;
     const nowMs = Date.now();
@@ -110,10 +153,7 @@ export async function settleOwnOrders(creatorId: number): Promise<ReconcileResul
     if (last !== undefined && nowMs - last < PAGE_CHECK_EVERY_MS) return null;
     lastCheck.set(creatorId, nowMs);
     if (lastCheck.size > 500) for (const [id, at] of lastCheck) if (nowMs - at > PAGE_CHECK_EVERY_MS) lastCheck.delete(id);
-    return await settleCreatorOrders(db as unknown as LedgerDb, creatorId, {
-      config,
-      fetchPayment: (txnid) => fetchPayment(config, txnid, undefined, PAGE_VERIFY_TIMEOUT_MS),
-    });
+    return await settleCreatorOrders(db as unknown as LedgerDb, creatorId, razorpayDeps(config, PAGE_VERIFY_TIMEOUT_MS));
   } catch (err) {
     console.error("Plans page: could not check the creator's own orders:", err instanceof Error ? err.message : err);
     return null;

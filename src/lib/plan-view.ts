@@ -1,9 +1,14 @@
 import type { LedgerDb } from "./accrual";
 import { PLAN_NAMES, type PlanKey } from "./pricing";
 
-// What the Paid features page shows about buying: the message after PayU sends the creator back,
-// the creator's payments and the status of the running pass. No site imports and no `server-only`,
-// so the tests run all of it (the reads against an in-memory Postgres).
+// What the Paid features page shows about buying: the message after a payment, the creator's
+// payments and the status of the running pass. No site imports and no `server-only`, so the tests run
+// all of it (the reads against an in-memory Postgres).
+
+// Which gateway a paid order went through, told from its payment id: Razorpay's start with "pay_",
+// PayU's are digits. Read from the id so receipts work before migration 0060 is run.
+export const gatewayOf = (paymentRef: string | null): "Razorpay" | "PayU" =>
+  paymentRef?.startsWith("pay_") ? "Razorpay" : "PayU";
 //
 // The `?payment=` word in the address is only a hint. Anyone can type it, so it never decides what
 // is said: the creator's latest order in the database does.
@@ -168,7 +173,7 @@ export function paymentNotice(hint: string | undefined, latest: OrderSummary | n
   if (latest.status === "pending") {
     return {
       kind: "info",
-      text: "We are waiting for PayU to confirm your payment. This normally takes a minute. This page checks again for a short while; if it stops, reload it. If money left your account and your features are not on after a few hours, write to us on the contact page with the payment ID.",
+      text: "We are waiting for the payment to be confirmed. This normally takes a minute. This page checks again for a short while; if it stops, reload it. If money left your account and your features are not on after a few hours, write to us on the contact page with the payment ID.",
     };
   }
   return {

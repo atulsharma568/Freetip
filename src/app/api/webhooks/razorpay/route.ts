@@ -5,6 +5,8 @@ import type { LedgerDb } from "@/lib/accrual";
 import { afterCapture } from "@/lib/capture-follow-up";
 import { postTipReversal } from "@/lib/reversal";
 import { reverseFanXp } from "@/lib/fan-profiles";
+import { settleRazorpayPlan } from "@/lib/plan-settle";
+import { readPayment } from "@/lib/razorpay-plan";
 
 // Razorpay sends X-Razorpay-Signature: HMAC-SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET).
 // Signature mismatch → 400. Unknown events → 200 (prevents Razorpay retries).
@@ -77,6 +79,27 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const db = getDb();
+
+  // A paid plan (Starter or Creator) bought on /dashboard/plans goes through the same Razorpay account.
+  // Its order is a plan order, not a tip: settle it from the signed payment and stop here. Anything that
+  // is not a plan order (null) carries on to the tip handling below, unchanged. A database error throws,
+  // so Razorpay is answered 500 and sends the event again.
+  if (event.event === "payment.captured" || event.event === "payment.failed") {
+    const payment = event.payload?.payment?.entity;
+    if (payment?.order_id) {
+      const known =
+        event.event === "payment.captured"
+          ? readPayment({ ...payment, status: "captured" })
+          : readPayment({ ...payment, status: "failed" });
+      const plan = await settleRazorpayPlan(payment.order_id, known);
+      if (plan) {
+        // Not decided yet (keys missing): ask Razorpay to send it again later. Anything else, including
+        // a payment not believed (logged), is final for this event.
+        if (plan.status === "not_set_up" || plan.status === "unavailable") return new Response("Try again", { status: 503 });
+        return new Response("OK", { status: 200 });
+      }
+    }
+  }
 
   switch (event.event) {
     case "payment.captured": {

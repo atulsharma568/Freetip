@@ -193,8 +193,8 @@ test.describe("what the plans page says after PayU sends the creator back", () =
     expect(paymentNotice("cancelled", summary({ status: "failed" }))?.text).toMatch(/cancelled/);
   });
 
-  test("pending and a problem tell the creator what to do and never echo PayU's words", () => {
-    expect(paymentNotice("pending", summary({ status: "pending" }))?.text).toMatch(/waiting for PayU/);
+  test("pending and a problem tell the creator what to do and never echo the gateway's words", () => {
+    expect(paymentNotice("pending", summary({ status: "pending" }))?.text).toMatch(/waiting for the payment to be confirmed/);
     expect(paymentNotice("problem", null)?.kind).toBe("error");
     expect(paymentNotice("problem", null)?.text).toMatch(/payment ID/);
   });

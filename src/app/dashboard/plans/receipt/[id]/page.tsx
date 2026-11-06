@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { OPERATOR } from "@/lib/legal";
-import { istMoment, paidOrder, receiptNumber, rupees, termWords } from "@/lib/plan-view";
+import { gatewayOf, istMoment, paidOrder, receiptNumber, rupees, termWords } from "@/lib/plan-view";
 import { PLAN_NAMES } from "@/lib/pricing";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardShell } from "../../../parts/DashboardShell";
@@ -49,7 +49,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     ["For", `${SITE_NAME} ${PLAN_NAMES[order.plan]} plan, ${termWords(order.termMonths)}`],
     ["Covers", `${istMoment(order.passStartsAt ?? order.createdAt)} to ${istMoment(order.passEndsAt ?? order.createdAt)}`],
     ["Amount paid", rupees(order.amountMinor)],
-    ["Paid with", `PayU, payment ID ${order.payuRef ?? "not recorded"}`],
+    ["Paid with", `${gatewayOf(order.payuRef)}, payment ID ${order.payuRef ?? "not recorded"}`],
     ...(order.endedAt ? ([["Status", `Plan ended early on ${istMoment(order.endedAt)}`]] as [string, string][]) : []),
   ];
 

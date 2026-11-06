@@ -36,8 +36,8 @@ const WHAT: Record<string, { what: string; note?: string }> = {
     note: "The payouts are started even without email; the email needs RESEND_API_KEY and CONTACT_NOTIFY_EMAIL. Either way they show on Payouts to pay, where you record each UTR.",
   },
   "/api/cron/plan-orders": {
-    what: "Checks paid-feature orders left pending against PayU, takes away the features of passes that have ended (only the ones the pass added), and emails creators whose pass ends within 5 days.",
-    note: "Daily is enough: a payment is normally settled at once by PayU's return or notice; this catches the rest and ends passes. Reminders need RESEND_API_KEY and CONTACT_FROM_EMAIL (a sender on a domain verified in Resend); until then the plans page shows the warning on screen only.",
+    what: "Checks paid-feature orders left pending against Razorpay (and PayU while its keys are set), takes away the features of passes that have ended (only the ones the pass added), and emails creators whose pass ends within 5 days.",
+    note: "Daily is enough: a payment is normally settled at once by the Razorpay popup and webhook; this catches the rest and ends passes. Reminders need RESEND_API_KEY and CONTACT_FROM_EMAIL (a sender on a domain verified in Resend); until then the plans page shows the warning on screen only.",
   },
 };
 
@@ -121,10 +121,10 @@ export const ENV_GROUPS: { title: string; vars: EnvVar[] }[] = [
     ],
   },
   {
-    title: "PayU (buying paid features)",
+    title: "PayU (old plan orders only; plans are bought through Razorpay since 6 November 2026)",
     vars: [
-      { name: "PAYU_KEY", required: false, what: "PayU merchant key (the Buy button needs it)" },
-      { name: "PAYU_SALT", required: false, what: "PayU salt: signs and checks every payment (the Buy button needs it)" },
+      { name: "PAYU_KEY", required: false, what: "Only to settle old PayU orders; can be removed" },
+      { name: "PAYU_SALT", required: false, what: "Only to settle old PayU orders; can be removed" },
       { name: "PAYU_MODE", required: false, what: "live or test; anything else means test" },
     ],
   },

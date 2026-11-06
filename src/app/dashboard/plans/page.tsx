@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import type { LedgerDb } from "@/lib/accrual";
 import { getDb } from "@/lib/db";
 import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
-import { payuConfig } from "@/lib/payu";
+import { razorpayConfig } from "@/lib/razorpay-plan";
 import { buildCatalogue, buildComparison } from "@/lib/plan-catalogue";
 import { expireOne, quotePlan, syncRunningPasses } from "@/lib/plan-orders";
 import { settleOwnOrders } from "@/lib/plan-settle";
@@ -52,11 +52,11 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     select id::text, handle, creator_status from users where google_id = ${googleId}`;
   if (!account?.handle) redirect("/dashboard");
 
-  const config = payuConfig();
+  const config = razorpayConfig();
   const ledger = db as unknown as LedgerDb;
   const creatorId = Number(account.id);
-  // Before anything is read: ask PayU about this creator's own unsettled orders, so a payment whose
-  // return and notice were both lost is switched on now and not at the daily job; switch off a plan
+  // Before anything is read: ask Razorpay about this creator's own unsettled orders, so a payment whose
+  // popup reply and webhook were both lost is switched on now and not at the daily job; switch off a plan
   // that has just ended; and give a running plan the features it lists today. Each is safe to repeat
   // and none can stop the page opening (before migrations 0055 to 0057 they only log).
   const settled = await settleOwnOrders(creatorId);
@@ -109,7 +109,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     console.error("Plans page: could not read orders (migrations 0055 and 0056 run?)", err instanceof Error ? err.message : err);
   }
   // A payment that was settled by this very page load is said so even when the address has no hint
-  // (PayU's return was lost, or the creator came back by another route).
+  // (the popup's reply was lost, or the creator came back by another route).
   const hint = payment ?? (settled && settled.activated > 0 ? "paid" : undefined);
   const notice = paymentNotice(hint, latest);
   const passes = PLAN_KEYS.map((plan) => ({ plan, status: passStatus(until[plan]) })).filter((p) => p.status.state !== "none");

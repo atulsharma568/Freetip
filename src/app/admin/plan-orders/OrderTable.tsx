@@ -5,6 +5,7 @@ import { markPlanPaymentHandled } from "@/app/actions/admin";
 import { formatINR } from "@/lib/admin/result";
 import { fmtIST } from "@/lib/admin/format";
 import type { PlanOrderRow } from "@/lib/admin/plan-order-queries";
+import { gatewayOf } from "@/lib/plan-view";
 import { PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 
 const planName = (plan: string) => PLAN_NAMES[plan as PlanKey] ?? plan;
@@ -59,8 +60,8 @@ export function OrderTable({ rows, canHandle = false }: { rows: PlanOrderRow[]; 
                 )}
               </td>
               <td className="px-4 py-3 text-xs text-muted">
-                {r.needsLook && <span className="block text-text">PayU: paid, but {r.needsLook}</span>}
-                {r.payuRef && <span className="block">PayU payment {r.payuRef}</span>}
+                {r.needsLook && <span className="block text-text">Gateway says paid, but {r.needsLook}</span>}
+                {r.payuRef && <span className="block">{gatewayOf(r.payuRef)} payment {r.payuRef}</span>}
                 {r.failureReason && <span className="block">{r.failureReason}</span>}
                 {r.endedReason && <span className="block">{r.endedReason}</span>}
                 {canHandle && (
@@ -71,7 +72,7 @@ export function OrderTable({ rows, canHandle = false }: { rows: PlanOrderRow[]; 
                       confirmLabel="Mark handled"
                       pendingLabel="Saving…"
                       tone="quiet"
-                      description="Take this payment off the list. Do it once you have refunded it in PayU or given the creator the features yourself. Nothing is changed on the order; the reason is kept in the audit history."
+                      description="Take this payment off the list. Do it once you have refunded it in Razorpay (or PayU, for an old order) or given the creator the features yourself. Nothing is changed on the order; the reason is kept in the audit history."
                       askReason
                     />
                   </div>

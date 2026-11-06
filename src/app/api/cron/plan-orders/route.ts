@@ -5,12 +5,13 @@ import { fetchPayment, payuConfig } from "@/lib/payu";
 import { sendPassReminderEmail } from "@/lib/pass-email";
 import { sendPassReminders } from "@/lib/pass-reminders";
 import { expirePasses, reconcilePendingOrders, syncRunningPasses } from "@/lib/plan-orders";
+import { razorpayConfig, razorpayDeps } from "@/lib/razorpay-plan";
 
 // Daily, run by Vercel Cron (see vercel.json). Four jobs, all safe to repeat, and one never stops
 // the others:
-//  1. Ask PayU about orders left unsettled (the browser never came back and no notice reached us)
-//     and pay, fail or close them out. Skipped when PayU is not set up. It stops after a time
-//     budget, newest orders first.
+//  1. Ask Razorpay (and PayU, while its keys are set) about orders left unsettled (the popup's reply
+//     and the webhook both lost) and pay, fail or close them out. It stops after a time budget, newest
+//     orders first.
 //  2. Take away the features of every pass that has ended, and only the ones the pass added.
 //  3. Give every running plan the features it lists today (a feature added to a plan after it was bought).
 //  4. Email creators whose pass ends within 5 days, once per end date (off until the sender is set up).
@@ -34,19 +35,36 @@ export async function GET(request: Request) {
   // Set by any step of jobs 1 to 3 that failed or left something undone, so the run is not reported OK.
   let failed = false;
 
-  let checked = "PayU not set up";
+  // Razorpay for every order made since 2026-11-06; PayU only while its keys are still set, for older
+  // PayU orders. Each gateway is asked only about its own orders.
+  const describe = (name: string, r: Awaited<ReturnType<typeof reconcilePendingOrders>>) =>
+    `${name}: ${r.looked} looked at, ${r.activated} paid, ${r.failed} failed, ${r.abandoned} closed out, ${r.stillPending} still open, ${r.unavailable} not answered, ${r.needsLook} to look at by hand, ${r.errors} errors`;
+  const checks: string[] = [];
+  const rzp = razorpayConfig();
+  if (rzp) {
+    try {
+      const r = await reconcilePendingOrders(db, razorpayDeps(rzp), { budgetMs: 20_000 });
+      checks.push(describe("Razorpay", r));
+      if (r.errors > 0) failed = true;
+    } catch (err) {
+      console.error("Plan orders: the Razorpay check failed (migration 0060 run?)", err instanceof Error ? err.message : err);
+      checks.push("the Razorpay check failed (see the log)");
+      failed = true;
+    }
+  } else checks.push("Razorpay not set up");
   const config = payuConfig();
   if (config) {
     try {
-      const r = await reconcilePendingOrders(db, { config, fetchPayment: (txnid) => fetchPayment(config, txnid) });
-      checked = `${r.looked} looked at, ${r.activated} paid, ${r.failed} failed, ${r.abandoned} closed out, ${r.stillPending} still open, ${r.unavailable} not answered, ${r.needsLook} to look at by hand, ${r.errors} errors`;
+      const r = await reconcilePendingOrders(db, { config, fetchPayment: (txnid) => fetchPayment(config, txnid) }, { budgetMs: 15_000 });
+      checks.push(describe("PayU", r));
       if (r.errors > 0) failed = true;
     } catch (err) {
-      console.error("Plan orders: the PayU check failed (migration 0055 run?)", err instanceof Error ? err.message : err);
-      checked = "the PayU check failed (see the log)";
+      console.error("Plan orders: the PayU check failed (migration 0060 run?)", err instanceof Error ? err.message : err);
+      checks.push("the PayU check failed (see the log)");
       failed = true;
     }
   }
+  const checked = checks.join("; ");
   let ended = "passes could not be checked (see the log)";
   try {
     const r = await expirePasses(db);

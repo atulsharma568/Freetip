@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState, useTransition } from "react";
-import { startPlanCheckout } from "@/app/actions/plan-checkout";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { confirmPlanPayment, startPlanCheckout } from "@/app/actions/plan-checkout";
+import { loadRazorpayScript } from "@/lib/razorpay-checkout";
 import { PLAN_NAMES, type PlanKey } from "@/lib/pricing";
-import { Msg } from "../parts/Msg";
-import { field, label, pillPrimary } from "../parts/styles";
+import { Msg, type MsgKind } from "../parts/Msg";
+import { pillPrimary } from "../parts/styles";
 import { TermSwitch } from "./TermSwitch";
 
 export interface BuyOption {
@@ -18,25 +20,11 @@ export interface BuyOption {
 
 const rupees = (minor: number) => `₹${new Intl.NumberFormat("en-IN").format(Math.floor(minor / 100))}`;
 
-// Posts a form to PayU's page. The browser leaves our site, pays there, and PayU sends it back to
-// /api/payu/return. We never see card or UPI details.
-function postToPayu(action: string, fields: Record<string, string>) {
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = action;
-  for (const [name, value] of Object.entries(fields)) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  }
-  document.body.appendChild(form);
-  form.submit();
-}
-
 // The pay step for one plan and one term (both chosen above, on the plan cards). The amount shown is
-// the amount sent: the server refuses the order if the price changed since this page was drawn.
+// the amount charged: the server refuses the order if the price changed since this page was drawn.
+// The creator pays in Razorpay's popup on this page (the same one fans tip through); we never see card
+// or UPI details. When the popup says it is paid, the server checks with Razorpay before anything is
+// switched on, then the page reloads to show the result.
 export function BuyPass({
   plan,
   option,
@@ -54,53 +42,84 @@ export function BuyPass({
   liveOwnerTest?: boolean;
   // The term switch inside the form (the one above the cards is the same state).
   onTermChange: (term: 1 | 12) => void;
-  // True while a payment is being started, so the cards above can hold still.
+  // True while a payment is being started or is open, so the cards above can hold still.
   onBusyChange?: (busy: boolean) => void;
 }) {
-  const id = useId();
-  const [phone, setPhone] = useState("");
+  const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   // A message belongs to the plan and term it was about: it is not shown once either changes.
-  const [problem, setProblem] = useState<{ text: string; about: string } | null>(null);
+  const [note, setNote] = useState<{ kind: MsgKind; text: string; about: string } | null>(null);
   const [pending, start] = useTransition();
-  // True from the moment PayU's form is posted until the browser leaves (or comes back with Back).
-  const [leaving, setLeaving] = useState(false);
+  // True while Razorpay's popup is open, and while the payment is being confirmed afterwards.
+  const [paying, setPaying] = useState(false);
 
-  // Coming back with the Back button restores this page as it was, with the button off.
-  useEffect(() => {
-    const back = (e: PageTransitionEvent) => {
-      if (e.persisted) setLeaving(false);
-    };
-    window.addEventListener("pageshow", back);
-    return () => window.removeEventListener("pageshow", back);
-  }, []);
-
-  const busy = pending || leaving;
+  const busy = pending || paying;
   useEffect(() => {
     onBusyChange?.(busy);
   }, [busy, onBusyChange]);
   const about = `${plan}-${option.term}`;
-  const error = problem?.about === about ? problem.text : "";
+  const shown = note?.about === about ? note : null;
   const name = PLAN_NAMES[plan];
   const termText = option.term === 12 ? "12 months" : "1 month";
 
   function pay() {
-    setProblem(null);
+    setNote(null);
     start(async () => {
       // A dropped connection or a server error must show a message here, not the dashboard's error page.
       try {
-        const result = await startPlanCheckout({ plan, term: option.term, phone, expectAmountMinor: option.amountMinor, agreed });
+        const [result] = await Promise.all([
+          startPlanCheckout({ plan, term: option.term, expectAmountMinor: option.amountMinor, agreed }),
+          loadRazorpayScript().catch(() => undefined),
+        ]);
         if (result.status === "error") {
-          setProblem({ text: result.message, about });
+          setNote({ kind: "error", text: result.message, about });
           return;
         }
-        setLeaving(true);
-        postToPayu(result.action, result.fields);
-        // If the browser has not left after a while (a blocked post), give the button back.
-        window.setTimeout(() => setLeaving(false), 20_000);
+        try {
+          await loadRazorpayScript();
+        } catch {
+          setNote({ kind: "error", text: "Could not load the payment window. Check your connection and try again. Nothing was charged.", about });
+          return;
+        }
+        setPaying(true);
+        const rzp = new window.Razorpay({
+          key: result.keyId,
+          amount: result.amountMinor,
+          currency: "INR",
+          name: "Freetip",
+          description: result.description,
+          order_id: result.orderId,
+          prefill: result.prefill,
+          theme: { color: "#bfe84a" },
+          handler: async (response: { razorpay_order_id?: string; razorpay_payment_id?: string; razorpay_signature?: string }) => {
+            setNote({ kind: "info", text: "Payment received by Razorpay. Switching your features on…", about });
+            let word = "pending";
+            try {
+              const confirmed = await confirmPlanPayment({
+                orderId: response.razorpay_order_id ?? "",
+                paymentId: response.razorpay_payment_id ?? "",
+                signature: response.razorpay_signature ?? "",
+              });
+              word = confirmed.status;
+            } catch {
+              // The webhook and the page's own check still settle it; the page says it is waiting.
+            }
+            // The page reads the database for the truth; the word only decides whether to say something.
+            router.replace(`/dashboard/plans?payment=${word}`);
+            router.refresh();
+            setPaying(false);
+          },
+          modal: {
+            ondismiss: () => {
+              setPaying(false);
+              setNote({ kind: "info", text: "You closed the payment window, so nothing was charged. You can pay again whenever you like.", about });
+            },
+          },
+        });
+        rzp.open();
       } catch {
-        setLeaving(false);
-        setProblem({ text: "We could not reach the server. Nothing was charged. Check your connection and try again.", about });
+        setPaying(false);
+        setNote({ kind: "error", text: "We could not reach the server. Nothing was charged. Check your connection and try again.", about });
       }
     });
   }
@@ -134,36 +153,15 @@ export function BuyPass({
         )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor={`${id}-phone`} className={label}>
-          Your mobile number
-        </label>
-        <input
-          id={`${id}-phone`}
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel-national"
-          maxLength={16}
-          placeholder="10-digit mobile number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className={`${field} max-w-xs`}
-          aria-describedby={`${id}-phone-note`}
-        />
-        <p id={`${id}-phone-note`} className="text-xs text-muted">
-          PayU asks for it to complete the payment. We pass it to PayU and do not keep it. See the{" "}
-          <Link href="/privacy" target="_blank" className="text-text underline decoration-line hover:decoration-accent">
-            Privacy Policy
-          </Link>
-          .
-        </p>
-      </div>
-
       <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
         <input
           type="checkbox"
           checked={agreed}
-          onChange={(e) => setAgreed(e.target.checked)}
+          onChange={(e) => {
+            // Ticking the box is the sign the creator is about to pay: fetch the payment window now.
+            if (e.target.checked) loadRazorpayScript().catch(() => {});
+            setAgreed(e.target.checked);
+          }}
           className="mt-0.5 size-5 shrink-0 cursor-pointer accent-[var(--color-accent)]"
         />
         <span>
@@ -180,19 +178,20 @@ export function BuyPass({
         </span>
       </label>
 
-      <Msg kind="error" text={error} />
+      <Msg kind={shown?.kind} text={shown?.text} />
 
       <div className="space-y-2">
-        <button type="submit" disabled={busy || option.covered || !agreed || phone.trim().length < 10} aria-busy={busy} className={pillPrimary}>
-          {busy ? "Opening PayU…" : `Pay ${rupees(option.amountMinor)} with PayU`}
+        <button type="submit" disabled={busy || option.covered || !agreed} aria-busy={busy} className={pillPrimary}>
+          {busy ? "Opening payment…" : `Pay ${rupees(option.amountMinor)}`}
         </button>
         <p className="text-xs text-muted">
-          You pay on PayU&apos;s page by UPI, card or net banking. Your features switch on as soon as PayU confirms.
+          You pay in Razorpay&apos;s secure window by UPI, card or net banking. Your features switch on as soon as the
+          payment is confirmed.
         </p>
         {liveOwnerTest && (
           <p className="text-xs text-text">
             Live payment: this charges real money. Only you can see this button while sales are closed. To undo it,
-            refund it in PayU yourself and use End plan now in the admin.
+            refund it in Razorpay yourself and use End plan now in the admin.
           </p>
         )}
         {testMode && (
