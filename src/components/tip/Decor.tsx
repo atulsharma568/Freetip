@@ -74,7 +74,7 @@ export function BannerEffect({ render, tint = null }: { render: DecorRender; tin
     );
   }
   return (
-    <span aria-hidden="true" className={`bfx bfx-${render.style}`} style={tint ? ({ "--fx-color": tint } as React.CSSProperties) : undefined}>
+    <span aria-hidden="true" className={`bfx bfx-${render.style}`} style={{ "--fx-color": tint ?? "var(--color-accent)" } as React.CSSProperties}>
       {render.style === "embers" &&
         Array.from({ length: EMBER_COUNT }, (_, i) => (
           <span

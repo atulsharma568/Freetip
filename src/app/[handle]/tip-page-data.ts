@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { MIN_TIP_PAISE } from "@/lib/money";
 import type { Query } from "@/lib/accrual";
 import { isOwnerTipPage, ownerBrand } from "@/lib/owner-page";
+import { readPageMusic } from "@/lib/page-music-store";
 import { usedAssetIds } from "@/lib/page-doc/assets";
 import { loadPageAssets, resolveAssets } from "@/lib/page-doc/asset-store";
 import { loadGoalProgress, type GoalProgress } from "@/lib/goal-progress";
@@ -92,6 +93,7 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
     previewMode: options.previewMode,
     editing: options.editing,
     signature: ownerPage,
+    music: ownerPage ? await readPageMusic(creator.id) : null,
   };
 }
 

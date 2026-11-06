@@ -41,7 +41,7 @@ export function ownerPageDoc(): PageDoc {
       // no ring over the photo. They are only the owner's default: another creator's page starts with
       // neither (see decor.ts).
       make("header", "side", { avatar: "none", frame: "none", bannerFx: "clutch" }),
-      make("creatorLinks", "side", { tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" }),
+      make("creatorLinks", "side", { tagline: "Live & Highlights", instagram: "acepressure.gg" }),
       make("alertPreview", "side"),
       make("qr", "side"),
       make("amount", "main", { ladder: ONE_PIECE_LADDER }),

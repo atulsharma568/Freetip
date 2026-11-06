@@ -6,6 +6,7 @@ import { Steps } from "@/components/sections/Steps";
 import { Stream } from "@/components/sections/Stream";
 import { Differentiators } from "@/components/sections/Differentiators";
 import { Money } from "@/components/sections/Money";
+import { Totals } from "@/components/sections/Totals";
 import { Faq } from "@/components/sections/Faq";
 import { Closer } from "@/components/sections/Closer";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -14,6 +15,8 @@ import { OrganizationSchema } from "@/components/OrganizationSchema";
 import { ScrollEffects } from "@/components/motion/ScrollEffects";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
+// The totals are read from the database; rebuild the page at most every 10 minutes.
+export const revalidate = 600;
 
 export default function Home() {
   return (
@@ -36,6 +39,7 @@ export default function Home() {
           <Stream />
           <Differentiators />
           <Money />
+          <Totals />
           <Faq />
           <Closer />
         </main>

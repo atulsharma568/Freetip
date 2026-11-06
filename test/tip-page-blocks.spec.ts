@@ -315,7 +315,7 @@ test.describe("the steps follow the order of the form", () => {
     doc.blocks.splice(at, 0, ownerPageDoc().blocks.find((b) => b.type === "alertPreview")!, ownerPageDoc().blocks.find((b) => b.type === "creatorLinks")!);
     await openFixture(page, docQuery("owner", doc), 1280);
     const preview = await page.getByText("Preview on stream", { exact: true }).first().boundingBox();
-    const links = await page.getByText("Valorant / Live & Highlights").boundingBox();
+    const links = await page.getByText("Live & Highlights").boundingBox();
     expect(links!.y).toBeGreaterThan(preview!.y);
   });
 });

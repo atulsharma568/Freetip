@@ -13,6 +13,8 @@ import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { EffectsManager } from "./EffectsManager";
+import { MusicUpload } from "./MusicUpload";
+import { readPageMusic } from "@/lib/page-music-store";
 
 export const metadata: Metadata = {
   title: `Photo and banner effects: ${SITE_NAME}`,
@@ -67,6 +69,9 @@ export default async function EffectsPage() {
     console.error("Effects: could not read the channel photo and banner.", err);
   }
 
+  // The owner's page music (migration 0061); owner only.
+  const music = ownerPage ? await readPageMusic(user.id) : null;
+
   return (
     <DashboardShell handle={user.handle} live={user.creator_status === "active"}>
       <div className="mx-auto w-full max-w-3xl space-y-8 px-6 pb-24 pt-4 lg:max-w-6xl">
@@ -89,6 +94,7 @@ export default async function EffectsPage() {
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
           canUploadBanner={bannerOn}
         />
+        {ownerPage && <MusicUpload creatorId={user.id} music={music} uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN} />}
       </div>
     </DashboardShell>
   );

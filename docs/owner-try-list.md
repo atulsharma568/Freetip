@@ -221,7 +221,7 @@ None of this has been seen in a browser with a real login or in real OBS.
 
 ## AcePressure signature layer on your tip page (2026-11-06)
 
-- [ ] On a laptop, open `/acepressure`: crimson light rays sway from the top, "AcePressure" flips in letter by letter (and flips again when you hover it), the tagline cycles "Valorant" / "Live & Highlights", the form card lights up where the mouse is, and small pixel embers trail the mouse.
+- [ ] On a laptop, open `/acepressure`: crimson light rays sway from the top, "AcePressure" lands as a burst of random glyphs that settle into the letters in a wave (and ripples again when you hover it), the tagline cycles "Valorant" / "Live & Highlights", the form card lights up where the mouse is, and small pixel embers trail the mouse.
 - [ ] Tick the agreement box: the Tip button glows, a shine sweeps across it and a ring pulses. Press it: it shows "LOCKING IN" bouncing until the payment window opens.
 - [ ] Scroll to the bottom: the strip under the card scrolls endlessly and stops when the mouse is over it.
 - [ ] On your phone, open `/acepressure`: rays, name and tagline animate, no ember trail, nothing sideways-scrolls, the page feels smooth.

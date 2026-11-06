@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { ownerFont } from "./owner-font";
+
+// The WebGL shader is its own chunk, fetched only when the ring is first on screen.
+const LiquidMetal = dynamic(() => import("@/components/vui/liquid-metal").then((m) => m.LiquidMetal), { ssr: false });
 
 // The owner's signature layer: the pieces that make the AcePressure tip page unlike every other
 // creator's page (ideas from vengenceui.com, written here in plain CSS and a little script, no new
@@ -36,15 +40,69 @@ export function SignatureRays() {
   );
 }
 
-// "Flip Text": the brand name lands letter by letter with a 3D flip, and flips again in a wave
-// when the mouse is over it, with a crimson slash wiping in underneath. Screen readers get the
-// plain name.
+// "ASCII Glitch Ripple": the brand name lands as a burst of random glyphs that settle into the
+// letters in a left-to-right wave, and the same wave ripples through it again when the mouse comes
+// over it, with a crimson slash wiping in underneath. Each letter keeps its own width (the real
+// letter stays in place, invisible, while its glyph is drawn over it) so the line never jumps.
+// Screen readers get the plain name; with reduced motion the name just stands.
+const GLYPHS = "░▒▓█▚▞▌▐#@%&*+=<>/\\|01";
+const GLITCH_MS = 520; // how long one letter stays scrambled
+const STAGGER_MS = 70; // delay between neighbouring letters (the wave's speed)
+const FRAME_MS = 55; // how often a scrambled letter picks a new glyph
+
 export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1" | "h3" }) {
+  const chars = [...name];
+  const [glyphs, setGlyphs] = useState<(string | null)[]>(() => chars.map(() => null));
+  const raf = useRef(0);
+  const running = useRef(false);
+
+  const ripple = (fromScrambled: boolean) => {
+    if (!motionOk() || running.current) return;
+    running.current = true;
+    const start = performance.now();
+    const n = chars.length;
+    let lastFrame = -FRAME_MS;
+    const tick = (now: number) => {
+      const t = now - start;
+      if (t - lastFrame >= FRAME_MS) {
+        lastFrame = t;
+        setGlyphs(
+          chars.map((c, i) => {
+            if (c === " ") return null;
+            const from = i * STAGGER_MS;
+            const scrambled = t >= from && t < from + GLITCH_MS;
+            const waiting = fromScrambled && t < from; // on load, letters not yet reached are glyphs too
+            return scrambled || waiting ? GLYPHS[Math.floor(Math.random() * GLYPHS.length)] : null;
+          }),
+        );
+      }
+      if (t < (n - 1) * STAGGER_MS + GLITCH_MS + FRAME_MS) {
+        raf.current = requestAnimationFrame(tick);
+      } else {
+        setGlyphs(chars.map(() => null));
+        running.current = false;
+      }
+    };
+    raf.current = requestAnimationFrame(tick);
+  };
+
+  // The first ripple, on load. (Server and first paint show the plain name, so nothing mismatches.)
+  useEffect(() => {
+    const t = setTimeout(() => ripple(true), 150);
+    return () => {
+      clearTimeout(t);
+      cancelAnimationFrame(raf.current);
+      running.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
+
   // Letters are grouped per word and a word never breaks, so a long name wraps between words only.
   let i = 0;
   const words = name.split(" ").map((word) => [...word].map((char) => ({ char, i: i++ })));
   return (
     <Heading
+      onPointerEnter={() => ripple(false)}
       className={`${ownerFont.className} sig-name text-[clamp(2.25rem,11vw,3.75rem)] font-black italic leading-[0.95] tracking-tight lg:text-[clamp(2.5rem,3.7vw,3.75rem)]`}
     >
       <span className="sr-only">{name}</span>
@@ -52,10 +110,9 @@ export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1"
         {words.map((letters, w) => (
           <span key={w} className="inline-block whitespace-nowrap">
             {letters.map(({ char, i: n }) => (
-              <span key={n} className="sig-l" style={step(n)}>
-                <span className="sig-l-in" style={step(n)}>
-                  {char}
-                </span>
+              <span key={n} className="sig-l">
+                <span className={glyphs[n] ? "sig-l-in sig-l-hidden" : "sig-l-in"}>{char}</span>
+                {glyphs[n] && <span className="sig-glyph">{glyphs[n]}</span>}
               </span>
             ))}
             {w < words.length - 1 && " "}
@@ -270,4 +327,36 @@ export function EmberTrail() {
     };
   }, []);
   return <canvas ref={ref} aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 size-full" />;
+}
+
+// "Liquid metal" ring around the Tip button: one shader instance, in the page accent, drawn only
+// while the ring is on screen and the button can be pressed, and never with reduced motion. Until
+// the shader has loaded (and whenever it is not drawn) the ring is a plain accent border, so
+// nothing jumps. Wraps the button; the ring is decoration (aria-hidden, no clicks).
+export function LiquidRing({ active, children }: { active: boolean; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [color, setColor] = useState("#ca1b19");
+  const [allowed, setAllowed] = useState(false);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    setAllowed(motionOk());
+    setColor(getComputedStyle(el).getPropertyValue("--color-accent").trim() || "#ca1b19");
+    if (typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "100px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const draw = allowed && visible && active;
+  return (
+    <div ref={box} className="relative w-full rounded-full p-[3px]">
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-full bg-accent/50">
+        {draw && <LiquidMetal colorBack={color} colorTint="#ffffff" speed={0.35} repetition={4} distortion={0.12} className="rounded-full" />}
+      </span>
+      <div className="relative">{children}</div>
+    </div>
+  );
 }

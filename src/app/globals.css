@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* The site is dark only. Components copied from other libraries are written with dark: variants,
+   so make dark: always match instead of following the visitor's OS setting. */
+@custom-variant dark (&:where(*));
+
 @theme static {
   --color-ground: oklch(0.155 0.008 115);
   --color-surface: oklch(0.205 0.009 115);
@@ -1379,22 +1383,18 @@ html.menu-open body {
 @keyframes sig-breathe { from { opacity: 0.55; } to { opacity: 0.9; } }
 @keyframes sig-grid-run { to { transform: rotateX(62deg) translate3d(0, 60px, 0); } }
 
-/* Flip name */
-.sig-name { position: relative; perspective: 700px; text-shadow: 0 0 34px color-mix(in srgb, var(--color-accent) 45%, transparent); }
-.sig-l, .sig-l-in { display: inline-block; transform-origin: 50% 70%; }
+/* Glitch ripple name */
+.sig-name { position: relative; text-shadow: 0 0 34px color-mix(in srgb, var(--color-accent) 45%, transparent); }
+.sig-l { position: relative; display: inline-block; }
+.sig-l-hidden { opacity: 0; }
+.sig-glyph {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--color-accent); font-style: normal; pointer-events: none;
+}
 .sig-slash {
   display: block; height: 4px; width: min(9rem, 45%); margin-top: 0.6rem;
   background: linear-gradient(90deg, var(--color-accent), transparent);
   transform: skewX(-24deg); transform-origin: left center; border-radius: 2px;
-}
-@keyframes sig-flip {
-  from { transform: rotateX(-100deg) translateY(25%); opacity: 0; filter: blur(5px); }
-  to { transform: none; opacity: 1; filter: none; }
-}
-@keyframes sig-wave {
-  0% { transform: rotateX(0); }
-  50% { transform: rotateX(180deg) translateY(-6%); color: var(--color-accent); }
-  100% { transform: rotateX(360deg); }
 }
 @keyframes sig-wipe { from { transform: skewX(-24deg) scaleX(0); } to { transform: skewX(-24deg) scaleX(1); } }
 
@@ -1481,7 +1481,6 @@ html.menu-open body {
   .sig-rays-fan-b { animation: sig-sway-b 23s ease-in-out infinite alternate; }
   .sig-rays-source { animation: sig-breathe 6s ease-in-out infinite alternate; }
   .sig-rays-grid { animation: sig-grid-run 4s linear infinite; }
-  .sig-l { animation: sig-flip 0.9s var(--ease-out-expo) both; animation-delay: calc(var(--i) * 55ms + 150ms); }
   .sig-slash { animation: sig-wipe 0.8s var(--ease-out-expo) 0.75s both; }
   .sig-morph { display: inline-block; animation: sig-morph 0.7s var(--ease-out-expo) both; }
   .sig-btn:not(:disabled) .sig-shine::before { animation: sig-shine 3.8s ease-in-out 1s infinite; }
@@ -1489,7 +1488,6 @@ html.menu-open body {
   .sig-kinetic span { animation: sig-kin 1s ease-in-out infinite; animation-delay: calc(var(--i) * 70ms); }
   .sig-marquee-track { animation: sig-marquee 32s linear infinite; }
   @media (hover: hover) {
-    .sig-name:hover .sig-l-in { animation: sig-wave 0.7s var(--ease-out-expo) both; animation-delay: calc(var(--i) * 35ms); }
     .sig-btn:not(:disabled):hover .sig-shine::before { animation-duration: 1.2s; animation-delay: 0s; }
     .sig-marquee:hover .sig-marquee-track { animation-play-state: paused; }
   }
@@ -1570,7 +1568,11 @@ html.menu-open body {
 .pf { position: absolute; inset: -17%; border-radius: 9999px; pointer-events: none; }
 .pf-custom { inset: var(--pf-inset, -22%); border-radius: 0; }
 
-.bfx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+/* The effect colour is a real colour property, so a change (a different banner picture, or the banner's
+   colour arriving after it loads) fades instead of jumping. Without @property support it just switches. */
+@property --fx-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+.bfx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transition: --fx-color 0.5s ease; }
+@media (prefers-reduced-motion: reduce) { .bfx { transition: none; } }
 .bfx-embers::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 55%;
   background: linear-gradient(to top, color-mix(in srgb, var(--fx-color, var(--color-accent)) 22%, transparent), transparent);
@@ -1678,4 +1680,16 @@ html.menu-open body {
 
 @media (prefers-reduced-motion: reduce) {
   .bfx-petal { animation: none; display: none; }
+}
+
+
+/* Spotlight navbar (src/components/vui/spotlight-navbar.tsx): the glass pill and its shadow. */
+.spotlight-nav-bg {
+  background: color-mix(in oklab, var(--color-surface) 82%, transparent);
+}
+.glass-border {
+  border: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+.spotlight-nav-shadow {
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
 }

@@ -28,7 +28,18 @@ export interface PlanCard {
 
 const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 
-const cardBox = "flex flex-col gap-5 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5";
+// The cards use the spotlight look of the vui pricing component (glass surface, a soft light that
+// follows the mouse); only the look is borrowed, the prices and the Pay step are this page's own.
+// The light is decoration and mouse only; the chosen plan gets an accent edge.
+const cardBox =
+  "group/card spotlight-nav-bg relative isolate flex flex-col gap-5 overflow-hidden rounded-[var(--radius-surface)] border bg-surface p-5 transition-colors duration-300";
+
+function followPointer(e: React.PointerEvent<HTMLElement>) {
+  if (e.pointerType !== "mouse") return;
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+}
 
 // Both prices are always on the card; the 1 month / 12 months switch only picks which one is bought
 // (the picked one is the big line).
@@ -100,7 +111,16 @@ export function PlanCards({
 
       <div className="grid gap-4 md:grid-cols-2">
         {[starter, creator].map((p) => (
-          <article key={p.name} className={cardBox}>
+          <article
+            key={p.name}
+            onPointerMove={followPointer}
+            className={`${cardBox} ${selected === p.plan ? "border-accent" : "border-line/60 hover:border-control"}`}
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+              style={{ background: "radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), color-mix(in oklab, var(--color-accent) 14%, transparent), transparent 70%)" }}
+            />
             <div className="space-y-1">
               <h3 className="text-xl font-semibold text-text">{p.name}</h3>
               <p className="text-sm text-muted">{p.tagline}</p>

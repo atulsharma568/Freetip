@@ -9,7 +9,9 @@ import type { Block } from "@/lib/page-doc/types";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { ButtonShine, KineticLoader } from "@/components/tip/Signature";
+import { SITE_HOST } from "@/lib/site";
+import { ShareSheet } from "@/components/vui/share-sheet";
+import { ButtonShine, KineticLoader, LiquidRing } from "@/components/tip/Signature";
 
 // Step 3: the Pay button. What the button does, when it is blocked and its states are the form's.
 export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
@@ -30,7 +32,38 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
     handlePay,
     editing,
     signature,
+    handle,
   } = useTipForm();
+
+  const payButton = (
+    <button
+        type="button"
+        onClick={handlePay}
+        disabled={previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
+        aria-busy={phase === "creating"}
+        aria-describedby={!agreed && !previewMode && amountPaise >= minTipPaise ? "tip-why" : undefined}
+        className={`beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50 ${signature ? "sig-btn" : "transition-[opacity,transform] duration-200 active:scale-[0.98]"}`}
+        >
+        {signature && <ButtonShine />}
+        {phase === "creating" && signature ? (
+          <KineticLoader text="Locking in" label="Opening payment…" />
+        ) : phase === "creating" ? (
+          <>
+            <TickLoader count={10} duration={0.8} className="text-ink" />
+            Opening payment…
+          </>
+        ) : phase === "checkout" ? (
+          "Complete payment in the popup"
+        ) : previewMode ? (
+          "Tip (preview only)"
+        ) : (
+          <>
+            <RollText>{`${block.settings.buttonLabel || "Tip"} ₹${amountRupees || "—"}`}</RollText>
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </>
+        )}
+        </button>
+  );
 
   return (
     <div className="space-y-4" {...blockAttrs(editing, block.id)}>
@@ -73,34 +106,19 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
 
       <div>
         <Magnetic className="w-full" strength={0.1}>
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
-            aria-busy={phase === "creating"}
-            aria-describedby={!agreed && !previewMode && amountPaise >= minTipPaise ? "tip-why" : undefined}
-            className={`beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50 ${signature ? "sig-btn" : "transition-[opacity,transform] duration-200 active:scale-[0.98]"}`}
-          >
-            {signature && <ButtonShine />}
-            {phase === "creating" && signature ? (
-              <KineticLoader text="Locking in" label="Opening payment…" />
-            ) : phase === "creating" ? (
-              <>
-                <TickLoader count={10} duration={0.8} className="text-ink" />
-                Opening payment…
-              </>
-            ) : phase === "checkout" ? (
-              "Complete payment in the popup"
-            ) : previewMode ? (
-              "Tip (preview only)"
-            ) : (
-              <>
-                <RollText>{`${block.settings.buttonLabel || "Tip"} ₹${amountRupees || "—"}`}</RollText>
-                <ArrowRight weight="bold" aria-hidden="true" />
-              </>
-            )}
-          </button>
+          {signature ? (
+            <LiquidRing active={!(previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout")}>
+              {payButton}
+            </LiquidRing>
+          ) : (
+            payButton
+          )}
         </Magnetic>
+        {signature && !previewMode && !editing && (
+          <div className="mt-3 flex justify-center">
+            <ShareSheet url={`https://${SITE_HOST}/${handle}`} title="Share this page" theme="dark" />
+          </div>
+        )}
         {!agreed && !previewMode && amountPaise >= minTipPaise && (
           <p id="tip-why" className="mt-2 text-center text-xs text-muted">
             Tick the box above to send your tip.

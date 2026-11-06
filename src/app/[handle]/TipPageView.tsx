@@ -12,6 +12,8 @@ import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
 import { TipForm } from "./TipForm";
 import { EmberTrail, SignatureRays } from "@/components/tip/Signature";
+import { OwnerMusic } from "@/components/tip/OwnerMusic";
+import type { PageMusic } from "@/lib/page-music";
 
 // What the tip page needs, already read from the database. The real page builds it from the
 // creator's rows; the test-only fixture route builds it from made-up values, and both render
@@ -53,6 +55,8 @@ export interface TipPageData {
   // The site owner's own page (isOwnerTipPage): draws the signature layer (Signature.tsx). Never
   // set from a page document, so no other creator can turn it on.
   signature?: boolean;
+  // The owner's uploaded track (dashboard Effects); drawn as a small player on the owner's page only.
+  music?: PageMusic | null;
 }
 
 export function TipPageView({ data }: { data: TipPageData }) {
@@ -89,6 +93,7 @@ export function TipPageView({ data }: { data: TipPageData }) {
           editing={data.editing}
           signature={data.signature}
         />
+        {data.signature && data.music && !data.editing && <OwnerMusic music={data.music} artist={data.displayName} />}
       </div>
     </PageShell>
   );

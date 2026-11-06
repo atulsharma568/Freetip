@@ -37,6 +37,7 @@ import { safeAccent } from "@/lib/accent";
 import { SITE_NAME, SITE_HOST } from "@/lib/site";
 import { DashboardShell } from "./parts/DashboardShell";
 import { Group, Tile } from "./parts/Tile";
+import { ShareSheet } from "@/components/vui/share-sheet";
 import { Reveal } from "./parts/Reveal";
 import { SectionRail } from "./parts/SectionRail";
 
@@ -423,6 +424,7 @@ export default async function DashboardPage() {
                       {SITE_HOST}/{handle}
                     </Link>
                     <StatusBadge status={user.creator_status} />
+                    <ShareSheet url={shareUrl} title="Share your tip page" theme="dark" />
                     {customPage && (
                       <p className="text-sm text-muted">
                         Your custom tip page is set up by Freetip. To change it, send a message through the{" "}

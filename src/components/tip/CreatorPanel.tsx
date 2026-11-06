@@ -59,7 +59,8 @@ export function CreatorPanel({
 }) {
   // The picture the visitor sees on the banner (a ready-made animated picture covers the creator's own
   // banner); the effect over it is drawn in that picture's main colour. No picture keeps the accent.
-  const tint = useBannerTint(bannerPic?.kind === "custom" ? bannerPic.url : bannerUrl);
+  // A ready-made picture is read from its small still, not the whole animation.
+  const tint = useBannerTint(bannerPic?.kind === "custom" ? (bannerPic.posterUrl ?? bannerPic.url) : bannerUrl);
   // A channel with the same name as the display name would just repeat it.
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the

@@ -65,12 +65,12 @@ export async function DashboardNav({ current }: { current: "overview" | "tips" |
     <>
       <div className="flex max-w-full flex-wrap items-center gap-2">
         <SlidingNav items={main} current={group} label="Dashboard" />
-        <SlidingNav items={earnings} current={group} label="Earnings" />
+        <SlidingNav items={earnings} current={group} label="Earnings" tone="neutral" />
       </div>
       {mine.length > 0 && (
         <div className="flex max-w-full flex-wrap items-center gap-2">
           <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted">Your paid features</span>
-          <SlidingNav items={mine} current={group} label="Paid features switched on" />
+          <SlidingNav items={mine} current={group} label="Paid features switched on" tone="neutral" />
         </div>
       )}
       {tabs.length > 1 && <SlidingNav items={tabs.map(({ key, href, label }) => ({ key, href, label }))} current={current} label={group === "sounds" ? "Sounds and media" : "Tip page"} kind="location" />}

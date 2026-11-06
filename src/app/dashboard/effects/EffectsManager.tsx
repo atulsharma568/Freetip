@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { removeDecorUpload, saveDecorUpload, saveTipDecor } from "@/app/actions/tip-decor";
 import { removeTipBanner, saveUploadedBanner } from "@/app/actions/tip-banner";
 import { type DecorRender } from "@/components/tip/Decor";
 import { CreatorPanel } from "@/components/tip/CreatorPanel";
+import { warmBannerTints } from "@/components/tip/use-banner-tint";
 import { looksAnimated, makePoster } from "@/lib/decor-poster";
 import { checkMediaFile, mediaFileName } from "@/lib/media";
 import { BANNER_MAX_BYTES, BANNER_UPLOAD_KINDS, bannerPathPrefix } from "@/lib/tip-banner";
@@ -160,6 +161,10 @@ export function EffectsManager({
   const [uploadMessage, setUploadMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const same = avatar === live.avatar && frame === live.frame && fx === live.bannerFx && pic === live.bannerPic && frameScale === live.frameScale;
   useUnsavedWarning(!same);
+  // Work out each ready-made banner picture's colour now, so tapping one recolours the effect at once.
+  useEffect(() => {
+    warmBannerTints(BANNER_PICS.filter(isFileFx).map((f) => FILE_FX[f].posterUrl));
+  }, []);
 
   async function save() {
     setBusy(true);

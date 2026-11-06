@@ -256,7 +256,7 @@ test.describe("the two default documents", () => {
       "bottom:strip",
       "success:successScreen",
     ]);
-    expect(find(doc, "creatorLinks")!.settings).toEqual({ tagline: "Valorant / Live & Highlights", instagram: "acepressure.gg" });
+    expect(find(doc, "creatorLinks")!.settings).toEqual({ tagline: "Live & Highlights", instagram: "acepressure.gg" });
     expect(find(doc, "strip")!.settings).toEqual({ left: "YouTube / AcePressure", right: "@acepressure.gg" });
     expect(find(doc, "amount")!.settings.ladder).toEqual(ONE_PIECE_LADDER);
     expect(find(doc, "successScreen")!.settings.style).toBe("owner");
