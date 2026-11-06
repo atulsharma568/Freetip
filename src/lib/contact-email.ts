@@ -1,10 +1,12 @@
 import "server-only";
+import { getDb } from "@/lib/db";
+import { getNotifyEmail } from "@/lib/site-settings";
 import type { ContactEntry } from "@/lib/contact";
 import { buildNotification, buildReceipt } from "@/lib/contact-notification";
 
 // Plain-text email to the owner for each contact message, sent through
-// Resend's HTTP API (no package needed). Off until RESEND_API_KEY and
-// CONTACT_NOTIFY_EMAIL are set; the message is saved either way and a failed
+// Resend's HTTP API (no package needed). Off until RESEND_API_KEY and an address to send to are set
+// (the one saved in /admin/settings, else CONTACT_NOTIFY_EMAIL); the message is saved either way and a failed
 // email never fails the visitor's request.
 //
 // The subject holds only our own topic label, never visitor text, and the
@@ -13,7 +15,7 @@ import { buildNotification, buildReceipt } from "@/lib/contact-notification";
 
 export async function sendContactEmail(entry: ContactEntry, ticket?: string): Promise<"sent" | "off" | "failed"> {
   const key = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_NOTIFY_EMAIL;
+  const to = await getNotifyEmail(getDb());
   if (!key || !to) return "off";
 
   const { subject, text } = buildNotification(entry, ticket);

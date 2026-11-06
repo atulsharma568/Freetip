@@ -87,7 +87,7 @@ Set in Vercel > Settings > Environment Variables (Production), then **redeploy**
 | `OWNER_GOOGLE_IDS` | Comma-separated Google account IDs allowed into `/admin`. |
 | `ADMIN_VIEWER_GOOGLE_IDS` | Optional. Comma-separated Google account IDs that may only LOOK at `/admin`: Overview, Creators, Finance, Balances, Reconciliation, Site settings and Health, with emails, UPI IDs and every button hidden, and no search by email or UPI ID. Every other admin page gives them "not found". An ID in both lists counts as owner. Find a person's ID in Neon (`select google_id from users where email = '...'`; they must have signed in once). A change needs a redeploy. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Payments and webhook check: tips and, since 2026-11-06, buying paid feature plans (see 7i). A `rzp_test_` key means test mode, `rzp_live_` live. |
-| `RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL`, `CONTACT_FROM_EMAIL` (optional) | Contact-form email to the owner. |
+| `RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL`, `CONTACT_FROM_EMAIL` (optional) | Contact-form email to the owner, and the morning payout list. Since 2026-11-06 the address can also be changed in `/admin/settings` ("Where your emails go"); a saved address wins over `CONTACT_NOTIFY_EMAIL`, and emptying the box goes back to it. Needs migration 0043 (already run). Resend delivers only to your own Resend account's email until `CONTACT_FROM_EMAIL` is on a verified domain. |
 | `BLOB_READ_WRITE_TOKEN` | Sound uploads (Vercel Blob store). |
 | `TTS_ENABLED` (`true`) | Owner switch for voice on the whole site; off by default. |
 | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | Main voice engine. |

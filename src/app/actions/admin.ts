@@ -15,7 +15,7 @@ import { markNeedsLookHandled } from "@/lib/admin/plan-order-queries";
 import { PLAN_KEYS, PLAN_NAMES, type PlanKey } from "@/lib/pricing";
 import type { AdminActionState } from "@/lib/admin/action-state";
 import { HANDLE_BLOCKED } from "@/lib/admin/messages";
-import { getTtsFloorPaise, parseFloorRupees, TTS_FLOOR_KEY } from "@/lib/site-settings";
+import { getNotifyEmail, getSavedNotifyEmail, maskEmail, NOTIFY_EMAIL_KEY, getTtsFloorPaise, parseFloorRupees, parseNotifyEmail, TTS_FLOOR_KEY } from "@/lib/site-settings";
 
 type CreatorStatus = "pending" | "active" | "suspended";
 
@@ -659,6 +659,44 @@ export async function setTtsFloor(_prev: AdminActionState, formData: FormData): 
     return ok(rupees === 0 ? "Saved. There is no site-wide minimum now." : `Saved. Voice starts at ₹${rupees} for everyone.`);
   } catch (err) {
     console.error("Admin: could not save the voice minimum (migration 0043 run?)", err);
+    return fail("Could not save. Has migration 0043 been run in Neon?");
+  }
+}
+
+// Where the owner's emails go (contact messages and the morning payout list), saved in /admin/settings.
+// Leaving it empty removes the saved address, so CONTACT_NOTIFY_EMAIL in Vercel applies again.
+export async function setNotifyEmail(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  const raw = String(formData.get("email") ?? "").trim();
+  const email = raw === "" ? null : parseNotifyEmail(raw);
+  if (raw !== "" && !email) return fail("Enter one email address, for example name@gmail.com.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  try {
+    const before = await getSavedNotifyEmail(db);
+    await db.begin(async (tx) => {
+      if (email) {
+        await tx`
+          insert into site_settings (key, value, updated_at) values (${NOTIFY_EMAIL_KEY}, ${email}, now())
+          on conflict (key) do update set value = excluded.value, updated_at = now()
+        `;
+      } else {
+        await tx`delete from site_settings where key = ${NOTIFY_EMAIL_KEY}`;
+      }
+      // The history keeps a masked address, not the full one.
+      await tx`
+        insert into audit_events (actor_user_id, actor_role, action, entity_type, entity_ref, before_json, after_json, reason)
+        values (null, 'owner', 'site.notify_email_changed', 'site_setting', ${NOTIFY_EMAIL_KEY},
+                ${tx.json({ email: maskEmail(before) })}, ${tx.json({ email: maskEmail(email) })}, 'set by the owner')
+      `;
+    });
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin/audit");
+    if (email) return ok(`Saved. Contact messages and the morning payout list now go to ${email}.`);
+    const fallback = await getNotifyEmail(db);
+    return ok(fallback ? "Removed. The address set in Vercel is used again." : "Removed. No address is set, so these emails are off.");
+  } catch (err) {
+    console.error("Admin: could not save the notification email (migration 0043 run?)", err);
     return fail("Could not save. Has migration 0043 been run in Neon?");
   }
 }

@@ -96,7 +96,7 @@ export const ENV_GROUPS: { title: string; vars: EnvVar[] }[] = [
     vars: [
       { name: "BLOB_READ_WRITE_TOKEN", required: true, what: "Sound uploads (Vercel Blob)" },
       { name: "RESEND_API_KEY", required: false, what: "Emails the contact form to you" },
-      { name: "CONTACT_NOTIFY_EMAIL", required: false, what: "Where those emails go" },
+      { name: "CONTACT_NOTIFY_EMAIL", required: false, what: "Where those emails go, unless an address is saved in Site settings (that one wins)" },
       { name: "CONTACT_FROM_EMAIL", required: false, what: "Sender address on a domain verified in Resend (optional; the 'your pass ends soon' email to creators needs it)" },
     ],
   },

@@ -37,3 +37,40 @@ export async function getTtsFloorPaise(db: Db | null): Promise<number> {
     return DEFAULT_TTS_FLOOR_PAISE;
   }
 }
+
+// Where the owner's emails go: the contact-form messages and the morning "pay these creators" list.
+// The owner changes it in /admin/settings; until one is saved the CONTACT_NOTIFY_EMAIL setting in
+// Vercel is used, so nothing changes for a site that already has it.
+export const NOTIFY_EMAIL_KEY = "notify_email";
+
+// One plain address: no spaces, commas, semicolons or line breaks (so it can never become a second
+// recipient or a header), one @, a dotted domain, at most 254 characters. Returns the address in lower
+// case, or null when it is not acceptable.
+export function parseNotifyEmail(raw: unknown): string | null {
+  const text = String(raw ?? "").trim().toLowerCase();
+  if (text.length < 6 || text.length > 254) return null;
+  return /^[a-z0-9._%+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(text) ? text : null;
+}
+
+// For the audit history, which should not keep a full address: "a***@gmail.com".
+export function maskEmail(email: string | null): string | null {
+  if (!email) return null;
+  const at = email.indexOf("@");
+  return at < 1 ? "***" : `${email[0]}***${email.slice(at)}`;
+}
+
+// The saved address, or null when none is saved (or the table is missing).
+export async function getSavedNotifyEmail(db: Db | null): Promise<string | null> {
+  if (!db) return null;
+  try {
+    const [row] = await db<{ value: string }[]>`select value from site_settings where key = ${NOTIFY_EMAIL_KEY}`;
+    return row ? parseNotifyEmail(row.value) : null;
+  } catch {
+    return null;
+  }
+}
+
+// The address the owner's emails go to now: the saved one, else CONTACT_NOTIFY_EMAIL, else null (email off).
+export async function getNotifyEmail(db: Db | null): Promise<string | null> {
+  return (await getSavedNotifyEmail(db)) ?? (process.env.CONTACT_NOTIFY_EMAIL?.trim() || null);
+}
