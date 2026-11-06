@@ -41,7 +41,7 @@ const FILE_INFO: Record<AvatarPicId | (typeof FILE_FX_IDS)[number], { label: str
 };
 export const FILE_FX_INFO: Record<(typeof FILE_FX_IDS)[number], { label: string; file: string; still?: boolean }> = FILE_INFO;
 export const AVATAR_PIC_INFO: Record<AvatarPicId, { label: string; file: string; still?: boolean }> = FILE_INFO;
-export const BANNER_FX = ["none", "embers", "clutch", "petals", ...FILE_FX_IDS, "custom"] as const;
+export const BANNER_FX = ["none", "embers", "clutch", "petals", "snow", "stars", ...FILE_FX_IDS, "custom"] as const;
 export type BannerFx = (typeof BANNER_FX)[number];
 
 export const FRAME_OPTIONS: { value: FrameStyle; label: string }[] = [
@@ -60,6 +60,8 @@ export const BANNER_FX_OPTIONS: { value: BannerFx; label: string }[] = [
   { value: "embers", label: "Rising embers" },
   { value: "clutch", label: "Clutch pulse (heartbeat and crosshair lock-on)" },
   { value: "petals", label: "Falling petals" },
+  { value: "snow", label: "Soft snow" },
+  { value: "stars", label: "Twinkling stars" },
   ...FILE_FX_IDS.map((id) => ({ value: id, label: `${FILE_FX_INFO[id].label} (animated picture)` })),
   { value: "custom", label: "Your own picture or GIF" },
 ];
@@ -128,6 +130,8 @@ export const isBannerFx = (v: unknown): v is BannerFx => typeof v === "string" &
 // the index, never random), so the server's page and the browser's first draw agree.
 export const EMBER_COUNT = 14;
 export const PETAL_COUNT = 12;
+export const SNOW_COUNT = 16;
+export const STAR_COUNT = 14;
 
 // A number between 0 and 1 that is always the same for the same index and salt.
 export function steady(index: number, salt: number): number {
@@ -138,7 +142,7 @@ export function steady(index: number, salt: number): number {
 // The effects drawn in CSS over a banner, and the ready-made animated banner pictures. They are two
 // separate layers on a creator's page: a picture (or the creator's own banner) is the background and
 // an effect plays on top of it, so the two can be saved together.
-export const PRESET_EFFECTS = ["none", "embers", "clutch", "petals"] as const;
+export const PRESET_EFFECTS = ["none", "embers", "clutch", "petals", "snow", "stars"] as const;
 export type PresetEffect = (typeof PRESET_EFFECTS)[number];
 export const BANNER_PICS = ["none", ...FILE_FX_IDS] as const;
 export type BannerPic = (typeof BANNER_PICS)[number];

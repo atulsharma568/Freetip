@@ -1389,12 +1389,12 @@ html.menu-open body {
 .bfx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .bfx-embers::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 55%;
-  background: linear-gradient(to top, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent);
+  background: linear-gradient(to top, color-mix(in srgb, var(--fx-color, var(--color-accent)) 22%, transparent), transparent);
 }
 .bfx-ember {
   position: absolute; bottom: -8px; left: var(--x); width: var(--s); height: var(--s); border-radius: 9999px;
-  background: color-mix(in oklab, var(--color-accent) 60%, white);
-  box-shadow: 0 0 8px 1px var(--color-accent);
+  background: color-mix(in oklab, var(--fx-color, var(--color-accent)) 60%, white);
+  box-shadow: 0 0 8px 1px var(--fx-color, var(--color-accent));
   opacity: 0; animation: bfx-rise var(--t) linear infinite; animation-delay: var(--d);
 }
 @keyframes bfx-rise {
@@ -1411,33 +1411,33 @@ html.menu-open body {
    reduced motion the line and crosshair stand still and the flash is not drawn. */
 .bfx-clutch {
   background:
-    repeating-linear-gradient(115deg, transparent 0 26px, color-mix(in srgb, var(--color-accent) 9%, transparent) 26px 27px),
-    radial-gradient(ellipse at 20% 120%, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 60%);
+    repeating-linear-gradient(115deg, transparent 0 26px, color-mix(in srgb, var(--fx-color, var(--color-accent)) 9%, transparent) 26px 27px),
+    radial-gradient(ellipse at 20% 120%, color-mix(in srgb, var(--fx-color, var(--color-accent)) 30%, transparent), transparent 60%);
 }
 .bfx-ecg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.bfx-ecg path { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.bfx-ecg path { fill: none; stroke: var(--fx-color, var(--color-accent)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .bfx-ecg-trail { opacity: 0.28; }
 .bfx-ecg-head {
-  stroke: color-mix(in oklab, var(--color-accent) 55%, white) !important;
+  stroke: color-mix(in oklab, var(--fx-color, var(--color-accent)) 55%, white) !important;
   stroke-width: 2.6 !important;
   stroke-dasharray: 0.16 1.2; stroke-dashoffset: 0.16;
-  filter: drop-shadow(0 0 4px var(--color-accent)) drop-shadow(0 0 10px color-mix(in srgb, var(--color-accent) 70%, transparent));
+  filter: drop-shadow(0 0 4px var(--fx-color, var(--color-accent))) drop-shadow(0 0 10px color-mix(in srgb, var(--fx-color, var(--color-accent)) 70%, transparent));
   animation: clutch-run 3.6s linear infinite;
 }
 @keyframes clutch-run { to { stroke-dashoffset: -1.04; } }
 .bfx-flash {
   position: absolute; inset: 0;
-  background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--color-accent) 42%, white) 49%, transparent 60%);
+  background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--fx-color, var(--color-accent)) 42%, white) 49%, transparent 60%);
   mix-blend-mode: screen; opacity: 0; animation: clutch-flash 3.6s ease-out infinite;
 }
 @keyframes clutch-flash { 0%, 36% { opacity: 0; transform: translateX(-35%); } 40% { opacity: 0.5; } 58%, 100% { opacity: 0; transform: translateX(35%); } }
 .bfx-aim {
   position: absolute; left: 74%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
-  stroke: color-mix(in oklab, var(--color-accent) 60%, white); fill: none;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-accent) 80%, transparent));
+  stroke: color-mix(in oklab, var(--fx-color, var(--color-accent)) 60%, white); fill: none;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--fx-color, var(--color-accent)) 80%, transparent));
   animation: clutch-aim 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
-.bfx-aim-dot { fill: color-mix(in oklab, var(--color-accent) 60%, white); stroke: none; }
+.bfx-aim-dot { fill: color-mix(in oklab, var(--fx-color, var(--color-accent)) 60%, white); stroke: none; }
 .bfx-ping { stroke-width: 2; transform-origin: 22px 22px; opacity: 0; animation: clutch-ping 3.6s ease-out infinite; }
 @keyframes clutch-aim {
   0% { opacity: 0; transform: translate(-70px, 12px) scale(1.5) rotate(-40deg); }
@@ -1461,13 +1461,35 @@ html.menu-open body {
 
 /* Falling petals */
 .bfx-petal { position: absolute; top: -14px; left: var(--x); width: var(--s); height: var(--s); border-radius: 100% 0 100% 0;
-  background: color-mix(in oklab, var(--color-accent) 45%, white); opacity: 0; box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  background: color-mix(in oklab, var(--fx-color, var(--color-accent)) 45%, white); opacity: 0; box-shadow: 0 0 6px color-mix(in srgb, var(--fx-color, var(--color-accent)) 60%, transparent);
   animation: petal-fall var(--t) linear infinite; animation-delay: var(--d); }
 @keyframes petal-fall {
   0% { opacity: 0; transform: translate(0, 0) rotate(var(--r)); }
   10% { opacity: 0.9; }
   50% { transform: translate(calc(var(--w) * -0.6), 90px) rotate(calc(var(--r) + 180deg)); }
   100% { opacity: 0; transform: translate(var(--w), 190px) rotate(calc(var(--r) + 380deg)); }
+}
+
+/* Soft snow and Twinkling stars. Same colour rule: the banner's own colour, else the page accent. */
+.bfx-flake { position: absolute; top: -8px; left: var(--x); width: var(--s); height: var(--s); border-radius: 9999px;
+  background: color-mix(in oklab, var(--fx-color, var(--color-accent)) 80%, white); opacity: 0;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--fx-color, var(--color-accent)) 60%, transparent);
+  animation: flake-fall var(--t) linear infinite; animation-delay: var(--d); }
+@keyframes flake-fall {
+  0% { opacity: 0; transform: translate(0, 0); }
+  10% { opacity: 0.85; }
+  50% { transform: translate(calc(var(--w) * -0.5), 80px); }
+  100% { opacity: 0; transform: translate(var(--w), 170px); }
+}
+.bfx-star { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s);
+  background: color-mix(in oklab, var(--fx-color, var(--color-accent)) 75%, white);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  filter: drop-shadow(0 0 3px var(--fx-color, var(--color-accent))); opacity: 0;
+  animation: star-twinkle var(--t) ease-in-out infinite; animation-delay: var(--d); }
+@keyframes star-twinkle { 0%, 100% { opacity: 0; transform: scale(0.5); } 50% { opacity: 0.9; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .bfx-flake { display: none; }
+  .bfx-star { animation: none; opacity: 0.6; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -55,6 +55,8 @@ const EFFECT_INFO: Record<PresetEffect, { label: string; about: string }> = {
   embers: { label: "Rising embers", about: "Embers drift up over the banner." },
   clutch: { label: "Clutch pulse", about: "A heartbeat line, a flash and a crosshair that locks on." },
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
+  snow: { label: "Soft snow", about: "Small flakes drifting slowly down." },
+  stars: { label: "Twinkling stars", about: "Tiny stars that fade in and out." },
 };
 
 const preset = (style: string): DecorRender => {

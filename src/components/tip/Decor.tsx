@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, PETAL_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, SNOW_COUNT, STAR_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
@@ -62,7 +62,9 @@ export function AvatarPicture({ render }: { render: DecorRender }) {
 }
 
 // The effect layer over a banner. It sits inside the banner's own box, so it is cut to its shape.
-export function BannerEffect({ render }: { render: DecorRender }) {
+// `tint` is the banner's own colour (see use-banner-tint.ts). The effect is drawn in it, so it reads as
+// a see-through layer of the banner itself; with no colour it takes the page accent.
+export function BannerEffect({ render, tint = null }: { render: DecorRender; tint?: string | null }) {
   if (!render) return null;
   if (render.kind === "custom") {
     return (
@@ -72,7 +74,7 @@ export function BannerEffect({ render }: { render: DecorRender }) {
     );
   }
   return (
-    <span aria-hidden="true" className={`bfx bfx-${render.style}`}>
+    <span aria-hidden="true" className={`bfx bfx-${render.style}`} style={tint ? ({ "--fx-color": tint } as React.CSSProperties) : undefined}>
       {render.style === "embers" &&
         Array.from({ length: EMBER_COUNT }, (_, i) => (
           <span
@@ -119,6 +121,38 @@ export function BannerEffect({ render }: { render: DecorRender }) {
                 "--d": `${(-steady(i, 14) * 12).toFixed(1)}s`,
                 "--w": `${Math.round((steady(i, 15) - 0.5) * 70)}px`,
                 "--r": `${Math.round(steady(i, 16) * 360)}deg`,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      {render.style === "snow" &&
+        Array.from({ length: SNOW_COUNT }, (_, i) => (
+          <span
+            key={i}
+            className="bfx-flake"
+            style={
+              {
+                "--x": `${(steady(i, 21) * 100).toFixed(1)}%`,
+                "--s": `${2 + Math.round(steady(i, 22) * 3)}px`,
+                "--t": `${(9 + steady(i, 23) * 7).toFixed(1)}s`,
+                "--d": `${(-steady(i, 24) * 14).toFixed(1)}s`,
+                "--w": `${Math.round((steady(i, 25) - 0.5) * 40)}px`,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      {render.style === "stars" &&
+        Array.from({ length: STAR_COUNT }, (_, i) => (
+          <span
+            key={i}
+            className="bfx-star"
+            style={
+              {
+                "--x": `${(steady(i, 31) * 100).toFixed(1)}%`,
+                "--y": `${(steady(i, 32) * 100).toFixed(1)}%`,
+                "--s": `${5 + Math.round(steady(i, 33) * 6)}px`,
+                "--t": `${(2.4 + steady(i, 34) * 2.6).toFixed(1)}s`,
+                "--d": `${(-steady(i, 35) * 5).toFixed(1)}s`,
               } as React.CSSProperties
             }
           />

@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Lightning, MonitorPlay, UserMinus } from "@phosphor-icons/react";
 import { INK_HEX, SITE_HOST } from "@/lib/site";
 import { isUploadedBannerUrl } from "@/lib/tip-banner";
+import { useBannerTint } from "./use-banner-tint";
 import { AvatarPicture, BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
 
 const PERKS = [
@@ -52,6 +53,9 @@ export function CreatorPanel({
   // The effect covers the banner, photo, name and bio instead of only the banner strip.
   fxWholeHeader?: boolean;
 }) {
+  // The picture the visitor sees on the banner (a ready-made animated picture covers the creator's own
+  // banner); the effect over it is drawn in that picture's main colour. No picture keeps the accent.
+  const tint = useBannerTint(bannerPic?.kind === "custom" ? bannerPic.url : bannerUrl);
   // A channel with the same name as the display name would just repeat it.
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
@@ -65,7 +69,7 @@ export function CreatorPanel({
       <div className="relative space-y-4">
         {fxWholeHeader && (
           <div className={`pointer-events-none absolute inset-0 ${fxBehind ? "z-[1]" : "z-20"}`}>
-            <BannerEffect render={bannerFx} />
+            <BannerEffect render={bannerFx} tint={tint} />
           </div>
         )}
         {hasBanner && (
@@ -86,7 +90,7 @@ export function CreatorPanel({
               />
             )}
             <BannerEffect render={bannerPic} />
-            {!fxWholeHeader && <BannerEffect render={bannerFx} />}
+            {!fxWholeHeader && <BannerEffect render={bannerFx} tint={tint} />}
           </div>
         )}
         <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : fxBehind ? "z-[2]" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
