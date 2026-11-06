@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowCounterClockwise, Check, Copy, ShareNetwork } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
+import { ArrowCounterClockwise, Check } from "@phosphor-icons/react";
 import { tipThanksLine, type AlertMode } from "@/lib/alerts";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { INK_HEX } from "@/lib/site";
 import ClickSpark, { type ClickSparkHandle } from "@/components/react-bits/ClickSpark";
-import { RollText } from "@/components/motion/RollText";
 import { Odometer, spinReels } from "@/components/ui/Odometer";
 import { rupeeText } from "./format";
 
-const noopSubscribe = () => () => {};
-const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
 
 // After a tip: the page floods lime from the bottom like the landing's sample
 // card, the amount's reels spin and land, a short burst of ink sparks leaves
@@ -21,7 +18,6 @@ const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
 export function SuccessScreen({
   amountPaise,
   displayName,
-  handle,
   anonymous,
   alertMessage,
   alertMode,
@@ -44,8 +40,6 @@ export function SuccessScreen({
   const field = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const spark = useRef<ClickSparkHandle>(null);
-  const [notice, setNotice] = useState("");
-  const shareable = useSyncExternalStore(noopSubscribe, canShare, () => false);
   const rupees = amountPaise / 100;
   const whole = Number.isInteger(rupees);
 
@@ -90,26 +84,6 @@ export function SuccessScreen({
     },
     { scope: root },
   );
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/${handle}`);
-      setNotice("Link copied");
-    } catch {
-      setNotice("Could not copy the link.");
-    }
-  }
-
-  async function shareLink() {
-    try {
-      await navigator.share({
-        title: `Tip ${displayName}`,
-        url: `${window.location.origin}/${handle}`,
-      });
-    } catch {
-      // The sheet was closed: nothing to report.
-    }
-  }
 
   const pill =
     "inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-[transform,background-color,color] duration-200 active:scale-[0.97]";
@@ -171,22 +145,7 @@ export function SuccessScreen({
                 <ArrowCounterClockwise weight="bold" aria-hidden="true" />
                 Tip again
               </button>
-              <button
-                type="button"
-                onClick={shareable ? shareLink : copyLink}
-                className={`${pill} bg-ink text-accent`}
-              >
-                {shareable ? (
-                  <ShareNetwork weight="bold" aria-hidden="true" />
-                ) : (
-                  <Copy weight="bold" aria-hidden="true" />
-                )}
-                <RollText>{shareable ? `Share ${displayName}'s page` : "Copy their link"}</RollText>
-              </button>
             </div>
-            <p data-pop aria-live="polite" className="min-h-5 text-sm font-semibold">
-              {notice}
-            </p>
             {reference && (
               <p data-pop className="numeric break-all text-xs text-ink/85">
                 Reference {reference}

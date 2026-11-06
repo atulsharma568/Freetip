@@ -420,7 +420,7 @@ export function MetalPick({ on }: { on: boolean }) {
     setColor(getComputedStyle(el).getPropertyValue("--color-accent").trim() || "#ca1b19");
   }, []);
   return (
-    <span ref={box} aria-hidden="true" className="pointer-events-none absolute -inset-[3px] overflow-hidden rounded-full">
+    <span ref={box} aria-hidden="true" className="pointer-events-none absolute -inset-[5px] overflow-hidden rounded-full">
       {on && allowed && <LiquidMetal colorBack={color} colorTint="#ffffff" speed={0.35} repetition={4} distortion={0.12} className="rounded-full" />}
     </span>
   );
