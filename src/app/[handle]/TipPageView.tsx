@@ -11,6 +11,7 @@ import type { MeterReading } from "@/lib/page-doc/pressure";
 import type { PageDoc } from "@/lib/page-doc/types";
 import type { TipRule, TipSound } from "./creator";
 import { TipForm } from "./TipForm";
+import { EmberTrail, SignatureRays } from "@/components/tip/Signature";
 
 // What the tip page needs, already read from the database. The real page builds it from the
 // creator's rows; the test-only fixture route builds it from made-up values, and both render
@@ -49,6 +50,9 @@ export interface TipPageData {
   previewMode: boolean;
   // The owner's editor preview only: blocks carry `data-block-id`.
   editing?: boolean;
+  // The site owner's own page (isOwnerTipPage): draws the signature layer (Signature.tsx). Never
+  // set from a page document, so no other creator can turn it on.
+  signature?: boolean;
 }
 
 export function TipPageView({ data }: { data: TipPageData }) {
@@ -58,6 +62,8 @@ export function TipPageView({ data }: { data: TipPageData }) {
     <PageShell slim>
       <div className="contents" style={style}>
         {backdrop?.visible && <BackdropBlock block={backdrop} asset={backdrop.settings.asset === null ? null : (data.assets[backdrop.settings.asset] ?? null)} />}
+        {data.signature && <SignatureRays />}
+        {data.signature && !data.editing && <EmberTrail />}
         <TipForm
           doc={data.doc}
           assets={data.assets}
@@ -81,6 +87,7 @@ export function TipPageView({ data }: { data: TipPageData }) {
           pinOffer={data.pinOffer}
           previewMode={data.previewMode}
           editing={data.editing}
+          signature={data.signature}
         />
       </div>
     </PageShell>

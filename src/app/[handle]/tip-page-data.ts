@@ -91,6 +91,7 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
     pinOffer,
     previewMode: options.previewMode,
     editing: options.editing,
+    signature: ownerPage,
   };
 }
 

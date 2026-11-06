@@ -89,6 +89,8 @@ interface Props {
   // The Pressure meter: drawn only when `meterOn`; `meter` is its first reading (null: no goal).
   meterOn?: boolean;
   meter?: MeterReading | null;
+  // The owner's own page: the blocks draw the signature layer (Signature.tsx).
+  signature?: boolean;
 }
 
 export function TipForm({
@@ -114,6 +116,7 @@ export function TipForm({
   meterOn = false,
   meter = null,
   accent,
+  signature = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const refocusAmount = useRef(false);
@@ -369,6 +372,7 @@ export function TipForm({
     bio,
     previewMode,
     editing,
+    signature,
     meterOn,
     meter,
     presets,

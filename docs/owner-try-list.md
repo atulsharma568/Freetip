@@ -218,3 +218,12 @@ None of this has been seen in a browser with a real login or in real OBS.
 - [ ] Pay once more but close the browser tab the moment Razorpay says it is paid: reopen `/dashboard/plans` within a minute and the plan is on (the webhook or the page's own check settled it).
 - [ ] Tips still work as before: send a small test tip to your own page and check the alert and `/dashboard/tips`.
 - [ ] For real money: the Razorpay account must be live and its live keys in Vercel; with `LIVE_SALES_OPEN` still false only you can buy, and the Buy form warns it is real money. Pay the smallest term, check the receipt, then refund it in Razorpay's dashboard and press End ... now in `/admin/creators/<id>`.
+
+## AcePressure signature layer on your tip page (2026-11-06)
+
+- [ ] On a laptop, open `/acepressure`: crimson light rays sway from the top, "AcePressure" flips in letter by letter (and flips again when you hover it), the tagline cycles "Valorant" / "Live & Highlights", the form card lights up where the mouse is, and small pixel embers trail the mouse.
+- [ ] Tick the agreement box: the Tip button glows, a shine sweeps across it and a ring pulses. Press it: it shows "LOCKING IN" bouncing until the payment window opens.
+- [ ] Scroll to the bottom: the strip under the card scrolls endlessly and stops when the mouse is over it.
+- [ ] On your phone, open `/acepressure`: rays, name and tagline animate, no ember trail, nothing sideways-scrolls, the page feels smooth.
+- [ ] Turn on "Reduce motion" (phone accessibility settings): nothing moves and the strip shows its words once.
+- [ ] Open another creator's page: none of this appears there.

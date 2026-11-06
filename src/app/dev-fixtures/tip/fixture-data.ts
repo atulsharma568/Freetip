@@ -52,6 +52,7 @@ export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: b
     ...fixtureMeter(doc, options.meter, options.mtitle),
     handle: "samplecreator",
     displayName: owner ? ownerBrand() : "Sample Creator",
+    signature: owner,
     doc,
     assets: FIXTURE_ASSETS,
     ...(options.editing ? { meterGoals: FIXTURE_GOALS } : {}),

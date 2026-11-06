@@ -32,6 +32,8 @@ export interface TipFormState {
   previewMode: boolean;
   // True only in the owner's editor preview: blocks then carry `data-block-id` so a click can pick one.
   editing: boolean;
+  // The site owner's own page: blocks draw the signature layer (Signature.tsx) on top of the document.
+  signature: boolean;
   // The Pressure meter: whether the page may draw one (both switches on, or the owner's editor)
   // and its first reading, null while the creator has no goal.
   meterOn: boolean;

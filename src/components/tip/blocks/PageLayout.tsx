@@ -12,6 +12,7 @@ import { PressureBlock } from "./PressureBlock";
 import { QrBlock } from "./QrBlock";
 import { SendBlock } from "./SendBlock";
 import { StripBlock } from "./StripBlock";
+import { SignatureCard } from "@/components/tip/Signature";
 
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
@@ -19,7 +20,7 @@ const step = (i: number) => ({ "--i": i }) as CSSProperties;
 // whatever sits under the card. Each section keeps the wrappers it had before the page was
 // drawn from blocks, so the DOM order, the tab order and the entrance order are the same.
 export function PageLayout({ doc }: { doc: PageDoc }) {
-  const { announce, editing, meterOn } = useTipForm();
+  const { announce, editing, meterOn, signature } = useTipForm();
   const inSlot = (slot: Slot) => doc.blocks.filter((b) => b.slot === slot && b.visible);
   const side = inSlot("side");
   const main = inSlot("main");
@@ -28,6 +29,11 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
   // The three steps are numbered in the order they sit on the page, so a reordered form still
   // reads 1, 2, 3. (They are protected, so all three are always there.)
   const stepOf = (id: string) => main.filter((b) => b.type === "amount" || b.type === "note" || b.type === "send").findIndex((b) => b.id === id) + 1;
+
+  const Card = signature ? SignatureCard : "div";
+  // The owner's marquee strip also carries the tagline's words.
+  const linksBlock = doc.blocks.find((b): b is Block<"creatorLinks"> => b.type === "creatorLinks" && b.visible);
+  const tagline = linksBlock?.settings.tagline ?? "";
 
   const sideNodes: ReactNode[] = [];
   for (let i = 0; i < side.length; i++) {
@@ -41,7 +47,7 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
         sideNodes.push(
           <div key={block.id} className="enter space-y-5" style={step(0)} {...blockAttrs(editing, block.id)}>
             <HeaderBlock block={block} />
-            {links && <CreatorLinksBlock block={links} editing={editing} />}
+            {links && <CreatorLinksBlock block={links} editing={editing} signature={signature} />}
           </div>,
         );
         break;
@@ -49,7 +55,7 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
       case "creatorLinks":
         sideNodes.push(
           <div key={block.id} className="enter space-y-5" style={step(0)}>
-            <CreatorLinksBlock block={block} editing={editing} />
+            <CreatorLinksBlock block={block} editing={editing} signature={signature} />
           </div>,
         );
         break;
@@ -86,8 +92,8 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
         {/* Left on wide screens (sticky), above the form on phones */}
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">{sideNodes}</div>
 
-        {/* The tip */}
-        <div
+        {/* The tip (on the owner's own page, a card with a spotlight that follows the mouse) */}
+        <Card
           className="enter space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 sm:p-8"
           style={step(1)}
         >
@@ -116,9 +122,11 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
                 return null;
             }
           })}
-        </div>
+        </Card>
       </div>
-      {bottom.map((block) => (block.type === "strip" ? <StripBlock key={block.id} block={block} editing={editing} /> : null))}
+      {bottom.map((block) =>
+        block.type === "strip" ? <StripBlock key={block.id} block={block} editing={editing} signature={signature} tagline={tagline} /> : null,
+      )}
     </>
   );
 }

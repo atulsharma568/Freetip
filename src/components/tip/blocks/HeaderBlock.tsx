@@ -37,7 +37,7 @@ function decor(style: string, id: number | null, use: AssetUse, assets: Record<n
 // own account data. A banner picture chosen from the library replaces the creator's own banner. A
 // picture that is missing, taken down or the wrong kind leaves the creator's own banner.
 export function HeaderBlock({ block }: { block: Block<"header"> }) {
-  const { displayName, pictureUrl, bannerUrl, ytChannelName, ytChannelUrl, bio, previewMode, assets, decorLayers } = useTipForm();
+  const { displayName, pictureUrl, bannerUrl, ytChannelName, ytChannelUrl, bio, previewMode, assets, decorLayers, signature } = useTipForm();
   const id = block.settings.bannerAsset;
   const asset = id === null ? undefined : assets[id];
   const { avatar, frame, frameAsset, frameScale, bannerFx, bannerFxAsset, fxArea } = block.settings;
@@ -70,6 +70,7 @@ export function HeaderBlock({ block }: { block: Block<"header"> }) {
       ytChannelUrl={ytChannelUrl}
       bio={bio}
       previewMode={previewMode}
+      signature={signature}
     />
   );
   if (asset && usableFor(asset.kind, "banner")) {

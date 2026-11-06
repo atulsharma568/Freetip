@@ -9,6 +9,7 @@ import type { Block } from "@/lib/page-doc/types";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { TickLoader } from "@/components/ui/TickLoader";
+import { ButtonShine, KineticLoader } from "@/components/tip/Signature";
 
 // Step 3: the Pay button. What the button does, when it is blocked and its states are the form's.
 export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
@@ -28,6 +29,7 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
     setAgreed,
     handlePay,
     editing,
+    signature,
   } = useTipForm();
 
   return (
@@ -77,9 +79,12 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
             disabled={previewMode || !agreed || amountPaise < minTipPaise || extraBlocked || phase === "creating" || phase === "checkout"}
             aria-busy={phase === "creating"}
             aria-describedby={!agreed && !previewMode && amountPaise >= minTipPaise ? "tip-why" : undefined}
-            className="beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink transition-[opacity,transform] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`beam inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent text-base font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50 ${signature ? "sig-btn" : "transition-[opacity,transform] duration-200 active:scale-[0.98]"}`}
           >
-            {phase === "creating" ? (
+            {signature && <ButtonShine />}
+            {phase === "creating" && signature ? (
+              <KineticLoader text="Locking in" label="Opening payment…" />
+            ) : phase === "creating" ? (
               <>
                 <TickLoader count={10} duration={0.8} className="text-ink" />
                 Opening payment…

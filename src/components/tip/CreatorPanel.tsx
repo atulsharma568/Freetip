@@ -7,6 +7,7 @@ import { INK_HEX, SITE_HOST } from "@/lib/site";
 import { isUploadedBannerUrl } from "@/lib/tip-banner";
 import { useBannerTint } from "./use-banner-tint";
 import { AvatarPicture, BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
+import { FlipName } from "./Signature";
 
 const PERKS = [
   { Icon: Lightning, text: "UPI and cards" },
@@ -31,6 +32,7 @@ export function CreatorPanel({
   bannerFx = null,
   bannerPic = null,
   fxWholeHeader = false,
+  signature = false,
 }: {
   displayName: string;
   pictureUrl: string | null;
@@ -52,6 +54,8 @@ export function CreatorPanel({
   bannerPic?: DecorRender;
   // The effect covers the banner, photo, name and bio instead of only the banner strip.
   fxWholeHeader?: boolean;
+  // The owner's own page: the name flips in (Signature.tsx) in the heavy italic face.
+  signature?: boolean;
 }) {
   // The picture the visitor sees on the banner (a ready-made animated picture covers the creator's own
   // banner); the effect over it is drawn in that picture's main colour. No picture keeps the accent.
@@ -119,7 +123,11 @@ export function CreatorPanel({
             <span aria-hidden="true" className="live-dot" />
             {previewMode ? "Preview" : "Tips open"}
           </p>
-          <Heading className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</Heading>
+          {signature ? (
+            <FlipName name={displayName} as={Heading} />
+          ) : (
+            <Heading className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</Heading>
+          )}
           {showChannel && (
             <a
               href={ytChannelUrl}

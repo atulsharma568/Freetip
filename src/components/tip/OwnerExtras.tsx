@@ -2,6 +2,7 @@
 
 import { ladderFraction, ladderLevel } from "@/lib/page-doc/ladder";
 import type { Ladder } from "@/lib/page-doc/types";
+import { MorphText } from "./Signature";
 
 // Small pieces a tip page can add to the normal layout. They draw the words they are given; the
 // page document (parsed first) supplies them. The words may be as long as the parser allows with
@@ -58,14 +59,15 @@ export function OwnerStrip({ left, right, blockId }: { left: string; right: stri
 
 // Under the creator column: a small line of words and an Instagram link. The link is built from
 // the handle alone (the parser only lets a plain handle through), never from a typed address.
-export function OwnerLinks({ tagline, instagram, blockId }: { tagline: string; instagram: string; blockId?: string }) {
+// On the owner's own page (`signature`) the line cycles through its parts (MorphText).
+export function OwnerLinks({ tagline, instagram, blockId, signature = false }: { tagline: string; instagram: string; blockId?: string; signature?: boolean }) {
   if (!tagline && !instagram) return null;
   return (
     <div data-block-id={blockId} className="space-y-2 px-1">
       {tagline && (
         <p className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-muted [overflow-wrap:anywhere]">
           <span aria-hidden="true" className="h-px w-6 bg-accent" />
-          {tagline}
+          {signature ? <MorphText text={tagline} /> : tagline}
         </p>
       )}
       {instagram && (
