@@ -17,7 +17,6 @@ import { statusWord, type StatementRow } from "@/lib/earnings-statement";
 import { FIRST_PAYOUT_MAX_PAISE, MIN_PAYOUT_PAISE, PAYOUT_MAX_PAISE, amountToRequest, payoutRef } from "@/lib/payouts";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
-import { RequestPayout } from "./RequestPayout";
 
 export const metadata: Metadata = {
   title: `Earnings: ${SITE_NAME}`,
@@ -38,7 +37,7 @@ const dateOnly = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", da
 const PAYOUT_WORDS: Record<string, string> = {
   scheduled: "Scheduled",
   held: "On hold",
-  initiated: "Requested, waiting to be paid",
+  initiated: "Started, waiting to be paid",
   in_transit: "On its way",
   completed: "Paid",
   failed: "Returned to your balance",
@@ -117,9 +116,11 @@ export default async function EarningsPage({
           after it is paid. Each row is worked at the rates the tip was made under. A tip stays pending
           for a waiting period before it can be paid out ({HOLD_DAYS_UPI} day for a UPI tip,{" "}
           {HOLD_DAYS_OTHER} days for any other method, {HOLD_DAYS_NEW_CREATOR} days for those while you
-          have no completed payout). A payout is paid by hand to your UPI ID after you ask for it; we do
-          not promise a particular day. The first payout is at most {formatRupees(FIRST_PAYOUT_MAX_PAISE)}
-          and any one payout at most {formatRupees(PAYOUT_MAX_PAISE)}; the rest stays available.
+          have no completed payout). Every morning, if at least {formatRupees(MIN_PAYOUT_PAISE)} is
+          available, a payout is started for you and paid by hand to your UPI ID; you don&apos;t need to
+          ask. We do not promise a particular day. The first payout is at most{" "}
+          {formatRupees(FIRST_PAYOUT_MAX_PAISE)} and any one payout at most {formatRupees(PAYOUT_MAX_PAISE)};
+          the rest stays available for the next one.
         </p>
       </div>
     </DashboardShell>
@@ -152,22 +153,28 @@ function Payout({ summary, active, upiVpa }: { summary: EarningsSummary; active:
   if (open) {
     body = (
       <p className="text-text">
-        Your request of <span className="numeric font-semibold">{formatRupees(open.amountPaise)}</span> (
-        <span className="numeric">{payoutRef(open.id)}</span>) is waiting to be paid. It will show here as
-        Paid once it has been sent. You can ask again after that.
+        A payout of <span className="numeric font-semibold">{formatRupees(open.amountPaise)}</span> (
+        <span className="numeric">{payoutRef(open.id)}</span>) is on its way to your UPI ID. It will show
+        here as Paid once it has been sent. The next one starts after that.
       </p>
     );
   } else if (!active) {
     body = <p className="text-muted">Payouts open once your account is active.</p>;
   } else if (!upiVpa) {
-    body = <p className="text-muted">Add a UPI ID in your payout setup to be able to ask for a payout.</p>;
+    body = <p className="text-muted">Add a UPI ID in your payout setup so we can pay you.</p>;
   } else if (amount > 0) {
-    body = <RequestPayout amountLabel={formatRupees(amount)} upiVpa={upiVpa} />;
+    body = (
+      <p className="text-text">
+        <span className="numeric font-semibold">{formatRupees(amount)}</span> is ready. A payout to{" "}
+        <span className="numeric">{upiVpa}</span> starts by itself at the next morning run (about 9 am);
+        you don&apos;t need to do anything.
+      </p>
+    );
   } else {
     body = (
       <p className="text-muted">
-        You can ask for a payout once at least {formatRupees(MIN_PAYOUT_PAISE)} is available. Available
-        now: <span className="numeric text-text">{formatRupees(summary.availablePaise)}</span>
+        A payout starts by itself on the morning after at least {formatRupees(MIN_PAYOUT_PAISE)} is
+        available. Available now: <span className="numeric text-text">{formatRupees(summary.availablePaise)}</span>
         {summary.pendingPaise > 0 ? ` (${formatRupees(summary.pendingPaise)} more is still pending).` : "."}
       </p>
     );

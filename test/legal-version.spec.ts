@@ -19,6 +19,8 @@ const PINNED: Record<string, string> = {
   "4 November 2026, text 4": "622a8c5ec69c99fd08e6e74a369d9ce512d8a2a6b0c9e6ec5b25074e965370c5",
   // The payout wording in the Terms and the other public pages no longer promises a schedule or names a payment partner.
   "5 November 2026, text 5": "414824d032e58f09a4f6a03a53cc4f05fcc815f3f955838735e68879e205602b",
+  // Payouts are started by us every morning once ₹500 is available; the creator no longer asks.
+  "6 November 2026, text 6": "ba2c46f7a33ca4bfa63736976a278f2a1fb5a3082a9750ba2112b8eab178eaba",
 };
 
 function fingerprint(): string {

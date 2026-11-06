@@ -31,9 +31,9 @@ const WHAT: Record<string, { what: string; note?: string }> = {
     what: "Sends the Streamlabs alerts still waiting (a message awaiting approval, a spaced-out alert, a retry).",
     note: "Each tip is also sent straight after it is paid; for waiting alerts to go out on time, also call it every 2 minutes from a free outside scheduler with the CRON_SECRET header (OPERATIONS.md section 7).",
   },
-  "/api/cron/payout-reminder": {
-    what: "Emails you once a day while a creator's payout request has waited 3 days or more.",
-    note: "Needs RESEND_API_KEY and CONTACT_NOTIFY_EMAIL; without them nothing is sent and the request still shows on Payouts to pay.",
+  "/api/cron/payout-daily": {
+    what: "Every morning starts a payout for each creator with at least ₹500 available, then emails you the list of payouts to pay.",
+    note: "The payouts are started even without email; the email needs RESEND_API_KEY and CONTACT_NOTIFY_EMAIL. Either way they show on Payouts to pay, where you record each UTR.",
   },
   "/api/cron/plan-orders": {
     what: "Checks paid-feature orders left pending against PayU, takes away the features of passes that have ended (only the ones the pass added), and emails creators whose pass ends within 5 days.",

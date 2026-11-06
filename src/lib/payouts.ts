@@ -2,8 +2,9 @@ import type { LedgerDb, Query } from "./accrual";
 import { MIN_PAYOUT_PAISE } from "./balances";
 import { loadEarningsSummary } from "./creator-earnings";
 
-// Manual creator payouts (owner decision, 2026-11-04). A creator asks for what is available; the owner
-// pays it from their own bank or UPI app and records the UTR. No code here sends money.
+// Manual creator payouts (owner decision, 2026-11-04; daily run instead of creator requests since
+// 2026-11-06). Every morning a payout is started for each creator with at least the minimum available;
+// the owner pays it from their own bank or UPI app and records the UTR. No code here sends money.
 //
 // Every step is one database transaction that also writes the ledger and the audit row, so the books
 // cannot show a payout that did not happen or miss one that did:
@@ -50,15 +51,7 @@ export type RequestResult =
   | { status: "requested"; payoutId: number; amountPaise: number; firstPayout: boolean }
   | { status: "refused"; reason: RefusalReason };
 
-export const REFUSAL_WORDS: Record<RefusalReason, string> = {
-  no_creator: "We could not find your account.",
-  not_active: "Your account is not active, so a payout cannot be requested.",
-  no_upi: "There is no UPI ID on your account yet.",
-  open_request: "You already have a payout request waiting. It is paid first, then you can ask again.",
-  below_minimum: "Your available amount is below the minimum for a payout.",
-};
-
-type Actor = { role: "owner" | "creator"; userId: number | null };
+type Actor = { role: "owner" | "creator" | "system"; userId: number | null };
 
 async function audit(
   tx: Query,
@@ -112,7 +105,15 @@ async function postLines(
   return header.id;
 }
 
-export async function requestPayout(db: LedgerDb, creatorId: number, now = new Date()): Promise<RequestResult> {
+// Starts a payout for one creator: everything available, up to the ceiling. Called by the daily run
+// (startDailyPayouts, as the system); the name "request" is kept because the database rows, the
+// ledger keys and the audit history already use it.
+export async function requestPayout(
+  db: LedgerDb,
+  creatorId: number,
+  now = new Date(),
+  actor: Actor = { role: "system", userId: null },
+): Promise<RequestResult> {
   return db.begin(async (tx): Promise<RequestResult> => {
     await tx`select pg_advisory_xact_lock(${LOCK_NAMESPACE}::int, ${creatorId}::int)`;
 
@@ -156,14 +157,63 @@ export async function requestPayout(db: LedgerDb, creatorId: number, now = new D
     });
     await audit(
       tx,
-      { role: "creator", userId: creatorId },
-      "payout.requested",
+      actor,
+      actor.role === "system" ? "payout.scheduled" : "payout.requested",
       payoutId,
       { amount_minor: amount, first_payout: !summary.hasCompletedPayout },
-      null,
+      actor.role === "system" ? "Daily payout run" : null,
     );
     return { status: "requested", payoutId, amountPaise: amount, firstPayout: !summary.hasCompletedPayout };
   });
+}
+
+export interface DailyRunResult {
+  // Payouts started by this run.
+  started: { payoutId: number; amountPaise: number; firstPayout: boolean }[];
+  // Creators looked at whose available amount was below the minimum.
+  belowMinimum: number;
+  // Creators who could not be looked at (an error, logged); the next run tries again.
+  errors: number;
+}
+
+// The daily payout run (owner decision, 2026-11-06, replacing requests by the creator): every active
+// creator with a UPI ID and no payout already waiting gets one for everything available, as long as it
+// is at least the minimum. Only creators whose books hold at least the minimum are looked at, so the run
+// stays cheap however many creators there are. Each creator is its own transaction under the same lock
+// as before, so running twice, or alongside the owner's page, starts nothing twice. One creator that
+// fails does not stop the rest. Nothing here sends money: the owner pays each one and records the UTR.
+export async function startDailyPayouts(db: LedgerDb, now = new Date(), opts: { budgetMs?: number } = {}): Promise<DailyRunResult> {
+  const candidates = await db<{ id: string }[]>`
+    select u.id::text
+      from users u
+     where u.creator_status = 'active' and u.onboarding_state = 'active'
+       and u.upi_vpa is not null and u.upi_vpa <> ''
+       and not exists (
+         select 1 from creator_payouts p where p.creator_id = u.id and p.status in ('initiated', 'in_transit')
+       )
+       and (
+         select coalesce(sum(e.credit_minor - e.debit_minor), 0)
+           from ledger_entries e
+           join ledger_accounts a on a.id = e.account_id and a.code = 'creator_payable'
+          where e.creator_id = u.id
+       ) >= ${MIN_PAYOUT_PAISE}
+     order by u.id
+  `;
+  const out: DailyRunResult = { started: [], belowMinimum: 0, errors: 0 };
+  const began = Date.now();
+  for (const { id } of candidates) {
+    if (Date.now() - began > (opts.budgetMs ?? 20_000)) break;
+    try {
+      const r = await requestPayout(db, Number(id), now);
+      if (r.status === "requested") out.started.push({ payoutId: r.payoutId, amountPaise: r.amountPaise, firstPayout: r.firstPayout });
+      // Part of the balance is still inside its waiting period: tomorrow's run looks again.
+      else if (r.reason === "below_minimum") out.belowMinimum += 1;
+    } catch (err) {
+      out.errors += 1;
+      console.error(`Daily payouts: creator ${id} could not be looked at, trying the rest:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return out;
 }
 
 export type PaidResult =

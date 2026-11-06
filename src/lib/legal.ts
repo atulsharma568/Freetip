@@ -44,7 +44,7 @@ export const LEGAL_DRAFT = false;
 export const LEGAL_ROBOTS = LEGAL_DRAFT ? { index: false, follow: true } : undefined;
 
 // The date shown at the top of the Terms and Refund Policy. Change it with any edit of their wording.
-export const LEGAL_UPDATED = "4 November 2026";
+export const LEGAL_UPDATED = "6 November 2026";
 
 // The version of the paid-plan text a creator agrees to by ticking the box. Every paid-plan order
 // stores it (plan_orders.terms_version) as the proof of which words they agreed to. Unlike
@@ -52,7 +52,7 @@ export const LEGAL_UPDATED = "4 November 2026";
 // when buying: the Terms, the Refund Policy, the pricing page and the tick box in BuyPass.tsx. The
 // test in test/legal-version.spec.ts fails until it is changed, so an edit cannot go out under an old
 // version (OPERATIONS.md 7i). At most 40 characters.
-export const TERMS_VERSION = "5 November 2026, text 5";
+export const TERMS_VERSION = "6 November 2026, text 6";
 
 // Saved with each waitlist entry. Change it whenever the privacy policy's
 // waitlist sections change, so we know which notice each person agreed to.

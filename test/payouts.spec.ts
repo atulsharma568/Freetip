@@ -12,12 +12,13 @@ import {
   markPayoutPaid,
   requestPayout,
   reversePayout,
+  startDailyPayouts,
 } from "../src/lib/payouts";
 import { loadEarningsSummary } from "../src/lib/creator-earnings";
 import { getCreatorBalances } from "../src/lib/admin/balance-queries";
 import { listOpenPayouts, listRecentPayouts } from "../src/lib/admin/payout-queries";
-import { buildPayoutNudgeEmail, buildPayoutRequestEmail } from "../src/lib/payout-notification";
-import { sendPayoutNudge } from "../src/lib/payout-reminders";
+import { buildDailyPayoutEmail, type DailyPayoutLine } from "../src/lib/payout-notification";
+import { runDailyPayouts } from "../src/lib/payout-reminders";
 import { postTipReversal } from "../src/lib/reversal";
 import { getFinanceSummary } from "../src/lib/admin/finance-queries";
 import { getCreatorEarnings } from "../src/lib/admin/creator-queries";
@@ -131,9 +132,9 @@ test.describe("requesting a payout", () => {
     expect(after.availablePaise).toBe(0);
     expect(await balanceOf(pg, "payouts_in_flight")).toBe(old);
 
-    // Audited under the creator.
+    // Audited as the system's daily run (the creator no longer asks).
     const a = await pg.query(`select actor_role, action, entity_ref from audit_events where entity_type = 'creator_payout'`);
-    expect(a.rows).toEqual([{ actor_role: "creator", action: "payout.requested", entity_ref: String(r.payoutId) }]);
+    expect(a.rows).toEqual([{ actor_role: "system", action: "payout.scheduled", entity_ref: String(r.payoutId) }]);
   });
 
   test("a second request while one waits is refused, and nothing is paid twice", async () => {
@@ -231,7 +232,7 @@ test.describe("paying a payout", () => {
 
     const audit = await pg.query(`select actor_role, action from audit_events where entity_type = 'creator_payout' order by id`);
     expect(audit.rows).toEqual([
-      { actor_role: "creator", action: "payout.requested" },
+      { actor_role: "system", action: "payout.scheduled" },
       { actor_role: "owner", action: "payout.paid" },
     ]);
   });
@@ -535,75 +536,129 @@ test.describe("the owner's list of requests", () => {
   });
 });
 
-test.describe("the email to the owner", () => {
-  test("names the amount and reference, links the page, and never carries the UPI ID", () => {
-    const m = buildPayoutRequestEmail({
-      creatorName: "Riya\nBcc: x@y.z",
-      handle: "riya",
-      payoutId: 12,
-      amountPaise: 123456,
-      firstPayout: true,
-      adminUrl: "https://freetip.in/admin/payouts",
-    });
-    // The subject holds our own words and numbers only, so nothing a creator typed can reach a header.
-    expect(m.subject).toBe("Payout request FT-12: ₹1,234.56");
-    expect(m.subject).not.toContain("Riya");
-    expect(m.text).toContain("(their first payout)");
-    expect(m.text).toContain("https://freetip.in/admin/payouts");
-    expect(m.text).not.toMatch(/@upi|vpa/i);
-  });
-});
+test.describe("the morning payout run", () => {
+  test("starts a payout for each creator with at least ₹500 available, and skips everyone else", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const ready = await creator(pg);
+    const readyShare = await tip(pg, ready, { gross: 100000, capturedAt: daysAgo(3) });
+    // Below the minimum.
+    const small = await creator(pg);
+    await tip(pg, small, { gross: 20000, capturedAt: daysAgo(3) });
+    // Enough in the books, but still inside the one-day hold.
+    const held = await creator(pg);
+    await tip(pg, held, { gross: 100000, capturedAt: hoursAgo(2) });
+    // Enough, but no UPI ID, or not active.
+    const noUpi = await creator(pg, { upi: null });
+    await tip(pg, noUpi, { gross: 100000, capturedAt: daysAgo(3) });
+    const suspended = await creator(pg, { status: "suspended" });
+    await tip(pg, suspended, { gross: 100000, capturedAt: daysAgo(3) });
 
-test.describe("the daily nudge about requests left unpaid", () => {
+    const r = await startDailyPayouts(db, NOW);
+    expect(r.errors).toBe(0);
+    expect(r.started).toHaveLength(1);
+    expect(r.started[0]).toMatchObject({ amountPaise: readyShare, firstPayout: true });
+    expect(r.belowMinimum).toBe(1); // the held one was looked at and is not ready yet
+    const row = await payoutRow(pg, r.started[0].payoutId);
+    expect(Number(row.creator_id)).toBe(ready);
+    expect(row).toMatchObject({ status: "initiated", upi_vpa: "a@upi" });
+
+    // Recorded as the system's daily run, not as a creator's request.
+    const audit = await pg.query<{ actor_role: string; action: string }>(
+      `select actor_role, action from audit_events where entity_type = 'creator_payout' and entity_ref = $1`,
+      [String(r.started[0].payoutId)],
+    );
+    expect(audit.rows).toEqual([{ actor_role: "system", action: "payout.scheduled" }]);
+  });
+
+  test("running twice starts nothing twice, and the next payout starts only after the open one is paid", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(3) });
+    const first = await startDailyPayouts(db, NOW);
+    expect(first.started).toHaveLength(1);
+    expect((await startDailyPayouts(db, NOW)).started).toHaveLength(0);
+
+    // A new tip arrives while the payout waits: nothing new until the open one is paid.
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(2) });
+    expect((await startDailyPayouts(db, NOW)).started).toHaveLength(0);
+    expect(await markPayoutPaid(db, first.started[0].payoutId, { utr: "412345678901", nameMatched: true })).toEqual({ status: "paid" });
+    const next = await startDailyPayouts(db, NOW);
+    expect(next.started).toHaveLength(1);
+    expect(next.started[0].firstPayout).toBe(false);
+  });
+
+  test("a cancelled payout goes back on the balance and the next run starts it again", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const c = await creator(pg);
+    const share = await tip(pg, c, { gross: 100000, capturedAt: daysAgo(3) });
+    const first = await startDailyPayouts(db, NOW);
+    expect(await cancelPayout(db, first.started[0].payoutId, "wrong UPI ID")).toEqual({ status: "cancelled" });
+    const again = await startDailyPayouts(db, NOW);
+    expect(again.started).toHaveLength(1);
+    expect(again.started[0].amountPaise).toBe(share);
+  });
+
+  test("emails one list of everything waiting, new today and from earlier days", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    const earlier = await creator(pg);
+    await tip(pg, earlier, { gross: 100000, capturedAt: daysAgo(10) });
+    // Started two days ago and still not paid.
+    expect((await startDailyPayouts(db, daysAgo(2))).started).toHaveLength(1);
+    const today = await creator(pg);
+    await tip(pg, today, { gross: 200000, capturedAt: daysAgo(3) });
+
+    const calls: { lines: DailyPayoutLine[]; startedToday: number }[] = [];
+    const r = await runDailyPayouts(db, async (lines, startedToday) => {
+      calls.push({ lines, startedToday });
+      return "sent";
+    }, NOW);
+    expect(r).toMatchObject({ started: 1, waiting: 2, sent: true, off: false, errors: 0 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].startedToday).toBe(1);
+    expect(calls[0].lines.map((l) => l.waitedDays).sort()).toEqual([0, 2]);
+  });
+
+  test("sends nothing when nothing is waiting, and reports an email that is off", async () => {
+    const pg = await freshDatabase();
+    const db = asLedgerDb(pg);
+    let sends = 0;
+    const r = await runDailyPayouts(db, async () => {
+      sends += 1;
+      return "sent";
+    }, NOW);
+    expect(r).toMatchObject({ started: 0, waiting: 0, sent: false });
+    expect(sends).toBe(0);
+
+    const c = await creator(pg);
+    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(3) });
+    expect(await runDailyPayouts(db, async () => "off", NOW)).toMatchObject({ started: 1, waiting: 1, sent: false, off: true });
+  });
+
   test("the email lists references, amounts and days, with no name and no UPI ID", () => {
-    const m = buildPayoutNudgeEmail({
-      waiting: [
-        { payoutId: 7, amountPaise: 60000, waitedDays: 3 },
-        { payoutId: 9, amountPaise: 150000, waitedDays: 5 },
+    const m = buildDailyPayoutEmail({
+      lines: [
+        { payoutId: 7, amountPaise: 60000, waitedDays: 0, firstPayout: true },
+        { payoutId: 9, amountPaise: 150000, waitedDays: 3, firstPayout: false },
       ],
+      startedToday: 1,
       adminUrl: "https://freetip.in/admin/payouts",
     });
-    expect(m.subject).toBe("2 payout requests are still waiting: ₹2,100.00");
-    expect(m.text).toContain("FT-7: ₹600.00, waiting 3 days");
-    expect(m.text).toContain("FT-9: ₹1,500.00, waiting 5 days");
+    expect(m.subject).toBe("Pay 2 creators today: ₹2,100.00");
+    expect(m.text).toContain("(1 new today, 1 from earlier days)");
+    expect(m.text).toContain("FT-7: ₹600.00 (first payout)");
+    expect(m.text).toContain("FT-9: ₹1,500.00, waiting 3 days");
     expect(m.text).toContain("https://freetip.in/admin/payouts");
     expect(m.text).not.toMatch(/@upi|vpa/i);
-  });
-
-  test("only a request open for 3 days or more is sent, and nothing is sent when none is", async () => {
-    const pg = await freshDatabase();
-    const db = asLedgerDb(pg);
-    const c = await creator(pg);
-    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(10) });
-    const r = await requestPayout(db, c, daysAgo(2));
-    expect(r.status).toBe("requested");
-
-    const sent: { payoutId: number; amountPaise: number; waitedDays: number }[][] = [];
-    const send = async (w: (typeof sent)[number]) => {
-      sent.push(w);
-      return "sent" as const;
-    };
-    // Two days: not yet.
-    expect(await sendPayoutNudge(db, send, NOW)).toEqual({ waiting: 0, sent: false, off: false });
-    expect(sent).toHaveLength(0);
-    // Three days: nudged, and again on every later run while it is open.
-    const later = new Date(NOW.getTime() + DAY);
-    expect((await sendPayoutNudge(db, send, later)).sent).toBe(true);
-    expect(sent[0][0].waitedDays).toBe(3);
-    expect((await sendPayoutNudge(db, send, new Date(later.getTime() + DAY))).waiting).toBe(1);
-    // Once it is paid or cancelled the nudges stop.
-    if (r.status === "requested") await cancelPayout(db, r.payoutId, "test");
-    expect((await sendPayoutNudge(db, send, later)).waiting).toBe(0);
-  });
-
-  test("an email that is off is reported, not treated as sent", async () => {
-    const pg = await freshDatabase();
-    const db = asLedgerDb(pg);
-    const c = await creator(pg);
-    await tip(pg, c, { gross: 100000, capturedAt: daysAgo(10) });
-    await requestPayout(db, c, daysAgo(5));
-    const r = await sendPayoutNudge(db, async () => "off", NOW);
-    expect(r).toEqual({ waiting: 1, sent: false, off: true });
+    const one = buildDailyPayoutEmail({
+      lines: [{ payoutId: 1, amountPaise: 50000, waitedDays: 0, firstPayout: false }],
+      startedToday: 1,
+      adminUrl: "https://freetip.in/admin/payouts",
+    });
+    expect(one.subject).toBe("Pay 1 creator today: ₹500.00");
   });
 });
 

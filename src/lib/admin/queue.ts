@@ -50,7 +50,7 @@ async function count(db: LedgerDb, which: QueueKey): Promise<number> {
       // PayU says paid at another price; nothing was switched on (migration 0055 and the daily check).
       return countNeedsLook(db);
     case "payoutsToPay": {
-      // A creator asked for a payout and the owner has not yet paid or cancelled it.
+      // A payout the morning run started that the owner has not yet paid or cancelled.
       const [r] = await db<{ n: string }[]>`
         select count(*)::text as n from creator_payouts where status in ('initiated', 'in_transit')
       `;
@@ -77,7 +77,7 @@ const ITEMS: { key: QueueKey; label: string; href: string }[] = [
   { key: "newMessages", label: "New contact messages", href: "/admin/messages?status=new" },
   { key: "handleRequests", label: "Handle change requests", href: "/admin/handle-requests" },
   { key: "planPaymentsToLook", label: "Plan payments to look at", href: "/admin/plan-orders" },
-  { key: "payoutsToPay", label: "Payout requests to pay", href: "/admin/payouts" },
+  { key: "payoutsToPay", label: "Payouts to pay", href: "/admin/payouts" },
   { key: "mediaToReview", label: "Alert media to review", href: "/admin/media" },
   { key: "unpostedTips", label: "Tips not yet posted to the books", href: "/admin/reconciliation" },
 ];

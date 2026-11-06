@@ -1,24 +1,19 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { requireOwner } from "@/lib/owner-auth";
 import type { LedgerDb } from "@/lib/accrual";
 import type { AdminActionState } from "@/lib/admin/action-state";
-import { formatRupees } from "@/lib/earnings";
-import { REFUSAL_WORDS, cancelPayout, markPayoutPaid, requestPayout, reversePayout } from "@/lib/payouts";
-import { sendPayoutRequestEmail } from "@/lib/payout-email";
+import { cancelPayout, markPayoutPaid, reversePayout } from "@/lib/payouts";
 
-// A creator asks for a payout and the owner pays it by hand and records the UTR (see payouts.ts for the
-// rules). Every outcome comes back as plain data for useActionState; the database is the judge, the
-// form only says what was asked.
+// Payouts are started every morning by the daily run (/api/cron/payout-daily); the owner pays each by
+// hand and records the UTR here (see payouts.ts for the rules). Every outcome comes back as plain data
+// for useActionState; the database is the judge, the form only says what was asked.
 
 const ok = (message: string): AdminActionState => ({ status: "ok", message });
 const fail = (message: string): AdminActionState => ({ status: "error", message });
 const NO_DB = "The database is not set up.";
-const SAVE_FAILED = "Could not save. Please try again in a minute.";
 
 const validId = (n: number) => Number.isSafeInteger(n) && n >= 1 && n <= 2147483647;
 
@@ -28,40 +23,6 @@ function refresh() {
   revalidatePath("/admin/payouts");
   revalidatePath("/admin/finance/balances");
   revalidatePath("/admin/audit");
-}
-
-// The signed-in creator asks for their available money.
-export async function requestMyPayout(): Promise<AdminActionState> {
-  const session = await auth();
-  if (!session?.user) redirect("/signin");
-  const googleId = (session.user as { googleId?: string }).googleId;
-  if (!googleId) redirect("/signin");
-
-  const db = getDb();
-  if (!db) return fail(NO_DB);
-  try {
-    const [user] = await db<{ id: number; name: string | null; handle: string | null }[]>`
-      select id, name, handle from users where google_id = ${googleId}
-    `;
-    if (!user) return fail(REFUSAL_WORDS.no_creator);
-
-    const result = await requestPayout(db as unknown as LedgerDb, user.id);
-    if (result.status === "refused") return fail(REFUSAL_WORDS[result.reason]);
-
-    // Tell the owner. A failed email changes nothing: the request waits in /admin/payouts either way.
-    await sendPayoutRequestEmail({
-      creatorName: user.name,
-      handle: user.handle,
-      payoutId: result.payoutId,
-      amountPaise: result.amountPaise,
-      firstPayout: result.firstPayout,
-    });
-    refresh();
-    return ok(`Requested ${formatRupees(result.amountPaise)}. It will be paid to your UPI ID and shown here as Paid.`);
-  } catch (err) {
-    console.error("Payout: could not save a request", err);
-    return fail(SAVE_FAILED);
-  }
 }
 
 // The owner has paid the transfer and records its UTR.

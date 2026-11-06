@@ -34,13 +34,14 @@ export default async function PayoutsPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">Finance · Payouts</p>
         <h1 className="display text-[clamp(2rem,5vw,3.5rem)] leading-[0.95]">Payouts to pay</h1>
         <DefinitionNote>
-          A creator asks for what is available (at least ₹500; tips are available a day after a UPI
-          payment). You pay it from your own bank or UPI app to the UPI ID shown, then enter the UTR
-          here and tick that the name matched. Nothing is sent from this site. Cancel a request you will
-          not pay (a wrong UPI ID, say) and the money goes back on the creator&apos;s balance. If a payout
-          you marked as paid did not arrive (the bank sent it back, or the UTR was for the wrong
-          person), Reverse it in the list below: the money goes back on the balance and the payout
-          stays on record as reversed.
+          Every morning (about 9 am) the site starts a payout for each creator with at least ₹500
+          available (tips are available a day after a UPI payment) and emails you this list. You pay
+          each one from your own bank or UPI app to the UPI ID shown, then enter the UTR here and tick
+          that the name matched; every UTR is kept in the list below. Nothing is sent from this site.
+          Cancel a payout you will not pay (a wrong UPI ID, say) and the money goes back on the
+          creator&apos;s balance; the next morning&apos;s run starts it again. If a payout you marked as
+          paid did not arrive (the bank sent it back, or the UTR was for the wrong person), Reverse it in
+          the list below: the money goes back on the balance and the payout stays on record as reversed.
         </DefinitionNote>
       </div>
 
@@ -49,7 +50,7 @@ export default async function PayoutsPage() {
       ) : !open.ok ? (
         <CouldNotRead
           detail={open.error}
-          message="Could not read payout requests. Migration 0059 (payout requests) must be run in Neon first."
+          message="Could not read payouts. Migration 0059 (payout requests) must be run in Neon first."
         />
       ) : (
         <>
@@ -69,13 +70,13 @@ function Waiting({ data }: { data: OpenPayouts }) {
         Waiting to be paid
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <MetricCard label="Requests waiting" value={String(data.rows.length)} accent={data.rows.length > 0} />
+        <MetricCard label="Payouts to pay" value={String(data.rows.length)} accent={data.rows.length > 0} />
         <MetricCard label="Total to pay" value={formatINR(total)} accent={total > 0} />
       </div>
       {data.rows.length === 0 ? (
         <AdminEmptyState
           title="Nothing to pay"
-          description="When a creator asks for a payout it appears here, and you get an email if email is set up."
+          description="Each morning's run adds a payout here for every creator with at least ₹500 available, and emails you the list if email is set up."
         />
       ) : (
         <ul className="space-y-4">
@@ -100,7 +101,7 @@ function Request({ row: r, totals }: { row: PayoutAdminRow; totals: CreatorTotal
           </Link>
           {r.handle && <p className="text-sm text-muted">@{r.handle}</p>}
           <p className="text-xs text-muted">
-            Reference <span className="numeric text-text">{payoutRef(r.id)}</span> · asked {fmtIST(r.requestedAt, "short")} IST
+            Reference <span className="numeric text-text">{payoutRef(r.id)}</span> · started {fmtIST(r.requestedAt, "short")} IST
           </p>
         </div>
         <p className="numeric text-3xl font-semibold text-accent">{formatINR(r.amountMinor)}</p>
@@ -115,7 +116,7 @@ function Request({ row: r, totals }: { row: PayoutAdminRow; totals: CreatorTotal
         )}
         {r.upiChanged && (
           <span className={`rounded-full px-2 py-0.5 font-medium ${TONE_BADGE.warn}`}>
-            UPI ID changed since this request: pay the one below
+            UPI ID changed since this payout started: pay the one below
           </span>
         )}
       </div>
@@ -139,9 +140,9 @@ function Request({ row: r, totals }: { row: PayoutAdminRow; totals: CreatorTotal
 
       <ConfirmAction
         action={cancelPayoutAction.bind(null, r.id)}
-        label="Cancel this request"
-        description="The money goes back on the creator's balance and they can ask again. Use it for a wrong UPI ID or a request you will not pay."
-        confirmLabel="Cancel request"
+        label="Cancel this payout"
+        description="The money goes back on the creator's balance, and the next morning's run starts a new payout if at least ₹500 is available. Use it for a wrong UPI ID or a payout you will not pay today."
+        confirmLabel="Cancel payout"
         pendingLabel="Cancelling…"
         askReason
       />

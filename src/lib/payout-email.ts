@@ -1,22 +1,11 @@
 import "server-only";
-import { buildPayoutNudgeEmail, buildPayoutRequestEmail } from "@/lib/payout-notification";
+import { buildDailyPayoutEmail, type DailyPayoutLine } from "@/lib/payout-notification";
 
-// Emails the owner when a creator requests a payout, through Resend's HTTP API (the same setup as the
+// Emails the owner the morning list of payouts to pay, through Resend's HTTP API (the same setup as the
 // contact form: RESEND_API_KEY and CONTACT_NOTIFY_EMAIL). Off until those are set. A failed email never
-// fails the request: the request is saved either way and waits in /admin/payouts.
-export async function sendPayoutRequestEmail(o: {
-  creatorName: string | null;
-  handle: string | null;
-  payoutId: number;
-  amountPaise: number;
-  firstPayout: boolean;
-}): Promise<"sent" | "off" | "failed"> {
-  return sendToOwner((adminUrl) => buildPayoutRequestEmail({ ...o, adminUrl }));
-}
-
-// The daily nudge about requests that have waited (see payout-reminders.ts).
-export function sendPayoutNudgeEmail(waiting: { payoutId: number; amountPaise: number; waitedDays: number }[]) {
-  return sendToOwner((adminUrl) => buildPayoutNudgeEmail({ waiting, adminUrl }));
+// undoes anything: the payouts are saved either way and wait in /admin/payouts.
+export function sendDailyPayoutEmail(lines: DailyPayoutLine[], startedToday: number) {
+  return sendToOwner((adminUrl) => buildDailyPayoutEmail({ lines, startedToday, adminUrl }));
 }
 
 async function sendToOwner(build: (adminUrl: string) => { subject: string; text: string }): Promise<"sent" | "off" | "failed"> {
