@@ -33,24 +33,32 @@ const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 
 const cardBox = "flex flex-col gap-5 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5";
 
+// Both prices are always on the card; the 1 month / 12 months switch only picks which one is bought
+// (the picked one is the big line).
 function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; earlyOpen: boolean | null }) {
-  const year = term === 12;
   const saving = yearSaving(prices.monthly, prices.yearly);
+  const big = "text-3xl font-semibold tabular-nums text-text";
+  const small = "text-lg font-medium tabular-nums text-muted";
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <p>
-        <span className="text-3xl font-semibold tabular-nums text-text">{rupees(year ? prices.yearly : prices.monthly)}</span>
-        <span className="text-sm text-muted">{year ? " a year" : " a month"}</span>
+        <span className={term === 1 ? big : small}>{rupees(prices.monthly)}</span>
+        <span className="text-sm text-muted"> a month</span>
       </p>
-      <p className="text-xs text-muted">
-        {year
-          ? `${rupees(perMonthOfYear(prices.yearly))} a month${saving > 0 ? `, save ${saving}%` : ""}`
-          : "Pay month by month"}
-      </p>
+      <div>
+        <p>
+          <span className={term === 12 ? big : small}>{rupees(prices.yearly)}</span>
+          <span className="text-sm text-muted"> a year</span>
+        </p>
+        <p className="text-xs text-muted">
+          {rupees(perMonthOfYear(prices.yearly))} a month{saving > 0 ? `, save ${saving}%` : ""}
+        </p>
+      </div>
       {earlyOpen !== false && (
         <p className="text-xs text-text">
           Early price for the first {prices.early.seats} creators:{" "}
-          <span className="numeric font-medium">{rupees(year ? prices.early.yearly : prices.early.monthly)}</span>
+          <span className="numeric font-medium">{rupees(prices.early.monthly)}</span> a month or{" "}
+          <span className="numeric font-medium">{rupees(prices.early.yearly)}</span> a year
         </p>
       )}
     </div>
