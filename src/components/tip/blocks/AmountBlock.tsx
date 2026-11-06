@@ -1,5 +1,6 @@
 "use client";
 
+import { CreepyChip, MetalPick } from "@/components/tip/Signature";
 import { PressureBar } from "@/components/tip/OwnerExtras";
 import { StepHeading } from "@/components/tip/StepHeading";
 import { rupeeText } from "@/components/tip/format";
@@ -29,6 +30,7 @@ export function AmountBlock({ block, n }: { block: Block<"amount">; n: number })
     changeCustom,
     chooseExtra,
     editing,
+    signature,
   } = useTipForm();
   const digitCount = String(Math.trunc(amountRupees)).length;
   const customBelowMin = selected === "custom" && custom !== "" && amountPaise < minTipPaise;
@@ -74,7 +76,8 @@ export function AmountBlock({ block, n }: { block: Block<"amount">; n: number })
                 onChange={() => pickPreset(preset)}
                 className="peer sr-only"
               />
-              <span className={`numeric ${chip}`}>₹{preset}</span>
+              {signature && <MetalPick on={selected === preset} />}
+              <span className={`numeric ${chip} ${signature ? "relative" : ""}`}>₹{preset}</span>
             </label>
           ))}
           <label className={`relative ${amountLocked ? "opacity-50" : ""}`}>
@@ -87,7 +90,7 @@ export function AmountBlock({ block, n }: { block: Block<"amount">; n: number })
               onChange={() => pickPreset("custom")}
               className="peer sr-only"
             />
-            <span className={chip}>Custom</span>
+            {signature ? <CreepyChip label="Custom" /> : <span className={chip}>Custom</span>}
           </label>
         </div>
       </fieldset>

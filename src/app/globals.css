@@ -1384,8 +1384,23 @@ html.menu-open body {
 @keyframes sig-grid-run { to { transform: rotateX(62deg) translate3d(0, 60px, 0); } }
 
 /* Glitch ripple name */
-.sig-name { position: relative; text-shadow: 0 0 34px color-mix(in srgb, var(--color-accent) 45%, transparent); }
+/* Polished metal letters: a chrome gradient (white top, a dark band, crimson foot) with a bright
+   sheen that travels across the letters one after the other. The fill is clipped to the text, so the
+   glow is a drop-shadow, not a text-shadow. */
+.sig-name { position: relative; filter: drop-shadow(0 0 22px color-mix(in srgb, var(--color-accent) 50%, transparent)) drop-shadow(0 2px 0 rgb(0 0 0 / 0.55)); }
 .sig-l { position: relative; display: inline-block; }
+.sig-l-in {
+  display: inline-block;
+  background-image:
+    linear-gradient(105deg, transparent 42%, rgb(255 255 255 / 0.95) 50%, transparent 58%),
+    linear-gradient(180deg, #ffffff 0%, #f4e4e4 30%, color-mix(in srgb, var(--color-accent) 35%, #3a0b0b) 52%, color-mix(in srgb, var(--color-accent) 70%, white) 68%, var(--color-accent) 100%);
+  background-size: 320% 100%, 100% 100%;
+  background-position: 130% 0, 0 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+@keyframes sig-sheen { 0%, 55% { background-position: 130% 0, 0 0; } 100% { background-position: -30% 0, 0 0; } }
 .sig-l-hidden { opacity: 0; }
 .sig-glyph {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -1482,6 +1497,7 @@ html.menu-open body {
   .sig-rays-source { animation: sig-breathe 6s ease-in-out infinite alternate; }
   .sig-rays-grid { animation: sig-grid-run 4s linear infinite; }
   .sig-slash { animation: sig-wipe 0.8s var(--ease-out-expo) 0.75s both; }
+  .sig-l-in { animation: sig-sheen 5s ease-in-out infinite; animation-delay: calc(var(--n) * 110ms); }
   .sig-morph { display: inline-block; animation: sig-morph 0.7s var(--ease-out-expo) both; }
   .sig-btn:not(:disabled) .sig-shine::before { animation: sig-shine 3.8s ease-in-out 1s infinite; }
   .sig-btn:not(:disabled)::after { animation: sig-ready 2.2s ease-out infinite; }
@@ -1692,4 +1708,15 @@ html.menu-open body {
 }
 .spotlight-nav-shadow {
   box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
+}
+
+/* The owner page's Custom amount chip (CreepyChip): the eyes blink now and then. */
+@media (prefers-reduced-motion: no-preference) {
+  .creepy-eye {
+    animation: creepy-blink 3s linear infinite;
+  }
+  @keyframes creepy-blink {
+    0%, 92%, 100% { height: 0.625rem; }
+    96% { height: 0; }
+  }
 }

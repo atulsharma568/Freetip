@@ -110,7 +110,7 @@ export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1"
         {words.map((letters, w) => (
           <span key={w} className="inline-block whitespace-nowrap">
             {letters.map(({ char, i: n }) => (
-              <span key={n} className="sig-l">
+              <span key={n} className="sig-l" style={{ "--n": n } as CSSProperties}>
                 <span className={glyphs[n] ? "sig-l-in sig-l-hidden" : "sig-l-in"}>{char}</span>
                 {glyphs[n] && <span className="sig-glyph">{glyphs[n]}</span>}
               </span>
@@ -358,5 +358,70 @@ export function LiquidRing({ active, children }: { active: boolean; children: Re
       </span>
       <div className="relative">{children}</div>
     </div>
+  );
+}
+
+// The "Custom" amount chip, after VengeanceUI's creepy button: the face is a lid pinned at its left
+// edge, and when the mouse comes near (or the chip is picked) the lid tips up and two eyes underneath
+// look at the cursor and blink. It sits over the real radio (`peer`), so keyboard, screen reader and
+// the checked state work as for the other amounts. Pupils are moved by setting a style directly, so
+// following the mouse never re-renders. With reduced motion the lid and eyes stand still.
+export function CreepyChip({ label }: { label: string }) {
+  const eyes = useRef<HTMLSpanElement>(null);
+  const look = (x: number, y: number) => {
+    const el = eyes.current;
+    if (!el || !motionOk()) return;
+    const r = el.getBoundingClientRect();
+    const dx = x - (r.left + r.width / 2);
+    const dy = y - (r.top + r.height / 2);
+    const px = Math.max(-1, Math.min(1, dx / 180)) * 25;
+    const py = Math.max(-1, Math.min(1, dy / 75)) * 25;
+    el.style.setProperty("--px", `${px}%`);
+    el.style.setProperty("--py", `${py}%`);
+  };
+  const reset = () => {
+    eyes.current?.style.setProperty("--px", "0%");
+    eyes.current?.style.setProperty("--py", "0%");
+  };
+  return (
+    <span
+      onMouseMove={(e) => look(e.clientX, e.clientY)}
+      onMouseLeave={reset}
+      className="group/creepy relative flex h-12 w-full cursor-pointer select-none overflow-hidden rounded-xl bg-black text-sm peer-checked:[&>span:last-child]:-rotate-[16deg] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent"
+    >
+      <span ref={eyes} aria-hidden="true" className="pointer-events-none absolute bottom-1 right-2.5 flex items-center gap-1">
+        {[0, 1].map((i) => (
+          <span key={i} className="creepy-eye relative block h-2.5 w-2.5 overflow-hidden rounded-full bg-white">
+            <span
+              className="absolute left-1/2 top-1/2 block h-1.5 w-1.5 rounded-full bg-black"
+              style={{ transform: "translate(calc(-50% + var(--px, 0%)), calc(-50% + var(--py, 0%)))", transition: "transform 75ms ease-out" }}
+            />
+          </span>
+        ))}
+      </span>
+      <span className="absolute inset-0 flex origin-[1.25rem_50%] items-center justify-center rounded-xl bg-accent px-4 pt-4 font-semibold text-ink shadow-[inset_0_0_0_2px_rgb(0_0_0)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover/creepy:-rotate-[16deg] motion-reduce:transition-none">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+// A liquid-metal ring around the amount chip that is picked (owner page only). It is mounted only
+// for the picked chip, so there is at most one shader here at a time, and it is not drawn with
+// reduced motion. The chip itself stays solid accent on top, so its text keeps its contrast.
+export function MetalPick({ on }: { on: boolean }) {
+  const box = useRef<HTMLSpanElement>(null);
+  const [color, setColor] = useState("#ca1b19");
+  const [allowed, setAllowed] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    setAllowed(motionOk());
+    setColor(getComputedStyle(el).getPropertyValue("--color-accent").trim() || "#ca1b19");
+  }, []);
+  return (
+    <span ref={box} aria-hidden="true" className="pointer-events-none absolute -inset-[3px] overflow-hidden rounded-full">
+      {on && allowed && <LiquidMetal colorBack={color} colorTint="#ffffff" speed={0.35} repetition={4} distortion={0.12} className="rounded-full" />}
+    </span>
   );
 }

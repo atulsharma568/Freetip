@@ -9,8 +9,6 @@ import type { Block } from "@/lib/page-doc/types";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { RollText } from "@/components/motion/RollText";
 import { TickLoader } from "@/components/ui/TickLoader";
-import { SITE_HOST } from "@/lib/site";
-import { ShareSheet } from "@/components/vui/share-sheet";
 import { ButtonShine, KineticLoader, LiquidRing } from "@/components/tip/Signature";
 
 // Step 3: the Pay button. What the button does, when it is blocked and its states are the form's.
@@ -32,7 +30,6 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
     handlePay,
     editing,
     signature,
-    handle,
   } = useTipForm();
 
   const payButton = (
@@ -114,11 +111,6 @@ export function SendBlock({ block, n }: { block: Block<"send">; n: number }) {
             payButton
           )}
         </Magnetic>
-        {signature && !previewMode && !editing && (
-          <div className="mt-3 flex justify-center">
-            <ShareSheet url={`https://${SITE_HOST}/${handle}`} title="Share this page" theme="dark" />
-          </div>
-        )}
         {!agreed && !previewMode && amountPaise >= minTipPaise && (
           <p id="tip-why" className="mt-2 text-center text-xs text-muted">
             Tick the box above to send your tip.
