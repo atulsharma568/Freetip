@@ -135,8 +135,7 @@ const SECTIONS: LegalSection[] = [
             through or if we ended the plan early (for example after a refund);
           </li>
           <li>
-            whether the early price applied, and which features the pass
-            switched on;
+            which features the pass switched on;
           </li>
           <li>
             the time you pressed Pay with the box ticked, agreeing to our Terms and Refund Policy,

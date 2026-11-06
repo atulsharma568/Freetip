@@ -13,13 +13,8 @@ export const metadata: Metadata = {
   robots: LEGAL_ROBOTS,
 };
 
-// How many creators get the early price, read from the same place the Buy form reads it. It is
-// counted per plan, so when the two plans differ the page says both numbers.
 const { starter, creator } = TIER_PRICES;
-const EARLY_SEATS =
-  starter.early.seats === creator.early.seats
-    ? `the first ${starter.early.seats} creators to buy that plan`
-    : `the first ${starter.early.seats} creators to buy Starter and the first ${creator.early.seats} to buy Creator`;
+const inr = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 
 const SECTIONS: LegalSection[] = [
   {
@@ -60,20 +55,14 @@ const SECTIONS: LegalSection[] = [
           <Link href="/refunds">refund policy</Link>.
         </p>
         <p>
-          <strong>Early price.</strong> {LIVE_SALES_OPEN ? "Each plan, Starter and Creator, has" : "Each plan, Starter and Creator, will have"} a
-          lower early price for {LIVE_SALES_OPEN ? EARLY_SEATS : "its first creators. How many, and the prices, are announced when plans open"}.
-          Seats are counted for each plan separately, and a seat stays taken
-          after a pass ends. Someone who has started paying holds their seat for
-          two hours. The early price applies to the term bought, 1 month or 12
-          months, at the early price listed for that term. A creator who bought a
-          plan at the early price keeps the early price when they buy another
-          term of that plan, before the pass ends and for at least 31 days after
-          it ends. The dashboard shows the price a creator will pay before they
-          pay, and it never changes after they press Pay. If it changes while
-          the form is open, for example because the last early seat has gone,
-          nothing is charged and the creator is asked to reload and see the new
-          price first.
-          {LIVE_SALES_OPEN ? "" : " Plans are not open to buy yet. These rules apply from the day they open."}
+          <strong>Prices.</strong>{" "}
+          {LIVE_SALES_OPEN
+            ? `Starter is ${inr(starter.monthly)} for 1 month or ${inr(starter.yearly)} for 12 months. Creator is ${inr(creator.monthly)} for 1 month or ${inr(creator.yearly)} for 12 months.`
+            : "Plans are not open to buy yet; the prices are announced when they open."}{" "}
+          The dashboard shows the price a creator will pay before they pay, and
+          it never changes after they press Pay. If it changes while the form is
+          open, nothing is charged and the creator is asked to reload and see the
+          new price first.
         </p>
       </>
     ),

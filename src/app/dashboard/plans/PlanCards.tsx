@@ -9,7 +9,7 @@ import { TermSwitch } from "./TermSwitch";
 
 // What the Buy button of a plan can do right now, worked out on the server:
 //  - open: the creator can buy it (`options` is what each term costs this creator now);
-//  - soon: not for sale yet (no PayU keys, prices not confirmed, or test mode for someone else).
+//  - soon: not for sale yet (no Razorpay keys, sales not open, or test mode for someone else).
 export type BuyState =
   | { kind: "open"; options: Record<1 | 12, BuyOption>; renewing: boolean }
   | { kind: "soon" };
@@ -24,9 +24,6 @@ export interface PlanCard {
   status: string | null;
   // A line under the price that is only about this plan (Creator covering Starter), or null.
   note: string | null;
-  // Whether an early seat is still on offer: null while nothing can be bought (the line is then
-  // shown as the plan's standing offer).
-  earlyOpen: boolean | null;
 }
 
 const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
@@ -35,7 +32,7 @@ const cardBox = "flex flex-col gap-5 rounded-[var(--radius-surface)] border bord
 
 // Both prices are always on the card; the 1 month / 12 months switch only picks which one is bought
 // (the picked one is the big line).
-function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; earlyOpen: boolean | null }) {
+function Price({ prices, term }: { prices: TierPrices; term: 1 | 12 }) {
   const saving = yearSaving(prices.monthly, prices.yearly);
   const big = "text-3xl font-semibold tabular-nums text-text";
   const small = "text-lg font-medium tabular-nums text-muted";
@@ -54,13 +51,6 @@ function Price({ prices, term, earlyOpen }: { prices: TierPrices; term: 1 | 12; 
           {rupees(perMonthOfYear(prices.yearly))} a month{saving > 0 ? `, save ${saving}%` : ""}
         </p>
       </div>
-      {earlyOpen !== false && (
-        <p className="text-xs text-text">
-          Early price for the first {prices.early.seats} creators:{" "}
-          <span className="numeric font-medium">{rupees(prices.early.monthly)}</span> a month or{" "}
-          <span className="numeric font-medium">{rupees(prices.early.yearly)}</span> a year
-        </p>
-      )}
     </div>
   );
 }
@@ -83,7 +73,7 @@ export function PlanCards({
 }) {
   const [term, setTerm] = useState<1 | 12>(1);
   const [selected, setSelected] = useState<PlanKey | null>(null);
-  // While a payment is being started the choices hold still, so what is posted to PayU is what is on screen.
+  // While a payment is being started the choices hold still, so what is paid is what is on screen.
   const [busy, setBusy] = useState(false);
   const onBusyChange = useCallback((b: boolean) => setBusy(b), []);
 
@@ -116,7 +106,7 @@ export function PlanCards({
               <p className="text-sm text-muted">{p.tagline}</p>
             </div>
             {showPrices ? (
-              <Price prices={p.prices} term={term} earlyOpen={p.earlyOpen} />
+              <Price prices={p.prices} term={term} />
             ) : (
               <p className="text-sm text-text">The price will be announced soon.</p>
             )}
@@ -159,7 +149,7 @@ export function PlanCards({
 
       {picked && pickedBuy && (
         <div id="buy-step" className="rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5">
-          {/* The amount follows either term switch; the mobile number and the tick stay while the plan or term is changed. */}
+          {/* The amount follows either term switch; the tick stays while the plan or term is changed. */}
           <BuyPass
             plan={picked.plan}
             option={pickedBuy.options[term]}

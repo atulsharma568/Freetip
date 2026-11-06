@@ -1,4 +1,3 @@
-import { LIVE_SALES_OPEN } from "@/lib/pricing";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Fill, MailFill } from "@/components/legal/Fill";
@@ -165,8 +164,7 @@ const SECTIONS: LegalSection[] = [
             tip page is built for a creator on request, at a price we agree
             before any work starts. The price is
             shown in the creator’s dashboard before paying and is the full
-            amount; nothing is added at checkout. {LIVE_SALES_OPEN ? "The first creators to buy a plan get" : "Each plan will have"} a lower early price{LIVE_SALES_OPEN ? "" : " for its first creators"}, and a creator who has it keeps it when
-            they renew in time; the rules are on the{" "}
+            amount; nothing is added at checkout. The prices are on the{" "}
             <Link href="/pricing#paid-features">pricing page</Link>. The
             features switch on when the payment is confirmed. A pass does not renew by itself: when it
             ends the paid features switch off and nothing more is charged unless

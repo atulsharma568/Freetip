@@ -35,26 +35,25 @@ const order = (over: Partial<OrderSummary>): OrderSummary => ({
 
 const SOON: BuyState = { kind: "soon" };
 
-// Quotes from the real prices: the early price when asked, the normal price otherwise. `covered1`
-// marks a month of Starter that a running Creator pass already includes (?covered=1).
-function open(p: TierPrices, early: boolean, renewing: boolean, covered1: boolean): BuyState {
-  const amount = (term: 1 | 12) => (early ? (term === 12 ? p.early.yearly : p.early.monthly) : term === 12 ? p.yearly : p.monthly) * 100;
+// Quotes from the real prices. `covered1` marks a month of Starter that a running Creator pass
+// already includes (?covered=1).
+function open(p: TierPrices, renewing: boolean, covered1: boolean): BuyState {
+  const amount = (term: 1 | 12) => (term === 12 ? p.yearly : p.monthly) * 100;
   return {
     kind: "open",
     renewing,
     options: {
-      1: { term: 1, amountMinor: amount(1), early, covered: covered1 },
-      12: { term: 12, amountMinor: amount(12), early, covered: false },
+      1: { term: 1, amountMinor: amount(1), covered: covered1 },
+      12: { term: 12, amountMinor: amount(12), covered: false },
     },
   };
 }
 
-export default async function PlansFixturePage({ searchParams }: { searchParams: Promise<{ early?: string; renewing?: string; notice?: string; buy?: string; covered?: string; on?: string }> }) {
+export default async function PlansFixturePage({ searchParams }: { searchParams: Promise<{ renewing?: string; notice?: string; buy?: string; covered?: string; on?: string }> }) {
   if (!fixturesEnabled()) notFound();
-  const { early, renewing, notice, buy, covered, on } = await searchParams;
+  const { renewing, notice, buy, covered, on } = await searchParams;
   // ?on=1: three features are switched on for this made-up creator (the "On for you" mark).
   const comparison = buildComparison(planFeatures({ paid_features: on === "1" ? ["alertText", "customAlertMedia", "pageBuilder"] : [] }));
-  const isEarly = early === "1";
   const isRenewing = renewing === "1";
   // ?buy=off: nothing can be bought yet (the plan cards show the off button).
   const off = buy === "off";
@@ -73,8 +72,8 @@ export default async function PlansFixturePage({ searchParams }: { searchParams:
         {shown && <Msg kind={shown.kind} text={shown.text} />}
         <PlanCards
           testMode={false}
-          starter={{ ...PLAN_CARDS.starter, buy: off ? SOON : open(TIER_PRICES.starter, isEarly, isRenewing, isCovered), earlyOpen: off ? null : isEarly, status: isRenewing ? "Your Starter plan runs until 10 December 2026, 11:30 am IST." : null }}
-          creator={{ ...PLAN_CARDS.creator, buy: off ? SOON : open(TIER_PRICES.creator, isEarly, isRenewing, false), earlyOpen: off ? null : isEarly }}
+          starter={{ ...PLAN_CARDS.starter, buy: off ? SOON : open(TIER_PRICES.starter, isRenewing, isCovered), status: isRenewing ? "Your Starter plan runs until 10 December 2026, 11:30 am IST." : null }}
+          creator={{ ...PLAN_CARDS.creator, buy: off ? SOON : open(TIER_PRICES.creator, isRenewing, false) }}
         />
         <PlanTable groups={comparison.groups} handPicked={comparison.handPicked} />
         <OneTimeExtras showPrices={!off} />

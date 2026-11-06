@@ -22,7 +22,7 @@ import {
   type OrderSummary,
 } from "@/lib/plan-view";
 import { planFeatures } from "@/lib/plans";
-import { LIVE_SALES_OPEN, PLAN_KEYS, PLAN_NAMES, TIER_PRICES, type PlanKey } from "@/lib/pricing";
+import { LIVE_SALES_OPEN, PLAN_KEYS, PLAN_NAMES, planPrices, type PlanKey } from "@/lib/pricing";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
@@ -84,7 +84,6 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   let payments: OrderSummary[] = [];
   const until: Record<PlanKey, Date | null> = { starter: null, creator: null };
   const buy: Record<PlanKey, BuyState> = { starter: { kind: "soon" }, creator: { kind: "soon" } };
-  const earlyOpen: Record<PlanKey, boolean | null> = { starter: null, creator: null };
   const buyOpen = buyingOpen(config?.mode ?? null, LIVE_SALES_OPEN, isOwner);
   try {
     const [passRow] = await db<{ starter_until: Date | null; creator_until: Date | null }[]>`
@@ -95,14 +94,13 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     // Live money once the owner has opened sales (and always for the owner); test money only for the owner.
     if (buyOpen) {
       for (const plan of PLAN_KEYS) {
-        const quote = await quotePlan(ledger, creatorId, plan, TIER_PRICES[plan]);
+        const quote = await quotePlan(ledger, creatorId, plan, planPrices(plan));
         if (!quote) continue;
         buy[plan] = {
           kind: "open",
           options: { 1: { term: 1, ...quote[1] }, 12: { term: 12, ...quote[12] } },
           renewing: passStatus(until[plan]).state !== "none",
         };
-        earlyOpen[plan] = quote[1].early || quote[12].early;
       }
     }
   } catch (err) {
@@ -182,12 +180,11 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
             ...PLAN_CARDS.starter,
             buy: buy.starter,
             status: cardStatus("starter"),
-            earlyOpen: earlyOpen.starter,
             note: creatorRunning
               ? "Your Creator plan already includes everything in Starter. A Starter term only adds anything after Creator ends."
               : null,
           }}
-          creator={{ ...PLAN_CARDS.creator, buy: buy.creator, status: cardStatus("creator"), earlyOpen: earlyOpen.creator }}
+          creator={{ ...PLAN_CARDS.creator, buy: buy.creator, status: cardStatus("creator") }}
         />
 
         <PlanTable groups={comparison.groups} handPicked={comparison.handPicked} />

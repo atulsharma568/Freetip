@@ -2,7 +2,7 @@ import { TIER_PRICES } from "@/lib/pricing";
 import type { PlanCard } from "./PlanCards";
 
 // The words and numbers on the two plan cards, in one place for the plans page and the test fixture.
-// `buy`, `status`, `note` and `earlyOpen` are what the plans page fills in for the signed-in creator.
+// `buy`, `status` and `note` are what the plans page fills in for the signed-in creator.
 // The cards hold no feature list: every feature is named in the table under them (PlanTable.tsx).
 export const PLAN_CARDS: { starter: PlanCard; creator: PlanCard } = {
   starter: {
@@ -13,7 +13,6 @@ export const PLAN_CARDS: { starter: PlanCard; creator: PlanCard } = {
     buy: { kind: "soon" },
     status: null,
     note: null,
-    earlyOpen: null,
   },
   creator: {
     plan: "creator",
@@ -23,6 +22,5 @@ export const PLAN_CARDS: { starter: PlanCard; creator: PlanCard } = {
     buy: { kind: "soon" },
     status: null,
     note: null,
-    earlyOpen: null,
   },
 };

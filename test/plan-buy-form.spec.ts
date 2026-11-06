@@ -12,7 +12,7 @@ const S = TIER_PRICES.starter;
 const C = TIER_PRICES.creator;
 
 test.describe("the plan cards", () => {
-  test("show month prices, switch to year prices, and offer the early price only when a seat is left", async ({ page }) => {
+  test("show the month and the year price together, with no early price", async ({ page }) => {
     await page.goto("/dev-fixtures/plans");
     const cards = page.getByRole("article");
     await expect(cards).toHaveCount(2); // the two plans; every feature is in the table under them
@@ -20,7 +20,10 @@ test.describe("the plan cards", () => {
     await expect(cards.nth(0)).toContainText(inr(S.monthly));
     await expect(cards.nth(1)).toContainText("Everything in Starter, plus");
     await expect(cards.nth(1)).toContainText(inr(C.monthly));
-    // No early seat is left in this view, so the line is not shown.
+    // Both terms are on each card before the switch is touched, and there is no early price.
+    await expect(cards.nth(0)).toContainText(`${inr(S.yearly)} a year`);
+    await expect(cards.nth(1)).toContainText(`${inr(C.monthly)} a month`);
+    await expect(cards.nth(0)).not.toContainText("Early price");
     await expect(cards.nth(1)).not.toContainText("Early price");
 
     await page.getByRole("button", { name: "12 months" }).click();
@@ -33,11 +36,6 @@ test.describe("the plan cards", () => {
     await expect(extras).toContainText(`From ${inr(TIER_PRICES.customFrom)}`);
     await expect(extras.getByRole("link", { name: "Ask about an extra" })).toHaveAttribute("href", "/contact#message");
 
-    await page.goto("/dev-fixtures/plans?early=1");
-    await expect(page.getByRole("article").nth(1)).toContainText("Early price for the first 50 creators");
-    await expect(page.getByRole("article").nth(1)).toContainText(inr(C.early.monthly));
-    await page.getByRole("button", { name: "12 months" }).click();
-    await expect(page.getByRole("article").nth(1)).toContainText(inr(C.early.yearly));
   });
 
   test("the table names every feature, marks the Creator-only groups and never says 'and N more'", async ({ page }) => {
@@ -61,7 +59,7 @@ test.describe("the plan cards", () => {
     await expect(page.getByRole("button", { name: "Buying opens soon" })).toHaveCount(2);
     for (const b of await page.getByRole("button", { name: "Buying opens soon" }).all()) await expect(b).toBeDisabled();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
-    await expect(page.getByText("Early price for the first 50 creators").first()).toBeVisible();
+    await expect(page.getByText("Early price")).toHaveCount(0);
   });
 });
 
@@ -120,13 +118,12 @@ test.describe("the Buy form", () => {
     await expect(page.getByRole("button", { name: /^Pay / })).toBeEnabled();
   });
 
-  test("shows the early price and the renewing wording when they apply", async ({ page }) => {
-    await page.goto("/dev-fixtures/plans?early=1&renewing=1");
+  test("shows the renewing wording when it applies", async ({ page }) => {
+    await page.goto("/dev-fixtures/plans?renewing=1");
     await expect(page.getByText("Your Starter plan runs until")).toBeVisible();
     await page.getByRole("button", { name: "Add a term of Creator" }).click();
     await expect(page.getByRole("heading", { name: "Add another term of Creator" })).toBeVisible();
-    await expect(page.getByText("· Early price")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.early.monthly)}`);
+    await expect(page.getByRole("button", { name: /^Pay / })).toHaveText(`Pay ${inr(C.monthly)}`);
     await expect(page.getByText("A new term starts when your current one ends")).toBeVisible();
   });
 

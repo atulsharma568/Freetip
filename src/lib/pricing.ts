@@ -1,7 +1,7 @@
 // The prices of the two paid plans, in whole rupees, in one place. The plan cards show them and the
 // Buy form charges them (the amount is fixed on our side when an order is made, so a later change
-// here never reaches an earlier order). `early` is the price for the first creators and `seats` how
-// many get it, counted per plan. Change the numbers below at any time; nothing else needs touching.
+// here never reaches an earlier order). There is no early price (the owner dropped it on 2026-11-06).
+// Change the numbers below at any time; nothing else needs touching.
 
 export type PlanKey = "starter" | "creator";
 export const PLAN_KEYS: readonly PlanKey[] = ["starter", "creator"];
@@ -14,19 +14,21 @@ export type PlanPrices = {
   early: { monthly: number; yearly: number; seats: number } | null;
 };
 
-export type TierPrices = {
-  monthly: number;
-  yearly: number;
-  early: { monthly: number; yearly: number; seats: number };
-};
+export type TierPrices = { monthly: number; yearly: number };
 
 // Starter and Creator are bought; the Custom page is a one-time price, "from", quoted for each
 // creator by request (not bought through the Buy form).
+// Set 2026-11-06 (reasoning in docs/competitor-findings.md, "Prices chosen"): Starter is the looks
+// (9 features), Creator adds own media, regional voices, fan tools and the Streamlabs bridge (20).
+// A year is about 25% less than twelve months.
 export const TIER_PRICES: { starter: TierPrices; creator: TierPrices; customFrom: number } = {
-  starter: { monthly: 149, yearly: 1199, early: { monthly: 79, yearly: 599, seats: 50 } },
-  creator: { monthly: 299, yearly: 2499, early: { monthly: 149, yearly: 1299, seats: 50 } },
+  starter: { monthly: 199, yearly: 1799 },
+  creator: { monthly: 399, yearly: 3499 },
   customFrom: 2999,
 };
+
+// What the order code charges for a plan: the prices above with no early price.
+export const planPrices = (plan: PlanKey): PlanPrices => ({ ...TIER_PRICES[plan], early: null });
 
 // One-time extras, done by hand for a creator on request (not bought through the Buy form and not
 // part of a plan). `from` is whole rupees, "from" because the work is agreed with the creator first.
@@ -58,10 +60,9 @@ export const ONE_TIME_EXTRAS: readonly { key: string; name: string; blurb: strin
   },
 ];
 
-// The prices above are still placeholders. While this is false nothing can be bought with PayU's
-// live key, whatever else is set; with the test key only the owner can buy (src/app/actions/
-// plan-checkout.ts), so the Buy form can be tried end to end. Set it to true, in the same commit
-// as the final prices, to open sales to creators.
+// While this is false only the owner can buy (with Razorpay's test key, or the live key to try a
+// real payment; src/app/actions/plan-checkout.ts) and other creators see "The price will be announced
+// soon". Set it to true to open sales to creators.
 export const LIVE_SALES_OPEN = false;
 
 // Whole percent a year saves against twelve months, and the monthly equivalent of a year.

@@ -23,6 +23,8 @@ const PINNED: Record<string, string> = {
   "6 November 2026, text 6": "ba2c46f7a33ca4bfa63736976a278f2a1fb5a3082a9750ba2112b8eab178eaba",
   // Plans are paid in Razorpay's popup; the Buy form no longer asks for a mobile number or names PayU.
   "6 November 2026, text 7": "b8dfb722c3eb00f0b4aee643eaa93a7baa24573fcd81aa6c56086f2368c6cc34",
+  // The early price is gone: no early-price line in the Terms, the pricing page or the Buy form.
+  "6 November 2026, text 8": "58e24c5726be6eda68c39d31d3ab77b79c7f20c807e06dded02aca1e485869e7",
 };
 
 function fingerprint(): string {

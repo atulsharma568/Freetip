@@ -7,7 +7,7 @@ import { configuredOwnerGoogleIds, isOwnerGoogleId } from "@/lib/owner-auth";
 import { attachProviderOrder, createPlanOrder, failUnstartedOrder, settleRazorpayOrder } from "@/lib/plan-orders";
 import { buyingOpen, rupees } from "@/lib/plan-view";
 import { TERMS_VERSION } from "@/lib/legal";
-import { LIVE_SALES_OPEN, PLAN_NAMES, TIER_PRICES } from "@/lib/pricing";
+import { LIVE_SALES_OPEN, PLAN_NAMES, planPrices } from "@/lib/pricing";
 import { checkoutSignatureIsValid, createRazorpayOrder, razorpayConfig, razorpayDeps } from "@/lib/razorpay-plan";
 
 export type PlanCheckoutResult =
@@ -79,7 +79,7 @@ export async function startPlanCheckout(input: {
         creatorId: Number(user.id),
         term,
         plan,
-        prices: TIER_PRICES[plan],
+        prices: planPrices(plan),
         livemode: config.mode === "live",
         isOwner,
         expectAmountMinor,

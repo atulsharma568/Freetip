@@ -65,9 +65,13 @@ test.describe("the plan tiers", () => {
   test("the shown prices make sense", () => {
     for (const t of [TIER_PRICES.starter, TIER_PRICES.creator]) {
       expect(t.yearly).toBeLessThan(t.monthly * 12);
-      expect(t.early.monthly).toBeLessThan(t.monthly);
-      expect(t.early.yearly).toBeLessThan(t.yearly);
+      // A year saves something real, but not more than about a third.
+      expect(yearSaving(t.monthly, t.yearly)).toBeGreaterThanOrEqual(15);
+      expect(yearSaving(t.monthly, t.yearly)).toBeLessThanOrEqual(35);
+      expect(t).not.toHaveProperty("early");
     }
+    // Creator has more than twice Starter's features and costs about twice as much.
+    expect(TIER_PRICES.creator.monthly).toBeLessThanOrEqual(TIER_PRICES.starter.monthly * 2.5);
     expect(TIER_PRICES.starter.monthly).toBeLessThan(TIER_PRICES.creator.monthly);
     expect(yearSaving(299, 2499)).toBe(30);
     expect(perMonthOfYear(2499)).toBe(208);

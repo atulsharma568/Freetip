@@ -294,3 +294,19 @@ For the paid plan. Public pricing pages and review sites, no logins; re-check be
 
 Reading: the Indian mid tier is ₹249 to ₹499 a month; ₹749 and above buys a lower fee, which Freetip does not sell. Freetip keeps the same fee on every plan, so its plan is features only and should sit near ₹299 with a yearly price about 30% lower. **No price is decided**: the owner said (2026-11-04) they will give the numbers later; `src/lib/pricing.ts` holds them and shows "price will be announced" until they are set. Suggested to the owner, not adopted: ₹299 a month or ₹2,499 a year, and an early plan of ₹149 a month or ₹1,299 a year for the first 50 creators, kept while they keep renewing.
 
+
+## Prices chosen (2026-11-06)
+
+The owner asked for the best reasonable price that makes a profit and that the features justify, and dropped the early price. Set in `src/lib/pricing.ts` (`TIER_PRICES`):
+
+| Plan | 1 month | 12 months | Per month on a year | Saving |
+|---|---|---|---|---|
+| Starter (9 features: alert text, motion, themes, layout, support streak, top and recent supporters, timestamps, tip marks) | ₹199 | ₹1,799 | ₹150 | 25% |
+| Creator (Starter plus 11: own alert media, alert rules, regional voices, variations, tip banner, fan levels, fan list, highlights page, editor link, clip helper, Streamlabs bridge) | ₹399 | ₹3,499 | ₹292 | 27% |
+
+Why these numbers:
+- **The market.** The Indian mid tier above is ₹249 to ₹499 a month, and ₹749 and up buys a lower tip fee, which Freetip does not sell. Starter sits under the cheapest comparable paid tier (Stream Alert ₹249); Creator sits under the ₹499 group (Stream Alert's top tier, DonatorApp) while giving more (its own media, Indian-language voices, a fan list and the Streamlabs bridge).
+- **Value per plan.** Creator has more than twice Starter's features, including the ones that cost us to run (stored media and voices), so it is twice the price.
+- **The year.** About 25% off twelve months, inside the 17% to 42% seen above; ₹1,799 reads as ₹150 a month.
+- **Profit.** The plan price is almost all margin: Razorpay takes about 2% plus GST on the fee (roughly ₹5 on Starter, ₹9 on Creator, a month), and the running cost per creator (stored pictures and clips, voice clips, which fans pay for through the voice minimum) is a few rupees a month. Freetip is not registered for GST, so nothing is added. A plan is on top of the 5% fee and 3% processing fee on tips, which do not change.
+- **Not checked live:** the competitor prices are from 2026-11-04 public pages; re-check them before sales open, and the owner may change any number in `TIER_PRICES` at any time (an order already made keeps its amount).

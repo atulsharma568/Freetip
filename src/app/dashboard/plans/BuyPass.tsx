@@ -13,7 +13,6 @@ import { TermSwitch } from "./TermSwitch";
 export interface BuyOption {
   term: 1 | 12;
   amountMinor: number;
-  early: boolean;
   // A running Creator pass already covers this Starter term to the end: buying it adds nothing.
   covered: boolean;
 }
@@ -139,7 +138,6 @@ export function BuyPass({
         <TermSwitch term={option.term} onChange={onTermChange} disabled={busy} label="Term to buy" />
         <p className="text-sm text-text">
           <span className="numeric font-medium">{rupees(option.amountMinor)}</span> for {termText}
-          {option.early ? " · Early price" : ""}
         </p>
         <p className="text-xs text-muted">
           A one-off payment, not a subscription. It does not renew by itself, and when it ends nothing is charged
