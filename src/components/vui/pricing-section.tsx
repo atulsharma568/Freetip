@@ -60,6 +60,8 @@ export interface PricingSectionProps
   billingLabels?: Record<BillingCycle, string>;
   /** Small chip next to the annual option, e.g. "-20%". Hidden by default. */
   annualDiscountLabel?: string | null;
+  /** False hides the billing switch (for example while the prices are not shown). */
+  showBilling?: boolean;
   currency?: string;
   periodLabel?: string;
   featuresLabel?: string;
@@ -154,6 +156,7 @@ export function PricingSection({
   onBillingChange,
   billingLabels = DEFAULT_BILLING_LABELS,
   annualDiscountLabel = null,
+  showBilling = true,
   currency = "$",
   periodLabel = "/month",
   featuresLabel = "Stand out features",
@@ -220,12 +223,16 @@ export function PricingSection({
             )}
           </motion.header>
 
-          <BillingToggle
-            value={activeBilling}
-            onChange={setBilling}
-            labels={billingLabels}
-            discountLabel={annualDiscountLabel}
-          />
+          {showBilling ? (
+            <BillingToggle
+              value={activeBilling}
+              onChange={setBilling}
+              labels={billingLabels}
+              discountLabel={annualDiscountLabel}
+            />
+          ) : (
+            <div className="mt-8" />
+          )}
 
           <div className="mt-9 grid w-full max-w-sm grid-cols-1 items-start gap-5 @[36rem]:max-w-none @[36rem]:grid-cols-3 @[36rem]:gap-3 @4xl:gap-6">
             {plans.map((plan, index) => (
@@ -547,7 +554,7 @@ function Price({
             transition={{ duration: 0.22, ease: EASE_OUT }}
             className="inline-block"
           >
-            {amount.toLocaleString("en-US")}
+            {amount.toLocaleString("en-IN")}
           </motion.span>
         </AnimatePresence>
       </span>

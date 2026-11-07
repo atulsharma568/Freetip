@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
+import { PricingShowcase } from "@/components/pricing/PricingShowcase";
 import { LEGAL_DRAFT, LEGAL_UPDATED } from "@/lib/legal";
+import { LIVE_SALES_OPEN } from "@/lib/pricing";
 import { SITE_NAME } from "@/lib/site";
 import { SITE_URL } from "@/lib/url";
 
@@ -110,6 +112,13 @@ export function LegalPage({
             </p>
           )}
           <div className="legal mt-8 max-w-[68ch]">{intro}</div>
+          {/* The plan cards sit here, not in app/pricing/page.tsx: that file is fingerprinted as part of
+              the Terms wording (test/legal-version.spec.ts), and the cards add no new terms. */}
+          {path === "/pricing" && (
+            <div className="mt-10">
+              <PricingShowcase salesOpen={LIVE_SALES_OPEN} />
+            </div>
+          )}
         </div>
 
         <nav
