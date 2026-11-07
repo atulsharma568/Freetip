@@ -1548,3 +1548,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Migrations 0062 and 0063 confirmed run in Neon by the owner.
 - Pushed `main` to origin: `16b1841..268c2be`. That covers phases 1 and 2, the banner fixture, the delete confirmation and the obs-clip-helper change. Pushing may trigger a deploy.
 - Still open: a real upload, wear and share with a signed-in session; Safari; a real phone; `npm install` in `tools/obs-clip-helper` before its pipeline test can run; alert media, sounds and music library (not built, needs a design choice).
+
+## 2026-11-07, obs-clip-helper tests run (Haiku, low)
+- `npm install` in `tools/obs-clip-helper` fails here: npm points at the internal registry (unpm.uberinternal.com) and needs a login. Workaround that leaves the lockfile alone: `npm install --no-save --registry=https://registry.npmjs.org/`.
+- With that, `npm test` passes: 28 of 28 (includes pipeline.test.mjs, which needs `ws`).
+- Still open: a real upload, wear and share with a signed-in session; Safari; a real phone; alert media, sounds and music library (not built, needs a design choice).
