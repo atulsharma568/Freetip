@@ -1384,16 +1384,28 @@ html.menu-open body {
 @keyframes sig-grid-run { to { transform: rotateX(62deg) translate3d(0, 60px, 0); } }
 
 /* Glitch ripple name */
-/* Polished metal letters: a chrome gradient (white top, a dark band, crimson foot) with a bright
-   sheen that travels across the letters one after the other. The fill is clipped to the text, so the
-   glow is a drop-shadow, not a text-shadow. */
-.sig-name { position: relative; filter: drop-shadow(0 0 22px color-mix(in srgb, var(--color-accent) 50%, transparent)) drop-shadow(0 2px 0 rgb(0 0 0 / 0.55)); }
+/* Polished metal letters: a chrome gradient (white, light silver, grey, a faint accent foot) with a
+   bright sheen that travels across the letters one after the other. The fill is clipped to the
+   text, so the halo and glow live on a separate static copy of each letter (.sig-l-sh, text-shadow)
+   behind it: the animated letters carry no filter, so the sheen never re-runs a blur. */
+.sig-name { position: relative; }
 .sig-l { position: relative; display: inline-block; }
+.sig-l-sh {
+  position: absolute; inset: 0; color: transparent; pointer-events: none; user-select: none;
+  text-shadow: 0 0 1px rgb(0 0 0 / 0.95), 0 0 3px rgb(0 0 0 / 0.8), 0 3px 10px rgb(0 0 0 / 0.7), 0 0 22px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+.sig-l-sh.sig-l-hidden { opacity: 0; }
+@media (forced-colors: active) {
+  /* The clipped gradient is dropped in forced colours, which would leave the name invisible. */
+  .sig-l-in { background: none; -webkit-text-fill-color: CanvasText; color: CanvasText; }
+  .sig-l-sh { display: none; }
+}
 .sig-l-in {
+  position: relative; /* paints above the shadow copy (.sig-l-sh is absolutely positioned) */
   display: inline-block;
   background-image:
     linear-gradient(105deg, transparent 42%, rgb(255 255 255 / 0.95) 50%, transparent 58%),
-    linear-gradient(180deg, #ffffff 0%, #f4e4e4 30%, color-mix(in srgb, var(--color-accent) 35%, #3a0b0b) 52%, color-mix(in srgb, var(--color-accent) 70%, white) 68%, var(--color-accent) 100%);
+    linear-gradient(180deg, #ffffff 0%, #f1f1f4 45%, #c9ccd4 62%, color-mix(in srgb, var(--color-accent) 30%, white) 100%);
   background-size: 320% 100%, 100% 100%;
   background-position: 130% 0, 0 0;
   background-repeat: no-repeat;
@@ -1415,8 +1427,8 @@ html.menu-open body {
 
 /* Morph tagline */
 @keyframes sig-morph {
-  from { opacity: 0; filter: blur(10px); letter-spacing: 0.6em; }
-  to { opacity: 1; filter: none; }
+  from { opacity: 0; transform: translateY(0.4em) scale(0.96); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Spotlight card: a light inside that follows the mouse, and a lit edge near it. */
@@ -1438,7 +1450,8 @@ html.menu-open body {
   .sig-card:hover::after { opacity: 1; }
 }
 
-/* Animated Tip button: a glow, a shine that sweeps across, a ring that pulses while it can be pressed. */
+/* Animated Tip button: a glow, a shine that sweeps across, a ring that pulses while it can be pressed
+   (the ring is a static outline that scales and fades, so only transform and opacity move). */
 .sig-btn {
   letter-spacing: 0.02em;
   box-shadow: 0 12px 32px -14px color-mix(in srgb, var(--color-accent) 80%, transparent);
@@ -1458,6 +1471,7 @@ html.menu-open body {
 }
 .sig-btn:not(:disabled)::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 70%, transparent); opacity: 0;
 }
 @keyframes sig-shine {
   0% { transform: translateX(0) skewX(-20deg); opacity: 0; }
@@ -1466,8 +1480,8 @@ html.menu-open body {
   100% { transform: translateX(560%) skewX(-20deg); opacity: 0; }
 }
 @keyframes sig-ready {
-  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent); }
-  to { box-shadow: 0 0 0 12px transparent; }
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(1.05, 1.4); opacity: 0; }
 }
 
 /* Kinetic loader */
@@ -1503,6 +1517,8 @@ html.menu-open body {
   .sig-btn:not(:disabled)::after { animation: sig-ready 2.2s ease-out infinite; }
   .sig-kinetic span { animation: sig-kin 1s ease-in-out infinite; animation-delay: calc(var(--i) * 70ms); }
   .sig-marquee-track { animation: sig-marquee 32s linear infinite; }
+  .sig-marquee[data-paused] .sig-marquee-track { animation-play-state: paused; }
+  .sig-marquee:active .sig-marquee-track { animation-play-state: paused; } /* touch: hold to pause */
   @media (hover: hover) {
     .sig-btn:not(:disabled):hover .sig-shine::before { animation-duration: 1.2s; animation-delay: 0s; }
     .sig-marquee:hover .sig-marquee-track { animation-play-state: paused; }

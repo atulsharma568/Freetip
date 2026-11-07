@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { ownerFont } from "./owner-font";
 
@@ -102,8 +102,9 @@ export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1"
   const words = name.split(" ").map((word) => [...word].map((char) => ({ char, i: i++ })));
   return (
     <Heading
+      translate="no"
       onPointerEnter={() => ripple(false)}
-      className={`${ownerFont.className} sig-name text-[clamp(2.25rem,11vw,3.75rem)] font-black italic leading-[0.95] tracking-tight lg:text-[clamp(2.5rem,3.7vw,3.75rem)]`}
+      className={`${ownerFont.className} sig-name text-[clamp(2.25rem,11vw,3.75rem)] font-black italic leading-[0.95] tracking-tight text-balance lg:text-[clamp(2.5rem,3.7vw,3.75rem)]`}
     >
       <span className="sr-only">{name}</span>
       <span aria-hidden="true">
@@ -111,6 +112,9 @@ export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1"
           <span key={w} className="inline-block whitespace-nowrap">
             {letters.map(({ char, i: n }) => (
               <span key={n} className="sig-l" style={{ "--n": n } as CSSProperties}>
+                <span aria-hidden="true" className={glyphs[n] ? "sig-l-sh sig-l-hidden" : "sig-l-sh"}>
+                  {char}
+                </span>
                 <span className={glyphs[n] ? "sig-l-in sig-l-hidden" : "sig-l-in"}>{char}</span>
                 {glyphs[n] && <span className="sig-glyph">{glyphs[n]}</span>}
               </span>
@@ -124,6 +128,33 @@ export function FlipName({ name, as: Heading = "h1" }: { name: string; as?: "h1"
   );
 }
 
+// Whether moving pieces should be shown with a pause control: false on the server and first paint
+// (so nothing mismatches) and with reduced motion, where nothing moves anyway.
+function useCanMove(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    motionOk,
+    () => false,
+  );
+}
+
+// A small pause / play toggle for text that keeps moving by itself (WCAG 2.2.2). 24 px target.
+function PauseButton({ paused, onToggle }: { paused: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={paused}
+      aria-label="Pause moving text"
+      className="grid size-6 shrink-0 place-items-center rounded-full text-muted transition-colors hover:text-text"
+    >
+      <svg aria-hidden="true" viewBox="0 0 12 12" className="size-3 fill-current">
+        {paused ? <path d="M3 1.5v9l7.5-4.5z" /> : <path d="M2.5 1.5h2.5v9H2.5zM7 1.5h2.5v9H7z" />}
+      </svg>
+    </button>
+  );
+}
+
 // "Morph Text": the tagline shows whole, then each of its parts (split on "/") in turn, each one
 // sharpening out of a blur. Screen readers get the whole line once; with reduced motion the whole
 // line just stays.
@@ -134,20 +165,32 @@ export function MorphText({ text, className = "" }: { text: string; className?: 
     .filter(Boolean);
   const words = parts.length > 1 ? [text, ...parts] : [text];
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const canMove = useCanMove();
   useEffect(() => {
-    if (words.length < 2 || !motionOk()) return;
+    if (words.length < 2 || !motionOk() || paused) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % words.length), 2800);
     return () => clearInterval(timer);
-  }, [words.length]);
+  }, [words.length, paused]);
   // The whole line is plain text; only while a part shows is the whole line kept for screen readers.
-  if (index === 0 || !words[index]) return <span className={className}>{text}</span>;
-  return (
-    <span className={className}>
-      <span className="sr-only">{text}</span>
-      <span key={index} aria-hidden="true" className="sig-morph">
-        {words[index]}
+  // Pausing keeps whatever shows now.
+  const line =
+    index === 0 || !words[index] ? (
+      <span className={className}>{text}</span>
+    ) : (
+      <span className={className}>
+        <span className="sr-only">{text}</span>
+        <span key={index} aria-hidden="true" className="sig-morph">
+          {words[index]}
+        </span>
       </span>
-    </span>
+    );
+  if (words.length < 2 || !canMove) return line;
+  return (
+    <>
+      {line}
+      <PauseButton paused={paused} onToggle={() => setPaused((p) => !p)} />
+    </>
   );
 }
 
@@ -215,6 +258,8 @@ export function ButtonShine() {
 // strip's two sides (`read`), once, exactly as the plain strip had them.
 export function SignatureMarquee({ items, read, blockId }: { items: string[]; read: [string, string]; blockId?: string }) {
   const words = items.map((w) => w.trim()).filter(Boolean);
+  const [paused, setPaused] = useState(false);
+  const canMove = useCanMove();
   if (words.length === 0) return null;
   // Each half holds the words twice, so a half is always wider than the screen and the loop
   // (moving by exactly one half) never shows a gap.
@@ -232,11 +277,14 @@ export function SignatureMarquee({ items, read, blockId }: { items: string[]; re
       <p className="sr-only">
         <span>{read[0]}</span> <span>{read[1]}</span>
       </p>
-      <div aria-hidden="true" className="sig-marquee text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted">
-        <div className="sig-marquee-track">
-          {half(0)}
-          {half(1)}
+      <div className="flex items-center gap-2">
+        <div aria-hidden="true" data-paused={paused || undefined} className="sig-marquee min-w-0 flex-1 text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-muted">
+          <div className="sig-marquee-track">
+            {half(0)}
+            {half(1)}
+          </div>
         </div>
+        {canMove && <PauseButton paused={paused} onToggle={() => setPaused((p) => !p)} />}
       </div>
     </div>
   );
