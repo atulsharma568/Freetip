@@ -12,6 +12,7 @@ export const DEFAULTS = {
   obs: { url: "ws://127.0.0.1:4455", password: "" },
   sources: SOURCES,
   maxUploadMb: 10,
+  saveFolder: "clips",
   secondsBefore: 20,
   secondsAfter: 10,
 };
@@ -51,6 +52,10 @@ export function validateConfig(raw) {
   const secondsBefore = num("secondsBefore", 0, 120, DEFAULTS.secondsBefore);
   const secondsAfter = num("secondsAfter", 0, 60, DEFAULTS.secondsAfter);
 
+  // Folder for full-quality copies ("" turns it off). Relative paths are from where the helper runs.
+  const saveFolder = c.saveFolder === undefined ? DEFAULTS.saveFolder : c.saveFolder;
+  if (typeof saveFolder !== "string") errors.push('"saveFolder" must be a folder name in quotes, or "" to not keep copies.');
+
   if (errors.length) return { ok: false, errors };
   return {
     ok: true,
@@ -61,6 +66,7 @@ export function validateConfig(raw) {
       obs: { url: obsUrl, password: String(c.obs?.password ?? "") },
       sources,
       maxUploadMb,
+      saveFolder: typeof saveFolder === "string" ? saveFolder.trim() : "",
       secondsBefore,
       secondsAfter,
     },

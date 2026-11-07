@@ -63,6 +63,7 @@ never touched: OBS owns the replay file, the helper only reads it and deletes it
 | `obs.url`, `obs.password` | `ws://127.0.0.1:4455`, none | OBS WebSocket server. |
 | `sources` | all three | Which moments get a clip: `"chat"`, `"tip"`, `"goal"`. |
 | `maxUploadMb` | 10 | Clips are encoded to stay under this. Discord's limit has changed over time (10 MB or 20 MB for a free server; 50 or 100 MB with server boosts). 10 is the safe choice; raise it if your server allows more. |
+| `saveFolder` | `clips` | Every clip is also saved here at full quality (no size limit), so you can edit it or post it anywhere. Discord still gets the small copy. Use `""` to turn it off. These files are not deleted; clear the folder yourself now and then. |
 | `secondsBefore`, `secondsAfter` | 20, 10 | Length of the clip around the moment. Keep the replay buffer at least `delay + secondsBefore + secondsAfter + 15` seconds long. |
 
 ## Problems

@@ -1539,3 +1539,7 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Found: Delete on a banner or decoration was one click and permanent (erases the file, removes it from every page it was shared with). Now two clicks: the button turns into "Delete for good?" and resets when it loses focus (`BannerManager.tsx`, `EffectsManager.tsx` DraftBar).
 - Found: `effects-page.spec.ts` "upload states exactly what can be uploaded" was stale since the phase 2 wording change; updated. All 11 effects-page specs pass (Chrome, dev server on port 3000, temporary config deleted).
 - Still not checked: real upload/wear/share with a session and DB, Safari, a real phone.
+
+## 2026-11-07, obs-clip-helper full-quality copy reviewed and committed (Sonnet, medium)
+- The helper now also saves each clip at near-lossless quality (CRF 18, no size cap) in `saveFolder` (default `clips`, `""` turns it off) before the small Discord copy, so a Discord failure never loses footage. Read the diff: imports, error handling and README/config example are consistent. Added 2 unit tests (22 pass). `.gitignore` now ignores `/tools/*/clips`.
+- `test/pipeline.test.mjs` fails to load here (module `ws` not installed; no `node_modules` in the helper). Same failure without these changes; run `npm install` in `tools/obs-clip-helper` to run it. Not run with a real OBS or ffmpeg.

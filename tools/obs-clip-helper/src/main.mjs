@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadConfig } from "./config.mjs";
 import { clipMessage, uploadClip } from "./discord.mjs";
-import { cutClip, probeDuration } from "./ffmpeg.mjs";
+import { cutClip, cutFullQuality, probeDuration } from "./ffmpeg.mjs";
 import { FatalFeedError, fetchFeed } from "./freetip.mjs";
 import { ObsClient } from "./obs.mjs";
 import { createQueue } from "./queue.mjs";
@@ -88,6 +88,20 @@ async function makeClip(ev) {
   }
   if (plan.warnings.includes("buffer_short")) {
     log(`Moment ${ev.id} (${label}): the replay buffer is short, so the clip starts later than ${config.secondsBefore} s before the moment. Make it longer in OBS.`);
+  }
+
+  // The keep-forever copy goes first, so a Discord problem never loses the footage.
+  if (config.saveFolder) {
+    try {
+      const folder = resolve(config.saveFolder);
+      await mkdir(folder, { recursive: true });
+      const name = `clip-${formatOffset(ev.seconds ?? 0).replace(/:/g, "-")}-${ev.id}.mp4`;
+      const saved = join(folder, name);
+      const bytes = await cutFullQuality({ ffmpegPath, input: replayPath, output: saved, start: plan.start, duration: plan.duration });
+      log(`Moment ${ev.id} (${label}): full-quality copy saved to ${saved} (${(bytes / 1048576).toFixed(1)} MB).`);
+    } catch (err) {
+      log(`Moment ${ev.id} (${label}): ${err.message}`);
+    }
   }
 
   const output = join(workDir, `clip-${ev.id}.mp4`);

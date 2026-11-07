@@ -39,6 +39,25 @@ export function cutArgs({ input, output, start, duration, maxBytes }) {
   return args;
 }
 
+// The arguments for the keep-forever copy: same exact cut, but near-lossless (CRF 18,
+// source size and frame rate), no size limit. Discord gets the small copy; this one is
+// for the creator to edit or post anywhere.
+export function fullQualityArgs({ input, output, start, duration }) {
+  return [
+    "-hide_banner", "-loglevel", "error", "-y", "-ss", start.toFixed(2), "-i", input, "-t", duration.toFixed(2),
+    "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "192k",
+    "-movflags", "+faststart",
+    output,
+  ];
+}
+
+export async function cutFullQuality({ ffmpegPath, input, output, start, duration }) {
+  const { code, out } = await run(ffmpegPath, fullQualityArgs({ input, output, start, duration }));
+  if (code !== 0) throw new Error(`ffmpeg could not save the full-quality clip: ${out.trim().split("\n").slice(-2).join(" ")}`);
+  return (await stat(output)).size;
+}
+
 // Cuts the clip. Returns the file's size in bytes.
 export async function cutClip({ ffmpegPath, input, output, start, duration, maxBytes }) {
   const { code, out } = await run(ffmpegPath, cutArgs({ input, output, start, duration, maxBytes }));

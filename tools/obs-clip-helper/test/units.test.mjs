@@ -6,7 +6,7 @@ import { validateConfig } from "../src/config.mjs";
 import { FatalFeedError, fetchFeed, parseFeed } from "../src/freetip.mjs";
 import { authString } from "../src/obs.mjs";
 import { clipMessage, uploadClip } from "../src/discord.mjs";
-import { cutArgs } from "../src/ffmpeg.mjs";
+import { cutArgs, fullQualityArgs } from "../src/ffmpeg.mjs";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -260,4 +260,21 @@ test("the upload sends multipart, retries once on a short rate limit and reports
   assert.equal(await uploadClip({ webhook: "https://x", filePath: file, message, fetchImpl: answers(413) }), "too_big");
   assert.equal(await uploadClip({ webhook: "https://x", filePath: file, message, fetchImpl: answers(400) }), "too_big");
   assert.equal(await uploadClip({ webhook: "https://x", filePath: file, message, fetchImpl: answers(500) }), "failed");
+});
+
+// ------------------------------------------------------------------ full-quality copy
+
+test("the full-quality copy is near-lossless and has no size cap", () => {
+  const a = fullQualityArgs({ input: "in.mkv", output: "out.mp4", start: 26, duration: 30 });
+  assert.equal(a[a.indexOf("-crf") + 1], "18");
+  assert.ok(!a.includes("-fs") && !a.includes("-b:v") && !a.includes("-vf"));
+  assert.equal(a.at(-1), "out.mp4");
+});
+
+test("saveFolder defaults to clips, can be turned off with an empty string, and must be text", () => {
+  const base = { helperToken: goodToken, discordWebhook: goodHook };
+  assert.equal(validateConfig(base).config.saveFolder, "clips");
+  assert.equal(validateConfig({ ...base, saveFolder: "" }).config.saveFolder, "");
+  assert.equal(validateConfig({ ...base, saveFolder: "  D:/Clips " }).config.saveFolder, "D:/Clips");
+  assert.equal(validateConfig({ ...base, saveFolder: 5 }).ok, false);
 });

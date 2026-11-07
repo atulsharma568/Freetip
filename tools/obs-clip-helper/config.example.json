@@ -5,6 +5,7 @@
   "obs": { "url": "ws://127.0.0.1:4455", "password": "" },
   "sources": ["chat", "tip", "goal"],
   "maxUploadMb": 10,
+  "saveFolder": "clips",
   "secondsBefore": 20,
   "secondsAfter": 10
 }
