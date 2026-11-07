@@ -1610,3 +1610,9 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Done: the sample QR in `Differentiators.tsx` is one `<path>` instead of 162 `<rect>`s (DOM 1,189 -> ~1,027 elements, same look). tsc and eslint clean.
 - Not done, on purpose (visible design change): `GlobalBackground.tsx` keeps redrawing its canvas every frame after the page is blurred to 22% opacity. Pausing or halving the loop once `sunk` would save main-thread time during scroll but freezes/changes the faint orbit. Forced reflows come from `TipCard.tsx` (getBoundingClientRect, line ~261) and the Lenis/GSAP setup; not changed.
 - Still open: re-run PageSpeed after deploy; low-contrast headline words under Accessibility.
+
+## 2026-11-07, other big decorations re-encoded (Sonnet, medium; uncommitted)
+- The twelve banner/profile pictures were imported from GIFs (`tools/decor-render/import-gifs.mjs`), and the GIFs are no longer in ~/Downloads, so these could only be re-encoded from the existing WebP (Pillow, quality 65, same frames, sizes and durations; checked with `webpmux`). One mid frame of each compared old vs new: no visible difference.
+- Sizes: sakura 1.83 -> 1.42 MB, killua 1.19 -> 0.94, nanami 0.96 -> 0.70, peaky-blinders 0.95 -> 0.74, naoya 0.73 -> 0.54 (about 1.5 MB less in total). Posters unchanged. Originals are in git history.
+- Not touched: solo-leveling 0.38 MB, eternal 0.36, apple-kitty, explosive-cat, toney, angel (small already). Going lower than quality 65 from already-lossy files would start to show.
+- Not run: specs after the swap; PageSpeed on a page using these.
