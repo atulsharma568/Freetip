@@ -37,6 +37,7 @@ export type FeatureKey =
   // The tip page itself.
   | "tipBanner"
   | "tipDecor"
+  | "deadpoolTemplate"
   | "pageBuilder"
   | "pressureMeter";
 
@@ -216,6 +217,14 @@ export const FEATURES: readonly FeatureInfo[] = [
     group: "Tip page",
     description: "The creator picks a ready-made animated frame for their photo and an animated effect for their banner (/dashboard/effects). Their own pictures and animations are part of the done-for-you Custom tip page, not this switch. A published Custom tip page decides the look while it is on.",
     built: true,
+  },
+  {
+    key: "deadpoolTemplate",
+    label: "Deadpool template",
+    group: "Tip page",
+    description: "Adds the Deadpool look to the template choice on /dashboard/effects: the battered red mask frame, crimson banner, nameplate, avatar decoration and profile effect. Needs \"Photo frame and banner effects\". The owner's own page always has it; switching this off puts the Classic look back at once.",
+    built: true,
+    needs: ["tipDecor"],
   },
   {
     key: "pageBuilder",

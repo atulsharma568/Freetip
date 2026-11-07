@@ -279,6 +279,12 @@ export function mayPickTipDecor(ownerPage: boolean, row: FeatureSource): boolean
   return ownerPage || hasFeature(row, "tipDecor");
 }
 
+// Which templates a page may use: Classic for everyone who may pick a look, Deadpool for the owner's
+// page and for creators the owner switched "Deadpool template" on for (a paid feature).
+export function mayUseTemplate(ownerPage: boolean, row: FeatureSource, template: TipTemplate): boolean {
+  return template === "classic" || ownerPage || hasFeature(row, "deadpoolTemplate");
+}
+
 // Whose saved pick the tip page wears. The owner's page always; a creator's only while their switch is
 // on and no Custom tip page is on, because a done-for-you page decides its own frame and effect.
 export function wearsTipDecor(ownerPage: boolean, row: FeatureSource): boolean {

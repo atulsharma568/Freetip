@@ -16,6 +16,7 @@ import {
   isAnimatedWebp,
   isTipTemplate,
   mayPickTipDecor,
+  mayUseTemplate,
   parseTipDecor,
   safeDecorUrl,
   type DecorUpload,
@@ -99,8 +100,8 @@ export async function saveTipTemplate(input: { template: string }): Promise<TipD
   const ctx = await who();
   if (!ctx.ok) return { status: "error", message: ctx.error };
   if (!isTipTemplate(input.template)) return { status: "error", message: "That is not one of the templates on offer." };
-  // Deadpool is the owner's (AcePressure) template for now; it is meant to become a paid feature later.
-  if (input.template !== "classic" && !isOwnerTipPage(ctx.row.handle, ctx.googleId)) return { status: "error", message: "That template is not available for your account yet." };
+  // Deadpool is the owner's (AcePressure) template, or a paid feature the owner switched on for the creator.
+  if (!mayUseTemplate(isOwnerTipPage(ctx.row.handle, ctx.googleId), ctx.row, input.template)) return { status: "error", message: "That template is not available for your account yet." };
   try {
     await mergeDecor(ctx.db, ctx.row.id, { template: input.template });
   } catch (err) {

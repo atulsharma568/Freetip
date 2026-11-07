@@ -1479,3 +1479,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Template gate: Deadpool is offered only on the owner's page (AcePressure). `saveTipTemplate` refuses it for others; the Effects picker gets `templates={["classic"]}` for creators. Meant to become a paid feature later.
 - Open: avatar-decoration.webp (user's file) has pink hearts and reads "girly"; user to supply a replacement or say remove. Do not redraw in code.
 - Tests: page-decor and template-deadpool Playwright specs, 75 passed (PAGE_FIXTURES=1). Dev server needs PAGE_FIXTURES=1 for /dev-fixtures.
+
+## 2026-11-07 Deadpool template as a paid feature
+- New feature key `deadpoolTemplate` (needs `tipDecor`), listed in the admin creator page automatically, in CUSTOM_KEYS (owner ticks it by hand, no plan grants it) and in the plan catalogue.
+- `mayUseTemplate(ownerPage, row, template)` in decor.ts gates: `saveTipTemplate`, the Effects picker, and the tip page (a saved Deadpool shows as Classic while the switch is off).
+- Verified: tsc clean; non-browser specs pass (plan-catalogue, plan-tiers, page-decor logic). Browser specs (template-deadpool, some page-decor) could not run here: Playwright browsers are not installed and `playwright install` failed. Run them on a machine with browsers.

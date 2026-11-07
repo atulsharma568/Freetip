@@ -28,6 +28,7 @@ const GROUPS: readonly { title: string; blurb: string; entries: readonly Entry[]
     entries: [
       { key: "tipBanner", title: "Banner behind your photo", benefit: "Show your YouTube banner or your own picture or animated GIF at the top of your page.", href: "/dashboard/banner" },
       { key: "tipDecor", title: "Photo frame and banner effects", benefit: "Pick an animated frame for your photo and an animated effect for your banner, such as flames, embers or a crawling spider.", href: "/dashboard/effects" },
+      { key: "deadpoolTemplate", title: "Deadpool template", benefit: "A full Deadpool look for your tip page: red mask frame, crimson banner, nameplate and a profile effect. Needs photo frame and banner effects.", href: "/dashboard/effects" },
       { key: "alertRules", title: "Tip page picks", benefit: "Fans tap one of your GIFs, with its sound, for a fixed amount and it plays on its own.", href: "/dashboard/rules" },
       { key: "pageBuilder", title: "A custom tip page", benefit: "Freetip designs and publishes a page made for you. Nothing changes until it is ready." },
       { key: "pressureMeter", title: "Pressure meter", benefit: "Your goal as a bar with rank words, on your tip page and as an OBS overlay. Comes with a custom tip page." },
@@ -82,7 +83,7 @@ export const CREATOR_EXTRA_KEYS: readonly FeatureKey[] = [
 ];
 // Sold apart, never granted by a pass: the owner ticks them by hand for each creator. Photo frame and
 // banner effects sits here until the owner decides which plan, if any, should carry it.
-export const CUSTOM_KEYS: readonly FeatureKey[] = ["pageBuilder", "pressureMeter", "tipDecor"];
+export const CUSTOM_KEYS: readonly FeatureKey[] = ["pageBuilder", "pressureMeter", "tipDecor", "deadpoolTemplate"];
 
 // Not finished enough to promise: the clip helper is run from source, Streamlabs lets in only
 // accounts the Streamlabs app has whitelisted.

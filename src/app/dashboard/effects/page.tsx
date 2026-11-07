@@ -6,7 +6,7 @@ import { isOwnerTipPage } from "@/lib/owner-page";
 import { defaultPageDoc, ownerPageDoc } from "@/lib/page-doc/defaults";
 import { themeFor } from "@/lib/page-doc/theme";
 import { hasFeature } from "@/lib/plans";
-import { FRAME_SCALE, isFileFx, mayPickTipDecor, type PresetEffect, type TipDecor } from "@/lib/page-doc/decor";
+import { FRAME_SCALE, TIP_TEMPLATES, isFileFx, mayPickTipDecor, mayUseTemplate, type PresetEffect, type TipDecor } from "@/lib/page-doc/decor";
 import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 import { readTipDecor } from "@/lib/tip-decor-store";
 import { SITE_NAME } from "@/lib/site";
@@ -94,7 +94,7 @@ export default async function EffectsPage() {
           creatorId={user.id}
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
           canUploadBanner={bannerOn}
-          templates={ownerPage ? undefined : ["classic"]}
+          templates={TIP_TEMPLATES.filter((t) => mayUseTemplate(ownerPage, user, t))}
         />
         {ownerPage && <MusicUpload creatorId={user.id} music={music} uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN} />}
       </div>
