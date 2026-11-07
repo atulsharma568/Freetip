@@ -1529,3 +1529,7 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 ## 2026-11-07, review and commit of phases 1 and 2 (Sonnet, medium)
 - Reviewed the diff; tsc and eslint clean; `upload-rules` and `decor-library` specs pass (21 on chromium-desktop). Committed phases 1 and 2 (decoration placement, upload rules, library, admin sharing, banner library). Left out on purpose: `tools/obs-clip-helper/` (not part of this work) and `.claude/`.
 - Run migrations 0062 then 0063 in Neon before deploying. Still not checked: real Blob upload, signed-in save/share, banner page in a browser, Safari, phone.
+
+## 2026-11-07, browser check of the banner and Effects pages (Sonnet, medium)
+- Added test-only `src/app/dev-fixtures/banner/page.tsx` (404 unless PAGE_FIXTURES=1) with a made-up creator, "My uploads" and "Shared with you" items. Looked at it and `/dev-fixtures/effects` in headless Chrome on the dev server: the upload rules list, both banner lists with Use/Delete buttons, the saved-pictures tile and the Template picker all render correctly. The "Issues" badge in dev is only the sign-in config error (no auth env locally), not these pages.
+- Still not checked: real upload/wear/share with a session and DB, Safari, phone width, clicking the buttons.
