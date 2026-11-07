@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { EMBER_COUNT, PETAL_COUNT, SNOW_COUNT, STAR_COUNT, steady, type BannerFx, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
+import { EMBER_COUNT, PETAL_COUNT, SNOW_COUNT, STAR_COUNT, placementBox, steady, type BannerFx, type DecorPlacement, type FileFrame, type FileFx, type FrameStyle } from "@/lib/page-doc/decor";
 import { useMotionAllowed } from "./blocks/use-motion";
 
 // What the header block hands down to draw: a ready-made look, or a picture or GIF of the page's
@@ -10,7 +10,8 @@ export type DecorRender =
   | { kind: "preset"; style: Exclude<FrameStyle, "none" | "custom" | FileFrame> | Exclude<BannerFx, "none" | "custom" | FileFx> }
   // `scale` (frames only) is the size as a percent of the photo; left out it is the standard size.
   // `wholeHeader` (effects only) is a finished animation made for the whole header: it always covers it.
-  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number; round?: boolean; wholeHeader?: boolean }
+  // `placement` (an uploaded decoration) says where it sits on the photo and wins over `scale`.
+  | { kind: "custom"; url: string; posterUrl: string | null; animated: boolean; scale?: number; placement?: DecorPlacement; round?: boolean; wholeHeader?: boolean }
   | null;
 
 // A GIF shows its still until the device may play motion (the same rule the banner and backdrop use).
@@ -24,6 +25,21 @@ function CustomPicture({ render, className }: { render: Extract<DecorRender, { k
 // The heart-monitor trace of the Clutch pulse banner: flat, two small bumps, then one tall spike.
 const ECG_PATH = "M0 78 H70 l8 -7 l8 7 H128 l6 5 l10 -52 l10 66 l9 -34 l6 15 H236 l10 -9 l10 9 H400";
 
+// The box of a decoration over the photo. With a placement it is a square of the chosen size centred on
+// the chosen spot (percent of the photo's own box, so the dashboard preview and the page agree); with a
+// plain scale it is the ring centred on the photo, as it always was.
+function frameStyle(render: Extract<DecorRender, { kind: "custom" }>): React.CSSProperties | undefined {
+  if (render.placement) {
+    const b = placementBox(render.placement);
+    return { inset: "auto", left: `${b.left}%`, top: `${b.top}%`, width: `${b.size}%`, height: `${b.size}%`, ...(render.round ? { borderRadius: "9999px", overflow: "hidden" } : {}) };
+  }
+  if (render.scale === undefined && !render.round) return undefined;
+  return {
+    ...(render.scale === undefined ? {} : { "--pf-inset": `${(-(render.scale - 100) / 2).toFixed(1)}%` }),
+    ...(render.round ? { borderRadius: "9999px", overflow: "hidden" } : {}),
+  } as React.CSSProperties;
+}
+
 // The ring over a creator's photo. It is drawn bigger than the photo (like a Discord decoration) and
 // never takes a click. Decoration only: the photo's own description is what a screen reader reads.
 export function PhotoFrame({ render }: { render: DecorRender }) {
@@ -33,14 +49,7 @@ export function PhotoFrame({ render }: { render: DecorRender }) {
       <span
         aria-hidden="true"
         className="pf pf-custom"
-        style={
-          render.scale === undefined && !render.round
-            ? undefined
-            : ({
-                ...(render.scale === undefined ? {} : { "--pf-inset": `${(-(render.scale - 100) / 2).toFixed(1)}%` }),
-                ...(render.round ? { borderRadius: "9999px", overflow: "hidden" } : {}),
-              } as React.CSSProperties)
-        }
+        style={frameStyle(render)}
       >
         <CustomPicture render={render} className={render.round ? "object-cover" : "object-contain"} />
       </span>

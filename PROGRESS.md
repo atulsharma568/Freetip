@@ -1484,3 +1484,48 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - New feature key `deadpoolTemplate` (needs `tipDecor`), listed in the admin creator page automatically, in CUSTOM_KEYS (owner ticks it by hand, no plan grants it) and in the plan catalogue.
 - `mayUseTemplate(ownerPage, row, template)` in decor.ts gates: `saveTipTemplate`, the Effects picker, and the tip page (a saved Deadpool shows as Classic while the switch is off).
 - Verified: tsc clean; non-browser specs pass (plan-catalogue, plan-tiers, page-decor logic). Browser specs (template-deadpool, some page-decor) could not run here: Playwright browsers are not installed and `playwright install` failed. Run them on a machine with browsers.
+
+## 7 November 2026 (night, 9): decoration placement, strict upload rules, saved library, admin sharing (Sonnet, high; uncommitted)
+- **Plan:** `~/.claude/plans/kind-wandering-ripple.md` (approved). Phase 1 = profile picture + decoration only; phase 2 (not started) = plug banner, alert media, sounds, music into the same rules and library.
+- **Run migration `db/migrations/0062_decor_library.sql` in Neon BEFORE deploying** (tables `decor_items`, `decor_grants`). Without it the Effects page shows an empty library, an upload says it could not save, and the admin Decorations page says it could not read; pages already wearing a picture keep it (the address also stays in `users.tip_decor`).
+- **Rules, one table:** `src/lib/upload-rules.ts` (`UPLOAD_RULES`, `describeRule`, `checkPicture`, `hasAlpha`). Decoration: PNG/GIF/WebP (animated ok), no JPG/video, 3 MB, square (0.9-1.11), 512-4096 px, must be see-through. Profile picture: PNG/JPG/GIF/WebP, 3 MB, 256-4096 px, roughly square (0.8-1.25). Same checks in the browser (whole file read) and on the server (`saveDecorUpload`). `src/components/UploadRules.tsx` draws the list from the table.
+- **Placement:** `DecorPlacement {anchor (ring + 8 spots), size, dx, dy}` in `page-doc/decor.ts` (`parsePlacement`, `placementBox`); old `frameScale` pages read back as the ring at the same size. Drawn in `Decor.tsx` (`frameStyle`), editor `dashboard/effects/DecorLibrary.tsx` (`PlacementEditor`, `LibraryGrid`).
+- **Flow:** upload -> saved to the creator's list (`createDecorItem`) -> picked as a draft with live preview -> "Save to my tip page" (`wearDecorItem`). "Take it off my page" keeps the item; "Delete this picture" removes it for good (and for pages it was shared with). A worn picture that names an item is dropped on read when the item is removed or the grant withdrawn (`resolveWornItems` in `readTipDecor`).
+- **Admin:** `/admin/decorations` (nav "Decorations"): preview, owner, look, who has it; Share (type handles), Withdraw, Take down; all write `audit_events` (`decor.granted/revoked/taken_down`, entity `decor_item`). A box on each creator's admin page lists their uploads and what is shared with them. A grantee still needs "Photo frame and banner effects" on; the share answer names creators who lack it (nothing is switched on silently).
+- **Decision (owner):** a shared picture does not bypass `tipDecor`.
+- **Tests:** `test/upload-rules.spec.ts` (9), `test/decor-library.spec.ts` (7, PGlite), 4 new in `test/effects-page.spec.ts`, `page-decor.spec.ts` updated for the new stored shape. 494 specs pass across tip page, plans, admin, routes, responsive, pricing, deadpool (Mac Chrome via a temporary config, deleted; `next build` + `next start -p 3300` with PAGE_FIXTURES=1). tsc and eslint clean.
+- **NOT checked:** a real upload to Blob, saving and sharing with a signed-in session and DB, the admin page in a browser (no admin fixture), Safari, real phone. Left: sounds text vs WAV looked fine (the browser converts to WAV); music type text omits aac/webm (minor).
+- Not mine, left alone: uncommitted changes under `tools/obs-clip-helper/`.
+
+## 2026-11-07, phase 2 started: banner on the shared rules (Sonnet, medium; uncommitted)
+- `upload-rules.ts`: new kind `banner` (PNG/JPG/GIF/WebP, 6 MB, min 800 x 200, max 4096 longest side, ratio 1.5-4, no video). Rule fields changed from `minSide` to `minWidth`/`minHeight` plus `shapeText`; decoration texts now read "at most 4096 on the longest side".
+- Banner browser check (`BannerManager.tsx`, now reads the whole file and uses `checkPicture`) and server check (`saveUploadedBanner`) share the table; the free text is replaced by `<UploadRules kind="banner">`. New server dimension check: an old-style banner outside the shape is now refused on upload (YouTube copy unaffected).
+- Tests: `test/upload-rules.spec.ts` +2 (33 pass incl. mobile projects); tsc and eslint clean.
+- Left for phase 2: alert media (`creator_media`, `media.ts` limits: 3 MB image/gif, 8 MB webm), page music, sounds (text says MP3/OGG/M4A, token route accepts WAV only), library/grant pattern for these, admin page kind filter. Banner has no library yet (single `users.tip_banner_url`). Banner UI not seen in a browser.
+
+## 2026-11-07, phase 2 continued: findings on alert media, sounds, music (Sonnet, medium; uncommitted)
+- Checked alert media (`media.ts`, MediaManager), sounds and music against their server limits. Alert media text (3 MB image/GIF, 8 MB WebM, 10 s, 4096 px) and sounds text (browser converts to WAV before upload) already match the code, so there was no mismatch to fix and I did not force them into `UPLOAD_RULES` (WebM and audio do not fit `checkPicture`).
+- Fixed the one real mismatch: `MusicUpload.tsx` text, error and `accept` now list AAC and WebM audio like `MUSIC_TYPES`.
+- tsc, eslint clean. Not done: library/grant pattern and admin kind filter for banner, alert media, sounds, music (big, needs a design choice: per-kind tables vs widening `decor_items`).
+
+## 2026-11-07, phase 2: library decision (nothing built yet)
+- Owner chose: widen `decor_items`/`decor_grants` (not new tables). Looked at what it takes; only banner fits cleanly (images, same limits). Plan for the next session, banner only:
+  1. Migration 0063: widen `decor_items.kind` check to include 'banner', `size_bytes` max to 6291456.
+  2. `decor-library.ts`: `DecorUploadKind` gets 'banner'; list/create/remove/grant already generic.
+  3. Wear = set `users.tip_banner_url` to the item's blob URL (new action in `tip-banner.ts`); read-time check like `resolveWornItems` so a taken-down or revoked banner stops showing (banner URL is read raw in `creator.ts`/tip-page-data today).
+  4. BannerManager: "My uploads" and "Shared with you" lists; admin Decorations page: kind label and filter.
+- Not planned: alert media (already has /admin/media review and takedown), sounds and music (audio, single file, sharing between creators not wanted unless the owner asks); they would need nullable width/height.
+- Cannot be verified locally: needs a DB session and Blob. Run migrations 0062 then 0063 before deploy.
+
+## 2026-11-07, phase 2: banner library built (Sonnet, medium; uncommitted)
+- Migration `0063_decor_library_banner.sql` (run after 0062, before deploy): `decor_items.kind` allows 'banner', size up to 6 MB.
+- `decor-library.ts`: `LibraryKind`, `DecorItem<K>` (default avatar/frame, so the Effects page is unchanged), `listCreatorBanners`, `usableBanner`, `bannerStillUsable`, `isLibraryFile`; `listAllDecor` counts banner wearers by `tip_banner_url`.
+- `tip-banner.ts`: an upload is also saved as a library item (if the table is missing it still works as before); new `wearBannerItem` and `deleteBannerItem`; `dropBlob` never erases a library file. `getTipBanner` (creator.ts) and the banner page hide a banner whose item is taken down or whose share is withdrawn.
+- UI: "My uploads" and "Shared with you" lists in BannerManager (Use this banner, Delete). Admin Decorations: kind filter, "Banner" label; the Share note names creators without the "Banner on the tip page" feature.
+- Tests: `decor-library.spec.ts` +3 (PGlite, all migrations), upload-rules; 21 pass on chromium-desktop; tsc, eslint clean.
+- NOT checked: the banner page in a browser (no fixture), a real upload/wear/share with a signed-in session, Safari, phone. A grantee's old banner file is not erased when they switch away from a shared one (guarded by `isLibraryFile`).
+- Not built (by decision): library for alert media, sounds, music.
+
+## 2026-11-07, review and commit of phases 1 and 2 (Sonnet, medium)
+- Reviewed the diff; tsc and eslint clean; `upload-rules` and `decor-library` specs pass (21 on chromium-desktop). Committed phases 1 and 2 (decoration placement, upload rules, library, admin sharing, banner library). Left out on purpose: `tools/obs-clip-helper/` (not part of this work) and `.claude/`.
+- Run migrations 0062 then 0063 in Neon before deploying. Still not checked: real Blob upload, signed-in save/share, banner page in a browser, Safari, phone.

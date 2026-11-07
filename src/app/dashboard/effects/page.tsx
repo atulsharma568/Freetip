@@ -9,6 +9,8 @@ import { hasFeature } from "@/lib/plans";
 import { FRAME_SCALE, TIP_TEMPLATES, isFileFx, mayPickTipDecor, mayUseTemplate, type PresetEffect, type TipDecor } from "@/lib/page-doc/decor";
 import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
 import { readTipDecor } from "@/lib/tip-decor-store";
+import { listCreatorDecor } from "@/lib/decor-library";
+import type { Query } from "@/lib/accrual";
 import { SITE_NAME } from "@/lib/site";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
@@ -70,6 +72,15 @@ export default async function EffectsPage() {
     console.error("Effects: could not read the channel photo and banner.", err);
   }
 
+  // The creator's saved pictures and the ones the owner shared with them (migration 0062). Empty when the
+  // table is not there yet, so the page still opens.
+  let library: Awaited<ReturnType<typeof listCreatorDecor>> = { mine: [], shared: [] };
+  try {
+    library = await listCreatorDecor(db as unknown as Query, user.id);
+  } catch (err) {
+    console.error("Effects: could not read the saved pictures (migration 0062 run?).", err);
+  }
+
   // The owner's page music (migration 0061); owner only.
   const music = ownerPage ? await readPageMusic(user.id) : null;
 
@@ -95,6 +106,7 @@ export default async function EffectsPage() {
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
           canUploadBanner={bannerOn}
           templates={TIP_TEMPLATES.filter((t) => mayUseTemplate(ownerPage, user, t))}
+          library={library}
         />
         {ownerPage && <MusicUpload creatorId={user.id} music={music} uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN} />}
       </div>

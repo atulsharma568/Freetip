@@ -51,7 +51,7 @@ export function HeaderBlock({ block }: { block: Block<"header"> }) {
       : null;
   const frameChosen = decor(frame, frameAsset, "frame", assets, frameScale);
   const frameRender: DecorRender =
-    frameChosen ?? (fup ? { kind: "custom", url: fup.url, posterUrl: fup.posterUrl, animated: fup.animated, scale: decorLayers?.frameScale } : null);
+    frameChosen ?? (fup ? { kind: "custom", url: fup.url, posterUrl: fup.posterUrl, animated: fup.animated, placement: fup.placement } : null);
   const fxRender = decor(bannerFx, bannerFxAsset, "fx", assets);
   const picRender: DecorRender = decorLayers && isFileFx(decorLayers.bannerPic) ? decor(decorLayers.bannerPic, null, "fx", assets) : null;
   const panel = (banner: string | null) => (

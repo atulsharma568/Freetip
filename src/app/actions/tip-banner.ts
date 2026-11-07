@@ -5,10 +5,13 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { hasFeature } from "@/lib/plans";
 import { del } from "@vercel/blob";
-import { checkMediaFile, isOwnBlobUrl } from "@/lib/media";
+import { isOwnBlobUrl } from "@/lib/media";
+import { checkPicture } from "@/lib/upload-rules";
+import { cleanItemName, createDecorItem, isLibraryFile, removeOwnItem, usableBanner } from "@/lib/decor-library";
+import type { LedgerDb, Query } from "@/lib/accrual";
+import { parsePlacement } from "@/lib/page-doc/decor";
 import {
   BANNER_MAX_BYTES,
-  BANNER_UPLOAD_KINDS,
   bannerPathPrefix,
   fetchChannelBanner,
   fetchChannelPhoto,
@@ -30,9 +33,11 @@ async function owner() {
 }
 
 // Best effort: an uploaded banner we could not remove costs a little storage, nothing else.
-async function dropBlob(url: string | null | undefined) {
+async function dropBlob(db: Query, url: string | null | undefined) {
   if (!isUploadedBannerUrl(url)) return;
   try {
+    // A banner saved in the library stays: the creator may wear it again and it may be shared.
+    if (await isLibraryFile(db, url)) return;
     await del(url);
   } catch (err) {
     console.error("Could not delete banner file", err);
@@ -79,7 +84,7 @@ export async function copyYouTubeBanner(): Promise<TipBannerActionResult> {
     console.error("Could not save the tip page banner (migration 0048 run?)", err);
     return { status: "error", message: "Could not save your banner, try again shortly" };
   }
-  await dropBlob(before);
+  await dropBlob(ctx.db as unknown as Query, before);
   refresh(ctx.row.handle);
   return { status: "ok", url: found.url };
 }
@@ -95,7 +100,7 @@ export async function removeTipBanner(): Promise<TipBannerActionResult> {
     console.error("Could not remove the tip page banner (migration 0048 run?)", err);
     return { status: "error", message: "Could not remove your banner, try again shortly" };
   }
-  await dropBlob(before);
+  await dropBlob(ctx.db as unknown as Query, before);
   refresh(ctx.row.handle);
   return { status: "ok", url: null };
 }
@@ -114,7 +119,7 @@ export async function saveUploadedBanner(input: { url: string }): Promise<TipBan
     return { status: "error", message: "That upload is not valid." };
   }
   const reject = async (message: string): Promise<TipBannerActionResult> => {
-    await dropBlob(input.url);
+    await dropBlob(ctx.db as unknown as Query, input.url);
     return { status: "error", message };
   };
 
@@ -127,19 +132,35 @@ export async function saveUploadedBanner(input: { url: string }): Promise<TipBan
   } catch {
     return reject("The uploaded file could not be read back. Try again.");
   }
-  const checked = checkMediaFile(bytes, bytes.length, BANNER_MAX_BYTES);
+  const checked = checkPicture("banner", bytes, bytes.length);
   if (!checked.ok) return reject(checked.reason);
-  if (!BANNER_UPLOAD_KINDS.includes(checked.sniffed.kind)) return reject("A banner must be a picture or a GIF, not a video.");
-  if (bytes.length > BANNER_MAX_BYTES) return reject("The picture is over 6 MB.");
 
   const before = await currentBanner(ctx.db, ctx.row.id);
+  // Keep the upload in the creator's library (migration 0063) so it can be worn again and shared. If the
+  // library is not there yet the banner still works, as before the library existed.
+  try {
+    await createDecorItem(ctx.db as unknown as Query, ctx.row.id, {
+      kind: "banner",
+      name: cleanItemName("Banner"),
+      blobUrl: input.url,
+      posterUrl: null,
+      mime: checked.picture.mime,
+      sizeBytes: bytes.length,
+      width: checked.picture.width,
+      height: checked.picture.height,
+      animated: checked.picture.animated,
+      placement: parsePlacement(null),
+    });
+  } catch (err) {
+    console.error("Could not add the banner to the library (migration 0063 run?)", err);
+  }
   try {
     await ctx.db`update users set tip_banner_url = ${input.url} where id = ${ctx.row.id}`;
   } catch (err) {
     console.error("Could not save the uploaded banner (migration 0048 run?)", err);
     return reject("Could not save your banner, try again shortly");
   }
-  if (before !== input.url) await dropBlob(before);
+  if (before !== input.url) await dropBlob(ctx.db as unknown as Query, before);
   refresh(ctx.row.handle);
   return { status: "ok", url: input.url };
 }
@@ -181,6 +202,63 @@ export async function removeTipPhoto(): Promise<TipBannerActionResult> {
   } catch (err) {
     console.error("Could not reset the tip page photo (migration 0050 run?)", err);
     return { status: "error", message: "Could not change your photo, try again shortly" };
+  }
+  refresh(ctx.row.handle);
+  return { status: "ok", url: null };
+}
+
+// Wears a banner from the library: one the creator uploaded, or one the owner shared with them (an
+// active grant). Needs the same paid switch as any banner.
+export async function wearBannerItem(input: { itemId: number }): Promise<TipBannerActionResult> {
+  const ctx = await owner();
+  if (!ctx) return { status: "error", message: "Sign in again to change your tip page banner." };
+  if (!hasFeature(ctx.row, "tipBanner")) {
+    return { status: "error", message: "The tip page banner is not switched on for your account." };
+  }
+  if (!Number.isSafeInteger(input.itemId) || input.itemId < 1) return { status: "error", message: "That banner is not valid." };
+  const item = await usableBanner(ctx.db as unknown as Query, ctx.row.id, input.itemId).catch(() => null);
+  if (!item || !item.url) return { status: "error", message: "That banner is no longer available." };
+  const before = await currentBanner(ctx.db, ctx.row.id);
+  try {
+    await ctx.db`update users set tip_banner_url = ${item.url} where id = ${ctx.row.id}`;
+  } catch (err) {
+    console.error("Could not save the tip page banner (migration 0048 run?)", err);
+    return { status: "error", message: "Could not save your banner, try again shortly" };
+  }
+  if (before !== item.url) await dropBlob(ctx.db as unknown as Query, before);
+  refresh(ctx.row.handle);
+  return { status: "ok", url: item.url };
+}
+
+// Deletes one of the creator's own saved banners for good: it stops showing on every page that wears it
+// (this one and any it was shared with) and its file is erased.
+export async function deleteBannerItem(input: { itemId: number }): Promise<TipBannerActionResult> {
+  const ctx = await owner();
+  if (!ctx) return { status: "error", message: "Sign in again to change your tip page banner." };
+  if (!Number.isSafeInteger(input.itemId) || input.itemId < 1) return { status: "error", message: "That banner is not valid." };
+  let urls: string[] = [];
+  try {
+    const res = await removeOwnItem(ctx.db as unknown as LedgerDb, ctx.row.id, input.itemId);
+    if (!res.ok) return { status: "error", message: res.message };
+    urls = res.urls;
+  } catch (err) {
+    console.error("Could not delete the banner (migration 0063 run?)", err);
+    return { status: "error", message: "Could not delete that banner, try again shortly" };
+  }
+  const worn = await currentBanner(ctx.db, ctx.row.id);
+  if (worn && urls.includes(worn)) {
+    try {
+      await ctx.db`update users set tip_banner_url = null where id = ${ctx.row.id}`;
+    } catch (err) {
+      console.error("Could not clear the deleted banner", err);
+    }
+  }
+  for (const url of urls) {
+    try {
+      if (isUploadedBannerUrl(url)) await del(url);
+    } catch (err) {
+      console.error("Could not delete banner file", err);
+    }
   }
   refresh(ctx.row.handle);
   return { status: "ok", url: null };

@@ -86,4 +86,56 @@ test.describe("the Effects picker", () => {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
+
+  test("the decoration upload states exactly what can be uploaded", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    const rules = page.getByRole("list", { name: "What you can upload" }).nth(1);
+    for (const part of ["PNG, GIF or WebP", "Not JPG, not video", "up to 3 MB", "512 × 512 to 4096 × 4096 pixels", "see-through"]) {
+      await expect(rules).toContainText(part);
+    }
+    await expect(page.getByRole("list", { name: "What you can upload" }).first()).toContainText("256 × 256");
+  });
+
+  test("saved decorations are listed with the ones the owner shared, and picking one opens the placement controls", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    const saved = page.getByRole("group", { name: "Your saved decorations" });
+    await expect(saved.getByRole("button", { name: /Wings one/ })).toBeVisible();
+    await expect(saved.getByRole("button", { name: /Shared ring/ })).toContainText("Shared with you by @mira");
+    // Profile pictures are listed apart from decorations.
+    await expect(saved.getByRole("button", { name: /Portrait one/ })).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Your saved pictures" }).getByRole("button", { name: /Portrait one/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save to my tip page" })).toHaveCount(0);
+    await saved.getByRole("button", { name: /Wings one/ }).click();
+    await expect(page.getByRole("group", { name: "Where it goes on your photo" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save to my tip page" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "Spot on your photo" })).toBeVisible();
+    // Around the photo is the default: the old ring, 144 percent of the photo, centred.
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /inset: -22% auto auto -22%; width: 144%; height: 144%/);
+  });
+
+  test("the spot, size and nudge move the decoration on the preview", async ({ page }) => {
+    await page.goto("/dev-fixtures/effects");
+    await page.getByRole("group", { name: "Your saved decorations" }).getByRole("button", { name: /Wings one/ }).click();
+    await page.getByRole("radio", { name: "Top right" }).click();
+    // A piece on a corner starts smaller (60 percent): its centre sits on the photo's corner.
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /inset: -30% auto auto 70%; width: 60%; height: 60%/);
+    await page.getByLabel(/^Left or right/).fill("10");
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /inset: -30% auto auto 80%/);
+    await page.getByLabel(/^Size:/).fill("40");
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /width: 40%; height: 40%/);
+    await page.getByRole("button", { name: "Reset position" }).click();
+    await expect(page.locator(".pf-custom")).toHaveAttribute("style", /inset: -22% auto auto -22%; width: 144%/);
+    await page.getByRole("radio", { name: "Around the photo" }).click();
+    await expect(page.getByRole("radio", { name: "Around the photo" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the placement controls fit a 320px phone", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/dev-fixtures/effects");
+    await page.getByRole("group", { name: "Your saved decorations" }).getByRole("button", { name: /Shared ring/ }).click();
+    await page.getByRole("radio", { name: "Bottom left" }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    // A shared picture cannot be deleted from here, only taken off the page.
+    await expect(page.getByRole("button", { name: "Delete this picture" })).toHaveCount(0);
+  });
 });

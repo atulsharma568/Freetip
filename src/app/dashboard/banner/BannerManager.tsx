@@ -3,9 +3,12 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { removeTipBanner, copyYouTubeBanner, saveUploadedBanner, copyYouTubePhoto, removeTipPhoto } from "@/app/actions/tip-banner";
-import { checkMediaFile, mediaFileName } from "@/lib/media";
-import { BANNER_MAX_BYTES, BANNER_UPLOAD_KINDS, bannerPathPrefix } from "@/lib/tip-banner";
+import { removeTipBanner, copyYouTubeBanner, saveUploadedBanner, wearBannerItem, deleteBannerItem, copyYouTubePhoto, removeTipPhoto } from "@/app/actions/tip-banner";
+import { mediaFileName } from "@/lib/media";
+import { checkPicture } from "@/lib/upload-rules";
+import { UploadRules } from "@/components/UploadRules";
+import type { DecorItem } from "@/lib/decor-library";
+import { bannerPathPrefix } from "@/lib/tip-banner";
 import { CreatorPanel } from "@/components/tip/CreatorPanel";
 import { Tile } from "../parts/Tile";
 import { Msg } from "../parts/Msg";
@@ -13,6 +16,7 @@ import { pillPrimary } from "../parts/styles";
 
 export function BannerManager({
   saved,
+  library,
   handle,
   style,
   displayName,
@@ -26,6 +30,7 @@ export function BannerManager({
   readOnly = false,
 }: {
   saved: string | null;
+  library: { mine: DecorItem<"banner">[]; shared: DecorItem<"banner">[] };
   handle: string;
   style: CSSProperties | Record<string, string> | undefined;
   displayName: string;
@@ -40,7 +45,7 @@ export function BannerManager({
   readOnly?: boolean;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | null>(null);
+  const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | "library" | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   // The photo buttons answer in their own tile, not in the banner's.
@@ -59,6 +64,26 @@ export function BannerManager({
       kind: "ok",
       text: which === "copy" ? "Done. Your YouTube banner now shows on your tip page." : "Removed. Your tip page has no banner.",
     });
+    router.refresh();
+  }
+
+  async function wearItem(itemId: number) {
+    setBusy("library");
+    setMessage(null);
+    const res = await wearBannerItem({ itemId });
+    setBusy(null);
+    if (res.status === "error") return setMessage({ kind: "error", text: res.message });
+    setMessage({ kind: "ok", text: "Done. That banner now shows on your tip page." });
+    router.refresh();
+  }
+
+  async function deleteItem(itemId: number) {
+    setBusy("library");
+    setMessage(null);
+    const res = await deleteBannerItem({ itemId });
+    setBusy(null);
+    if (res.status === "error") return setMessage({ kind: "error", text: res.message });
+    setMessage({ kind: "ok", text: "Deleted. It no longer shows on any page." });
     router.refresh();
   }
 
@@ -86,21 +111,17 @@ export function BannerManager({
   async function uploadFile(file: File | undefined) {
     if (!file) return;
     setMessage(null);
-    const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-    const checked = checkMediaFile(head, file.size, BANNER_MAX_BYTES);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const checked = checkPicture("banner", bytes, file.size);
     if (!checked.ok) {
       setMessage({ kind: "error", text: checked.reason });
-    } else if (!BANNER_UPLOAD_KINDS.includes(checked.sniffed.kind)) {
-      setMessage({ kind: "error", text: "A banner must be a picture or a GIF, not a video." });
-    } else if (file.size > BANNER_MAX_BYTES) {
-      setMessage({ kind: "error", text: "The picture is over 6 MB." });
     } else {
       setBusy("upload");
       try {
-        const blob = await upload(`${bannerPathPrefix(creatorId)}${mediaFileName("banner", checked.sniffed.mime)}`, file, {
+        const blob = await upload(`${bannerPathPrefix(creatorId)}${mediaFileName("banner", checked.picture.mime)}`, file, {
           access: "public",
           handleUploadUrl: "/api/banner/upload",
-          contentType: checked.sniffed.mime,
+          contentType: checked.picture.mime,
         });
         const res = await saveUploadedBanner({ url: blob.url });
         if (res.status === "error") setMessage({ kind: "error", text: res.message });
@@ -182,14 +203,45 @@ export function BannerManager({
             )}
           </div>
           {!readOnly && (
-          <p className="text-xs text-muted">
-            Or use any picture you like, including an animated GIF or WebP: PNG, JPG, GIF or WebP, up to
-            6 MB. A wide picture works best (about 1600 by 500 pixels; the middle is what fits). For an animated banner, an animated WebP is usually much smaller than a GIF. Only
-            upload what you made or have the right to use.
-            {!uploadsReady && " Uploads are not set up on this site yet."}
-          </p>
+          <div className="space-y-2">
+            <UploadRules kind="banner" id="banner-rules" />
+            {!uploadsReady && <p className="text-xs text-muted">Uploads are not set up on this site yet.</p>}
+          </div>
           )}
           <Msg kind={message?.kind} text={message?.text} />
+          {!readOnly && (library.mine.length > 0 || library.shared.length > 0) && (
+            <div className="space-y-4" data-testid="banner-library">
+              {([["My uploads", library.mine, true], ["Shared with you", library.shared, false]] as const).map(
+                ([title, items, own]) =>
+                  items.length > 0 && (
+                    <div key={title} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-text">{title}</h3>
+                      <ul className="grid gap-3 sm:grid-cols-2">
+                        {items.map((item) => (
+                          <li key={item.id} className="space-y-2 rounded-field border border-line/60 p-3">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- the creator's own saved upload */}
+                            <img src={item.url} alt={`Banner `} loading="lazy" decoding="async" className="h-20 w-full rounded-field object-cover" />
+                            <p className="text-xs text-muted">
+                              {item.width}×{item.height}{item.animated ? " · animated" : ""}{item.ownerHandle ? ` · from @${item.ownerHandle}` : ""}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" disabled={busy !== null || saved === item.url} onClick={() => wearItem(item.id)} className={pillPrimary}>
+                                {saved === item.url ? "On your page" : "Use this banner"}
+                              </button>
+                              {own && (
+                                <button type="button" disabled={busy !== null} onClick={() => deleteItem(item.id)} className="inline-flex min-h-11 items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted disabled:opacity-50">
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ),
+              )}
+            </div>
+          )}
         </div>
       </Tile>
       )}

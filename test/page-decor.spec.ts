@@ -174,7 +174,8 @@ test.describe("the pick saved from the dashboard", () => {
       expect(safeDecorUrl(bad), String(bad)).toBeNull();
     }
     const kept = parseTipDecor({ avatarUpload: { url: good, posterUrl: `${BLOB}/decor/7/poster-a.webp`, animated: true }, frameUpload: { url: "https://evil.example.com/a.png" }, frameScale: 9999 })!;
-    expect(kept.avatarUpload).toEqual({ url: good, posterUrl: `${BLOB}/decor/7/poster-a.webp`, animated: true });
+    // A picture saved before the library existed names no item and sits as the old ring.
+    expect(kept.avatarUpload).toEqual({ url: good, posterUrl: `${BLOB}/decor/7/poster-a.webp`, animated: true, itemId: null, placement: { anchor: "ring", size: 144, dx: 0, dy: 0 } });
     expect(kept.frameUpload).toBeNull();
     expect(kept.frameScale).toBe(220);
     expect(parseTipDecor({ frameScale: 3 })!.frameScale).toBe(100);

@@ -6,6 +6,8 @@ import { hasFeature } from "@/lib/plans";
 import { SITE_NAME } from "@/lib/site";
 import { accentStyle } from "@/lib/accent";
 import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
+import { bannerStillUsable, listCreatorBanners, type DecorItem } from "@/lib/decor-library";
+import type { Query } from "@/lib/accrual";
 import { DashboardNav } from "../DashboardNav";
 import { DashboardShell } from "../parts/DashboardShell";
 import { BannerManager } from "./BannerManager";
@@ -53,8 +55,17 @@ export default async function BannerPage() {
   try {
     const [row] = await db<{ tip_banner_url: string | null }[]>`select tip_banner_url from users where id = ${user.id}`;
     saved = safeBannerUrl(row?.tip_banner_url);
+    if (saved && !(await bannerStillUsable(db as unknown as Query, user.id, saved).catch(() => true))) saved = null;
   } catch (err) {
     console.error("Banner page: could not read the saved banner (migration 0048 run?).", err);
+  }
+
+  // The saved uploads and the banners the owner shared with this creator (migration 0063; empty before it is run).
+  let library: { mine: DecorItem<"banner">[]; shared: DecorItem<"banner">[] } = { mine: [], shared: [] };
+  try {
+    library = await listCreatorBanners(db as unknown as Query, user.id);
+  } catch (err) {
+    console.error("Banner page: could not read the banner library (migration 0063 run?).", err);
   }
 
   // The channel photo sits in a column from migration 0050, read apart for the same reason.
@@ -82,6 +93,7 @@ export default async function BannerPage() {
 
         <BannerManager
           saved={saved}
+          library={library}
           handle={user.handle}
           style={accentStyle(user.accent)}
           displayName={user.display_name ?? user.name ?? user.handle}

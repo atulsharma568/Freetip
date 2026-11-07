@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import type { LedgerDb } from "@/lib/accrual";
 import { checkMediaFile, isOwnBlobUrl } from "@/lib/media";
+import { createDecorItem, listCreatorDecor, removeOwnItem, updateOwnItem, usableItem, type DecorItem } from "@/lib/decor-library";
+import { checkPicture, type UploadRuleKind } from "@/lib/upload-rules";
 import { isOwnerTipPage } from "@/lib/owner-page";
 import {
   DECOR_POSTER_MAX_BYTES,
@@ -13,19 +15,19 @@ import {
   DECOR_UPLOAD_MAX_BYTES,
   clampFrameScale,
   decorPathPrefix,
-  isAnimatedWebp,
   isTipTemplate,
   mayPickTipDecor,
   mayUseTemplate,
+  parsePlacement,
   parseTipDecor,
   safeDecorUrl,
-  type DecorUpload,
   type DecorUploadKind,
 } from "@/lib/page-doc/decor";
 import { readTipDecor } from "@/lib/tip-decor-store";
 
 export type TipDecorActionResult = { status: "ok" } | { status: "error"; message: string };
-export type DecorUploadResult = { status: "ok"; upload: DecorUpload } | { status: "error"; message: string };
+export type DecorUploadResult = { status: "ok"; item: DecorItem } | { status: "error"; message: string };
+export type DecorLibraryResult = { status: "ok"; mine: DecorItem[]; shared: DecorItem[] } | { status: "error"; message: string };
 
 const SIGN_IN = "Sign in again to change your photo and banner effects.";
 
@@ -123,11 +125,12 @@ async function fetchBytes(url: string, limit: number): Promise<Uint8Array | stri
   }
 }
 
-// Saves a profile picture or a frame the browser has uploaded. The file is fetched and its first bytes
-// checked again here, so nothing the page claims about its type or size is trusted: a picture, GIF or
-// WebP of at most 3 MB, roughly square. A frame needs see-through pixels, so a JPG is refused for it.
-// Choosing an upload replaces the ready-made look of the same layer (an upload wins over "none").
-export async function saveDecorUpload(input: { kind: string; url: string; posterUrl?: string | null; frameScale?: number }): Promise<DecorUploadResult> {
+// Saves a profile picture or a decoration the browser has uploaded into the creator's library. The file
+// is fetched and checked again here against the same rules the page showed (src/lib/upload-rules.ts:
+// format, 3 MB, size in pixels, shape, see-through for a decoration), so nothing the page claims about
+// its type or size is trusted. It is only saved to the library: the creator then places it and presses
+// "Save to my tip page" (wearDecorItem) to wear it.
+export async function saveDecorUpload(input: { kind: string; url: string; posterUrl?: string | null; name?: string }): Promise<DecorUploadResult> {
   const ctx = await who();
   if (!ctx.ok) return { status: "error", message: ctx.error };
   const { db, row } = ctx;
@@ -145,16 +148,10 @@ export async function saveDecorUpload(input: { kind: string; url: string; poster
 
   const bytes = await fetchBytes(input.url, DECOR_UPLOAD_MAX_BYTES);
   if (typeof bytes === "string") return reject(bytes);
-  const checked = checkMediaFile(bytes, bytes.length, DECOR_UPLOAD_MAX_BYTES);
+  const rule: UploadRuleKind = kind === "frame" ? "decorFrame" : "decorAvatar";
+  const checked = checkPicture(rule, bytes, bytes.length);
   if (!checked.ok) return reject(checked.reason);
-  const { sniffed } = checked;
-  if (sniffed.kind === "webm") return reject("Use a picture, GIF or WebP, not a video.");
-  if (kind === "frame" && sniffed.mime === "image/jpeg") return reject("A frame needs a see-through background. Use a PNG, GIF or WebP, not a JPG.");
-  if (sniffed.width !== null && sniffed.height !== null) {
-    const ratio = sniffed.width / sniffed.height;
-    if (ratio < 0.75 || ratio > 1.34) return reject("Use a square picture (the same width and height).");
-  }
-  const animated = sniffed.kind === "gif" || (sniffed.mime === "image/webp" && isAnimatedWebp(bytes));
+  const { picture } = checked;
 
   let poster: string | null = null;
   if (posterUrl) {
@@ -164,41 +161,108 @@ export async function saveDecorUpload(input: { kind: string; url: string; poster
     else await dropBlobs(row.id, posterUrl);
   }
 
-  const before = await readTipDecor(row.id);
-  const old = kind === "avatar" ? before?.avatarUpload : before?.frameUpload;
-  const upload: DecorUpload = { url: input.url, posterUrl: poster, animated };
   try {
-    await mergeDecor(db, row.id, {
-      [kind === "avatar" ? "avatarUpload" : "frameUpload"]: upload,
-      // The upload takes the place of a ready-made look of the same layer.
-      [kind === "avatar" ? "avatar" : "frame"]: "none",
-      ...(kind === "frame" ? { frameScale: clampFrameScale(input.frameScale) } : {}),
+    const id = await createDecorItem(db as unknown as LedgerDb, row.id, {
+      kind,
+      name: input.name ?? new URL(input.url).pathname.split("/").pop() ?? "Picture",
+      blobUrl: input.url,
+      posterUrl: poster,
+      mime: picture.mime,
+      sizeBytes: bytes.length,
+      width: picture.width,
+      height: picture.height,
+      animated: picture.animated,
+      placement: parsePlacement(null),
     });
+    const item = await usableItem(db as unknown as LedgerDb, row.id, id);
+    if (!item) return reject("Could not save your picture, try again shortly");
+    revalidatePath("/dashboard/effects");
+    return { status: "ok", item };
   } catch (err) {
-    console.error("Could not save the uploaded picture (migration 0058 run?)", err);
+    console.error("Could not save the uploaded picture (migration 0062 run?)", err);
     return reject("Could not save your picture, try again shortly");
   }
-  if (old && old.url !== input.url) await dropBlobs(row.id, old.url, old.posterUrl);
-  refresh(row.handle);
-  return { status: "ok", upload };
 }
 
-// Takes an uploaded profile picture or frame off the page. Allowed for anyone who may use the page.
+// What the creator can pick from: their own saved pictures and those the owner granted them.
+export async function listDecorLibrary(): Promise<DecorLibraryResult> {
+  const ctx = await who();
+  if (!ctx.ok) return { status: "error", message: ctx.error };
+  try {
+    return { status: "ok", ...(await listCreatorDecor(ctx.db as unknown as LedgerDb, ctx.row.id)) };
+  } catch (err) {
+    console.error("Could not list the saved pictures (migration 0062 run?)", err);
+    return { status: "error", message: "Could not load your saved pictures, try again shortly" };
+  }
+}
+
+// "Save to my tip page": wears one picture of the library (the creator's own or one granted to them) on
+// their page, with the placement they chose. The item must be usable by this creator right now. A
+// profile picture takes the photo's place; a decoration keeps its anchor, size and nudge. The choice
+// replaces the ready-made look of the same layer.
+export async function wearDecorItem(input: { itemId: number; placement?: unknown }): Promise<TipDecorActionResult> {
+  const ctx = await who();
+  if (!ctx.ok) return { status: "error", message: ctx.error };
+  const { db, row } = ctx;
+  if (!Number.isSafeInteger(input.itemId) || input.itemId < 1) return { status: "error", message: "That picture was not found." };
+  try {
+    const item = await usableItem(db as unknown as LedgerDb, row.id, input.itemId);
+    if (!item) return { status: "error", message: "That picture is not available to you." };
+    const placement = parsePlacement(input.placement ?? item.placement);
+    const worn = { url: item.url, posterUrl: item.posterUrl, animated: item.animated, itemId: item.id, placement };
+    await mergeDecor(db, row.id, {
+      [item.kind === "avatar" ? "avatarUpload" : "frameUpload"]: worn,
+      [item.kind === "avatar" ? "avatar" : "frame"]: "none",
+    });
+    // Remember the placement on the creator's own item, so reusing it later starts where it was left.
+    if (item.kind === "frame" && item.creatorId === row.id) await updateOwnItem(db as unknown as LedgerDb, row.id, item.id, { placement });
+  } catch (err) {
+    console.error("Could not save the chosen picture (migration 0062 run?)", err);
+    return { status: "error", message: "Could not save your choice, try again shortly" };
+  }
+  refresh(row.handle);
+  return { status: "ok" };
+}
+
+// Takes the worn profile picture or decoration off the page. The picture stays in the library.
 export async function removeDecorUpload(input: { kind: string }): Promise<TipDecorActionResult> {
   const ctx = await who();
   if (!ctx.ok) return { status: "error", message: ctx.error };
   const { db, row } = ctx;
   const kind = DECOR_UPLOAD_KINDS.find((k) => k === input.kind) as DecorUploadKind | undefined;
   if (!kind) return { status: "error", message: "That is not a picture you can remove." };
-  const before = await readTipDecor(row.id);
-  const old = kind === "avatar" ? before?.avatarUpload : before?.frameUpload;
   try {
     await mergeDecor(db, row.id, { [kind === "avatar" ? "avatarUpload" : "frameUpload"]: null });
   } catch (err) {
-    console.error("Could not remove the uploaded picture (migration 0058 run?)", err);
+    console.error("Could not take the picture off the page", err);
     return { status: "error", message: "Could not remove your picture, try again shortly" };
   }
-  if (old) await dropBlobs(row.id, old.url, old.posterUrl);
+  refresh(row.handle);
+  return { status: "ok" };
+}
+
+// Deletes one of the creator's own saved pictures for good: it stops showing on every page that wears it
+// (theirs, and any page the owner shared it with), and its files are erased. A shared picture that
+// belongs to someone else cannot be deleted here (use "Take off my page").
+export async function deleteDecorItem(input: { itemId: number }): Promise<TipDecorActionResult> {
+  const ctx = await who();
+  if (!ctx.ok) return { status: "error", message: ctx.error };
+  const { db, row } = ctx;
+  if (!Number.isSafeInteger(input.itemId) || input.itemId < 1) return { status: "error", message: "That picture was not found." };
+  let urls: string[] = [];
+  try {
+    const res = await removeOwnItem(db as unknown as LedgerDb, row.id, input.itemId);
+    if (!res.ok) return { status: "error", message: res.message };
+    urls = res.urls;
+    const before = await readTipDecor(row.id);
+    for (const [key, up] of [["avatarUpload", before?.avatarUpload], ["frameUpload", before?.frameUpload]] as const) {
+      if (up?.itemId === input.itemId) await mergeDecor(db, row.id, { [key]: null });
+    }
+  } catch (err) {
+    console.error("Could not delete the saved picture (migration 0062 run?)", err);
+    return { status: "error", message: "Could not delete your picture, try again shortly" };
+  }
+  await dropBlobs(row.id, ...urls);
   refresh(row.handle);
   return { status: "ok" };
 }

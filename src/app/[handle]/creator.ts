@@ -7,6 +7,7 @@ import { MIN_TIP_PAISE } from "@/lib/money";
 import { playable, type MediaKind, type ReviewState } from "@/lib/media";
 import { pinOffer, type PinOffer } from "@/lib/pinned";
 import { safeBannerUrl, safePhotoUrl } from "@/lib/tip-banner";
+import { bannerStillUsable } from "@/lib/decor-library";
 
 export interface CreatorRow {
   id: number;
@@ -103,10 +104,14 @@ export const getTipBanner = cache(async (handle: string): Promise<string | null>
   const db = getDb();
   if (!db) return null;
   try {
-    const [row] = await db<{ paid_features: string[] | null; tip_banner_url: string | null }[]>`
-      select paid_features, tip_banner_url from users where handle = ${handle}
+    const [row] = await db<{ id: number; paid_features: string[] | null; tip_banner_url: string | null }[]>`
+      select id, paid_features, tip_banner_url from users where handle = ${handle}
     `;
-    return row && hasFeature(row, "tipBanner") ? safeBannerUrl(row.tip_banner_url) : null;
+    const url = row && hasFeature(row, "tipBanner") ? safeBannerUrl(row.tip_banner_url) : null;
+    if (!row || !url) return null;
+    // A banner from the library stops showing when it is taken down or its share is withdrawn.
+    const usable = await bannerStillUsable(db as unknown as Query, Number(row.id), url).catch(() => true);
+    return usable ? url : null;
   } catch {
     return null;
   }

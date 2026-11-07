@@ -6,7 +6,7 @@ import { upload } from "@vercel/blob/client";
 import { removePageMusic, savePageMusic } from "@/app/actions/page-music";
 import { MUSIC_MAX_BYTES, MUSIC_TITLE_MAX, MUSIC_TYPES, musicFileName, musicPathPrefix, type PageMusic } from "@/lib/page-music";
 
-// The owner's tip-page music: pick one audio file (MP3, M4A, OGG or WAV, up to 12 MB), give it a
+// The owner's tip-page music: pick one audio file (MP3, M4A, AAC, OGG, WAV or WebM audio, up to 12 MB), give it a
 // title, and a small player shows on the owner's page. The browser sends the file straight to the
 // Blob store; the server then saves the link (and deletes the track it replaces).
 export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: number; music: PageMusic | null; uploadsReady: boolean }) {
@@ -21,7 +21,7 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
   async function onFile(file: File) {
     setMsg(null);
     const mime = file.type || "";
-    if (!(MUSIC_TYPES as readonly string[]).includes(mime)) return setMsg({ kind: "error", text: "Choose an MP3, M4A, OGG or WAV file." });
+    if (!(MUSIC_TYPES as readonly string[]).includes(mime)) return setMsg({ kind: "error", text: "Choose an MP3, M4A, AAC, OGG, WAV or WebM audio file." });
     if (file.size > MUSIC_MAX_BYTES) return setMsg({ kind: "error", text: `That file is over ${MUSIC_MAX_BYTES / 1024 / 1024} MB.` });
     setBusy("upload");
     setPct(0);
@@ -67,7 +67,7 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
           Page music
         </h2>
         <p className="text-sm text-muted">
-          One track plays from a small player on your tip page. Visitors press play themselves; it never starts on its own. MP3, M4A, OGG or WAV, up to 12 MB.
+          One track plays from a small player on your tip page. Visitors press play themselves; it never starts on its own. MP3, M4A, AAC, OGG, WAV or WebM audio, up to 12 MB.
         </p>
       </div>
       {music && (
@@ -99,7 +99,7 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
           <input
             ref={input}
             type="file"
-            accept="audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,audio/webm,.mp3,.m4a,.ogg,.wav"
+            accept="audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,audio/webm,.mp3,.m4a,.aac,.ogg,.wav,.webm"
             disabled={!uploadsReady || busy !== null}
             onChange={(e) => {
               const f = e.target.files?.[0];

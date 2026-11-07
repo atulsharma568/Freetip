@@ -4,12 +4,15 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { removeDecorUpload, saveDecorUpload, saveTipDecor, saveTipTemplate } from "@/app/actions/tip-decor";
+import { deleteDecorItem, removeDecorUpload, saveDecorUpload, saveTipDecor, saveTipTemplate, wearDecorItem } from "@/app/actions/tip-decor";
 import { removeTipBanner, saveUploadedBanner } from "@/app/actions/tip-banner";
 import { type DecorRender } from "@/components/tip/Decor";
 import { CreatorPanel } from "@/components/tip/CreatorPanel";
 import { warmBannerTints } from "@/components/tip/use-banner-tint";
+import { UploadRules } from "@/components/UploadRules";
 import { looksAnimated, makePoster } from "@/lib/decor-poster";
+import type { DecorItem } from "@/lib/decor-library";
+import { checkPicture } from "@/lib/upload-rules";
 import { checkMediaFile, mediaFileName } from "@/lib/media";
 import { BANNER_MAX_BYTES, BANNER_UPLOAD_KINDS, bannerPathPrefix } from "@/lib/tip-banner";
 import {
@@ -17,11 +20,9 @@ import {
   AVATAR_PIC_IDS,
   AVATAR_PIC_INFO,
   BANNER_PICS,
-  DECOR_UPLOAD_MAX_BYTES,
   FILE_FRAMES,
   FILE_FX,
   FILE_FX_INFO,
-  FRAME_SCALE,
   PRESET_EFFECTS,
   TIP_TEMPLATES as TIP_TEMPLATE_IDS,
   PRESET_FRAMES,
@@ -29,8 +30,10 @@ import {
   isAvatarPic,
   isFileFrame,
   isFileFx,
+  parsePlacement,
   type AvatarStyle,
   type BannerPic,
+  type DecorPlacement,
   type DecorUpload,
   type DecorUploadKind,
   type PresetEffect,
@@ -38,6 +41,7 @@ import {
   type TipDecor,
   type TipTemplate,
 } from "@/lib/page-doc/decor";
+import { LibraryGrid, PlacementEditor } from "./DecorLibrary";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
 import { Msg } from "../parts/Msg";
@@ -131,6 +135,44 @@ function FilePick({ label, busy, disabled, onFile }: { label: string; busy: bool
   );
 }
 
+// The step after picking a saved picture: put it on the tip page, drop the choice, or (for one of the
+// creator's own pictures) delete it for good. A picture shared by the owner cannot be deleted here.
+function DraftBar({
+  kind,
+  draft,
+  busy,
+  onSave,
+  onCancel,
+  onDelete,
+  ownId,
+}: {
+  kind: DecorUploadKind;
+  draft: { item: DecorItem; placement: DecorPlacement } | null;
+  busy: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+  onDelete: (item: DecorItem) => void;
+  ownId: number;
+}) {
+  if (!draft || draft.item.kind !== kind) return null;
+  const own = draft.item.creatorId === ownId;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" onClick={onSave} disabled={busy} className={pillPrimary}>
+        {busy ? "Saving…" : "Save to my tip page"}
+      </button>
+      <button type="button" onClick={onCancel} disabled={busy} className={pillOutline}>
+        Not now
+      </button>
+      {own && (
+        <button type="button" onClick={() => onDelete(draft.item)} disabled={busy} className={pillOutline}>
+          Delete this picture
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function EffectsManager({
   saved,
   style,
@@ -141,6 +183,7 @@ export function EffectsManager({
   uploadsReady = false,
   canUploadBanner = false,
   templates = TIP_TEMPLATE_IDS,
+  library = { mine: [], shared: [] },
 }: {
   saved: TipDecor;
   style: Record<string, string>;
@@ -154,13 +197,18 @@ export function EffectsManager({
   canUploadBanner?: boolean;
   // Templates on offer: only Classic for creators until Deadpool (AcePressure's) becomes a paid feature.
   templates?: readonly TipTemplate[];
+  // The creator's saved pictures and the ones the owner shared with them (migration 0062).
+  library?: { mine: DecorItem[]; shared: DecorItem[] };
 }) {
   const router = useRouter();
   const [avatar, setAvatar] = useState<AvatarStyle>(saved.avatar);
   const [frame, setFrame] = useState<PresetFrame>(saved.frame);
   const [fx, setFx] = useState<PresetEffect>(saved.bannerFx);
   const [pic, setPic] = useState<BannerPic>(saved.bannerPic);
-  const [frameScale, setFrameScale] = useState<number>(saved.frameScale);
+  const [items, setItems] = useState(library);
+  // A saved picture picked from the library and not yet put on the page: the preview shows it, and the
+  // creator presses "Save to my tip page" to wear it.
+  const [draft, setDraft] = useState<{ item: DecorItem; placement: DecorPlacement } | null>(null);
   const [live, setLive] = useState<TipDecor>(saved);
   const [template, setTemplate] = useState<TipTemplate>(saved.template);
   const [templateMsg, setTemplateMsg] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
@@ -171,8 +219,11 @@ export function EffectsManager({
   const [uploading, setUploading] = useState<DecorUploadKind | "banner" | "remove" | null>(null);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [uploadMessage, setUploadMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
-  const same = avatar === live.avatar && frame === live.frame && fx === live.bannerFx && pic === live.bannerPic && frameScale === live.frameScale;
-  useUnsavedWarning(!same);
+  // The result of the last picture action, shown inside the tile it belongs to (profile picture or decoration).
+  const [decorMsg, setDecorMsg] = useState<{ area: DecorUploadKind; kind: "error" | "ok"; text: string } | null>(null);
+  const say = (area: DecorUploadKind, kind: "error" | "ok", text: string) => setDecorMsg({ area, kind, text });
+  const same = avatar === live.avatar && frame === live.frame && fx === live.bannerFx && pic === live.bannerPic;
+  useUnsavedWarning(!same || draft !== null);
   // Work out each ready-made banner picture's colour now, so tapping one recolours the effect at once.
   useEffect(() => {
     warmBannerTints(BANNER_PICS.filter(isFileFx).map((f) => FILE_FX[f].posterUrl));
@@ -200,10 +251,10 @@ export function EffectsManager({
   async function save() {
     setBusy(true);
     setMessage(null);
-    const result = await saveTipDecor({ avatar, frame, bannerFx: fx, bannerPic: pic, frameScale });
+    const result = await saveTipDecor({ avatar, frame, bannerFx: fx, bannerPic: pic });
     setBusy(false);
     if (result.status === "ok") {
-      setLive({ ...live, avatar, frame, bannerFx: fx, bannerPic: pic, frameScale });
+      setLive({ ...live, avatar, frame, bannerFx: fx, bannerPic: pic });
       setMessage({ kind: "ok", text: "Saved. It is live on your tip page now." });
       router.refresh();
     } else {
@@ -211,24 +262,22 @@ export function EffectsManager({
     }
   }
 
-  // The first bytes decide what a file is (not its name or the type the browser guessed); the server
-  // checks it again after the upload.
+  // The whole file is checked here against the rules shown on the page (format, size, shape, see-through
+  // for a decoration), by what it really is and not by its name; the server checks it again after the
+  // upload. A file that passes goes into the creator's library and is picked, ready to place and save.
   async function uploadDecor(kind: DecorUploadKind, file: File) {
-    setUploadMessage(null);
-    const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
-    const checked = checkMediaFile(head, file.size, DECOR_UPLOAD_MAX_BYTES);
-    if (!checked.ok) return setUploadMessage({ kind: "error", text: checked.reason });
-    if (checked.sniffed.kind === "webm") return setUploadMessage({ kind: "error", text: "Use a picture, GIF or WebP, not a video." });
-    if (kind === "frame" && checked.sniffed.mime === "image/jpeg") {
-      return setUploadMessage({ kind: "error", text: "A frame needs a see-through background. Use a PNG, GIF or WebP, not a JPG." });
-    }
+    setDecorMsg(null);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const checked = checkPicture(kind === "frame" ? "decorFrame" : "decorAvatar", bytes, file.size);
+    if (!checked.ok) return say(kind, "error", checked.reason);
+    const head = bytes.subarray(0, 64);
     setUploading(kind);
     try {
       const folder = decorPathPrefix(creatorId);
-      const blob = await upload(`${folder}${mediaFileName(kind, checked.sniffed.mime)}`, file, {
+      const blob = await upload(`${folder}${mediaFileName(kind, checked.picture.mime)}`, file, {
         access: "public",
         handleUploadUrl: "/api/decor/upload",
-        contentType: checked.sniffed.mime,
+        contentType: checked.picture.mime,
       });
       // A still of the first frame for visitors who ask for less motion (only an animation needs one).
       let posterUrl: string | null = null;
@@ -243,34 +292,74 @@ export function EffectsManager({
           posterUrl = posterBlob.url;
         }
       }
-      const res = await saveDecorUpload({ kind, url: blob.url, posterUrl, frameScale });
+      const res = await saveDecorUpload({ kind, url: blob.url, posterUrl, name: file.name });
       if (res.status === "error") {
-        setUploadMessage({ kind: "error", text: res.message });
+        say(kind, "error", res.message);
       } else {
-        if (kind === "avatar") {
-          setAvatarUp(res.upload);
-          setAvatar("none");
-          setLive((l) => ({ ...l, avatar: "none", avatarUpload: res.upload }));
-        } else {
-          setFrameUp(res.upload);
-          setFrame("none");
-          setLive((l) => ({ ...l, frame: "none", frameUpload: res.upload, frameScale }));
-        }
-        setUploadMessage({ kind: "ok", text: kind === "avatar" ? "Done. Your picture now shows on your tip page." : "Done. Your frame now shows on your tip page." });
-        router.refresh();
+        setItems((l) => ({ ...l, mine: [res.item, ...l.mine] }));
+        setDraft({ item: res.item, placement: res.item.placement });
+        say(kind, "ok", "Uploaded and saved to your list. Check it in the preview, place it, then press Save to my tip page.");
       }
     } catch {
-      setUploadMessage({ kind: "error", text: "The upload failed. Check your connection and try again." });
+      say(kind, "error", "The upload failed. Check your connection and try again.");
     }
     setUploading(null);
   }
 
+  // Picks a saved picture to try on the preview (nothing changes on the tip page until it is saved).
+  function pickItem(item: DecorItem) {
+    setDecorMsg(null);
+    setDraft({ item, placement: item.placement });
+  }
+
+  // "Save to my tip page": puts the picked picture on the page with the placement chosen.
+  async function wearDraft() {
+    if (!draft) return;
+    setUploading("remove");
+    setDecorMsg(null);
+    const res = await wearDecorItem({ itemId: draft.item.id, placement: draft.item.kind === "frame" ? draft.placement : undefined });
+    setUploading(null);
+    if (res.status === "error") return say(draft.item.kind, "error", res.message);
+    const { item } = draft;
+    const placement = item.kind === "frame" ? draft.placement : parsePlacement(null);
+    const worn: DecorUpload = { url: item.url, posterUrl: item.posterUrl, animated: item.animated, itemId: item.id, placement };
+    if (item.kind === "avatar") {
+      setAvatarUp(worn);
+      setAvatar("none");
+      setLive((l) => ({ ...l, avatar: "none", avatarUpload: worn }));
+    } else {
+      setFrameUp(worn);
+      setFrame("none");
+      setLive((l) => ({ ...l, frame: "none", frameUpload: worn }));
+      setItems((l) => ({ ...l, mine: l.mine.map((m) => (m.id === item.id ? { ...m, placement } : m)) }));
+    }
+    setDraft(null);
+    say(item.kind, "ok", "Saved. It is live on your tip page now.");
+    router.refresh();
+  }
+
+  // Deletes one of the creator's own saved pictures for good (any page that wears it loses it).
+  async function deleteItem(item: DecorItem) {
+    setUploading("remove");
+    setDecorMsg(null);
+    const res = await deleteDecorItem({ itemId: item.id });
+    setUploading(null);
+    if (res.status === "error") return say(item.kind, "error", res.message);
+    setItems((l) => ({ ...l, mine: l.mine.filter((m) => m.id !== item.id) }));
+    if (draft?.item.id === item.id) setDraft(null);
+    if (avatarUp?.itemId === item.id) setAvatarUp(null);
+    if (frameUp?.itemId === item.id) setFrameUp(null);
+    setLive((l) => ({ ...l, avatarUpload: l.avatarUpload?.itemId === item.id ? null : l.avatarUpload, frameUpload: l.frameUpload?.itemId === item.id ? null : l.frameUpload }));
+    say(item.kind, "ok", "Deleted.");
+    router.refresh();
+  }
+
   async function removeDecor(kind: DecorUploadKind) {
     setUploading("remove");
-    setUploadMessage(null);
+    setDecorMsg(null);
     const res = await removeDecorUpload({ kind });
     setUploading(null);
-    if (res.status === "error") return setUploadMessage({ kind: "error", text: res.message });
+    if (res.status === "error") return say(kind, "error", res.message);
     if (kind === "avatar") {
       setAvatarUp(null);
       setLive((l) => ({ ...l, avatarUpload: null }));
@@ -278,7 +367,7 @@ export function EffectsManager({
       setFrameUp(null);
       setLive((l) => ({ ...l, frameUpload: null }));
     }
-    setUploadMessage({ kind: "ok", text: "Removed." });
+    say(kind, "ok", "Taken off your tip page. It is still in your saved list.");
     router.refresh();
   }
 
@@ -322,8 +411,22 @@ export function EffectsManager({
   }
 
   // What the tip page draws: an uploaded picture fills a layer only while no ready-made look is chosen for it.
-  const avatarRender: DecorRender = isAvatarPic(avatar) ? preset(avatar) : avatarUp ? { kind: "custom", url: avatarUp.url, posterUrl: avatarUp.posterUrl, animated: avatarUp.animated, round: true } : null;
-  const frameRender: DecorRender = frame !== "none" ? preset(frame) : frameUp ? { kind: "custom", url: frameUp.url, posterUrl: frameUp.posterUrl, animated: frameUp.animated, scale: frameScale } : null;
+  const draftAvatar = draft?.item.kind === "avatar" ? draft.item : null;
+  const draftFrame = draft?.item.kind === "frame" ? draft : null;
+  const avatarRender: DecorRender = draftAvatar
+    ? { kind: "custom", url: draftAvatar.url, posterUrl: draftAvatar.posterUrl, animated: draftAvatar.animated, round: true }
+    : isAvatarPic(avatar)
+      ? preset(avatar)
+      : avatarUp
+        ? { kind: "custom", url: avatarUp.url, posterUrl: avatarUp.posterUrl, animated: avatarUp.animated, round: true }
+        : null;
+  const frameRender: DecorRender = draftFrame
+    ? { kind: "custom", url: draftFrame.item.url, posterUrl: draftFrame.item.posterUrl, animated: draftFrame.item.animated, placement: draftFrame.placement }
+    : frame !== "none"
+      ? preset(frame)
+      : frameUp
+        ? { kind: "custom", url: frameUp.url, posterUrl: frameUp.posterUrl, animated: frameUp.animated, placement: frameUp.placement }
+        : null;
   const picBusy = uploading !== null;
   const canUpload = uploadsReady && !picBusy && creatorId > 0;
 
@@ -368,25 +471,33 @@ export function EffectsManager({
       </Tile>
 
       <Tile id="effects-avatar" title="Profile picture" level={2}>
-        <p className="text-sm text-muted">Your own photo, a picture you upload, or a ready-made animated picture in its place. The frame below goes over whichever you pick.</p>
+        <p className="text-sm text-muted">Your own photo, a picture you upload, or a ready-made animated picture in its place. The decoration below goes over whichever you pick.</p>
         <div role="group" aria-label="Profile picture" className="grid gap-2 sm:grid-cols-2">
           <Choice on={avatar === "none"} label="Your own photo" about={avatarUp ? "Your uploaded picture is showing." : "The photo from your account."} onPick={() => setAvatar("none")} />
           {AVATAR_PIC_IDS.map((id) => (
             <Choice key={id} on={avatar === id} label={AVATAR_INFO[id].label} about={AVATAR_INFO[id].about} thumb={AVATAR_PICS[id].posterUrl} onPick={() => setAvatar(id)} />
           ))}
         </div>
+        <UploadRules kind="decorAvatar" id="rules-avatar" />
         <div className="flex flex-wrap items-center gap-3">
-          <FilePick label={avatarUp ? "Upload a different picture" : "Upload your own picture"} busy={uploading === "avatar"} disabled={!canUpload} onFile={(f) => uploadDecor("avatar", f)} />
+          <FilePick label="Upload your own picture" busy={uploading === "avatar"} disabled={!canUpload} onFile={(f) => uploadDecor("avatar", f)} />
           {avatarUp && (
             <button type="button" onClick={() => removeDecor("avatar")} disabled={picBusy} className={pillOutline}>
-              Remove my uploaded picture
+              Take it off my page
             </button>
           )}
         </div>
-        <p className="text-xs text-muted">
-          A square PNG, JPG, GIF or WebP up to 3 MB; it is cut round. An animated GIF or WebP works too. Only upload what you made or have the right to
-          use. {!uploadsReady && "Uploads are not set up on this site yet."}
-        </p>
+        <LibraryGrid
+          title="Your saved pictures"
+          items={[...items.mine, ...items.shared].filter((i) => i.kind === "avatar")}
+          pickedId={draftAvatar?.id ?? null}
+          wornId={avatarUp?.itemId ?? null}
+          onPick={pickItem}
+          empty="Pictures you upload, and ones shared with you, are kept here so you can use them again."
+        />
+        <DraftBar kind="avatar" draft={draft} busy={picBusy} onSave={wearDraft} onCancel={() => setDraft(null)} onDelete={deleteItem} ownId={creatorId} />
+        <Msg kind={decorMsg?.area === "avatar" ? decorMsg.kind : undefined} text={decorMsg?.area === "avatar" ? decorMsg.text : undefined} />
+        <p className="text-xs text-muted">Only upload what you made or have the right to use. {!uploadsReady && "Uploads are not set up on this site yet."}</p>
       </Tile>
 
       <Tile id="effects-frame" title="Decoration over your photo" level={2}>
@@ -395,33 +506,26 @@ export function EffectsManager({
             <Choice key={f} on={frame === f} label={FRAME_INFO[f].label} about={FRAME_INFO[f].about} onPick={() => setFrame(f)} />
           ))}
         </div>
+        <UploadRules kind="decorFrame" id="rules-frame" />
         <div className="flex flex-wrap items-center gap-3">
-          <FilePick label={frameUp ? "Upload a different decoration" : "Upload your own decoration"} busy={uploading === "frame"} disabled={!canUpload} onFile={(f) => uploadDecor("frame", f)} />
+          <FilePick label="Upload your own decoration" busy={uploading === "frame"} disabled={!canUpload} onFile={(f) => uploadDecor("frame", f)} />
           {frameUp && (
             <button type="button" onClick={() => removeDecor("frame")} disabled={picBusy} className={pillOutline}>
-              Remove my uploaded decoration
+              Take it off my page
             </button>
           )}
         </div>
-        {frameUp && frame === "none" && (
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted">Size of your decoration</span>
-            <input
-              type="range"
-              min={FRAME_SCALE.min}
-              max={FRAME_SCALE.max}
-              step={FRAME_SCALE.step}
-              value={frameScale}
-              onChange={(e) => setFrameScale(Number(e.target.value))}
-              className="block w-full accent-[var(--color-accent)]"
-            />
-          </label>
-        )}
-        <p className="text-xs text-muted">
-          Upload a PNG, GIF or WebP (an animated GIF or WebP is fine). Not a JPG and not a video. Up to 3 MB. Make it square, 512 × 512 px or
-          larger, with a see-through background, and leave the middle empty so your photo shows through. It is drawn about 1.44 times the size of
-          your photo, like a ring around it; use the size slider to change that, then press Save.
-        </p>
+        <LibraryGrid
+          title="Your saved decorations"
+          items={[...items.mine, ...items.shared].filter((i) => i.kind === "frame")}
+          pickedId={draftFrame?.item.id ?? null}
+          wornId={frameUp?.itemId ?? null}
+          onPick={pickItem}
+          empty="Decorations you upload, and ones shared with you, are kept here so you can use them again."
+        />
+        {draftFrame && <PlacementEditor value={draftFrame.placement} onChange={(placement) => setDraft({ item: draftFrame.item, placement })} />}
+        <DraftBar kind="frame" draft={draft} busy={picBusy} onSave={wearDraft} onCancel={() => setDraft(null)} onDelete={deleteItem} ownId={creatorId} />
+        <Msg kind={decorMsg?.area === "frame" ? decorMsg.kind : undefined} text={decorMsg?.area === "frame" ? decorMsg.text : undefined} />
       </Tile>
 
       <Tile id="effects-banner" title="Effect over your banner" level={2}>

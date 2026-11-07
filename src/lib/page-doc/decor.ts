@@ -154,6 +154,79 @@ export interface DecorUpload {
   url: string;
   posterUrl: string | null;
   animated: boolean;
+  // The saved item in the creator's library this file belongs to (decor_items, migration 0062), or
+  // null for a file saved before the library existed. A worn file whose item was taken down or whose
+  // grant was withdrawn is dropped when the page is read (see resolveWornItems).
+  itemId: number | null;
+  // Where a decoration sits on the photo. Only a decoration (frame) uses it; a profile picture takes
+  // the photo's own place.
+  placement: DecorPlacement;
+}
+
+// Where the creator wants the decoration: the spot on the photo it is centred on (the ring is the
+// whole photo, the others its edges and corners), its size as a percent of the photo, and a fine
+// nudge in percent of the photo. All of it is clamped when read, so a stored value can never push
+// the picture far out of the header.
+export const DECOR_ANCHORS = ["ring", "top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"] as const;
+export type DecorAnchor = (typeof DECOR_ANCHORS)[number];
+export const DECOR_ANCHOR_LABELS: Record<DecorAnchor, string> = {
+  ring: "Around the photo",
+  top: "Top",
+  bottom: "Bottom",
+  left: "Left",
+  right: "Right",
+  "top-left": "Top left",
+  "top-right": "Top right",
+  "bottom-left": "Bottom left",
+  "bottom-right": "Bottom right",
+};
+export interface DecorPlacement {
+  anchor: DecorAnchor;
+  size: number;
+  dx: number;
+  dy: number;
+}
+export const DECOR_NUDGE = { min: -40, max: 40, step: 2 } as const;
+// A decoration that sits on an edge or corner is a smaller piece than a ring, so it may be drawn small.
+export const DECOR_PLACED_SIZE = { min: 20, max: 220, step: 4, standard: 60 } as const;
+
+export const isDecorAnchor = (v: unknown): v is DecorAnchor => typeof v === "string" && (DECOR_ANCHORS as readonly string[]).includes(v);
+
+const clampInt = (raw: unknown, min: number, max: number, fallback: number): number => {
+  const n = typeof raw === "number" && Number.isFinite(raw) ? Math.round(raw) : fallback;
+  return Math.min(max, Math.max(min, n));
+};
+
+// The placement as stored, read leniently. `legacyScale` is the single size every decoration had
+// before placements existed, so a page saved earlier keeps looking exactly the same (the ring).
+export function parsePlacement(raw: unknown, legacyScale: number = FRAME_SCALE.standard): DecorPlacement {
+  const r = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const anchor = isDecorAnchor(r.anchor) ? r.anchor : "ring";
+  const size =
+    anchor === "ring"
+      ? clampInt(r.size ?? legacyScale, FRAME_SCALE.min, FRAME_SCALE.max, FRAME_SCALE.standard)
+      : clampInt(r.size, DECOR_PLACED_SIZE.min, DECOR_PLACED_SIZE.max, DECOR_PLACED_SIZE.standard);
+  return { anchor, size, dx: clampInt(r.dx, DECOR_NUDGE.min, DECOR_NUDGE.max, 0), dy: clampInt(r.dy, DECOR_NUDGE.min, DECOR_NUDGE.max, 0) };
+}
+
+// Where the centre of the decoration goes on the photo box, in percent from its top-left corner.
+const ANCHOR_POINT: Record<DecorAnchor, [number, number]> = {
+  ring: [50, 50],
+  top: [50, 0],
+  bottom: [50, 100],
+  left: [0, 50],
+  right: [100, 50],
+  "top-left": [0, 0],
+  "top-right": [100, 0],
+  "bottom-left": [0, 100],
+  "bottom-right": [100, 100],
+};
+
+// The box of the decoration inside the photo's own box, as percents (left, top, width and height),
+// so the CSS needs no maths and the same numbers draw the preview on the dashboard and the page.
+export function placementBox(p: DecorPlacement): { left: number; top: number; size: number } {
+  const [cx, cy] = ANCHOR_POINT[p.anchor];
+  return { left: cx + p.dx - p.size / 2, top: cy + p.dy - p.size / 2, size: p.size };
 }
 
 export const DECOR_UPLOAD_MAX_BYTES = 3 * 1024 * 1024;
@@ -185,12 +258,19 @@ export function isAnimatedWebp(bytes: Uint8Array): boolean {
   return tag(0, "RIFF") && tag(8, "WEBP") && tag(12, "VP8X") && (bytes[20] & 0x02) !== 0;
 }
 
-function parseUpload(raw: unknown): DecorUpload | null {
+function parseUpload(raw: unknown, legacyScale?: unknown): DecorUpload | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
   const url = safeDecorUrl(r.url);
   if (!url) return null;
-  return { url, posterUrl: safeDecorUrl(r.posterUrl), animated: r.animated === true };
+  const itemId = typeof r.itemId === "number" && Number.isInteger(r.itemId) && r.itemId > 0 ? r.itemId : null;
+  return {
+    url,
+    posterUrl: safeDecorUrl(r.posterUrl),
+    animated: r.animated === true,
+    itemId,
+    placement: parsePlacement(r.placement, clampFrameScale(legacyScale)),
+  };
 }
 
 export const clampFrameScale = (raw: unknown): number => {
@@ -241,7 +321,7 @@ export function parseTipDecor(raw: unknown): TipDecor | null {
     bannerFx: PRESET_EFFECTS.find((f) => f === r.bannerFx) ?? "none",
     bannerPic: BANNER_PICS.find((f) => f === (r.bannerPic ?? legacyPic)) ?? "none",
     avatarUpload: parseUpload(r.avatarUpload),
-    frameUpload: parseUpload(r.frameUpload),
+    frameUpload: parseUpload(r.frameUpload, r.frameScale),
     frameScale: clampFrameScale(r.frameScale),
   };
 }

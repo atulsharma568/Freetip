@@ -12,6 +12,7 @@ import { formatINR, load } from "@/lib/admin/result";
 import { adminDb } from "@/lib/admin/server-db";
 import type { LedgerDb, Query } from "@/lib/accrual";
 import { getPlanOrders } from "@/lib/admin/plan-order-queries";
+import { listCreatorDecor } from "@/lib/decor-library";
 import { OrderTable } from "../../plan-orders/OrderTable";
 import { getPageSummary } from "@/lib/page-doc/store";
 import { requireOwner } from "@/lib/owner-auth";
@@ -86,6 +87,8 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
       `,
     ),
   ]);
+  // Apart from the rest, so a database without migration 0062 only loses this box.
+  const decorRead = await load("the decorations", () => listCreatorDecor(db as unknown as Query, creatorId));
   const copySources = sourcesRead.ok ? sourcesRead.data.map((r) => ({ id: Number(r.id), handle: r.handle, custom: r.custom })) : [];
 
   const closed = c.email.endsWith(CLOSED_EMAIL_DOMAIN);
@@ -287,6 +290,37 @@ export default async function CreatorDetailPage({ params }: { params: Promise<{ 
             copyAction={copyCreatorPage.bind(null, c.id)}
             copySources={copySources}
           />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-text">Decorations</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            Pictures this creator uploaded for their tip page, and pictures you shared with them. Share, withdraw or take one down on the{" "}
+            <Link href={`/admin/decorations?q=${enc(c.handle ?? "")}`} className="underline">
+              Decorations
+            </Link>{" "}
+            page.
+          </p>
+        </div>
+        {!decorRead.ok ? (
+          <CouldNotRead message="Could not read the decorations. Run migration 0062 in Neon." detail={decorRead.error} />
+        ) : decorRead.data.mine.length === 0 && decorRead.data.shared.length === 0 ? (
+          <p className="text-sm text-muted">No uploads, and nothing shared with this creator.</p>
+        ) : (
+          <ul className="space-y-1 text-sm text-text">
+            {decorRead.data.mine.map((i) => (
+              <li key={`m${i.id}`}>
+                Uploaded: {i.name} ({i.kind === "frame" ? "decoration" : "profile picture"}, {i.width}×{i.height})
+              </li>
+            ))}
+            {decorRead.data.shared.map((i) => (
+              <li key={`s${i.id}`}>
+                Shared with them: {i.name} (from @{i.ownerHandle ?? "?"})
+              </li>
+            ))}
+          </ul>
         )}
       </section>
       </div>

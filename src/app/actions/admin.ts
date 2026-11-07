@@ -9,7 +9,8 @@ import { syncBooks } from "@/lib/books-sync";
 import { approveHandleRequest, rejectHandleRequest } from "@/lib/handle-requests";
 import { del } from "@vercel/blob";
 import { takeDownAsset } from "@/lib/page-doc/asset-store";
-import { builtFeatureKeys, featureSnapshot, sanitizeFeatureKeys } from "@/lib/plans";
+import { builtFeatureKeys, featureSnapshot, hasFeature, sanitizeFeatureKeys } from "@/lib/plans";
+import { grantDecor, revokeDecor, takeDownDecor } from "@/lib/decor-library";
 import { endPlanNow, writeFeatureKeys } from "@/lib/plan-orders";
 import { markNeedsLookHandled } from "@/lib/admin/plan-order-queries";
 import { PLAN_KEYS, PLAN_NAMES, type PlanKey } from "@/lib/pricing";
@@ -724,4 +725,93 @@ export async function markPlanPaymentHandled(
   revalidatePath("/admin/plan-orders");
   revalidatePath("/admin/audit");
   return ok("Marked handled.");
+}
+
+
+// ---- Creator decorations (migration 0062): the owner shares a picture with other creators ----
+
+function refreshDecor() {
+  revalidatePath("/admin/decorations");
+  revalidatePath("/admin/audit");
+  revalidatePath("/dashboard/effects");
+}
+
+// Lets other creators use one picture a creator uploaded. The owner types their handles (comma or
+// space separated, with or without @). The creator then finds it under "Shared with you" on their
+// Effects page and decides whether to wear it. A creator who cannot use decorations yet (the "Photo
+// frame and banner effects" feature is off) is named in the answer, because the picture only shows once
+// that is on; nothing is switched on here.
+export async function adminGrantDecor(itemId: number, _prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(itemId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  const raw = formData.get("handles");
+  const handles = [...new Set(String(typeof raw === "string" ? raw : "").toLowerCase().split(/[\s,]+/).map((h) => h.replace(/^@/, "")).filter(Boolean))].slice(0, 50);
+  if (handles.length === 0) return fail("Type the handle of at least one creator.");
+  try {
+    const found = await db<{ id: number; handle: string; paid_features: string[] | null }[]>`
+      select id, handle, paid_features from users where lower(handle) = any(${handles}::text[])
+    `;
+    const [kindRow] = await db<{ kind: string }[]>`select kind from decor_items where id = ${itemId}`;
+    const feature = kindRow?.kind === "banner" ? "tipBanner" : "tipDecor";
+    const missing = handles.filter((h) => !found.some((f) => f.handle.toLowerCase() === h));
+    if (found.length === 0) return fail(`No creator has the handle ${missing.map((h) => `@${h}`).join(", ")}.`);
+    const res = await grantDecor(db as unknown as LedgerDb, itemId, found.map((f) => f.id), reasonOf(formData, "shared by the owner"));
+    if (!res.ok) return fail(res.message);
+    refreshDecor();
+    const off = found.filter((f) => !hasFeature(f, feature)).map((f) => `@${f.handle}`);
+    const notes = [
+      missing.length ? `Not found: ${missing.map((h) => `@${h}`).join(", ")}.` : "",
+      off.length ? `${off.join(", ")} cannot use ${feature === "tipBanner" ? "banners" : "decorations"} yet: switch on "${feature === "tipBanner" ? "Banner on the tip page" : "Photo frame and banner effects"}" for them so it shows.` : "",
+    ].filter(Boolean);
+    return ok(`Shared with ${res.granted} creator${res.granted === 1 ? "" : "s"}. ${notes.join(" ")}`.trim());
+  } catch (err) {
+    console.error("Admin: could not share a decoration (migration 0062 run?)", err);
+    return fail("Could not share it. Has db/migrations/0062_decor_library.sql been run?");
+  }
+}
+
+// Withdraws one creator's use of a shared picture: it stops showing on their page at once.
+export async function adminRevokeDecor(itemId: number, creatorId: number, _prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(itemId) || !validId(creatorId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  try {
+    const done = await revokeDecor(db as unknown as LedgerDb, itemId, creatorId, reasonOf(formData, "withdrawn by the owner"));
+    if (!done) return fail("That creator was not using this picture.");
+  } catch (err) {
+    console.error("Admin: could not withdraw a decoration", err);
+    return fail(SAVE_FAILED);
+  }
+  refreshDecor();
+  return ok("Withdrawn. It no longer shows on that creator's page.");
+}
+
+// Takes a picture down for good: it stops showing on every page (the uploader's and every creator it was
+// shared with) and its files are erased.
+export async function adminTakeDownDecor(itemId: number, _prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireOwner();
+  if (!validId(itemId)) return fail("That request is not valid.");
+  const db = getDb();
+  if (!db) return fail(NO_DB);
+  let urls: string[] = [];
+  try {
+    const res = await takeDownDecor(db as unknown as LedgerDb, itemId, reasonOf(formData, "taken down by the owner"));
+    if (!res.ok) return fail(res.message);
+    urls = res.urls;
+  } catch (err) {
+    console.error("Admin: could not take down a decoration", err);
+    return fail(SAVE_FAILED);
+  }
+  let erased = true;
+  try {
+    await del(urls);
+  } catch (err) {
+    erased = false;
+    console.error("Could not delete decoration files", err);
+  }
+  refreshDecor();
+  return ok(erased ? "Taken down. No page shows it any more." : "Taken down and no page shows it, but its file could not be erased just now.");
 }

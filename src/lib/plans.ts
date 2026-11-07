@@ -215,7 +215,7 @@ export const FEATURES: readonly FeatureInfo[] = [
     key: "tipDecor",
     label: "Photo frame and banner effects",
     group: "Tip page",
-    description: "The creator picks a ready-made animated frame for their photo and an animated effect for their banner (/dashboard/effects). Their own pictures and animations are part of the done-for-you Custom tip page, not this switch. A published Custom tip page decides the look while it is on.",
+    description: "The creator picks a ready-made animated frame for their photo and an animated effect for their banner, and can upload their own profile picture and decoration (/dashboard/effects): checked for format, 3 MB, size, shape and a see-through background, kept in a saved list, placed anywhere on the photo. The owner sees every upload under Decorations and can share one with other creators. A published Custom tip page decides the look while it is on.",
     built: true,
   },
   {
