@@ -1576,3 +1576,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 ## 2026-11-07, tip page speed: connection pool 3 to 6 (Sonnet, medium)
 - Owner said to decide what is best without touching what fans see. Caching and picture resizing stay off. `src/lib/db.ts` pool `max` 3 -> 6, because the tip page now sends up to nine queries at once. Safe with the pooled Neon string (host has `-pooler`, see `.env.example`); if the string is the unpooled one, change it first. No visible change for fans.
 - Next time: time a real tip page load on the deployed site (not local) before doing more; the biggest remaining item is smaller uploaded pictures.
+
+## 2026-11-07, auto trim and shrink for banner and profile pictures (Sonnet, medium; uncommitted)
+- New `src/lib/fit-picture.ts` (`checkOrFitPicture`, browser only): if a picture fails only on shape (too tall/wide) or size (too many pixels or MB), it is trimmed from the middle and shrunk (JPG stays JPG, everything else becomes WebP; quality steps down to fit the byte limit), then checked again. Never enlarges, so a picture below the minimum (e.g. 485 x 619 for a banner) is still refused with the old message. Animated GIF/WebP and decoration frames are never re-drawn.
+- Wired into `BannerManager.tsx` (banner) and `EffectsManager.tsx` (profile picture); the success message says it was trimmed. The server checks are unchanged.
+- tsc and eslint clean. NOT tested in a browser or with a real upload; no spec added. Crop is always the centre (no choosing the part).

@@ -12,7 +12,7 @@ import { warmBannerTints } from "@/components/tip/use-banner-tint";
 import { UploadRules } from "@/components/UploadRules";
 import { looksAnimated, makePoster } from "@/lib/decor-poster";
 import type { DecorItem } from "@/lib/decor-library";
-import { checkPicture } from "@/lib/upload-rules";
+import { checkOrFitPicture } from "@/lib/fit-picture";
 import { checkMediaFile, mediaFileName } from "@/lib/media";
 import { BANNER_MAX_BYTES, BANNER_UPLOAD_KINDS, bannerPathPrefix } from "@/lib/tip-banner";
 import {
@@ -267,11 +267,14 @@ export function EffectsManager({
   // The whole file is checked here against the rules shown on the page (format, size, shape, see-through
   // for a decoration), by what it really is and not by its name; the server checks it again after the
   // upload. A file that passes goes into the creator's library and is picked, ready to place and save.
-  async function uploadDecor(kind: DecorUploadKind, file: File) {
+  async function uploadDecor(kind: DecorUploadKind, chosen: File) {
     setDecorMsg(null);
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const checked = checkPicture(kind === "frame" ? "decorFrame" : "decorAvatar", bytes, file.size);
+    // A profile picture that is too tall, too wide or too large is trimmed from the middle and shrunk
+    // to fit; a decoration is never re-drawn (it is a designed see-through frame).
+    const checked = await checkOrFitPicture(kind === "frame" ? "decorFrame" : "decorAvatar", chosen);
     if (!checked.ok) return say(kind, "error", checked.reason);
+    const file = checked.file;
+    const bytes = checked.bytes;
     const head = bytes.subarray(0, 64);
     setUploading(kind);
     try {
@@ -300,7 +303,7 @@ export function EffectsManager({
       } else {
         setItems((l) => ({ ...l, mine: [res.item, ...l.mine] }));
         setDraft({ item: res.item, placement: res.item.placement });
-        say(kind, "ok", "Uploaded and saved to your list. Check it in the preview, place it, then press Save to my tip page.");
+        say(kind, "ok", `Uploaded and saved to your list. ${checked.note ? `${checked.note} ` : ""}Check it in the preview, place it, then press Save to my tip page.`);
       }
     } catch {
       say(kind, "error", "The upload failed. Check your connection and try again.");

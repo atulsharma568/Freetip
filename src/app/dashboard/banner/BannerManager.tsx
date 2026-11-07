@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { removeTipBanner, copyYouTubeBanner, saveUploadedBanner, wearBannerItem, deleteBannerItem, copyYouTubePhoto, removeTipPhoto } from "@/app/actions/tip-banner";
 import { mediaFileName } from "@/lib/media";
-import { checkPicture } from "@/lib/upload-rules";
+import { checkOrFitPicture } from "@/lib/fit-picture";
 import { UploadRules } from "@/components/UploadRules";
 import type { DecorItem } from "@/lib/decor-library";
 import { bannerPathPrefix } from "@/lib/tip-banner";
@@ -114,14 +114,13 @@ export function BannerManager({
   async function uploadFile(file: File | undefined) {
     if (!file) return;
     setMessage(null);
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const checked = checkPicture("banner", bytes, file.size);
+    const checked = await checkOrFitPicture("banner", file);
     if (!checked.ok) {
       setMessage({ kind: "error", text: checked.reason });
     } else {
       setBusy("upload");
       try {
-        const blob = await upload(`${bannerPathPrefix(creatorId)}${mediaFileName("banner", checked.picture.mime)}`, file, {
+        const blob = await upload(`${bannerPathPrefix(creatorId)}${mediaFileName("banner", checked.picture.mime)}`, checked.file, {
           access: "public",
           handleUploadUrl: "/api/banner/upload",
           contentType: checked.picture.mime,
@@ -129,7 +128,7 @@ export function BannerManager({
         const res = await saveUploadedBanner({ url: blob.url });
         if (res.status === "error") setMessage({ kind: "error", text: res.message });
         else {
-          setMessage({ kind: "ok", text: "Done. Your banner now shows on your tip page." });
+          setMessage({ kind: "ok", text: `Done. Your banner now shows on your tip page.${checked.note ? ` ${checked.note}` : ""}` });
           router.refresh();
         }
       } catch {
