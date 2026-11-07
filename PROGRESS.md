@@ -1566,3 +1566,9 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 
 ## 2026-11-07, plan closed
 - `docs/plans/2026-11-07-library-alert-media-sounds-music.md` is closed by the owner. Reopen only if sound or music sharing is requested later.
+
+## 2026-11-07, tip page speed: queries run together (Sonnet, medium)
+- Speed review of the tip page (read from the code, nothing measured). Owner chose to do only the query chain; the picture-size fix is left out on purpose; caching is not done (see below).
+- `src/app/[handle]/tip-page-data.ts`: the accent, text-to-speech floor and page music are now asked in the first batch with the other six queries, and the page-pictures and Pressure-meter reads run together instead of one after the other. Same data, same rules; the page now waits for about three rounds (batch, tip decoration, pictures and meter) instead of about six. The tip decoration read still waits for the page row because it depends on it.
+- tsc and eslint clean; 63 specs pass (owner page, decor, preview, fixtures, pressure routes, page music) on Chrome against the dev server. Those use fixtures, so the real database path was not exercised; check a real creator page after deploy.
+- Not done: caching the page data (risk: a takedown or save must show at once), a larger DB pool (`max: 3` in `src/lib/db.ts`; check Neon's pooled limit first), smaller uploaded pictures.

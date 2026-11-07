@@ -39,17 +39,22 @@ export interface TipPageOptions {
 export async function loadTipPageData(handle: string, creator: CreatorRow, options: TipPageOptions): Promise<TipPageData> {
   const ownerPage = isOwnerTipPage(handle, creator.google_id);
   const displayName = ownerPage ? ownerBrand() : (creator.display_name ?? creator.name ?? handle);
-  const [sounds, rules, pinOffer, bannerUrl, tipPhoto, pageRow] = await Promise.all([
+  // Everything that does not depend on another answer is asked at once, so the page waits for the
+  // slowest of these, not for the sum. The voice is offered only when the site switch and the creator
+  // both have it on.
+  const voiceWanted = ttsAvailable() && creator.tts_enabled;
+  const [sounds, rules, pinOffer, bannerUrl, tipPhoto, pageRow, storedAccent, ttsFloorPaise, music] = await Promise.all([
     getTipSounds(handle),
     getTipRules(handle),
     getPinOffer(handle),
     getTipBanner(handle),
     getTipPhoto(handle),
     getPageRow(handle),
+    ownerPage ? null : getCreatorAccent(handle),
+    voiceWanted ? getTtsFloorPaise(getDb()) : null,
+    ownerPage ? readPageMusic(creator.id) : null,
   ]);
-  // The voice is offered only when the site switch and the creator both have it on.
-  const voiceMinPaise =
-    ttsAvailable() && creator.tts_enabled ? effectiveTtsMinPaise(creator.tts_min_paise, await getTtsFloorPaise(getDb())) : null;
+  const voiceMinPaise = voiceWanted && ttsFloorPaise !== null ? effectiveTtsMinPaise(creator.tts_min_paise, ttsFloorPaise) : null;
 
   // The page is drawn from a document of blocks: the stored one while the creator's "Custom tip
   // page" switch is on, otherwise today's page (the owner's own page for the owner, whose document
@@ -62,13 +67,14 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
   // A saved Deadpool look is only worn while the owner's page or the paid switch allows it.
   const decor = saved && !mayUseTemplate(ownerPage, pageRow, saved.template) ? { ...saved, template: "classic" as const } : saved;
   const doc = applyTipDecor(baseDoc, decor);
-  const storedAccent = ownerPage ? null : await getCreatorAccent(handle);
   // The pictures the document uses, read in one query and only when it uses any, so a page without
   // pictures costs nothing more. The owner's editor preview gets every live file of the creator
-  // instead, so a file just uploaded can be drawn before it is saved into the draft.
-  const assets = await pageAssets(creator.id, doc, options.editing === true);
-
-  const { meterOn, meter, meterGoals } = await pageMeter(creator.id, doc, pageRow, options.editing === true);
+  // instead, so a file just uploaded can be drawn before it is saved into the draft. The meter's
+  // first reading is read at the same time, since both only need the finished document.
+  const [assets, { meterOn, meter, meterGoals }] = await Promise.all([
+    pageAssets(creator.id, doc, options.editing === true),
+    pageMeter(creator.id, doc, pageRow, options.editing === true),
+  ]);
 
   return {
     handle,
@@ -95,7 +101,7 @@ export async function loadTipPageData(handle: string, creator: CreatorRow, optio
     previewMode: options.previewMode,
     editing: options.editing,
     signature: ownerPage,
-    music: ownerPage ? await readPageMusic(creator.id) : null,
+    music,
   };
 }
 
