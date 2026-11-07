@@ -1543,3 +1543,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 ## 2026-11-07, obs-clip-helper full-quality copy reviewed and committed (Sonnet, medium)
 - The helper now also saves each clip at near-lossless quality (CRF 18, no size cap) in `saveFolder` (default `clips`, `""` turns it off) before the small Discord copy, so a Discord failure never loses footage. Read the diff: imports, error handling and README/config example are consistent. Added 2 unit tests (22 pass). `.gitignore` now ignores `/tools/*/clips`.
 - `test/pipeline.test.mjs` fails to load here (module `ws` not installed; no `node_modules` in the helper). Same failure without these changes; run `npm install` in `tools/obs-clip-helper` to run it. Not run with a real OBS or ffmpeg.
+
+## 2026-11-07, pushed to origin (Haiku, low)
+- Migrations 0062 and 0063 confirmed run in Neon by the owner.
+- Pushed `main` to origin: `16b1841..268c2be`. That covers phases 1 and 2, the banner fixture, the delete confirmation and the obs-clip-helper change. Pushing may trigger a deploy.
+- Still open: a real upload, wear and share with a signed-in session; Safari; a real phone; `npm install` in `tools/obs-clip-helper` before its pipeline test can run; alert media, sounds and music library (not built, needs a design choice).
