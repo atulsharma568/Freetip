@@ -1581,3 +1581,32 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - New `src/lib/fit-picture.ts` (`checkOrFitPicture`, browser only): if a picture fails only on shape (too tall/wide) or size (too many pixels or MB), it is trimmed from the middle and shrunk (JPG stays JPG, everything else becomes WebP; quality steps down to fit the byte limit), then checked again. Never enlarges, so a picture below the minimum (e.g. 485 x 619 for a banner) is still refused with the old message. Animated GIF/WebP and decoration frames are never re-drawn.
 - Wired into `BannerManager.tsx` (banner) and `EffectsManager.tsx` (profile picture); the success message says it was trimmed. The server checks are unchanged.
 - tsc and eslint clean. NOT tested in a browser or with a real upload; no spec added. Crop is always the centre (no choosing the part).
+
+## 2026-11-07, tip page speed from the PageSpeed report for /acepressure (Sonnet, medium; uncommitted)
+- Report: mobile LCP 17 s, desktop 2.9 s; the cause is two decoration animations (2.5 MB of a 3.3 MB page): `black-widow.webp` 2.08 MB (480 px, shown at ~202 px) and `fkimgworkkk.webp` 445 KB. The banner picture already has `priority`; not the problem.
+- Done: `public/decorations/fkimgworkkk.webp` re-encoded 445 KB -> 163 KB (same frames and size, quality 50, Pillow in a /tmp venv). Original is in git history.
+- NOT done, on purpose: `black-widow.webp`. Owner wants no visible change. Re-encoding every frame came out bigger (2.66 MB) than the original; the 1.2 MB versions drop every second frame (half frame rate) or lower the size/quality visibly. Options if wanted later: accept half frame rate, or replace the animation with a lighter one (e.g. a shorter loop or fewer pixels), or serve a smaller file to phones.
+- Other big decorations (sakura 1.8 MB, killua 1.2 MB, nanami 0.96 MB, peaky-blinders 0.95 MB, naoya 0.73 MB): not touched.
+- Not done: `sig-sheen`/`creepy-blink` non-composited animations, legacy JS (14 KiB), SVG without alt text under Agentic Browsing. Re-run PageSpeed after deploying.
+
+## 2026-11-07 (second PageSpeed pass, legacy JS)
+- Removed Next's built-in polyfill chunk (~14 KiB "Legacy JavaScript"): `turbopack.resolveAlias` in `next.config.ts` points `../build/polyfills/polyfill-module` at the empty `src/lib/empty-polyfill.js`. A `browserslist` entry did NOT remove it (Turbopack ships it to everyone). Build and `/` return 200; not yet re-measured on PageSpeed.
+- Mistake and fix: I ran `git checkout` on `public/decorations/fkimgworkkk.webp`, which discarded the earlier uncommitted re-encode. Regenerated it the same way (Pillow, q50, 52 frames, 426x238): 455,712 -> 168,956 bytes (was 163 KB). Commit it.
+- Not done: LCP is the analytics consent banner, which only renders after hydration (useSyncExternalStore starts "pending"), so its paint waits for JS. Fixing means rendering it in the server HTML and hiding it for returning visitors before paint. Forced reflows (~290 ms) and 4 long tasks come from the JS at startup; not investigated.
+
+## 2026-11-07, black widow re-rendered from its code (Sonnet, medium; uncommitted)
+- The widow is drawn by `tools/decor-render` (not an artwork file), so it was re-rendered instead of re-encoded: `node tools/decor-render/render.mjs webp --out 360 --q 62 --aq 28`. Same timeline and frame rates (278 frames, ~14 s, same motion); only the picture size (480 -> 360 px, shown at ~202 px) and the compression changed. `black-widow.webp` 2.08 MB -> 1.29 MB; poster re-made at 360 px. Compared frames 20, 100, 200 old vs new at display size: no visible difference. Loop gap mean 0.001.
+- `FILE_FRAMES` scale (220) is unchanged: it depends on the art's proportions, not its pixel size. The size budget in `test/page-decor.spec.ts` is still 2.6 MB (could be tightened to ~1.5 MB).
+- Not run: the page-decor spec after the swap; PageSpeed after deploy.
+- Other files showing as modified (`next.config.ts`, `src/app/globals.css`, `src/app/layout.tsx`, `src/components/Analytics.tsx`, `src/lib/empty-polyfill.js`) were not made by this work; left out of the commit.
+
+## 2026-11-07 (consent banner in server HTML)
+- LCP fix: the analytics banner is now in the server HTML (`Analytics.tsx` server snapshot is `null`, not "pending"). An inline script in `layout.tsx` sets `html[data-consent]` before paint and `globals.css` hides `[data-consent-banner]` then; `<html>` got `suppressHydrationWarning`. Only active when `NEXT_PUBLIC_GA_ID` is set.
+- Checked in Chrome with a local prod build: new visitor sees the banner, "No thanks" removes it, a returning visitor never gets it. The console errors seen locally are Auth.js (no AUTH_SECRET), unrelated.
+- Still open: re-run PageSpeed after deploy; forced reflows (~290 ms) and 4 long tasks at startup not investigated; low-contrast headline words flagged under Accessibility not investigated.
+
+## 2026-11-07 (startup JS investigation)
+- Chrome CPU profile (4x throttle, 412 px wide): JS self time is small (~400 ms total, spread thin across React and the bundle); native style/layout/paint ("program", ~860 ms) is the bigger share. No single hot JS function to fix.
+- Done: the sample QR in `Differentiators.tsx` is one `<path>` instead of 162 `<rect>`s (DOM 1,189 -> ~1,027 elements, same look). tsc and eslint clean.
+- Not done, on purpose (visible design change): `GlobalBackground.tsx` keeps redrawing its canvas every frame after the page is blurred to 22% opacity. Pausing or halving the loop once `sunk` would save main-thread time during scroll but freezes/changes the faint orbit. Forced reflows come from `TipCard.tsx` (getBoundingClientRect, line ~261) and the Lenis/GSAP setup; not changed.
+- Still open: re-run PageSpeed after deploy; low-contrast headline words under Accessibility.
