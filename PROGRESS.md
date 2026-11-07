@@ -1558,3 +1558,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Wrote `docs/plans/2026-11-07-library-alert-media-sounds-music.md`: why it was deferred, three options (recommend: share only page music and sounds, leave alert media on its existing review), and three questions for the owner. Nothing in code changed.
 - This was planned at Haiku/low, which is thin for a schema decision. Get a Sonnet medium pass on the plan before building.
 - Still open: answers to the plan's questions; pushing `6dd4970`; a real upload/wear/share with a session; Safari; a real phone.
+
+## 2026-11-07, decision on the deferred library (owner)
+- Alert media: leave as is; no sharing, no second review path.
+- Sounds and page music sharing: not built. The owner is unsure they want it, so it stays off until they say so. Nothing else from the plan is started.
+- Plan status updated in `docs/plans/2026-11-07-library-alert-media-sounds-music.md`.
