@@ -178,7 +178,7 @@ export function QrTile({ handle }: { handle: string }) {
         aria-label={`QR code for ${SITE_HOST}/${handle}`}
         className="shrink-0 rounded-[var(--radius-field)] border-2 border-ink p-2"
       >
-        <QRCodeSVG value={url} size={104} fgColor={INK_HEX} bgColor="transparent" level="M" />
+        <QRCodeSVG value={url} size={104} fgColor={INK_HEX} bgColor="transparent" level="M" aria-hidden="true" />
       </div>
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-semibold">Scan to tip from your phone</p>
