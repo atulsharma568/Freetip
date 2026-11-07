@@ -1,6 +1,6 @@
 # Plan: library for alert media, sounds and page music (deferred from phase 2)
 
-Status: DECIDED, nothing to build now. Alert media: leave as is (owner, 2026-11-07). Sounds and page music sharing: not built; the owner is not sure they want it, so it stays off until they say so.
+Status: CLOSED 2026-11-07 (owner). Reopen only if the owner asks for sound or music sharing. Alert media: leave as is (owner, 2026-11-07). Sounds and page music sharing: not built; the owner is not sure they want it, so it stays off until they say so.
 
 ## Why it was deferred
 Phase 2 (banner library, migration 0063) reused `decor_items` because images share one set of limits. These three kinds do not fit that table cleanly:

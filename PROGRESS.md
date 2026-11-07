@@ -1563,3 +1563,6 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Alert media: leave as is; no sharing, no second review path.
 - Sounds and page music sharing: not built. The owner is unsure they want it, so it stays off until they say so. Nothing else from the plan is started.
 - Plan status updated in `docs/plans/2026-11-07-library-alert-media-sounds-music.md`.
+
+## 2026-11-07, plan closed
+- `docs/plans/2026-11-07-library-alert-media-sounds-music.md` is closed by the owner. Reopen only if sound or music sharing is requested later.
