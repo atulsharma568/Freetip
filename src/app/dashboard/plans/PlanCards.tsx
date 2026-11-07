@@ -32,7 +32,7 @@ const rupees = (n: number) => `₹${new Intl.NumberFormat("en-IN").format(n)}`;
 // follows the mouse); only the look is borrowed, the prices and the Pay step are this page's own.
 // The light is decoration and mouse only; the chosen plan gets an accent edge.
 const cardBox =
-  "group/card spotlight-nav-bg relative isolate flex flex-col gap-5 overflow-hidden rounded-[var(--radius-surface)] border bg-surface p-5 transition-colors duration-300";
+  "group/card spotlight-nav-bg relative isolate flex flex-col gap-5 overflow-hidden rounded-[var(--radius-surface)] border bg-surface p-5 transition-colors duration-200";
 
 function followPointer(e: React.PointerEvent<HTMLElement>) {
   if (e.pointerType !== "mouse") return;
@@ -118,7 +118,7 @@ export function PlanCards({
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+              className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100"
               style={{ background: "radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), color-mix(in oklab, var(--color-accent) 14%, transparent), transparent 70%)" }}
             />
             <div className="space-y-1">

@@ -14,6 +14,8 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
   const input = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(music?.title ?? "");
   const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
+  const [pct, setPct] = useState(0);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [msg, setMsg] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
 
   async function onFile(file: File) {
@@ -22,11 +24,13 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
     if (!(MUSIC_TYPES as readonly string[]).includes(mime)) return setMsg({ kind: "error", text: "Choose an MP3, M4A, OGG or WAV file." });
     if (file.size > MUSIC_MAX_BYTES) return setMsg({ kind: "error", text: `That file is over ${MUSIC_MAX_BYTES / 1024 / 1024} MB.` });
     setBusy("upload");
+    setPct(0);
     try {
       const blob = await upload(`${musicPathPrefix(creatorId)}${musicFileName(mime)}`, file, {
         access: "public",
         handleUploadUrl: "/api/page-music/upload",
         contentType: mime,
+        onUploadProgress: ({ percentage }) => setPct(Math.round(percentage)),
       });
       const name = title.trim() || file.name.replace(/\.[^.]+$/, "");
       const res = await savePageMusic({ url: blob.url, title: name });
@@ -44,6 +48,8 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
   }
 
   async function onRemove() {
+    if (!confirmRemove) return setConfirmRemove(true);
+    setConfirmRemove(false);
     setMsg(null);
     setBusy("remove");
     const res = await removePageMusic();
@@ -67,27 +73,29 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
       {music && (
         <div className="space-y-2">
           <p className="text-sm text-muted">Now on your page: {music.title}</p>
-          <audio controls preload="none" src={music.url} className="w-full max-w-md">
-            <track kind="captions" />
-          </audio>
+          <audio controls preload="none" src={music.url} className="w-full max-w-md" />
         </div>
       )}
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm">
           <span className="block text-muted">Title shown in the player</span>
           <input
+            name="music-title"
+            autoComplete="off"
+            placeholder="Night drive…"
             value={title}
             maxLength={MUSIC_TITLE_MAX}
             onChange={(e) => setTitle(e.target.value)}
-            className="min-h-11 w-64 max-w-full rounded-[var(--radius-field)] border border-control bg-transparent px-3 text-text focus:border-accent"
+            className="min-h-11 w-64 max-w-full rounded-[var(--radius-field)] border border-control bg-transparent px-3 text-text focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           />
         </label>
         <label
+          title={!uploadsReady ? "Uploads are not set up on this server yet." : undefined}
           className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
             !uploadsReady || busy ? "pointer-events-none opacity-50" : ""
           }`}
         >
-          {busy === "upload" ? "Uploading…" : music ? "Replace track" : "Upload track"}
+          {busy === "upload" ? `Uploading… ${pct}%` : music ? "Replace track" : "Upload track"}
           <input
             ref={input}
             type="file"
@@ -105,10 +113,11 @@ export function MusicUpload({ creatorId, music, uploadsReady }: { creatorId: num
           <button
             type="button"
             onClick={onRemove}
+            onBlur={() => setConfirmRemove(false)}
             disabled={busy !== null}
             className="inline-flex min-h-11 items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted disabled:opacity-50"
           >
-            {busy === "remove" ? "Removing…" : "Remove"}
+            {busy === "remove" ? "Removing…" : confirmRemove ? "Confirm remove" : "Remove"}
           </button>
         )}
       </div>

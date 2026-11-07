@@ -43,6 +43,8 @@ export function SpotlightNavbar({
   const links = useRef(new Map<string, HTMLAnchorElement>());
   const spot = useRef(0);
   const ambience = useRef(0);
+  // The spring now running for each CSS variable, so a new move stops it instead of fighting it.
+  const running = useRef(new Map<string, { stop: () => void }>());
   const [hovering, setHovering] = useState(false);
   useWheelScroll(nav);
 
@@ -57,12 +59,13 @@ export function SpotlightNavbar({
     (ref: { current: number }, prop: string, to: number) => {
       const n = nav.current;
       if (!n) return;
+      running.current.get(prop)?.stop();
       if (reduced()) {
         ref.current = to;
         n.style.setProperty(prop, `${to}px`);
         return;
       }
-      animate(ref.current, to, {
+      const controls = animate(ref.current, to, {
         type: "spring",
         stiffness: 200,
         damping: 20,
@@ -71,6 +74,7 @@ export function SpotlightNavbar({
           n.style.setProperty(prop, `${v}px`);
         },
       });
+      running.current.set(prop, controls);
     },
     [],
   );
@@ -102,6 +106,11 @@ export function SpotlightNavbar({
     n.scrollLeft = Math.max(0, el.offsetLeft - 24);
   }, [current]);
 
+  useEffect(() => {
+    const live = running.current;
+    return () => live.forEach((c) => c.stop());
+  }, []);
+
   const { light, glow } = TONES[tone];
 
   return (
@@ -124,10 +133,13 @@ export function SpotlightNavbar({
         if (x != null) move(spot, "--spotlight-x", x);
       }}
       className={cn(
-        "spotlight-nav-bg glass-border spotlight-nav-shadow relative isolate flex max-w-full select-none items-center overflow-x-auto rounded-full px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "spotlight-nav-bg glass-border spotlight-nav-shadow relative isolate max-w-full select-none overflow-x-auto rounded-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
+      {/* The inner row is as wide as all the links, so the lights below reach every link when the
+          row scrolls sideways (they used to stop at the visible width). */}
+      <div className="relative flex w-max min-w-full items-center px-1">
       {/* Spotlight that follows the pointer (mouse only). */}
       <span
         aria-hidden="true"
@@ -158,7 +170,7 @@ export function SpotlightNavbar({
             aria-current={isCurrent ? (kind === "page" ? "page" : "location") : undefined}
             data-current={isCurrent ? "" : undefined}
             className={cn(
-              "relative inline-flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200",
+              "relative inline-flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200 focus-visible:outline-offset-[-3px]",
               isCurrent ? "text-text" : "text-muted hover:text-text",
             )}
           >
@@ -166,6 +178,7 @@ export function SpotlightNavbar({
           </Link>
         );
       })}
+      </div>
     </nav>
   );
 }
