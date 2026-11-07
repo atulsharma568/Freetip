@@ -1572,3 +1572,7 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - `src/app/[handle]/tip-page-data.ts`: the accent, text-to-speech floor and page music are now asked in the first batch with the other six queries, and the page-pictures and Pressure-meter reads run together instead of one after the other. Same data, same rules; the page now waits for about three rounds (batch, tip decoration, pictures and meter) instead of about six. The tip decoration read still waits for the page row because it depends on it.
 - tsc and eslint clean; 63 specs pass (owner page, decor, preview, fixtures, pressure routes, page music) on Chrome against the dev server. Those use fixtures, so the real database path was not exercised; check a real creator page after deploy.
 - Not done: caching the page data (risk: a takedown or save must show at once), a larger DB pool (`max: 3` in `src/lib/db.ts`; check Neon's pooled limit first), smaller uploaded pictures.
+
+## 2026-11-07, tip page speed: connection pool 3 to 6 (Sonnet, medium)
+- Owner said to decide what is best without touching what fans see. Caching and picture resizing stay off. `src/lib/db.ts` pool `max` 3 -> 6, because the tip page now sends up to nine queries at once. Safe with the pooled Neon string (host has `-pooler`, see `.env.example`); if the string is the unpooled one, change it first. No visible change for fans.
+- Next time: time a real tip page load on the deployed site (not local) before doing more; the biggest remaining item is smaller uploaded pictures.

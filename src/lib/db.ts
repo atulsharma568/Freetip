@@ -12,7 +12,9 @@ export function getDb() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   cache.sql ??= postgres(url, {
-    max: 3,
+    // The tip page asks up to nine things at once; with 3 connections the rest would queue. The pooled
+    // Neon string (PgBouncer) accepts many client connections, so a few more per instance is safe.
+    max: 6,
     prepare: false,
     idle_timeout: 20,
     connect_timeout: 10,
