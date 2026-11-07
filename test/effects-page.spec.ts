@@ -90,7 +90,7 @@ test.describe("the Effects picker", () => {
   test("the decoration upload states exactly what can be uploaded", async ({ page }) => {
     await page.goto("/dev-fixtures/effects");
     const rules = page.getByRole("list", { name: "What you can upload" }).nth(1);
-    for (const part of ["PNG, GIF or WebP", "Not JPG, not video", "up to 3 MB", "512 × 512 to 4096 × 4096 pixels", "see-through"]) {
+    for (const part of ["PNG, GIF or WebP", "Not JPG, not video", "up to 3 MB", "at least 512 × 512 pixels, at most 4096 on the longest side", "see-through"]) {
       await expect(rules).toContainText(part);
     }
     await expect(page.getByRole("list", { name: "What you can upload" }).first()).toContainText("256 × 256");

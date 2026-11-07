@@ -154,6 +154,8 @@ function DraftBar({
   onDelete: (item: DecorItem) => void;
   ownId: number;
 }) {
+  // Deleting is for good (every page wearing the picture loses it), so it asks twice.
+  const [sure, setSure] = useState(false);
   if (!draft || draft.item.kind !== kind) return null;
   const own = draft.item.creatorId === ownId;
   return (
@@ -165,8 +167,8 @@ function DraftBar({
         Not now
       </button>
       {own && (
-        <button type="button" onClick={() => onDelete(draft.item)} disabled={busy} className={pillOutline}>
-          Delete this picture
+        <button type="button" onClick={() => (sure ? onDelete(draft.item) : setSure(true))} onBlur={() => setSure(false)} disabled={busy} className={pillOutline}>
+          {sure ? "Delete for good?" : "Delete this picture"}
         </button>
       )}
     </div>

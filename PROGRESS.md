@@ -1533,3 +1533,9 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 ## 2026-11-07, browser check of the banner and Effects pages (Sonnet, medium)
 - Added test-only `src/app/dev-fixtures/banner/page.tsx` (404 unless PAGE_FIXTURES=1) with a made-up creator, "My uploads" and "Shared with you" items. Looked at it and `/dev-fixtures/effects` in headless Chrome on the dev server: the upload rules list, both banner lists with Use/Delete buttons, the saved-pictures tile and the Template picker all render correctly. The "Issues" badge in dev is only the sign-in config error (no auth env locally), not these pages.
 - Still not checked: real upload/wear/share with a session and DB, Safari, phone width, clicking the buttons.
+
+## 2026-11-07, phone-width and click check (Sonnet, medium)
+- Both fixture pages: no sideways scroll at 390 px. Pressing the buttons without a session shows "Sign in again to change your tip page banner." as expected.
+- Found: Delete on a banner or decoration was one click and permanent (erases the file, removes it from every page it was shared with). Now two clicks: the button turns into "Delete for good?" and resets when it loses focus (`BannerManager.tsx`, `EffectsManager.tsx` DraftBar).
+- Found: `effects-page.spec.ts` "upload states exactly what can be uploaded" was stale since the phase 2 wording change; updated. All 11 effects-page specs pass (Chrome, dev server on port 3000, temporary config deleted).
+- Still not checked: real upload/wear/share with a session and DB, Safari, a real phone.

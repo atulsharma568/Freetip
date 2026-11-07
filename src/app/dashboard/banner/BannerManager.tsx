@@ -47,6 +47,8 @@ export function BannerManager({
   const router = useRouter();
   const [busy, setBusy] = useState<"copy" | "remove" | "upload" | "photo" | "photo-reset" | "library" | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // Delete is for good (and takes the banner off every page it was shared with), so it asks twice.
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   // The photo buttons answer in their own tile, not in the banner's.
   const [photoMessage, setPhotoMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
@@ -82,6 +84,7 @@ export function BannerManager({
     setMessage(null);
     const res = await deleteBannerItem({ itemId });
     setBusy(null);
+    setConfirmDelete(null);
     if (res.status === "error") return setMessage({ kind: "error", text: res.message });
     setMessage({ kind: "ok", text: "Deleted. It no longer shows on any page." });
     router.refresh();
@@ -229,8 +232,8 @@ export function BannerManager({
                                 {saved === item.url ? "On your page" : "Use this banner"}
                               </button>
                               {own && (
-                                <button type="button" disabled={busy !== null} onClick={() => deleteItem(item.id)} className="inline-flex min-h-11 items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted disabled:opacity-50">
-                                  Delete
+                                <button type="button" disabled={busy !== null} onClick={() => (confirmDelete === item.id ? deleteItem(item.id) : setConfirmDelete(item.id))} onBlur={() => setConfirmDelete((c) => (c === item.id ? null : c))} className="inline-flex min-h-11 items-center rounded-full border border-control px-5 text-sm transition-colors duration-150 hover:border-muted disabled:opacity-50">
+                                  {confirmDelete === item.id ? "Delete for good?" : "Delete"}
                                 </button>
                               )}
                             </div>
