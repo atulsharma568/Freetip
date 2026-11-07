@@ -11,6 +11,13 @@ const securityHeaders = [
 const sameSiteFrame = [{ key: "X-Frame-Options", value: "SAMEORIGIN" }];
 
 const nextConfig: NextConfig = {
+  // Next bundles polyfills (Array.prototype.at/flat, Object.fromEntries/hasOwn, trimStart...) into
+  // every page load, ~14 KiB. Chrome/Edge/Firefox 111+ and Safari 16.4+ have all of them natively.
+  turbopack: {
+    resolveAlias: {
+      "../build/polyfills/polyfill-module": "./src/lib/empty-polyfill.js",
+    },
+  },
   images: {
     // Creator avatars are Google account photos; a creator's YouTube banner is on the same hosts.
     remotePatterns: [

@@ -1616,3 +1616,15 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - Sizes: sakura 1.83 -> 1.42 MB, killua 1.19 -> 0.94, nanami 0.96 -> 0.70, peaky-blinders 0.95 -> 0.74, naoya 0.73 -> 0.54 (about 1.5 MB less in total). Posters unchanged. Originals are in git history.
 - Not touched: solo-leveling 0.38 MB, eternal 0.36, apple-kitty, explosive-cat, toney, angel (small already). Going lower than quality 65 from already-lossy files would start to show.
 - Not run: specs after the swap; PageSpeed on a page using these.
+
+## 2026-11-07 (contrast)
+- Cause of the Accessibility "contrast" failures: `RevealWords` started its words at opacity 0.5; axe measured the muted words at 2.9:1 mid-fade (reproduced locally with axe-core, 4x CPU throttle, scrolling to #why and the fee tile). Fix: start at 0.85. Same axe sweep now finds 0 split-word failures. Only the dim-to-full "light up" is a little subtler.
+- Other mid-fade section contrast hits in my sweep (section fade-ins on scroll) were not what PageSpeed flagged; not changed.
+- Still open: re-run PageSpeed after deploy; commit (nothing is committed).
+
+## 2026-11-07, small PageSpeed fixes (Sonnet, medium; uncommitted)
+- `CreatorPanel.tsx`: the QR on the tip page (`QrTile`) now passes `aria-hidden` to `QRCodeSVG` (the library puts `role="img"` with no text on the svg; the wrapper div already has the label). Fixes the "svg with role img must have alternative text" failure.
+- `globals.css`: `creepy-blink` now animates `transform: scaleY` instead of `height` (same timing, shrinks around the centre; compositor friendly).
+- Left alone on purpose: `sig-sheen` (signature name shine; it is a gradient clipped to text, so only `background-position` can move it, a redesign would change the look), `bfx-embers --fx-color` (a custom property), the dashboard QR (`CreatorQR.tsx`, same pattern, not flagged).
+- Not mine, not touched: uncommitted work on `next.config.ts` + `src/lib/empty-polyfill.js` (legacy JS polyfills), the analytics banner (`layout.tsx`, `Analytics.tsx`, `globals.css` end), `Differentiators.tsx` QR as one path, `RevealWords.tsx`.
+- tsc, eslint clean; page-editor and owner-page specs pass (46) on Chrome.

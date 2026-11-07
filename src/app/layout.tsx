@@ -43,7 +43,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${mono.variable} ${display.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Runs before first paint so a returning visitor never sees the analytics banner flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var c=localStorage.getItem("freetip-analytics-consent");if(c==="granted"||c==="denied")document.documentElement.dataset.consent=c}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <Providers>
           <SmoothScroll />

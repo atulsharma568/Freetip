@@ -19,7 +19,9 @@ function subscribe(fn: () => void) {
   listeners.add(fn);
   return () => void listeners.delete(fn);
 }
-// Server render and the first client render both see "pending", so they match.
+// The server render and the first client render both see no choice, so the banner is in the
+// server HTML and paints without waiting for the scripts. The inline script in the layout hides it
+// before first paint for visitors who already chose; this component then removes it.
 let memory: Choice = null;
 
 function readChoice(): Choice {
@@ -36,9 +38,9 @@ function readChoice(): Choice {
 // no cookie is set until the visitor presses Accept.
 export function Analytics() {
   const pathname = usePathname();
-  const choice = useSyncExternalStore(subscribe, readChoice, () => "pending" as const);
+  const choice = useSyncExternalStore(subscribe, readChoice, () => null);
 
-  if (!GA_ID || choice === "pending" || QUIET.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (!GA_ID || QUIET.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return null;
   }
 
@@ -66,6 +68,7 @@ export function Analytics() {
         <div
           role="region"
           aria-label="Analytics choice"
+          data-consent-banner
           className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-xl flex-col gap-3 rounded-field border border-line bg-surface p-4 text-sm text-text sm:flex-row sm:items-center"
         >
           <p className="flex-1 text-muted">

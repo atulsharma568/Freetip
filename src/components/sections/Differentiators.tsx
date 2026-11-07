@@ -146,20 +146,12 @@ export function Differentiators() {
                 aria-hidden="true"
               >
                 <rect width="17" height="17" fill="var(--color-ground)" />
-                {QR_MODULES.map((row, y) =>
-                  row.split("").map((cell, x) =>
-                    cell === "1" ? (
-                      <rect
-                        key={`${x}-${y}`}
-                        x={x}
-                        y={y}
-                        width="1"
-                        height="1"
-                        fill="var(--color-accent)"
-                      />
-                    ) : null,
-                  ),
-                )}
+                <path
+                  fill="var(--color-accent)"
+                  d={QR_MODULES.map((row, y) =>
+                    row.split("").map((cell, x) => (cell === "1" ? `M${x} ${y}h1v1h-1z` : "")).join(""),
+                  ).join("")}
+                />
               </svg>
               <p className="mt-3 max-w-[10rem] text-center text-[0.65rem] font-semibold uppercase leading-tight tracking-[0.1em] text-muted">
                 Non-scannable sample QR
