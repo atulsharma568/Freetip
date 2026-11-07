@@ -1553,3 +1553,8 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 - `npm install` in `tools/obs-clip-helper` fails here: npm points at the internal registry (unpm.uberinternal.com) and needs a login. Workaround that leaves the lockfile alone: `npm install --no-save --registry=https://registry.npmjs.org/`.
 - With that, `npm test` passes: 28 of 28 (includes pipeline.test.mjs, which needs `ws`).
 - Still open: a real upload, wear and share with a signed-in session; Safari; a real phone; alert media, sounds and music library (not built, needs a design choice).
+
+## 2026-11-07, plan for alert media, sounds and music library (Haiku, low; plan only, nothing built)
+- Wrote `docs/plans/2026-11-07-library-alert-media-sounds-music.md`: why it was deferred, three options (recommend: share only page music and sounds, leave alert media on its existing review), and three questions for the owner. Nothing in code changed.
+- This was planned at Haiku/low, which is thin for a schema decision. Get a Sonnet medium pass on the plan before building.
+- Still open: answers to the plan's questions; pushing `6dd4970`; a real upload/wear/share with a session; Safari; a real phone.
