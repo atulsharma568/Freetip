@@ -42,6 +42,7 @@ export default async function EffectsPage() {
   const saved = await readTipDecor(user.id);
   const startFx = start && start.bannerFx !== "custom" ? start.bannerFx : "none";
   const current: TipDecor = saved ?? {
+    template: "classic",
     avatar: start ? start.avatar : "none",
     frame: start && start.frame !== "custom" ? start.frame : "none",
     bannerFx: isFileFx(startFx) ? "none" : (startFx as PresetEffect),
@@ -93,6 +94,7 @@ export default async function EffectsPage() {
           creatorId={user.id}
           uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN}
           canUploadBanner={bannerOn}
+          templates={ownerPage ? undefined : ["classic"]}
         />
         {ownerPage && <MusicUpload creatorId={user.id} music={music} uploadsReady={!!process.env.BLOB_READ_WRITE_TOKEN} />}
       </div>

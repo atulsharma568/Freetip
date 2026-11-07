@@ -71,6 +71,7 @@ export function HeaderBlock({ block }: { block: Block<"header"> }) {
       bio={bio}
       previewMode={previewMode}
       signature={signature}
+      template={decorLayers?.template}
     />
   );
   if (asset && usableFor(asset.kind, "banner")) {

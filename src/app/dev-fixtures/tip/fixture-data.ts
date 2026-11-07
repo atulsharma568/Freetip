@@ -47,7 +47,7 @@ function fixtureMeter(doc: PageDoc, percent: string | undefined, title: string |
   return { meterOn: true, meter: goal ? meterReading(goal, block.settings) : null };
 }
 
-export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: boolean; min?: string; meter?: string; mtitle?: string } = {}): TipPageData {
+export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: boolean; min?: string; meter?: string; mtitle?: string; template?: string } = {}): TipPageData {
   return {
     ...fixtureMeter(doc, options.meter, options.mtitle),
     handle: "samplecreator",
@@ -78,5 +78,6 @@ export function fixtureData(owner: boolean, doc: PageDoc, options: { editing?: b
     pinOffer: { minPaise: 20000, seconds: 30 },
     previewMode: false,
     editing: options.editing,
+    ...(options.template === "deadpool" ? { decorLayers: { template: "deadpool" as const, avatarUpload: null, frameUpload: null, frameScale: 144, bannerPic: "none" as const } } : {}),
   };
 }

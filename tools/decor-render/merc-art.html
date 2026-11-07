@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}svg{display:block}</style>
+<body>
+<div id="root"></div>
+<script>
+// Original art for the Deadpool-style template: a chibi masked mercenary, hearts and swords.
+// window.draw(scene, t) puts one frame into the page; t runs 0..1 and every motion takes whole turns
+// per loop, so the end meets the start.
+const TAU = Math.PI * 2;
+const S = (t, k = 1, p = 0) => Math.sin(TAU * (t * k + p));
+const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+
+const DEFS = `
+<defs>
+  <radialGradient id="skin" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#ff6a68"/><stop offset=".45" stop-color="#d4161f"/><stop offset="1" stop-color="#6e0912"/></radialGradient>
+  <radialGradient id="pink" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#ffc2d6"/><stop offset=".5" stop-color="#ff5f8f"/><stop offset="1" stop-color="#b3123f"/></radialGradient>
+  <radialGradient id="patch" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#3a2a2e"/><stop offset="1" stop-color="#07030400"/><stop offset="1" stop-color="#070304"/></radialGradient>
+  <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfdff"/><stop offset=".45" stop-color="#b9c0cc"/><stop offset=".55" stop-color="#e6eaf0"/><stop offset="1" stop-color="#7d8594"/></linearGradient>
+  <linearGradient id="grip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b3b44"/><stop offset="1" stop-color="#0b0b0f"/></linearGradient>
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff2a3a" stop-opacity=".75"/><stop offset="1" stop-color="#ff2a3a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glove" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#4b4b55"/><stop offset="1" stop-color="#0a0a0d"/></radialGradient>
+  <filter id="pencil" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="4.5"/></filter>
+  <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="soft2"><feGaussianBlur stdDeviation="2.2"/></filter>
+  <filter id="drop" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity=".55"/></filter>
+</defs>`;
+
+const HEART = "M0,-12 C0,-34 -38,-34 -38,-8 C-38,16 -4,30 0,48 C4,30 38,16 38,-8 C38,-34 0,-34 0,-12Z";
+
+// a heart with a gloss, a dark ink edge, and a pencil wobble
+function heart(x, y, size, rot = 0, op = 1, sketchy = true) {
+  const k = size / 40;
+  return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${k})" opacity="${op}" ${sketchy ? 'filter="url(#pencil)"' : ""}>
+    <path d="${HEART}" fill="url(#pink)" stroke="#2a0612" stroke-width="${3.2 / k * (k > 1 ? 1 : 1)}" stroke-linejoin="round"/>
+    <path d="M-26,-14 C-28,-24 -16,-27 -10,-22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+  </g>`;
+}
+
+// the chibi head, centred on 0,0, about 100 wide. blink 0..1 (1 shut), look -1..1
+function head(blink = 0, look = 0, smile = 1) {
+  const eyeScale = 1 - 0.92 * blink;
+  const eye = (side) => `
+    <g transform="scale(${side} 1)">
+      <path d="M-4,4 C-4,-16 -22,-24 -40,-14 C-47,-4 -40,16 -22,18 C-12,18 -5,12 -4,4Z" fill="#0a0406" transform="rotate(${-10} -24 2)"/>
+      <path d="M-8,2 C-9,-9 -20,-15 -34,-9 C-37,-3 -33,8 -22,10 C-14,10 -9,7 -8,2Z" fill="#0f0709" opacity="0"/>
+      <g transform="translate(${-23 + look * 3} 2) rotate(-10) scale(1 ${eyeScale})">
+        <path d="M-15,2 C-14,-10 -2,-13 12,-6 C13,2 6,10 -4,10 C-10,10 -15,7 -15,2Z" fill="#fbfbff"/>
+        <path d="M-15,2 C-14,-10 -2,-13 12,-6 C13,-4 12,-3 11,-1 C0,-8 -10,-3 -15,2Z" fill="#c9cfe0" opacity=".7"/>
+      </g>
+    </g>`;
+  return `<g filter="url(#drop)">
+    <ellipse cx="0" cy="0" rx="50" ry="46" fill="url(#skin)" stroke="#1b0509" stroke-width="5"/>
+    <path d="M0,-45 C-3,-30 3,-22 0,-10" fill="none" stroke="#4a050c" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+    <path d="M-28,-34 C-14,-44 14,-44 28,-34" fill="none" stroke="#4a050c" stroke-width="2" opacity=".45"/>
+    ${eye(1)}${eye(-1)}
+    <path d="M-12,25 C-5,${25 + 6 * smile} 5,${25 + 6 * smile} 12,25" fill="none" stroke="#2b060b" stroke-width="3.2" stroke-linecap="round"/>
+    <ellipse cx="-31" cy="22" rx="9" ry="5" fill="#ff8aa8" opacity=".55"/><ellipse cx="31" cy="22" rx="9" ry="5" fill="#ff8aa8" opacity=".55"/>
+    <ellipse cx="-20" cy="-30" rx="17" ry="8" fill="#fff" opacity=".28" transform="rotate(-25 -20 -30)"/>
+  </g>`;
+}
+
+// a gloved fist/hand: a dark rounded blob with a lit edge and a white cuff
+function glove(x, y, r = 16, rot = 0) {
+  return `<g transform="translate(${x} ${y}) rotate(${rot})">
+    <rect x="${-r * 0.7}" y="${r * 0.55}" width="${r * 1.4}" height="${r * 0.7}" rx="${r * 0.25}" fill="#f3f3f7" stroke="#14070b" stroke-width="2.4"/>
+    <circle r="${r}" fill="url(#glove)" stroke="#05030a" stroke-width="2.6"/>
+    <path d="M${-r * 0.55},${-r * 0.45} C${-r * 0.2},${-r * 0.85} ${r * 0.3},${-r * 0.85} ${r * 0.5},${-r * 0.5}" fill="none" stroke="#9aa0b8" stroke-width="2.2" stroke-linecap="round" opacity=".8"/>
+  </g>`;
+}
+
+function sword(x, y, len, rot, op = 1, glint = -1) {
+  const g = glint >= 0 ? `<rect x="${glint * len - 8}" y="-6" width="9" height="12" fill="#fff" opacity=".9" transform="skewX(-25)"/>` : "";
+  return `<g transform="translate(${x} ${y}) rotate(${rot})" opacity="${op}" filter="url(#drop)">
+    <path d="M0,-5 L${len},-3 L${len + 14},0 L${len},3 L0,5Z" fill="url(#blade)" stroke="#262a33" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M6,-1.2 L${len},-.6" stroke="#fff" stroke-width="1.2" opacity=".75"/>
+    ${g}
+    <rect x="-8" y="-10" width="5" height="20" rx="2" fill="#7a0d16" stroke="#14070b" stroke-width="1.6"/>
+    <rect x="-38" y="-4.5" width="31" height="9" rx="4" fill="url(#grip)" stroke="#050507" stroke-width="1.6"/>
+    <path d="M-34,-2 L-10,-2 M-34,2 L-10,2" stroke="#c0141e" stroke-width="1.4" opacity=".7"/>
+  </g>`;
+}
+
+const scenes = {
+  // 512 x 512, clear middle: the photo sits in the inner 71%
+  avatar(t) {
+    const hearts = [];
+    const N = 15;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * TAU + 0.55;
+      if (Math.abs(((a - Math.PI / 2 + Math.PI) % TAU) - Math.PI) < 0.42) continue; // room for the head
+      const r = 213 + (i % 3) * 8;
+      const sz = 15 + ((i * 7) % 5) * 3.5;
+      const bob = S(t, 1, i / N) * 5;
+      const pop = 1 + 0.12 * Math.max(0, S(t, 2, i / 7));
+      hearts.push(heart(256 + Math.cos(a) * (r + bob), 256 + Math.sin(a) * (r + bob), sz * pop, (a * 57.3 + 90) % 30 - 15));
+    }
+    const blink = clamp01(1 - Math.abs(t - 0.77) / 0.06);
+    const hx = 256, hy = 456 + S(t, 1, 0.25) * 3;
+    const wave = S(t, 1, 0.5) * 7;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${DEFS}
+      <circle cx="256" cy="256" r="224" fill="none" stroke="#ff2a3a" stroke-width="20" opacity=".25" filter="url(#soft)"/>
+      <circle cx="256" cy="256" r="204" fill="none" stroke="#1a0a0e" stroke-width="7" filter="url(#pencil)"/>
+      <circle cx="256" cy="256" r="204" fill="none" stroke="#e0242f" stroke-width="3" filter="url(#pencil)"/>
+      <circle cx="256" cy="256" r="209" fill="none" stroke="#ffd3df" stroke-width="1.4" stroke-dasharray="3 7" opacity=".8" filter="url(#pencil)"/>
+      ${hearts.join("")}
+      <g transform="translate(${hx} ${hy}) scale(1.02)">${head(blink, S(t, 1) * 0.6)}</g>
+      ${glove(hx - 58, hy - 34 + wave, 15, -20)}${glove(hx + 58, hy - 34 - wave, 15, 20)}
+    </svg>`;
+  },
+
+  // 1000 x 200, art on the right, left 55% stays quiet for the name
+  plate(t) {
+    const beat = Math.pow(Math.max(0, S(t, 2)), 3);
+    const hs = 1 + 0.1 * beat;
+    const rise = [0, 0.33, 0.66].map((p, i) => {
+      const u = (t + p) % 1;
+      return heart(850 + i * 50 + S(u, 1) * 8, 112 - u * 100, 14 + 6 * (1 - u), 12 - i * 10, Math.sin(Math.PI * u), false);
+    });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="200" viewBox="0 0 1000 200">${DEFS}
+      <ellipse cx="885" cy="100" rx="150" ry="90" fill="url(#glow)" opacity="${0.55 + 0.25 * beat}"/>
+      ${sword(775, 165, 140, -32, 1, clamp01((t * 2) % 1) )}
+      ${sword(995, 165, 140, -148, 1, clamp01(((t * 2) + 0.5) % 1))}
+      ${rise.join("")}
+      <g transform="translate(890 104) scale(${hs * 1.45}) translate(0 -8)">
+        <g filter="url(#drop)"><path d="${HEART}" fill="url(#pink)" stroke="#2a0612" stroke-width="2.2" stroke-linejoin="round"/></g>
+        <path d="M-27,-13 C-29,-25 -15,-29 -8,-23" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" opacity=".85"/>
+        <ellipse cx="22" cy="14" rx="9" ry="4" fill="#fff" opacity=".18" transform="rotate(-40 22 14)"/>
+      </g>
+      <g transform="translate(958 152) scale(.4) rotate(${-8 + S(t, 1) * 3})">${head(clamp01(1 - Math.abs(t - 0.45) / 0.03), 0.4)}</g>
+      
+    </svg>`;
+  },
+
+  // 600 x 700 over the header: a slash, then the mask peeks in from the right with a heart
+  effect(t) {
+    const slashP = ease((t - 0.04) / 0.14);
+    const slashFade = 1 - clamp01((t - 0.18) / 0.2);
+    const peek = ease((t - 0.3) / 0.14) * (1 - ease((t - 0.74) / 0.12));
+    const px = 640 - 95 * peek + S(t, 3) * 2 * peek;
+    const blink = clamp01(1 - Math.abs(t - 0.58) / 0.03);
+    const hearts = [0, 1, 2, 3].map((i) => {
+      const u = clamp01((t - 0.42 - i * 0.07) / 0.3);
+      return heart(440 + i * 22 + S(u, 1.5, i / 4) * 10, 200 - u * 150, 14 + (i % 2) * 6, 10 * (i - 1.5), Math.sin(Math.PI * u) * peek, false);
+    });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="700" viewBox="0 0 600 700">${DEFS}
+      <g opacity="${slashFade}">
+        <path d="M30,60 C220,120 420,260 590,520" fill="none" stroke="#ff2a3a" stroke-width="30" stroke-linecap="round" filter="url(#soft)" stroke-dasharray="${760}" stroke-dashoffset="${760 * (1 - slashP)}" opacity=".85"/>
+        <path d="M30,60 C220,120 420,260 590,520" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="${760}" stroke-dashoffset="${760 * (1 - slashP)}"/>
+      </g>
+      ${sword(70 + slashP * 360, 70 + slashP * 360 * 0.62, 150, 28 + slashP * 6, slashFade * (slashP > 0 ? 1 : 0))}
+      <g opacity="${peek}"><ellipse cx="${px + 10}" cy="215" rx="95" ry="105" fill="url(#glow)" opacity=".6"/></g>
+      <g transform="translate(${px} 215) rotate(${-14})" opacity="${Math.min(1, peek * 3)}">
+        <g transform="scale(1.45)">${head(blink, -0.7)}</g>
+        ${glove(-70, 20, 24, -20)}${glove(-62, 62, 24, 5)}
+      </g>
+      ${hearts.join("")}
+    </svg>`;
+  },
+};
+
+window.draw = (scene, t) => {
+  document.getElementById("root").innerHTML = scenes[scene](t);
+};
+window.ready = true;
+</script>

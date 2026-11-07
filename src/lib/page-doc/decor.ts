@@ -204,7 +204,16 @@ export const clampFrameScale = (raw: unknown): number => {
 // saved, and the page's own document decides.
 export type PresetFrame = Exclude<FrameStyle, "custom">;
 export type PresetBannerFx = Exclude<BannerFx, "custom">;
+// A look template: a whole set of cosmetics (ring over the photo, banner, nameplate, card frame and
+// effect) drawn in code. "classic" is the page as it always was (the creator's own picks below);
+// the others add their layers on top. Chosen on the dashboard Effects page; it never changes what the
+// other picks hold, so switching back to Classic brings the old look back exactly.
+export const TIP_TEMPLATES = ["classic", "deadpool"] as const;
+export type TipTemplate = (typeof TIP_TEMPLATES)[number];
+export const isTipTemplate = (v: unknown): v is TipTemplate => typeof v === "string" && (TIP_TEMPLATES as readonly string[]).includes(v);
+
 export interface TipDecor {
+  template: TipTemplate;
   avatar: AvatarStyle;
   frame: PresetFrame;
   bannerFx: PresetEffect;
@@ -226,6 +235,7 @@ export function parseTipDecor(raw: unknown): TipDecor | null {
   const split = splitLegacyFrame(r.frame, r.avatar);
   const legacyPic = typeof r.bannerFx === "string" && isFileFx(r.bannerFx) ? r.bannerFx : null;
   return {
+    template: TIP_TEMPLATES.find((t) => t === r.template) ?? "classic",
     avatar: AVATAR_STYLES.find((a) => a === split.avatar) ?? "none",
     frame: PRESET_FRAMES.find((f) => f === split.frame) ?? "none",
     bannerFx: PRESET_EFFECTS.find((f) => f === r.bannerFx) ?? "none",
@@ -252,6 +262,7 @@ export function applyTipDecor(doc: PageDoc, decor: TipDecor | null): PageDoc {
 // What the tip page draws from a creator's pick beyond the document: their uploaded pictures and the
 // animated banner picture. Plain data, so it can go from the server page to the browser.
 export interface DecorLayers {
+  template: TipTemplate;
   avatarUpload: DecorUpload | null;
   frameUpload: DecorUpload | null;
   frameScale: number;
@@ -259,7 +270,7 @@ export interface DecorLayers {
 }
 export function decorLayers(decor: TipDecor | null): DecorLayers | null {
   if (!decor) return null;
-  return { avatarUpload: decor.avatarUpload, frameUpload: decor.frameUpload, frameScale: decor.frameScale, bannerPic: decor.bannerPic };
+  return { template: decor.template, avatarUpload: decor.avatarUpload, frameUpload: decor.frameUpload, frameScale: decor.frameScale, bannerPic: decor.bannerPic };
 }
 
 // Who may pick a frame and an effect on the dashboard: the owner's own page, or a creator the owner

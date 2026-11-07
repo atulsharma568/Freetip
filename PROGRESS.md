@@ -1394,3 +1394,88 @@ Every change runs `npm run lint`, `npx tsc --noEmit`, `npm run build` and `git d
 ## 7 November 2026 (night, last): browser re-check after the review fixes (Sonnet, medium; no code changed)
 - Same method as before (`next dev`, fixtures, Mac Chrome 1440 and 390 px, throwaway `zz-review` page, deleted; `AGENTS.md`/`CLAUDE.md` from `next dev` deleted). Results: share sheet computed `overscroll-behavior: contain`, mobile `bottom: 14px` (safe-area max() resolves to 14 on desktop Chrome), clicking the backdrop closes it at both sizes; music title input has name `music-title`, autocomplete off, placeholder "Night drive…"; Remove shows "Confirm remove" after one click and resets on blur; plan cards unchanged visually (picked edge, tick, Buy step).
 - NOT tested: upload percentage (needs `BLOB_READ_WRITE_TOKEN`), real iPhone safe-area, Safari, the second Remove click (needs DB). 
+
+## 7 November 2026 (late): committed, pushed, page-music verified (Haiku, low; uncommitted entry)
+- Commits on `main`, pushed to origin (`42023d8..e0fb201`): `74240d9` AcePressure (`globals.css`, `Signature.tsx`); `ea12a77` dashboard (`spotlight-navbar.tsx`, `share-sheet.tsx`, `PlanCards.tsx`, `MusicUpload.tsx`); `e0fb201` this log. No attribution lines. `.claude/` (skills, 45 MB) is still untracked on purpose.
+- Music: migration `0061_page_music.sql` and `BLOB_READ_WRITE_TOKEN` are both done (owner confirmed). Code review of `api/page-music/upload`, `actions/page-music.ts`, `page-music-store.ts`, `page-music.ts`: no bugs found. `test/page-music.spec.ts`: 15/15 pass (chromium desktop, mobile, webkit iPhone).
+- Stale `.next/dev` types (from the deleted `zz-review` page) broke `tsc` and Playwright's `webServer` build. Removed `.next/dev`; `tsc --noEmit` now passes. Not committed (build cache).
+- CI for `e0fb201` (`gh run 42350558287`): was still `in_progress` (`checks` job) when this was written. Check it before relying on the deploy.
+- NOT tested: the live upload to Blob, a signed-in owner's Effects page, the second Remove click, Safari on a real iPhone.
+
+## 7 November 2026 (night, 2): "Deadpool" look template + Template picker on the dashboard Effects page (Sonnet, medium; uncommitted)
+- **What:** a `template` key (`"classic"` default | `"deadpool"`) in `users.tip_decor` jsonb (no migration; `parseTipDecor` reads unknown as classic). Classic = the page exactly as before (all existing picks untouched, they come back when Classic is chosen). Deadpool draws six SVG/CSS layers in `src/components/tip/DeadpoolDecor.tsx` + `.dp-*` block at the end of `globals.css`: avatar ring (halftone band, crossed blades, POW/BAM bursts, 4 floating hearts), banner (replaces the creator's banner while on), nameplate behind the name, header effect (red pulse, drifting X marks, flash cracks, pizza slice), card frame (black panel border, red inner line, strips, corner bursts). CSS-only motion, all off with reduced motion; forced-colors fallback.
+- **Wiring:** `decor.ts` (TIP_TEMPLATES, TipDecor.template, DecorLayers.template), `saveTipTemplate` server action (writes only the template key), `CreatorPanel` `template` prop (frame wraps the creator section; the ring replaces the photo frame), `HeaderBlock` passes `decorLayers.template`, `EffectsManager` has a "Template" tile (tap saves at once). Fixtures: `/dev-fixtures/tip?template=deadpool`.
+- **Checked:** Mac Chrome (dev server, fixtures) at 1440 and 390 px, default page and owner (signature) page; no sideways scroll. The owner's wide italic name needed a smaller size on the plate (`.dp-plate-name .sig-name`). New `test/template-deadpool.spec.ts` (5) + parse spec; page-decor, effects-page, tip-banner, page-doc specs pass (181 on desktop Chrome). tsc and eslint clean.
+- **NOT done / NOT checked:** saving a template for real (needs a signed-in DB session); Safari; real phone. Not built: the "Babypool" variant, the admin page-editor `PageDoc` (the template lives in the creator's Effects picks, not the page document, so the owner's admin editor does not know it). Brand note: Deadpool is Marvel IP; shapes are original and simplified, but the owner should decide if the name is OK on a public page. More templates later = add an id to `TIP_TEMPLATES`, a `TEMPLATE_INFO` entry, and its layer components.
+- Trap: `next dev` writes `AGENTS.md`/`CLAUDE.md` into the repo root; deleted.
+
+## 7 November 2026 (night, 3): Deadpool template made richer and applied to the form card (Sonnet, medium; uncommitted)
+- Owner asked for more effort and the same treatment on the right side (amount, note, pay), like Discord's cosmetics. Now: the form card gets its own frame (`DeadpoolFrame card`), a card-wide effect (`DeadpoolEffect card`: X marks, pink hearts, twinkles, cracks, pizza, one-time KAPOW intro burst) and `.dp-card` paint in `globals.css` (accent re-pointed to #d62a2e for white-text contrast, halftone, sticker step numbers, comic amount box and numeral, chunky chips, inputs, Pay button). Only paint: no payment code touched (`PageLayout.tsx` wraps the Card; the rest is CSS selectors on `.dp-card`).
+- Header livelier: ring bobs, dashed rings spin, bursts pop, blades sway; banner has a stronger mask with seams, BAM burst, hearts and a light sweep; nameplate has moving stripes, shine and a heart sticker.
+- Checked in Mac Chrome (dev server, fixtures) at 1440 and 390 px: no sideways scroll; screenshots looked right after fixing the picked chip (it must stay red) and the clipped banner burst. 84+ specs pass (template-deadpool, page-decor, effects-page, tip-page-blocks, tip-tier, tip-agreed); tsc and eslint clean.
+- NOT checked: a real payment through the dressed card, Safari, real phone, signed-in save. Motion is only judged from stills.
+
+## 7 November 2026 (night, 4): animated buttons for the Deadpool template (Sonnet, medium; uncommitted)
+- `globals.css` end: Pay button wiggles every ~4 s (only while enabled) with its arrow nudging; amount chips pop when picked, jiggle on hover, squish on press (Custom chip is now comic too, the owner's CreepyChip is left alone); step numbers tick; amount box breathes; the other card buttons (voice, sounds, picks, play) jiggle on hover and squish on press. Only rotate/scale/translate move; all off with reduced motion. New spec checks the Pay wiggle (disabled, enabled, reduced motion). Specs pass; eslint clean.
+- Owner's reference URLs (Discord blog, Dripcord, etc.) were not fetched or used.
+- NOT checked: motion by eye in a live browser (only computed animation names and stills).
+
+## 7 November 2026 (night, 5): much richer Deadpool art (Sonnet, medium; uncommitted)
+- Owner said ring, banner and border looked too simple. Redrew in `DeadpoolDecor.tsx` with shared `MaskArt`/`KatanaArt`/`BigHeart`: ring now ~1.76x the photo (inset -38%, wrapper gets `ml-14 mb-10`), crossed katanas behind (masked so only what sticks out shows), gradient halftone band, spinning dashes, mask peeking over the top, big POW/BAM bursts, glossy heart cluster, sparkles. Banner is a full comic panel: rotating sunburst, big shaded mask with katanas, caption "MAXIMUM EFFORT!", THWIP burst, bullet hole, hearts, stars, light sweep, glossy strip. Frame is a thick candy-striped border (`border-image`) with black outlines, a different comic burst in each corner (POW, heart, BAM, ZAP), a mask badge on the top edge and a heart badge on the bottom edge.
+- Checked in Mac Chrome at 1440 and 390 px (screenshots); specs pass; tsc and eslint clean. Ring/frame ornaments overflow the box, so the left frame has `margin-bottom: 36px`.
+- Brand note again: "MAXIMUM EFFORT!" and the mask are Deadpool IP; the owner decides if that is fine on a public page.
+
+## 7 November 2026 (night, 6): Deadpool template redone to match the owner's Discord screen recording (Sonnet, medium; uncommitted)
+- Reference: `~/Desktop/Screen Recording 2026-11-07 at 1.33.07 PM.mov` (Discord shop preview of the Deadpool/Wolverine bundle; note the file name has a narrow no-break space before PM, so use a glob). Frames pulled with ffmpeg at 1 fps.
+- Rebuilt in `DeadpoolDecor.tsx` + `globals.css` (`.dp-*`): **frame** = battered red mask with chipped-paint SVG-noise texture, two black eye sockets with white slashed eyes (glare/blink animation), side tabs, black outline, card in the opening (no more comic bursts); **avatar decoration** = thick dark-maroon ring close round the photo (inset -14%), pink hearts floating off it, a chibi Deadpool at the lower left; **profile effect** = a full Deadpool bust with crossed katanas dashes in from the right with whoosh trails, then idles beside the photo (header only; the form card keeps hearts, sparkles, cracks, KAPOW); **nameplate** = red strip with dark heart-hands art on the right; **banner** = sunburst comic panel with a faded mask watermark. Form-card controls and animated buttons from earlier entries are unchanged.
+- Checked in Mac Chrome at 1440 and 390 px (screenshots), 87 specs pass (template-deadpool incl. eyes and figure checks, page-decor, effects-page, tip-page-blocks, tip-tier, tip-agreed); tsc and eslint clean.
+- Not matched: the reference's character art is Discord's own illustration; mine is a simplified SVG take. The profile effect there is a one-off leap across the whole card; here it is a bust beside the photo. Not checked: Safari, real phone, signed-in save, motion by eye.
+
+## 7 November 2026 (night, 7): professional redo after "looks like a small kid's 2D design" (Sonnet, medium; uncommitted)
+- Owner kept only the profile frame; wanted sharper eyes as in the reference, and asked why the installed skills were not used. They had not been: this pass loaded `svg-animation`, `frontend-design`, `emil-design-eng` first. Lesson: for any visual work here, load the design skills before drawing.
+- Diagnosis: thick black outlines + flat clip-art shapes read as childish. Replaced with rendered, lit surfaces (gradients, specular highlights, soft shadows, no outlines).
+- **Eyes** traced from a zoomed reference frame (ffmpeg crop): black socket with slanted top and grey rim, sharp white wedge (straight slanted top, flat bottom, two points). Frame padding now `19.6% + 22px`.
+- **Avatar decoration:** CSS conic-gradient crimson metal ring (registered `--dp-a` angle turns a highlight round it), red glow, a steel katana (brass guard, crimson lattice handle, glint) crossing behind (masked so only the ends show), embers lifting off the ring.
+- **Nameplate:** carbon-weave crimson plate, top-edge light, slanted blade-cut right end with a thin bright slash, light sweep. **Banner:** smoky crimson scene (feTurbulence fog), light beams, glossy mask emblem with the same sharp eyes. **Profile effect:** three depths of glowing embers plus two blade-slash light streaks (once on load, then every ~9 s), soft red breath at the edges; no character. **Form card:** same language (lit chips, crimson gradient Pay button, glass fields), no cartoon outlines; animated buttons kept. The page accent is re-pointed to crimson inside the frame.
+- Easing per the Emil skill: `cubic-bezier(0.23,1,0.32,1)`, press = scale .97, hover gated by `(hover: hover)`, only transform/opacity animate (plus the one angle property). Reduced motion: no animation.
+- Checked in Mac Chrome at 1440 and 390 px (screenshots, owner and default pages); 91 specs pass (template-deadpool 6, page-decor, effects-page, tip-page-blocks, tip-tier, tip-agreed, tip-thanks earlier); tsc and eslint clean. Not checked: Safari (conic-gradient + @property + mask are supported in current Safari, but untested), real phone, motion by eye, the ring turning (static stills only).
+
+## 7 November 2026 (night, 7): public /pricing page gets the three vui pricing cards (Sonnet, medium; uncommitted)
+- New `src/components/pricing/PricingShowcase.tsx` (client) feeds the vui `PricingSection` with Starter, Creator (featured, lime accent, "Most complete") and a Custom page card ("From ₹2,999", one-time, button to /contact). Words from `plan-catalogue.ts`; beta features (clip helper, Streamlabs) are left out on purpose. Shown at the top of `/pricing` by `LegalPage` itself (for `path === "/pricing"`), NOT through `app/pricing/page.tsx`: that file is fingerprinted in `test/legal-version.spec.ts`, so editing it would force a TERMS_VERSION bump. Keep it untouched unless the Terms wording really changes.
+- Follows the dashboard rule: while `LIVE_SALES_OPEN` is false the paid cards say "Soon", the billing switch is hidden and the buttons go to /signup. When it is true: 1 month / 12 months switch with "-25%", prices roll, numbers are the monthly equivalent of the year (₹150, ₹292), footnote says the year is paid once (₹1,799 / ₹3,499) and nothing renews itself; buttons go to /dashboard/plans.
+- Edits to `vui/pricing-section.tsx`: new `showBilling` prop, price numbers use en-IN. `PlanCards.tsx` (dashboard) untouched.
+- Checked in Mac Chrome at 1440 and 390 px, both states (open state through a throwaway page, deleted): no sideways scroll. tsc and eslint pass. Console shows only Auth.js 500s (no auth env locally), not from this change.
+- NOT checked: Safari, real phone, hover spotlight by eye, a Playwright spec for /pricing.
+
+## 7 November 2026 (night, 8): pricing spec added, guard trap handled, committed (Sonnet, medium)
+- New `test/pricing-cards.spec.ts` (4): three cards, "Soon" and no billing switch while sales are closed, button links, no sideways scroll, legal sections still present. With legal-version, routes, responsive, fees-copy: 90 passed (Mac Chrome via a temporary config, deleted; `next build` + `next start -p 3300` by hand; Playwright's own chromium shell is not installed here).
+- Trap: `legal-version.spec.ts` fingerprints `app/pricing/page.tsx`; my first edit tripped it, so the cards are injected in `LegalPage` instead (owner chose this over bumping TERMS_VERSION).
+
+## 2026-11-07, night 8: Deadpool template, art slots
+
+- Banner kept as the user liked it. Frame eyes redone with lit, shaded rendering (socket gradient, inner shadow, rim light, glow).
+- Code-drawn avatar ring, nameplate art and profile effect removed (looked cheap). They are now file slots under `public/decorations/deadpool/`: `avatar-decoration.webp`, `nameplate.webp`, `profile-effect.webp` (+ optional `.poster.webp`). Spec in `docs/deadpool-template-assets.md`. Slots verified with throwaway placeholders, then deleted.
+- Nameplate is a plain black to crimson gradient until art arrives. Card-level effect removed.
+- Tests: template-deadpool, page-decor, effects-page, tip-page-blocks, tip-tier, tip-agreed pass with Chrome temp config (default config needs browsers not installed here). The owner aria-snapshot spec is flaky under load; passes alone.
+- Left: user supplies the three art files, then tune sizes. Nothing committed.
+- Trap: `next dev` writes AGENTS.md/CLAUDE.md into the repo root; delete them.
+
+## 2026-11-07, night 9: original art for the three slots
+
+- User has no art files; asked for original art "somewhat similar" to the Discord references. Drew it: `tools/decor-render/merc-art.html` (chibi masked merc, pink sketch hearts, swords, gloves) + `merc-art.mjs` (Chrome frames, img2webp). Output in `public/decorations/deadpool/`: avatar-decoration (hearts ring, blinking chibi at bottom), nameplate (beating heart, crossed swords, little head), profile-effect (slash then masked head peeks in with hearts), each with `.poster.webp`.
+- Avatar decoration file is ~1 MB (pencil filter noise compresses badly); lower `-q` or drop the filter if size matters.
+- Checked in the fixture page only; the effect head sits over banner/plate area, tune position in merc-art.html if wanted. Nothing committed.
+
+## 2026-11-07, night 10: tuned the Deadpool art
+
+- Nameplate art now `object-fit: contain`, scale 1.15 from the right, and the name gets `padding-right: 22%`, so a long name no longer runs under the heart (checked at 390px and on the owner page).
+- Profile effect aligned to the top of the header (`right top`) so the peeking head sits beside the avatar, not over the nameplate.
+- File sizes: frames saved smaller than drawn (avatar 384, plate 800, effect 480 px wide); avatar loop 20 frames. avatar 865 KB to 630 KB, plate 325 KB, effect 372 KB. Each frame costs about 30 KB whatever the quality (lossless transparency edges), so fewer frames is the lever.
+- `merc-art.mjs build [avatar|plate|effect]` rebuilds one slot. Chrome needed; a full build takes a few minutes.
+- Tests and tsc pass. The effect's mid-loop frame was not re-screenshotted after the alignment change. Nothing committed.
+
+## 2026-11-07 Deadpool template: banner redo, AcePressure-only
+- Banner: removed the mask emblem (looked like a second head next to the profile effect); now fog, two diagonal cuts, bullet holes.
+- Template gate: Deadpool is offered only on the owner's page (AcePressure). `saveTipTemplate` refuses it for others; the Effects picker gets `templates={["classic"]}` for creators. Meant to become a paid feature later.
+- Open: avatar-decoration.webp (user's file) has pink hearts and reads "girly"; user to supply a replacement or say remove. Do not redraw in code.
+- Tests: page-decor and template-deadpool Playwright specs, 75 passed (PAGE_FIXTURES=1). Dev server needs PAGE_FIXTURES=1 for /dev-fixtures.

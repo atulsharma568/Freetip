@@ -1736,3 +1736,117 @@ html.menu-open body {
     96% { height: 0; }
   }
 }
+
+/* ---- The "Deadpool" look template (components/tip/DeadpoolDecor.tsx) ----
+   Fixed colours; rendered with gradients and light, not outlines. Motion is CSS only, moves transform and
+   opacity (and one registered angle), and is off under reduced motion. Easing: strong ease-out for entrances. */
+:root { --dp-ease: cubic-bezier(0.23, 1, 0.32, 1); }
+
+/* ---- the profile frame ---- */
+.dp-frame {
+  position: relative; box-sizing: border-box; border-radius: 14px; margin-top: 6px;
+  padding: calc(19.6% + 22px) 16px 16px;
+  background-color: #b3141b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.13 .17' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .8  0 0 0 0 .78  0 0 0 0 .76  -10 0 0 0 3.05'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23f)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 0.9'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E"), linear-gradient(160deg, #d51f26 0%, #a10f16 55%, #7d0b11 100%);
+  background-size: 260px 260px, 200px 200px, 100% 100%;
+  outline: 3px solid #000; outline-offset: -1px;
+  box-shadow: 0 0 0 3px #000, 0 0 26px 6px rgb(237 66 69 / 0.3), 0 14px 28px rgb(0 0 0 / 0.5), inset 0 0 0 2px rgb(255 120 120 / 0.25), inset 0 -6px 12px rgb(0 0 0 / 0.35);
+}
+.dp-frame { --color-accent: #d62a2e; --color-ink: #fff; }
+.dp-frame:not(.dp-frame-card) { margin-bottom: 28px; }
+.dp-frame > section, .dp-frame > .dp-card { position: relative; border-radius: 8px; outline: 3px solid #000; outline-offset: 0; background-color: #0c0c10; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 0 0 1px rgb(255 255 255 / 0.05); }
+.dp-frame > section { padding: 16px; }
+.dp-eye { position: absolute; top: 12px; width: 43%; height: auto; aspect-ratio: 160 / 73; z-index: 4; pointer-events: none; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.55)); }
+.dp-eye-l { left: 4.5%; }
+.dp-eye-r { right: 4.5%; }
+.dp-eye-w { transform-box: fill-box; transform-origin: center; }
+.dp-tab { position: absolute; top: 34%; width: 9px; height: 15%; background: #a10f16; border: 2px solid #000; border-radius: 3px; z-index: 1; }
+.dp-tab-l { left: -9px; border-right: 0; border-radius: 4px 0 0 4px; }
+.dp-tab-r { right: -9px; border-left: 0; border-radius: 0 4px 4px 0; }
+.dp-frame-card { margin-top: 0; }
+@media (max-width: 400px) { .dp-frame { padding: calc(19.6% + 18px) 12px 12px; } .dp-eye { top: 9px; } }
+
+/* ---- supplied artwork: avatar decoration, nameplate art, profile effect ---- */
+.dp-asset { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity 240ms var(--dp-ease); user-select: none; }
+.dp-asset-contain { object-fit: contain; }
+.dp-asset-cover { object-fit: cover; object-position: right top; }
+.dp-ring { position: absolute; inset: -20%; pointer-events: none; z-index: 2; }
+
+/* ---- the nameplate ---- */
+.dp-plate {
+  position: relative; display: block; overflow: hidden; margin: 4px 0; padding: 8px 20px; border-radius: 10px;
+  background: linear-gradient(100deg, #09030a 0%, #1c050b 30%, #4a0710 62%, #8a0d18 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 -1px 0 rgb(0 0 0 / 0.6), 0 6px 16px rgb(0 0 0 / 0.45);
+}
+.dp-plate-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: right center; scale: 1.15; transform-origin: right center; pointer-events: none; user-select: none; transition: opacity 240ms var(--dp-ease); }
+.dp-plate-name { position: relative; z-index: 1; display: block; min-width: 0; padding-right: 22%; }
+.dp-plate-name :is(h1, h3) { color: #fff; line-height: 1.05; text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
+.dp-plate-name .sig-name { font-size: clamp(1.5rem, 7.2vw, 2.1rem); }
+
+/* ---- the banner ---- */
+.dp-banner { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dp-beams, .dp-sheen { transform-box: view-box; }
+
+/* ---- the profile effect ---- */
+.dp-fx { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; border-radius: inherit; }
+
+/* ---- the form card: refined, lit, no cartoon outlines ---- */
+.dp-card {
+  --color-accent: #d62a2e; --color-ink: #fff;
+  background-image: radial-gradient(ellipse at 100% 0%, rgb(237 66 69 / 0.14), transparent 55%), radial-gradient(rgb(255 255 255 / 0.028) 1px, transparent 1.4px);
+  background-size: 100% 100%, 7px 7px;
+}
+.dp-card > :not(.dp-fx) { position: relative; z-index: 4; }
+.dp-card h2 { font-weight: 700; letter-spacing: 0.02em; }
+.dp-card span.grid.numeric {
+  border-radius: 8px; color: #fff; font-weight: 800; background: linear-gradient(160deg, #f0545b, #a10f16);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -2px 4px rgb(0 0 0 / 0.35), 0 2px 6px rgb(0 0 0 / 0.5), 0 0 12px rgb(237 66 69 / 0.35);
+}
+.dp-card h2 ~ span[aria-hidden] { height: 1px; background: linear-gradient(90deg, rgb(237 66 69 / 0.7), transparent); }
+.dp-card div:has(> .amount-numeral) {
+  border: 1px solid rgb(237 66 69 / 0.38); background-color: #0b0708;
+  background-image: radial-gradient(ellipse at 50% 0%, rgb(237 66 69 / 0.2), transparent 70%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 28px rgb(0 0 0 / 0.7), 0 0 22px rgb(237 66 69 / 0.12);
+}
+.dp-card .amount-numeral { text-shadow: 0 2px 0 rgb(0 0 0 / 0.5), 0 0 26px rgb(237 66 69 / 0.45); }
+.dp-card fieldset label > span.h-12:not([class*="creepy"]) {
+  border: 1px solid rgb(255 255 255 / 0.12); font-weight: 700;
+  transition: transform 180ms var(--dp-ease), box-shadow 180ms var(--dp-ease), border-color 180ms var(--dp-ease);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 0 rgb(0 0 0 / 0.5);
+}
+.dp-card fieldset label > input:not(:checked) ~ span.h-12:not([class*="creepy"]) { background-color: #15100f; }
+.dp-card fieldset label > input:checked ~ span.h-12:not([class*="creepy"]) { border-color: #ff7d82; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 0 16px rgb(237 66 69 / 0.5), 0 2px 0 rgb(0 0 0 / 0.4); }
+@media (hover: hover) { .dp-card fieldset label:hover > span.h-12:not([class*="creepy"]) { translate: 0 -1px; border-color: rgb(237 66 69 / 0.7); } }
+.dp-card fieldset label:active > span.h-12:not([class*="creepy"]) { scale: 0.97; }
+.dp-card input:is([type="text"], :not([type])), .dp-card textarea { border: 1px solid rgb(255 255 255 / 0.14); background-color: #0b0809; box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.5); }
+.dp-card input:is([type="text"], :not([type])):focus, .dp-card textarea:focus { border-color: #ED4245; box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.5), 0 0 0 3px rgb(237 66 69 / 0.22); }
+.dp-card .beam {
+  border: 1px solid #ff8a8f; letter-spacing: 0.05em; font-weight: 800; text-transform: uppercase; text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+  background-image: linear-gradient(180deg, #f0474e 0%, #c1161e 55%, #8f0e14 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -3px 8px rgb(0 0 0 / 0.3), 0 6px 18px rgb(237 66 69 / 0.38), 0 2px 0 #4a0709;
+  transition: transform 180ms var(--dp-ease), box-shadow 180ms var(--dp-ease);
+}
+@media (hover: hover) { .dp-card .beam:not(:disabled):hover { translate: 0 -1px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -3px 8px rgb(0 0 0 / 0.3), 0 10px 26px rgb(237 66 69 / 0.5), 0 2px 0 #4a0709; } }
+.dp-card .beam:not(:disabled):active { scale: 0.97; }
+.dp-card button:not(.beam):not([role="switch"]):active { scale: 0.97; }
+
+@media (forced-colors: active) {
+  .dp-plate { background: Canvas; box-shadow: none; } .dp-plate-name :is(h1, h3) { color: CanvasText; text-shadow: none; }
+  .dp-card .beam { border-color: ButtonText; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dp-beams { animation: dp-beam 9s ease-in-out infinite; }
+  .dp-sheen { animation: dp-sweep 7s ease-in-out 1s infinite; }
+  .dp-card .beam:not(:disabled) { animation: dp-ready 4.6s ease-in-out 1.5s infinite; }
+  .dp-card .beam:not(:disabled) svg { animation: dp-nudge 1.4s ease-in-out infinite; }
+  .dp-card fieldset label > input:checked ~ span.h-12:not([class*="creepy"]) { animation: dp-chip-pop 0.36s var(--dp-ease); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .dp-card button:not(.beam):not([role="switch"]):not(:disabled):hover { translate: 0 -1px; }
+}
+@keyframes dp-beam { 0%, 100% { transform: translateX(-14px); opacity: 0.8; } 50% { transform: translateX(26px); opacity: 1; } }
+@keyframes dp-sweep { 0%, 55% { transform: skewX(-20deg) translateX(0); } 100% { transform: skewX(-20deg) translateX(540px); } }
+@keyframes dp-ready { 0%, 88%, 100% { transform: translateY(0); } 92% { transform: translateY(-2px); } 96% { transform: translateY(0); } }
+@keyframes dp-nudge { 0%, 100% { translate: 0 0; } 50% { translate: 4px 0; } }
+@keyframes dp-chip-pop { 0% { scale: 0.94; } 60% { scale: 1.04; } 100% { scale: 1; } }

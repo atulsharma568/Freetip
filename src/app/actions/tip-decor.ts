@@ -14,6 +14,7 @@ import {
   clampFrameScale,
   decorPathPrefix,
   isAnimatedWebp,
+  isTipTemplate,
   mayPickTipDecor,
   parseTipDecor,
   safeDecorUrl,
@@ -36,7 +37,7 @@ async function who() {
   const [row] = await db<{ id: number; handle: string; paid_features: string[] | null }[]>`select id, handle, paid_features from users where google_id = ${googleId} and handle is not null`;
   if (!row) return { ok: false, error: SIGN_IN } as const;
   if (!mayPickTipDecor(isOwnerTipPage(row.handle, googleId), row)) return { ok: false, error: "Photo and banner effects are not switched on for your account." } as const;
-  return { ok: true, db, row } as const;
+  return { ok: true, db, row, googleId } as const;
 }
 
 // The driver writes an object as jsonb. Only the keys given are changed: the rest of what is stored
@@ -89,6 +90,24 @@ export async function saveTipDecor(input: { avatar: string; frame: string; banne
     return { status: "error", message: "Could not save your choice, try again shortly" };
   }
   refresh(row.handle);
+  return { status: "ok" };
+}
+
+// Saves the look template (Classic, Deadpool, ...). Only this key is written, so the picks and uploads
+// of the Classic look stay exactly as they were and come back when Classic is chosen again.
+export async function saveTipTemplate(input: { template: string }): Promise<TipDecorActionResult> {
+  const ctx = await who();
+  if (!ctx.ok) return { status: "error", message: ctx.error };
+  if (!isTipTemplate(input.template)) return { status: "error", message: "That is not one of the templates on offer." };
+  // Deadpool is the owner's (AcePressure) template for now; it is meant to become a paid feature later.
+  if (input.template !== "classic" && !isOwnerTipPage(ctx.row.handle, ctx.googleId)) return { status: "error", message: "That template is not available for your account yet." };
+  try {
+    await mergeDecor(ctx.db, ctx.row.id, { template: input.template });
+  } catch (err) {
+    console.error("Could not save the template (migration 0058 run?)", err);
+    return { status: "error", message: "Could not save your choice, try again shortly" };
+  }
+  refresh(ctx.row.handle);
   return { status: "ok" };
 }
 

@@ -13,6 +13,7 @@ import { QrBlock } from "./QrBlock";
 import { SendBlock } from "./SendBlock";
 import { StripBlock } from "./StripBlock";
 import { SignatureCard } from "@/components/tip/Signature";
+import { DeadpoolFrame } from "@/components/tip/DeadpoolDecor";
 
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
@@ -20,7 +21,9 @@ const step = (i: number) => ({ "--i": i }) as CSSProperties;
 // whatever sits under the card. Each section keeps the wrappers it had before the page was
 // drawn from blocks, so the DOM order, the tab order and the entrance order are the same.
 export function PageLayout({ doc }: { doc: PageDoc }) {
-  const { announce, editing, meterOn, signature } = useTipForm();
+  const { announce, editing, meterOn, signature, decorLayers } = useTipForm();
+  // The "Deadpool" look template (dashboard Effects) also dresses the form card: frame, effect, comic controls.
+  const dp = decorLayers?.template === "deadpool";
   const inSlot = (slot: Slot) => doc.blocks.filter((b) => b.slot === slot && b.visible);
   const side = inSlot("side");
   const main = inSlot("main");
@@ -93,8 +96,10 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
         <div className="contents lg:sticky lg:top-24 lg:block lg:space-y-8">{sideNodes}</div>
 
         {/* The tip (on the owner's own page, a card with a spotlight that follows the mouse) */}
+        {(() => {
+          const card = (
         <Card
-          className="enter space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 sm:p-8"
+          className={`enter space-y-8 rounded-[var(--radius-surface)] border border-line/60 bg-surface p-5 sm:p-8 ${dp ? "dp-card relative" : ""}`}
           style={step(1)}
         >
           <p role="status" className="sr-only">
@@ -123,6 +128,9 @@ export function PageLayout({ doc }: { doc: PageDoc }) {
             }
           })}
         </Card>
+          );
+          return dp ? <DeadpoolFrame card>{card}</DeadpoolFrame> : card;
+        })()}
       </div>
       {bottom.map((block) =>
         block.type === "strip" ? <StripBlock key={block.id} block={block} editing={editing} signature={signature} tagline={tagline} /> : null,

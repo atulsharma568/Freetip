@@ -128,8 +128,15 @@ test.describe("the owner's own page", () => {
 });
 
 test.describe("the pick saved from the dashboard", () => {
-  const BLANK = { avatar: "none", frame: "none", bannerFx: "none", bannerPic: "none", avatarUpload: null, frameUpload: null, frameScale: 144 };
+  const BLANK = { template: "classic", avatar: "none", frame: "none", bannerFx: "none", bannerPic: "none", avatarUpload: null, frameUpload: null, frameScale: 144 };
   const BLOB = "https://abc123.public.blob.vercel-storage.com";
+
+  test("the template is classic unless it is a known one", async () => {
+    const { parseTipDecor } = await import("../src/lib/page-doc/decor");
+    expect(parseTipDecor({ template: "deadpool" })?.template).toBe("deadpool");
+    expect(parseTipDecor({ template: "nope" })?.template).toBe("classic");
+    expect(parseTipDecor({})?.template).toBe("classic");
+  });
 
   test("only ready-made looks are read back, anything else is none", async () => {
     const { parseTipDecor } = await import("../src/lib/page-doc/decor");

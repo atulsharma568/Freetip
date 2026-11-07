@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { removeDecorUpload, saveDecorUpload, saveTipDecor } from "@/app/actions/tip-decor";
+import { removeDecorUpload, saveDecorUpload, saveTipDecor, saveTipTemplate } from "@/app/actions/tip-decor";
 import { removeTipBanner, saveUploadedBanner } from "@/app/actions/tip-banner";
 import { type DecorRender } from "@/components/tip/Decor";
 import { CreatorPanel } from "@/components/tip/CreatorPanel";
@@ -23,6 +23,7 @@ import {
   FILE_FX_INFO,
   FRAME_SCALE,
   PRESET_EFFECTS,
+  TIP_TEMPLATES as TIP_TEMPLATE_IDS,
   PRESET_FRAMES,
   decorPathPrefix,
   isAvatarPic,
@@ -35,6 +36,7 @@ import {
   type PresetEffect,
   type PresetFrame,
   type TipDecor,
+  type TipTemplate,
 } from "@/lib/page-doc/decor";
 import { Tile } from "../parts/Tile";
 import { PreviewSplit } from "../parts/PreviewSplit";
@@ -58,6 +60,11 @@ const EFFECT_INFO: Record<PresetEffect, { label: string; about: string }> = {
   petals: { label: "Falling petals", about: "Soft petals drifting down and turning." },
   snow: { label: "Soft snow", about: "Small flakes drifting slowly down." },
   stars: { label: "Twinkling stars", about: "Tiny stars that fade in and out." },
+};
+
+const TEMPLATE_INFO: Record<TipTemplate, { label: string; about: string }> = {
+  classic: { label: "Classic", about: "Your page as it is now: your own picks below (photo, decoration, banner and effect)." },
+  deadpool: { label: "Deadpool", about: "Red and black comic look: a ring with floating hearts, banner, nameplate, card frame and a gentle effect. Your picks below are kept for Classic." },
 };
 
 const preset = (style: string): DecorRender => {
@@ -133,6 +140,7 @@ export function EffectsManager({
   creatorId = 0,
   uploadsReady = false,
   canUploadBanner = false,
+  templates = TIP_TEMPLATE_IDS,
 }: {
   saved: TipDecor;
   style: Record<string, string>;
@@ -144,6 +152,8 @@ export function EffectsManager({
   uploadsReady?: boolean;
   // The tip page banner switch is on, so the banner can be uploaded here too.
   canUploadBanner?: boolean;
+  // Templates on offer: only Classic for creators until Deadpool (AcePressure's) becomes a paid feature.
+  templates?: readonly TipTemplate[];
 }) {
   const router = useRouter();
   const [avatar, setAvatar] = useState<AvatarStyle>(saved.avatar);
@@ -152,6 +162,8 @@ export function EffectsManager({
   const [pic, setPic] = useState<BannerPic>(saved.bannerPic);
   const [frameScale, setFrameScale] = useState<number>(saved.frameScale);
   const [live, setLive] = useState<TipDecor>(saved);
+  const [template, setTemplate] = useState<TipTemplate>(saved.template);
+  const [templateMsg, setTemplateMsg] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [avatarUp, setAvatarUp] = useState<DecorUpload | null>(saved.avatarUpload);
   const [frameUp, setFrameUp] = useState<DecorUpload | null>(saved.frameUpload);
   const [banner, setBanner] = useState<string | null>(bannerUrl);
@@ -165,6 +177,25 @@ export function EffectsManager({
   useEffect(() => {
     warmBannerTints(BANNER_PICS.filter(isFileFx).map((f) => FILE_FX[f].posterUrl));
   }, []);
+
+  // A template is saved the moment it is tapped (it only writes its own key; the Classic picks stay).
+  async function pickTemplate(next: TipTemplate) {
+    if (next === template || busy) return;
+    const before = template;
+    setTemplate(next);
+    setBusy(true);
+    setTemplateMsg(null);
+    const result = await saveTipTemplate({ template: next });
+    setBusy(false);
+    if (result.status === "ok") {
+      setLive((l) => ({ ...l, template: next }));
+      setTemplateMsg({ kind: "ok", text: `${TEMPLATE_INFO[next].label} is live on your tip page now.` });
+      router.refresh();
+    } else {
+      setTemplate(before);
+      setTemplateMsg({ kind: "error", text: result.message });
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -316,6 +347,7 @@ export function EffectsManager({
               frame={frameRender}
               bannerFx={preset(fx)}
               bannerPic={pic === "none" ? null : preset(pic)}
+              template={template}
             />
           </div>
           <p className="text-sm text-muted">
@@ -325,6 +357,16 @@ export function EffectsManager({
         </Tile>
       }
     >
+      <Tile id="effects-template" title="Template" level={2}>
+        <p className="text-sm text-muted">A whole look in one tap. Classic keeps everything you have picked below; Deadpool dresses the page in its own ring, banner, nameplate and frame.</p>
+        <div role="group" aria-label="Template" className="grid gap-2 sm:grid-cols-2">
+          {templates.map((t) => (
+            <Choice key={t} on={template === t} label={TEMPLATE_INFO[t].label} about={TEMPLATE_INFO[t].about} onPick={() => pickTemplate(t)} />
+          ))}
+        </div>
+        <Msg kind={templateMsg?.kind} text={templateMsg?.text} />
+      </Tile>
+
       <Tile id="effects-avatar" title="Profile picture" level={2}>
         <p className="text-sm text-muted">Your own photo, a picture you upload, or a ready-made animated picture in its place. The frame below goes over whichever you pick.</p>
         <div role="group" aria-label="Profile picture" className="grid gap-2 sm:grid-cols-2">

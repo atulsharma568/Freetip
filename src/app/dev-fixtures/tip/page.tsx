@@ -23,11 +23,11 @@ import { SuccessFixture } from "./SuccessFixture";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Tip page fixture", robots: { index: false, follow: false } };
 
-type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string; editing?: string; min?: string; meter?: string; mtitle?: string }> };
+type Props = { searchParams: Promise<{ page?: string; view?: string; doc?: string; editing?: string; min?: string; meter?: string; mtitle?: string; template?: string }> };
 
 export default async function TipFixturePage({ searchParams }: Props) {
   if (!fixturesEnabled()) notFound();
-  const { page, view, doc: rawDoc, editing, min, meter, mtitle } = await searchParams;
+  const { page, view, doc: rawDoc, editing, min, meter, mtitle, template } = await searchParams;
   const owner = page === "owner";
   const fallback = owner ? ownerPageDoc() : defaultPageDoc();
   const doc = rawDoc ? pageDocOrDefault(Buffer.from(rawDoc, "base64url").toString("utf8"), fallback) : fallback;
@@ -45,6 +45,6 @@ export default async function TipFixturePage({ searchParams }: Props) {
     );
   }
 
-  const data = fixtureData(owner, doc, { editing: editing === "1", min, meter, mtitle });
+  const data = fixtureData(owner, doc, { editing: editing === "1", min, meter, mtitle, template });
   return <TipPageView data={data} />;
 }

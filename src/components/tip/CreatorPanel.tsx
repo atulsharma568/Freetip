@@ -8,6 +8,8 @@ import { isUploadedBannerUrl } from "@/lib/tip-banner";
 import { useBannerTint } from "./use-banner-tint";
 import { AvatarPicture, BannerEffect, PhotoFrame, type DecorRender } from "./Decor";
 import { FlipName } from "./Signature";
+import { DeadpoolBanner, DeadpoolEffect, DeadpoolFrame, DeadpoolNameplate, DeadpoolRing } from "./DeadpoolDecor";
+import type { TipTemplate } from "@/lib/page-doc/decor";
 
 const PERKS = [
   { Icon: Lightning, text: "UPI and cards" },
@@ -33,6 +35,7 @@ export function CreatorPanel({
   bannerPic = null,
   fxWholeHeader = false,
   signature = false,
+  template = "classic",
 }: {
   displayName: string;
   pictureUrl: string | null;
@@ -56,7 +59,10 @@ export function CreatorPanel({
   fxWholeHeader?: boolean;
   // The owner's own page: the name flips in (Signature.tsx) in the heavy italic face.
   signature?: boolean;
+  // A look template (dashboard Effects): "deadpool" draws its ring, banner, nameplate, effect and card frame.
+  template?: TipTemplate;
 }) {
+  const dp = template === "deadpool";
   // The picture the visitor sees on the banner (a ready-made animated picture covers the creator's own
   // banner); the effect over it is drawn in that picture's main colour. No picture keeps the accent.
   // A ready-made picture is read from its small still, not the whole animation.
@@ -65,11 +71,11 @@ export function CreatorPanel({
   const showChannel = ytChannelName && ytChannelUrl && ytChannelName.trim().toLowerCase() !== displayName.trim().toLowerCase();
   // An effect with no banner picture gets a banner strip of its own (the page colour fading to the
   // ground), so a creator can have an animated banner without uploading one.
-  const hasBanner = Boolean(bannerUrl) || bannerPic !== null || (bannerFx !== null && !fxWholeHeader);
+  const hasBanner = dp || Boolean(bannerUrl) || bannerPic !== null || (bannerFx !== null && !fxWholeHeader);
   // A finished whole-header animation (drawn with dark fog and a forest) plays behind the photo and the
   // words, so it never hides them; an uploaded one plays over everything, as its maker drew it.
   const fxBehind = fxWholeHeader && bannerFx?.kind === "custom" && bannerFx.wholeHeader === true;
-  return (
+  const panel = (
     <section className="space-y-6" aria-label="Creator">
       <div className="relative space-y-4">
         {fxWholeHeader && (
@@ -80,9 +86,10 @@ export function CreatorPanel({
         {hasBanner && (
           <div
             className="relative aspect-[16/5] overflow-hidden rounded-[var(--radius-surface)] border border-line/60 bg-surface"
-            style={bannerUrl || bannerPic ? undefined : { background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
+            style={dp || bannerUrl || bannerPic ? undefined : { background: "linear-gradient(135deg, color-mix(in oklab, var(--color-accent) 30%, var(--color-ground)), var(--color-ground) 80%)" }}
           >
-            {bannerUrl && (
+            {dp && <DeadpoolBanner />}
+            {!dp && bannerUrl && (
               <Image
                 src={bannerUrl}
                 alt=""
@@ -94,13 +101,13 @@ export function CreatorPanel({
                 className="object-cover"
               />
             )}
-            <BannerEffect render={bannerPic} />
+            {!dp && <BannerEffect render={bannerPic} />}
             {!fxWholeHeader && <BannerEffect render={bannerFx} tint={tint} />}
           </div>
         )}
-        <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : fxBehind ? "z-[2]" : ""} ${hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
+        <span className={`relative inline-block rounded-full border-2 border-accent p-1.5 ${hasBanner ? "z-10 -mt-14 bg-ground sm:-mt-16" : fxBehind ? "z-[2]" : ""} ${dp ? "mb-6 ml-6" : hasBanner ? (frame ? "ml-6" : "ml-4") : frame ? "m-4" : ""}`}>
           <AvatarPicture render={avatar} />
-          <PhotoFrame render={frame} />
+          {dp ? <DeadpoolRing /> : <PhotoFrame render={frame} />}
           {pictureUrl ? (
             <Image
               src={pictureUrl}
@@ -119,16 +126,20 @@ export function CreatorPanel({
             </span>
           )}
         </span>
-        <div className={`min-w-0 space-y-3 ${fxBehind ? "relative z-[2]" : ""}`}>
+        {dp && <DeadpoolEffect />}
+        <div className={`min-w-0 space-y-3 ${fxBehind ? "relative z-[2]" : ""} ${dp ? "relative z-[4]" : ""}`}>
           <p className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-medium text-muted">
             <span aria-hidden="true" className="live-dot" />
             {previewMode ? "Preview" : "Tips open"}
           </p>
-          {signature ? (
-            <FlipName name={displayName} as={Heading} />
-          ) : (
-            <Heading className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</Heading>
-          )}
+          {(() => {
+            const name = signature ? (
+              <FlipName name={displayName} as={Heading} />
+            ) : (
+              <Heading className="display text-[clamp(2.5rem,7vw,3.75rem)] break-words">{displayName}</Heading>
+            );
+            return dp ? <DeadpoolNameplate>{name}</DeadpoolNameplate> : name;
+          })()}
           {showChannel && (
             <a
               href={ytChannelUrl}
@@ -153,6 +164,7 @@ export function CreatorPanel({
       </ul>
     </section>
   );
+  return dp ? <DeadpoolFrame>{panel}</DeadpoolFrame> : panel;
 }
 
 // A scannable QR of this page's address, for a second device. Wide screens only, where
