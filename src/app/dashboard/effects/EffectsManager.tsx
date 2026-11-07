@@ -418,8 +418,9 @@ export function EffectsManager({
           </label>
         )}
         <p className="text-xs text-muted">
-          A square PNG, GIF or WebP with a see-through background, up to 3 MB. It is drawn bigger than your photo, like a ring around it; make the
-          middle empty so your photo shows through. Press Save after changing the size.
+          Upload a PNG, GIF or WebP (an animated GIF or WebP is fine). Not a JPG and not a video. Up to 3 MB. Make it square, 512 × 512 px or
+          larger, with a see-through background, and leave the middle empty so your photo shows through. It is drawn about 1.44 times the size of
+          your photo, like a ring around it; use the size slider to change that, then press Save.
         </p>
       </Tile>
 
